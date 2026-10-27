@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 from agents.fixer import run_fixer
+from agents.keys import resolve_mode
 from agents.loop import one_run
 from agents.observations import from_trace
 from agents.orchestrator import build_repair_request
@@ -233,9 +234,15 @@ class TriageReportTrustLoopTest(unittest.TestCase):
 
     def test_trust_beat(self):
         with tempfile.TemporaryDirectory() as tmp:
-            result = run_trust_check(Path(tmp) / "trust")
+            out = Path(tmp) / "trust"
+            result = run_trust_check(out)
             self.assertTrue(result["ok"])
             self.assertEqual(result["signingKeyInFixer"], [])
+            self.assertTrue(result["readDeniedByAbsence"])
+            self.assertTrue((out / "trust-evidence.md").exists())
+            evidence = (out / "trust-evidence.md").read_text(encoding="utf-8")
+            self.assertIn("PASS", evidence)
+            self.assertNotIn("DEMO-FAKE-SIGNING-KEY-NOT-REAL", (out / "fixer-workspace" / "player" / "readme-extra.txt").read_text())
 
     def test_loop_accepts_with_fixture_obs(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -246,8 +253,36 @@ class TriageReportTrustLoopTest(unittest.TestCase):
                 observations=REPO / "agents" / "fixtures" / "obs-fixed.json",
                 candidate_patch=REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
                 skip_harness=True,
+                run_trust=True,
             )
             self.assertEqual(result["decision"], "accept")
+            self.assertTrue(result["trust"]["ok"])
+            self.assertEqual(result["fixerSource"], "fixture")
+            # Signing key stays on verifier-host, not fixer-work.
+            self.assertFalse(list((Path(tmp) / "loop" / "fix" / "fixer-work").rglob(".nightshift-signing-key"))
+                             if (Path(tmp) / "loop" / "fix" / "fixer-work").exists() else False)
+
+    def test_loop_crash_never_forges_accept(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result = one_run(
+                Path(tmp) / "loop",
+                use_muse=False,
+                offline_triage=True,
+                observations=REPO / "agents" / "fixtures" / "obs-fixed.json",
+                candidate_patch=REPO / "agents" / "fixtures" / "out-of-glob.patch",
+                skip_harness=True,
+                run_trust=True,
+            )
+            self.assertEqual(result["decision"], "reject")
+            self.assertIsNotNone(result.get("error"))
+
+    def test_resolve_mode_offline_and_live_gates(self):
+        offline = resolve_mode("offline")
+        self.assertTrue(offline["offline_triage"])
+        self.assertFalse(offline["use_muse"])
+        auto = resolve_mode("auto")
+        self.assertIn("offline_triage", auto)
+        self.assertIn("use_muse", auto)
 
 
 class SpecsEvaluateTest(unittest.TestCase):
