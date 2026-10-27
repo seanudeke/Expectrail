@@ -59,8 +59,10 @@ A fix must keep the game playable. On the smoke route, the clean game:
 - never puts the player below the ground.
 
 A candidate that stops the fall by freezing the player, or by removing gravity, fails these and is
-rejected even though the visual check passes. Taofeek's verifier implements them from the trace;
-the thresholds above come from the clean run in `contracts/examples/replay.json`.
+rejected even though the visual check passes. Taofeek's verifier implements them in
+`agents.gameplay` from the harness/fixture `trace.json` (not SAM observations or an invented
+goal). Harness smoke uses `MIN_DELTA_X_HARNESS` (slack under the ~485 clean measurement); offline
+fixtures use `MIN_DELTA_X_FIXTURE`. Same predicate for both.
 
 ## What we report
 

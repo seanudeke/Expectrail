@@ -1,0 +1,29 @@
+{
+  "physicsTicksPerSecond": 120,
+  "rows": [
+    {
+      "tick": 0,
+      "player": [
+        90.0,
+        640.0
+      ],
+      "onFloor": true
+    },
+    {
+      "tick": 60,
+      "player": [
+        200.0,
+        640.0
+      ],
+      "onFloor": true
+    },
+    {
+      "tick": 120,
+      "player": [
+        380.0,
+        640.0
+      ],
+      "onFloor": true
+    }
+  ]
+}

@@ -1,8 +1,11 @@
 """Trace-backed synthetic observations until SAM 3.1 is wired (Gate 1 seam).
 
-Uses harness trace.json world positions as boxes in y-down space. Floor height and
-the gameplay goal are calibrated from on-floor samples in the same trace so Linux
-CI and local software renders stay consistent without a hand-tuned screen map.
+Uses harness trace.json world positions as boxes in y-down space. Floor height is
+calibrated from on-floor samples in the same trace so Linux CI and local software
+renders stay consistent without a hand-tuned screen map.
+
+Gameplay motion is judged by agents.gameplay from the trace itself — observations
+no longer invent a synthetic route-end "goal" box.
 """
 from __future__ import annotations
 
@@ -13,9 +16,6 @@ PLAYER_H = 60.0
 GROUND_DEPTH = 400.0
 # never-crosses tolerance is in the same units as these boxes (world px).
 FLOOR_TOLERANCE_PAD = 12.0
-# Gameplay: player must get near a goal placed ahead of the starting on-floor x.
-GOAL_AHEAD = 400.0
-GOAL_HALF = 40.0
 
 
 def _floor_y(rows: list[dict]) -> float:
@@ -64,12 +64,6 @@ def from_trace(trace: dict, replay_sha256: str = "0" * 64, fps: int = 60,
     floor = _floor_y(rows)
     start_x = _start_x(rows)
     ground = [start_x - 200.0, floor, start_x + 2000.0, floor + GROUND_DEPTH]
-    goal = [
-        start_x + GOAL_AHEAD - GOAL_HALF,
-        floor - PLAYER_H,
-        start_x + GOAL_AHEAD + GOAL_HALF,
-        floor + FLOOR_TOLERANCE_PAD,
-    ]
 
     frames = []
     for row in rows:
@@ -80,7 +74,6 @@ def from_trace(trace: dict, replay_sha256: str = "0" * 64, fps: int = 60,
         player = row.get("player")
         objects: dict = {
             "ground": [{"box": list(ground), "score": 0.95, "track": 2}],
-            "goal": [{"box": list(goal), "score": 0.9, "track": 3}],
         }
         if player is None:
             objects["player"] = []
@@ -102,7 +95,6 @@ def from_trace(trace: dict, replay_sha256: str = "0" * 64, fps: int = 60,
             "prompts": {
                 "player": "small robot character",
                 "ground": "grass-topped ground",
-                "goal": "route end marker",
             },
         },
         "frames": frames,

@@ -64,10 +64,11 @@ jobs:
           python-version: '3.13'
       - run: python -m pip install -r requirements-dev.txt
       - name: Gate 1 accept path (fixture candidate + synthetic observations)
-        run: >
-          python -m agents.gate1 --out runs/agents-gate1 --skip-harness
-          --observations agents/fixtures/obs-fixed.json
-          --candidate-patch agents/fixtures/fix-collision-mask.patch
+        run: |
+          python -m agents.gate1 --out runs/agents-gate1 --skip-harness \
+            --observations agents/fixtures/obs-fixed.json \
+            --candidate-patch agents/fixtures/fix-collision-mask.patch
+          python -c "import json; d=json.load(open('runs/agents-gate1/verify/verification.json')); assert d['decision']=='accept', d; kinds={c['kind']:c['result'] for c in d['checks']}; assert kinds.get('gameplay')=='pass', d"
       - name: Freeze-player must reject
         run: |
           python -m agents.orchestrator \
@@ -84,7 +85,7 @@ jobs:
             --out runs/agents-negatives/freeze-verify \
             --skip-harness --observations agents/fixtures/obs-freeze.json \
             && exit 1 || true
-          python -c "import json; d=json.load(open('runs/agents-negatives/freeze-verify/verification.json')); assert d['decision']=='reject', d"
+          python -c "import json; d=json.load(open('runs/agents-negatives/freeze-verify/verification.json')); assert d['decision']=='reject', d; kinds={c['kind']:c['result'] for c in d['checks']}; assert kinds.get('gameplay')=='fail', d"
       - name: Trust beat (signing key absent from fixer)
         run: python -m agents.trust --out runs/agents-trust
       - name: Demo-path loop 10 accepts (offline mode)
@@ -127,9 +128,10 @@ jobs:
           --patch bugs/physics-fall-through/v1.patch
           --patch agents/fixtures/fix-collision-mask.patch
       - name: Harness-backed Gate 1 accept (seed + fix candidate)
-        run: >
-          python -m agents.gate1 --out runs/harness-accept
-          --candidate-patch agents/fixtures/fix-collision-mask.patch
+        run: |
+          python -m agents.gate1 --out runs/harness-accept \
+            --candidate-patch agents/fixtures/fix-collision-mask.patch
+          python -c "import json; d=json.load(open('runs/harness-accept/verify/verification.json')); assert d['decision']=='accept', d; kinds={c['kind']:c['result'] for c in d['checks']}; assert kinds.get('gameplay')=='pass', d"
       - name: Harness-backed freeze-player must reject
         run: |
           python -m agents.orchestrator \
@@ -147,7 +149,7 @@ jobs:
             --out runs/harness-negatives/freeze-verify
           status=$?
           set -e
-          python -c "import json; d=json.load(open('runs/harness-negatives/freeze-verify/verification.json')); assert d['decision']=='reject', d; print(d['decision'], d['reasons'])"
+          python -c "import json; d=json.load(open('runs/harness-negatives/freeze-verify/verification.json')); assert d['decision']=='reject', d; kinds={c['kind']:c['result'] for c in d['checks']}; assert kinds.get('gameplay')=='fail', d; print(d['decision'], d['reasons'])"
           test "$status" -ne 0
       - name: Seed-only fall-through fails regression on harness trace
         run: |
