@@ -43,8 +43,9 @@ python3 -m nightshift.evaluator --spec contracts/examples/test-spec.json \
 
 python3 -m agents.gate1 --out runs/gate1 --skip-harness \
   --observations agents/fixtures/obs-fixed.json             # repair → fix → verify
-python3 -m agents.loop --out runs/loop --runs 10 --offline-triage
+python3 -m agents.loop --out runs/loop --mode offline --runs 10
 python3 -m agents.trust --out runs/trust                    # signing key stays off the fixer
+# Live overnight path when META_API_KEY is set: python3 -m agents.loop --mode live
 ```
 
 See [agents/README.md](agents/README.md) for Muse API / Muse Code setup (`MODEL_API_KEY`, `META_API_KEY`).

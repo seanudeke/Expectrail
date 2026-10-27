@@ -17,6 +17,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from agents.keys import muse_code_ready
 from agents.patchutil import assert_editable, path_allowed, sha256_file
 from harness.run import REPO, apply_patches, tree_digest
 from nightshift.contracts import load, validate
@@ -109,7 +110,7 @@ def run_fixer(
         patch_path.write_text(text, encoding="utf-8")
         apply_patches(work, [patch_path])
         source = "fixture"
-    elif shutil.which("muse") is not None:
+    elif muse_code_ready():
         # Keep the request outside the game tree so it cannot appear in the candidate diff.
         rr_path = out / "repair-request.json"
         rr_path.write_text(json.dumps(request, indent=2) + "\n", encoding="utf-8")
@@ -148,7 +149,8 @@ Attempt {attempt} of {request['budget']['attempts']}.
         source = "muse"
     else:
         raise SystemExit(
-            "muse is required on PATH (and authenticated), or pass --candidate-patch for offline/CI runs"
+            "muse on PATH and META_API_KEY are required for Muse Code, "
+            "or pass --candidate-patch for offline/CI runs"
         )
 
     bad = assert_editable(patch_path.read_text(encoding="utf-8"), request["editable"])
