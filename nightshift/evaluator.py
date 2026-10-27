@@ -177,14 +177,25 @@ def evaluate(spec: dict, observations: dict) -> dict:
     }
 
 
+REQUIRED_CHECK_KINDS = frozenset({"regression", "gameplay", "held-out", "clean"})
+
+
 def decide(checks: list[dict]) -> tuple[str, list[str]]:
-    """The verification rule: accept only if every check passes; any fail rejects."""
+    """Accept only when every required kind is present and every check passes.
+
+    Order: empty → any fail (reject) → missing required kinds (needs-review) →
+    any needs-review → accept. Kind completeness is a set, not a row count.
+    """
     fails = [c for c in checks if c["result"] == "fail"]
     unclear = [c for c in checks if c["result"] == "needs-review"]
     if not checks:
         return "needs-review", ["no checks ran"]
     if fails:
         return "reject", [f"{c['kind']} check {c['spec']} failed on {c['route']}" for c in fails]
+    present = {c["kind"] for c in checks}
+    missing = sorted(REQUIRED_CHECK_KINDS - present)
+    if missing:
+        return "needs-review", [f"missing required check kinds: {', '.join(missing)}"]
     if unclear:
         return "needs-review", [f"{c['kind']} check {c['spec']} needs review on {c['route']}" for c in unclear]
     return "accept", [f"all {len(checks)} checks passed"]

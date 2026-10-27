@@ -1,0 +1,139 @@
+{
+  "format": "nightshift.observations/v0",
+  "replay": {
+    "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+  },
+  "model": {
+    "name": "nightshift.held-out-interim",
+    "prompts": {
+      "player": "small robot character",
+      "ground": "grass-topped ground",
+      "goal": "route end marker"
+    }
+  },
+  "frames": [
+    {
+      "frame": 0,
+      "objects": {
+        "player": [
+          {
+            "box": [
+              760,
+              660,
+              830,
+              778
+            ],
+            "score": 0.94,
+            "track": 1
+          }
+        ],
+        "ground": [
+          {
+            "box": [
+              350,
+              770,
+              1600,
+              960
+            ],
+            "score": 0.9,
+            "track": 2
+          }
+        ],
+        "goal": [
+          {
+            "box": [
+              1100,
+              650,
+              1200,
+              780
+            ],
+            "score": 0.9,
+            "track": 3
+          }
+        ]
+      }
+    },
+    {
+      "frame": 40,
+      "objects": {
+        "player": [
+          {
+            "box": [
+              920,
+              650,
+              990,
+              770
+            ],
+            "score": 0.93,
+            "track": 1
+          }
+        ],
+        "ground": [
+          {
+            "box": [
+              350,
+              770,
+              1600,
+              960
+            ],
+            "score": 0.9,
+            "track": 2
+          }
+        ],
+        "goal": [
+          {
+            "box": [
+              1100,
+              650,
+              1200,
+              780
+            ],
+            "score": 0.9,
+            "track": 3
+          }
+        ]
+      }
+    },
+    {
+      "frame": 80,
+      "objects": {
+        "player": [
+          {
+            "box": [
+              1050,
+              640,
+              1120,
+              760
+            ],
+            "score": 0.92,
+            "track": 1
+          }
+        ],
+        "ground": [
+          {
+            "box": [
+              350,
+              770,
+              1600,
+              960
+            ],
+            "score": 0.9,
+            "track": 2
+          }
+        ],
+        "goal": [
+          {
+            "box": [
+              1100,
+              650,
+              1200,
+              780
+            ],
+            "score": 0.9,
+            "track": 3
+          }
+        ]
+      }
+    }
+  ]
+}

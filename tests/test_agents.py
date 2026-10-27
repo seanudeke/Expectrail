@@ -135,6 +135,9 @@ class VerifierDecideTest(unittest.TestCase):
             )
             self.assertEqual(doc["decision"], "accept")
             validate(doc, "verification")
+            kinds = {c["kind"] for c in doc["checks"]}
+            self.assertEqual(kinds, {"regression", "gameplay", "clean", "held-out"})
+            self.assertTrue(all(c["result"] == "pass" for c in doc["checks"]))
 
     def test_freeze_player_rejects(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -150,6 +153,72 @@ class VerifierDecideTest(unittest.TestCase):
             kinds = {c["kind"]: c["result"] for c in doc["checks"]}
             self.assertEqual(kinds.get("regression"), "pass")
             self.assertEqual(kinds.get("gameplay"), "fail")
+            self.assertIn("clean", kinds)
+            self.assertIn("held-out", kinds)
+
+    def test_clean_fail_rejects(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            doc = verify(
+                _request(),
+                REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
+                Path(tmp),
+                observations_path=REPO / "agents" / "fixtures" / "obs-fixed.json",
+                clean_observations_path=REPO / "agents" / "fixtures" / "obs-fallthrough.json",
+                skip_harness=True,
+            )
+            self.assertEqual(doc["decision"], "reject")
+            kinds = {c["kind"]: c["result"] for c in doc["checks"]}
+            self.assertEqual(kinds.get("clean"), "fail")
+
+    def test_held_out_fail_rejects_via_evaluate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            doc = verify(
+                _request(),
+                REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
+                out,
+                observations_path=REPO / "agents" / "fixtures" / "obs-fixed.json",
+                held_out_observations_path=REPO / "agents" / "fixtures" / "obs-fallthrough.json",
+                skip_harness=True,
+            )
+            self.assertEqual(doc["decision"], "reject")
+            held = next(c for c in doc["checks"] if c["kind"] == "held-out")
+            self.assertEqual(held["result"], "fail")
+            from nightshift.contracts import digest
+            from nightshift.evaluator import evaluate
+            expected = evaluate(
+                load(REPO / "agents" / "specs" / "player-stays-above-ground.json", "test-spec"),
+                load(REPO / "agents" / "fixtures" / "obs-fallthrough.json", "observations"),
+            )
+            self.assertEqual(held["verdictSha256"], digest(expected))
+            self.assertTrue((out / "verdict-held-out.json").is_file())
+
+    def test_held_out_unavailable_never_accepts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            missing = Path(tmp) / "no-held-out.json"
+            doc = verify(
+                _request(),
+                REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
+                Path(tmp) / "verify",
+                observations_path=REPO / "agents" / "fixtures" / "obs-fixed.json",
+                held_out_observations_path=missing,
+                skip_harness=True,
+            )
+            self.assertEqual(doc["decision"], "needs-review")
+            held = next(c for c in doc["checks"] if c["kind"] == "held-out")
+            self.assertEqual(held["result"], "needs-review")
+
+    def test_same_digest_clean_obs_fails_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(SystemExit):
+                verify(
+                    _request(),
+                    REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
+                    Path(tmp),
+                    observations_path=REPO / "agents" / "fixtures" / "obs-fixed.json",
+                    clean_observations_path=REPO / "agents" / "fixtures" / "obs-fixed.json",
+                    skip_harness=True,
+                )
 
     def test_fallthrough_rejects(self):
         with tempfile.TemporaryDirectory() as tmp:

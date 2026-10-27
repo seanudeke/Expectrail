@@ -44,7 +44,8 @@ verification ◄── verifier (rebuild, replay, all checks) ◄── candidat
   sandbox stops writes outside its workspace, not reads.
 - **Accept only if every check passes.** `verification.decision` is `accept` only when every
   regression, gameplay, held-out and clean check passes; any failure rejects; anything unclear
-  needs review. Accepted means the candidate passed this suite, not that the game is correct.
+  needs review. An incomplete check set (missing a required kind) is `needs-review`, never
+  `accept`. Accepted means the candidate passed this suite, not that the game is correct.
 
 ## Frames and ticks
 
