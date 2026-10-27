@@ -113,6 +113,42 @@
       "items": {
         "type": "string"
       }
+    },
+    "suite": {
+      "type": "object",
+      "description": "Optional provenance for candidate/clean/held-out observation sources (not required on early rejects). When present, all three arms are required.",
+      "required": ["candidate", "clean", "heldOut"],
+      "properties": {
+        "candidate": { "$ref": "#/$defs/suiteArm" },
+        "clean": { "$ref": "#/$defs/suiteArm" },
+        "heldOut": { "$ref": "#/$defs/suiteArm" }
+      }
+    }
+  },
+  "$defs": {
+    "suiteArm": {
+      "type": "object",
+      "required": ["source"],
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": [
+            "harness",
+            "fixture",
+            "fixture-fallback",
+            "interim-fixture",
+            "unavailable",
+            "path",
+            "not-run"
+          ]
+        },
+        "path": { "type": "string" },
+        "observationsSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "detail": { "type": "string" }
+      }
     }
   }
 }

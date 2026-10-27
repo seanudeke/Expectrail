@@ -72,6 +72,24 @@ def build_report(
     for r in verification.get("reasons", []):
         lines.append(f"- {r}")
 
+    suite = verification.get("suite")
+    if suite:
+        lines.extend(["", "## Suite provenance"])
+        for label, key in (("candidate", "candidate"), ("clean", "clean"), ("held-out", "heldOut")):
+            arm = suite.get(key) or {}
+            src = arm.get("source", "unknown")
+            path = arm.get("path")
+            sha = arm.get("observationsSha256")
+            detail = arm.get("detail")
+            line = f"- {label}: source=`{src}`"
+            if path:
+                line += f" path=`{path}`"
+            if sha:
+                line += f" obsSha256=`{sha[:16]}…`"
+            if detail:
+                line += f" ({detail})"
+            lines.append(line)
+
     if frame_meta:
         lines.extend(["", "## Before / after frames"])
         for meta in frame_meta:

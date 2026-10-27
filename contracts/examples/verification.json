@@ -30,5 +30,22 @@
   "reasons": [
     "gameplay check player-reaches-end-of-route failed on smoke"
   ],
+  "suite": {
+    "candidate": {
+      "source": "fixture",
+      "path": "agents/fixtures/obs-freeze.json",
+      "observationsSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "clean": {
+      "source": "fixture",
+      "path": "agents/fixtures/obs-clean.json",
+      "observationsSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    },
+    "heldOut": {
+      "source": "interim-fixture",
+      "path": "agents/fixtures/obs-held-out.json",
+      "observationsSha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    }
+  },
   "_comment": "Example: a candidate that stops the fall by freezing the player passes the regression check but fails the gameplay check, so it is rejected."
 }

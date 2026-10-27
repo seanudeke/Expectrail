@@ -16,10 +16,14 @@ Never commit keys. The fixer workspace must not contain signing material (see `p
 After editable/base-tree gates, the verifier emits four check kinds: `regression`, `gameplay`,
 `clean`, `held-out`. `decide()` accepts only when all four are present and pass (incomplete sets
 are `needs-review`). Clean uses a no-patch harness replay when available; if Godot aborts on that
-second import (seen on CI), it falls back to `agents/fixtures/obs-clean.json` and still decides.
-Held-out uses `agents/fixtures/obs-held-out.json` as an interim `evaluate()` control until Sean
-lands real held-out variants — never a rubber-stamp pass row. Neither clean nor held-out obs is
-mounted into fixer-work.
+second import (seen on CI), it falls back to `agents/fixtures/obs-clean.json` and still decides
+(`suite.clean.source=fixture-fallback`). Held-out uses `agents/fixtures/obs-held-out.json` as an
+interim `evaluate()` control until Sean lands real held-out variants — never a rubber-stamp pass
+row. Optional `suite` on `verification.json` records candidate/clean/held-out provenance.
+
+Trust (`agents.trust`) proves deny-by-absence under fixer-work for the signing key **and** suite
+control basenames (`obs-clean.json`, `obs-held-out.json`, `evaluator.py`, suite specs) — mount
+absence only, not whole-repo read isolation.
 
 ## Gate 1
 
