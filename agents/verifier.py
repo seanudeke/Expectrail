@@ -10,6 +10,9 @@ and emits nightshift.verification/v0 via nightshift.evaluator.decide.
 Clean uses a distinct observation source (never the candidate obs object).
 Held-out evaluates interim verifier-side observations until Sean lands real
 held-out variants; both go through evaluate(), never a rubber-stamp pass row.
+
+Optional `suite` on the verification document records candidate/clean/held-out
+provenance (harness vs fixture vs fixture-fallback vs unavailable).
 """
 from __future__ import annotations
 
@@ -20,6 +23,7 @@ import sys
 import traceback
 from pathlib import Path
 
+from agents.isolation import arm
 from agents.observations import from_trace
 from agents.patchutil import assert_editable, sha256_file
 from harness.run import REPO, run as harness_run, tree_digest
@@ -30,6 +34,8 @@ REGRESSION_SPEC = REPO / "agents" / "specs" / "player-stays-above-ground.json"
 GAMEPLAY_SPEC = REPO / "agents" / "specs" / "player-reaches-end-of-route.json"
 CLEAN_OBS = REPO / "agents" / "fixtures" / "obs-clean.json"
 HELD_OUT_OBS = REPO / "agents" / "fixtures" / "obs-held-out.json"
+
+_NOT_RUN = arm(source="not-run", detail="suite checks skipped (early reject)")
 
 
 def _resolve(repo_relative: str | Path) -> Path:
@@ -44,6 +50,14 @@ def _check(kind: str, spec_id: str, route_name: str, verdict: dict) -> dict:
         "route": route_name,
         "result": verdict["result"],
         "verdictSha256": digest(verdict),
+    }
+
+
+def _early_suite() -> dict:
+    return {
+        "candidate": dict(_NOT_RUN),
+        "clean": dict(_NOT_RUN),
+        "heldOut": dict(_NOT_RUN),
     }
 
 
@@ -68,7 +82,9 @@ def verify(
         checks = [{
             "spec": "editable-globs", "kind": "regression", "route": "n/a", "result": "fail",
         }]
-        return _write_verification(out, request, candidate, attempt, checks, decision, reasons)
+        return _write_verification(
+            out, request, candidate, attempt, checks, decision, reasons, suite=_early_suite(),
+        )
 
     game = REPO / "game" / "platformer"
     if request["base"]["tree"] != tree_digest(game):
@@ -76,7 +92,9 @@ def verify(
         checks = [{
             "spec": "base-tree", "kind": "regression", "route": "n/a", "result": "fail",
         }]
-        return _write_verification(out, request, candidate, attempt, checks, decision, reasons)
+        return _write_verification(
+            out, request, candidate, attempt, checks, decision, reasons, suite=_early_suite(),
+        )
 
     failing = request["failing"][0]
     route_doc = failing["route"]
@@ -95,7 +113,11 @@ def verify(
 
     if observations_path is not None:
         observations = load(observations_path, "observations")
-        replay_sha = observations.get("replay", {}).get("sha256", "0" * 64)
+        candidate_arm = arm(
+            source="fixture",
+            path=str(observations_path),
+            observations_sha256=digest(observations),
+        )
     elif skip_harness:
         raise SystemExit("--skip-harness requires --observations")
     else:
@@ -104,6 +126,11 @@ def verify(
         replay_sha = sha256_file(out / "replay" / "replay.json")
         observations = from_trace(trace, replay_sha256=replay_sha)
         (out / "observations.json").write_text(json.dumps(observations, indent=2) + "\n", encoding="utf-8")
+        candidate_arm = arm(
+            source="harness",
+            path=str(out / "observations.json"),
+            observations_sha256=digest(observations),
+        )
 
     route_name = route_doc.get("name", route.stem)
     checks = []
@@ -128,6 +155,11 @@ def verify(
                 f"(same digest {digest(observations)[:12]}…)"
             )
         clean_route = "clean-control"
+        clean_arm = arm(
+            source="fixture",
+            path=str(clean_path),
+            observations_sha256=digest(clean_obs),
+        )
     else:
         try:
             harness_run(route, out / "clean-replay", patches=[])
@@ -138,13 +170,29 @@ def verify(
                 json.dumps(clean_obs, indent=2) + "\n", encoding="utf-8"
             )
             clean_route = "clean-control"
+            clean_arm = arm(
+                source="harness",
+                path=str(out / "observations-clean.json"),
+                observations_sha256=digest(clean_obs),
+            )
         except (subprocess.CalledProcessError, SystemExit, OSError, TimeoutError) as exc:
             (out / "clean-harness-error.txt").write_text(
                 f"{type(exc).__name__}: {exc}\n\n{traceback.format_exc()}",
                 encoding="utf-8",
             )
             clean_obs = load(clean_path, "observations")
+            if digest(clean_obs) == digest(observations):
+                raise SystemExit(
+                    "clean fixture-fallback must be distinct from candidate observations "
+                    f"(same digest {digest(observations)[:12]}…)"
+                ) from exc
             clean_route = "clean-control-fixture-fallback"
+            clean_arm = arm(
+                source="fixture-fallback",
+                path=str(clean_path),
+                observations_sha256=digest(clean_obs),
+                detail=f"clean harness failed; see {out / 'clean-harness-error.txt'}",
+            )
     clean_spec = load(REGRESSION_SPEC, "test-spec")
     clean_verdict = evaluate(clean_spec, clean_obs)
     (out / "verdict-clean.json").write_text(json.dumps(clean_verdict, indent=2) + "\n", encoding="utf-8")
@@ -158,6 +206,12 @@ def verify(
         held_verdict = evaluate(held_spec, held_obs)
         (out / "verdict-held-out.json").write_text(json.dumps(held_verdict, indent=2) + "\n", encoding="utf-8")
         checks.append(_check("held-out", held_spec["id"], "held-out-interim", held_verdict))
+        held_source = "path" if held_out_observations_path is not None else "interim-fixture"
+        held_arm = arm(
+            source=held_source,
+            path=str(held_path),
+            observations_sha256=digest(held_obs),
+        )
     else:
         checks.append({
             "spec": "held-out-unavailable",
@@ -166,12 +220,18 @@ def verify(
             "result": "needs-review",
             "verdictSha256": "0" * 64,
         })
+        held_arm = arm(source="unavailable", detail="held-out observations path missing")
 
+    suite = {"candidate": candidate_arm, "clean": clean_arm, "heldOut": held_arm}
     decision, reasons = decide(checks)
-    return _write_verification(out, request, candidate, attempt, checks, decision, reasons)
+    return _write_verification(
+        out, request, candidate, attempt, checks, decision, reasons, suite=suite,
+    )
 
 
-def _write_verification(out, request, candidate, attempt, checks, decision, reasons) -> dict:
+def _write_verification(
+    out, request, candidate, attempt, checks, decision, reasons, *, suite: dict | None = None,
+) -> dict:
     from nightshift import __version__ as eval_version
 
     doc = {
@@ -187,6 +247,9 @@ def _write_verification(out, request, candidate, attempt, checks, decision, reas
         "decision": decision,
         "reasons": reasons,
     }
+    if suite is not None:
+        doc["suite"] = suite
+        (out / "suite-provenance.json").write_text(json.dumps(suite, indent=2) + "\n", encoding="utf-8")
     validate(doc, "verification")
     (out / "verification.json").write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
     return doc

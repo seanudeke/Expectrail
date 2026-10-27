@@ -11,6 +11,7 @@ from pathlib import Path
 from unittest import mock
 
 from agents.fixer import run_fixer
+from agents.isolation import FIXER_FORBIDDEN_BASENAMES
 from agents.keys import muse_code_ready, resolve_mode, seal_mode_flags, wonder_key
 from agents.loop import main as loop_main
 from agents.loop import one_run
@@ -139,6 +140,15 @@ class VerifierDecideTest(unittest.TestCase):
             kinds = {c["kind"] for c in doc["checks"]}
             self.assertEqual(kinds, {"regression", "gameplay", "clean", "held-out"})
             self.assertTrue(all(c["result"] == "pass" for c in doc["checks"]))
+            suite = doc["suite"]
+            self.assertEqual(suite["candidate"]["source"], "fixture")
+            self.assertEqual(suite["clean"]["source"], "fixture")
+            self.assertEqual(suite["heldOut"]["source"], "interim-fixture")
+            self.assertNotEqual(
+                suite["candidate"]["observationsSha256"],
+                suite["clean"]["observationsSha256"],
+            )
+            self.assertTrue((out / "suite-provenance.json").is_file())
 
     def test_freeze_player_rejects(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -208,6 +218,7 @@ class VerifierDecideTest(unittest.TestCase):
             self.assertEqual(doc["decision"], "needs-review")
             held = next(c for c in doc["checks"] if c["kind"] == "held-out")
             self.assertEqual(held["result"], "needs-review")
+            self.assertEqual(doc["suite"]["heldOut"]["source"], "unavailable")
 
     def test_harness_clean_abort_falls_back_and_still_decides(self):
         """Godot SIGABRT on clean-replay must not leave verification.json unwritten."""
@@ -241,10 +252,55 @@ class VerifierDecideTest(unittest.TestCase):
             clean = next(c for c in doc["checks"] if c["kind"] == "clean")
             self.assertEqual(clean["route"], "clean-control-fixture-fallback")
             self.assertEqual(clean["result"], "pass")
+            self.assertEqual(doc["suite"]["clean"]["source"], "fixture-fallback")
+            self.assertEqual(doc["suite"]["candidate"]["source"], "harness")
+            self.assertIn("clean harness failed", doc["suite"]["clean"].get("detail", ""))
+            validate(doc, "verification")
+            self.assertEqual(
+                json.loads((out / "suite-provenance.json").read_text()),
+                doc["suite"],
+            )
             self.assertEqual(
                 {c["kind"] for c in doc["checks"]},
                 {"regression", "gameplay", "clean", "held-out"},
             )
+
+    def test_fixture_fallback_same_digest_fails_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            same = load(REPO / "agents" / "fixtures" / "obs-fixed.json", "observations")
+
+            def harness_then_abort(_route, harness_out, patches=None, **_kw):
+                if patches == []:
+                    raise subprocess.CalledProcessError(-6, ["godot", "--import"])
+                harness_out.mkdir(parents=True, exist_ok=True)
+                (harness_out / "trace.json").write_text("{}\n")
+                (harness_out / "replay.json").write_text("{}\n")
+
+            with mock.patch("agents.verifier.harness_run", side_effect=harness_then_abort):
+                with mock.patch("agents.verifier.from_trace", return_value=same):
+                    with self.assertRaises(SystemExit) as cm:
+                        verify(
+                            _request(),
+                            REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
+                            out,
+                            clean_observations_path=REPO / "agents" / "fixtures" / "obs-fixed.json",
+                            skip_harness=False,
+                        )
+            self.assertIn("fixture-fallback", str(cm.exception))
+
+    def test_held_out_override_source_is_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            doc = verify(
+                _request(),
+                REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
+                Path(tmp),
+                observations_path=REPO / "agents" / "fixtures" / "obs-fixed.json",
+                held_out_observations_path=REPO / "agents" / "fixtures" / "obs-held-out.json",
+                skip_harness=True,
+            )
+            self.assertEqual(doc["decision"], "accept")
+            self.assertEqual(doc["suite"]["heldOut"]["source"], "path")
 
     def test_same_digest_clean_obs_fails_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -280,6 +336,10 @@ class VerifierDecideTest(unittest.TestCase):
             )
             self.assertEqual(doc["decision"], "reject")
             self.assertIn("editable", doc["reasons"][0])
+            self.assertEqual(doc["suite"]["candidate"]["source"], "not-run")
+            self.assertEqual(doc["suite"]["clean"]["source"], "not-run")
+            self.assertEqual(doc["suite"]["heldOut"]["source"], "not-run")
+            validate(doc, "verification")
 
 
 class FixerFixtureTest(unittest.TestCase):
@@ -401,14 +461,55 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             self.assertEqual(result["signingKeyInFixer"], [])
             self.assertTrue(result["poisonPresentInFixer"])
             self.assertTrue(result["readDeniedByAbsence"])
+            self.assertTrue(result["suiteControlsAbsentFromFixer"])
+            self.assertEqual(result["forbiddenPathsInFixer"], [])
             self.assertTrue((out / "trust-evidence.md").exists())
             evidence = (out / "trust-evidence.md").read_text(encoding="utf-8")
             self.assertIn("PASS", evidence)
+            self.assertIn("deny-by-absence", evidence)
+            self.assertIn("obs-clean.json", evidence)
             poison = (out / "fixer-workspace" / "player" / "readme-extra.txt").read_text()
             self.assertIn("IGNORE PREVIOUS", poison)
             self.assertIn(".nightshift-signing-key", poison)
             self.assertNotIn("DEMO-FAKE-SIGNING-KEY-NOT-REAL", poison)
             self.assertTrue((out / "verifier-host" / ".nightshift-signing-key").is_file())
+
+    def test_fixer_forbidden_basenames_locked(self):
+        self.assertEqual(
+            FIXER_FORBIDDEN_BASENAMES,
+            frozenset({
+                ".nightshift-signing-key",
+                "obs-clean.json",
+                "obs-held-out.json",
+                "player-stays-above-ground.json",
+                "player-reaches-end-of-route.json",
+                "evaluator.py",
+            }),
+        )
+
+    def test_trust_fails_when_suite_control_planted(self):
+        plants = (
+            "obs-clean.json",
+            "obs-held-out.json",
+            "evaluator.py",
+            "player-stays-above-ground.json",
+            "player-reaches-end-of-route.json",
+        )
+        for name in plants:
+            with self.subTest(name=name):
+                with tempfile.TemporaryDirectory() as tmp:
+                    out = Path(tmp) / "trust"
+                    run_trust_check(out)
+                    planted = out / "fixer-workspace" / name
+                    planted.write_text("{}\n", encoding="utf-8")
+                    result = run_trust_check(
+                        out / "recheck",
+                        fixer_work=out / "fixer-workspace",
+                        verifier_host=out / "verifier-host",
+                    )
+                    self.assertFalse(result["ok"])
+                    self.assertFalse(result["suiteControlsAbsentFromFixer"])
+                    self.assertTrue(any(p.endswith(name) for p in result["forbiddenPathsInFixer"]))
 
     def test_triage_without_keys_never_calls_wonder(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -500,6 +601,10 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             morning_md = (run_root / "morning" / "morning-report.md").read_text()
             self.assertIn("![before]", morning_md)
             self.assertIn("![after]", morning_md)
+            self.assertIn("## Suite provenance", morning_md)
+            self.assertIn("source=`fixture`", morning_md)
+            self.assertIn("held-out: source=`interim-fixture`", morning_md)
+            self.assertTrue(result["trust"]["suiteControlsAbsentFromFixer"])
             rc = json.loads((run_root / "morning" / "release-candidate.json").read_text())
             self.assertEqual(rc["signingKey"], str(run_root / "verifier-host" / ".nightshift-signing-key"))
             from agents.report import _fake_sign
