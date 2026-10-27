@@ -51,3 +51,120 @@ jobs:
             runs/ci/run-00/trace.json
             runs/ci/summary.json
           retention-days: 7
+
+  agents-gate1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Gate 1 accept path (fixture candidate + synthetic observations)
+        run: >
+          python -m agents.gate1 --out runs/agents-gate1 --skip-harness
+          --observations agents/fixtures/obs-fixed.json
+          --candidate-patch agents/fixtures/fix-collision-mask.patch
+      - name: Freeze-player must reject
+        run: |
+          python -m agents.orchestrator \
+            --spec agents/specs/player-stays-above-ground.json \
+            --verdict contracts/examples/verdict.json \
+            --route harness/routes/smoke.json \
+            --base-patch bugs/physics-fall-through/v1.patch \
+            --out runs/agents-negatives/repair-request.json
+          python -m agents.fixer --request runs/agents-negatives/repair-request.json \
+            --out runs/agents-negatives/freeze \
+            --candidate-patch agents/fixtures/freeze-player.patch
+          python -m agents.verifier --request runs/agents-negatives/repair-request.json \
+            --candidate runs/agents-negatives/freeze/candidate.patch \
+            --out runs/agents-negatives/freeze-verify \
+            --skip-harness --observations agents/fixtures/obs-freeze.json \
+            && exit 1 || true
+          python -c "import json; d=json.load(open('runs/agents-negatives/freeze-verify/verification.json')); assert d['decision']=='reject', d"
+      - name: Trust beat (signing key absent from fixer)
+        run: python -m agents.trust --out runs/agents-trust
+      - name: Demo-path loop 10 accepts
+        run: python -m agents.loop --out runs/agents-loop --runs 10 --offline-triage
+      - name: Keep agent artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: agents-gate1
+          path: |
+            runs/agents-gate1/
+            runs/agents-negatives/
+            runs/agents-trust/
+            runs/agents-loop/summary.json
+          retention-days: 7
+
+  agents-harness-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Install a virtual display and software OpenGL
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri libglx-mesa0
+      - name: Download Godot 4.7.2 and check its SHA-512
+        run: ./harness/get_godot.sh
+      - name: Harness-backed Gate 1 accept (seed + fix candidate)
+        run: >
+          python -m agents.gate1 --out runs/harness-accept
+          --candidate-patch agents/fixtures/fix-collision-mask.patch
+      - name: Harness-backed freeze-player must reject
+        run: |
+          python -m agents.orchestrator \
+            --spec agents/specs/player-stays-above-ground.json \
+            --verdict contracts/examples/verdict.json \
+            --route harness/routes/smoke.json \
+            --base-patch bugs/physics-fall-through/v1.patch \
+            --out runs/harness-negatives/repair-request.json
+          python -m agents.fixer --request runs/harness-negatives/repair-request.json \
+            --out runs/harness-negatives/freeze \
+            --candidate-patch agents/fixtures/freeze-player.patch
+          set +e
+          python -m agents.verifier --request runs/harness-negatives/repair-request.json \
+            --candidate runs/harness-negatives/freeze/candidate.patch \
+            --out runs/harness-negatives/freeze-verify
+          status=$?
+          set -e
+          python -c "import json; d=json.load(open('runs/harness-negatives/freeze-verify/verification.json')); assert d['decision']=='reject', d; print(d['decision'], d['reasons'])"
+          test "$status" -ne 0
+      - name: Seed-only fall-through fails regression on harness trace
+        run: |
+          python -m harness.run --route harness/routes/smoke.json \
+            --out runs/harness-seed --patch bugs/physics-fall-through/v1.patch
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from agents.observations import from_trace
+          from nightshift.contracts import load
+          from nightshift.evaluator import evaluate
+          trace = json.loads(Path("runs/harness-seed/trace.json").read_text())
+          obs = from_trace(trace)
+          spec = load("agents/specs/player-stays-above-ground.json", "test-spec")
+          v = evaluate(spec, obs)
+          print(v["result"], v["reason"])
+          assert v["result"] == "fail", v
+          PY
+      - name: Keep harness-verify artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: agents-harness-verify
+          path: |
+            runs/harness-accept/
+            runs/harness-negatives/
+            runs/harness-seed/replay.json
+            runs/harness-seed/trace.json
+            runs/harness-seed/godot.log
+          retention-days: 7

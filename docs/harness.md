@@ -7,13 +7,17 @@ The harness turns a route into frames a model can look at, the same way every ti
 python3 -m harness.run --route harness/routes/smoke.json --out runs/smoke
 python3 -m harness.run --route harness/routes/smoke.json --out runs/fall \
   --patch bugs/physics-fall-through/v1.patch             # with a seeded bug
+python3 -m harness.run --route harness/routes/smoke.json --out runs/fixed \
+  --patch bugs/physics-fall-through/v1.patch \
+  --patch agents/fixtures/fix-collision-mask.patch     # seed then candidate (repeatable --patch)
 python3 -m harness.replay_check --route harness/routes/smoke.json --runs 10
 ```
 
 How it works:
 
-1. It copies `game/platformer` to `<out>/work`, applies the patch to the copy if one is given, and
-   adds `nightshift_harness.gd` to the copy as an autoload. The game in the repository never changes.
+1. It copies `game/platformer` to `<out>/work`, applies one or more patches in order (seed, then
+   candidate), and adds `nightshift_harness.gd` to the copy as an autoload. The game in the
+   repository never changes.
 2. It imports the project headless, then runs it under a virtual display (`xvfb-run`) with the
    Compatibility renderer on software OpenGL (Mesa llvmpipe). `--headless` cannot be used for
    capture: it does not render.

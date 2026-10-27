@@ -20,8 +20,9 @@ never check what players see. Nightshift checks:
 5. **Hand over.** By morning: before-and-after frames, the diff, unresolved cases, and a release
    candidate signed outside the fixer's reach, for a human to approve.
 
-Status: day one. The harness, the contracts and the reference evaluator work; the Meta model
-integrations come next. See [docs/new-work.md](docs/new-work.md) for what was built when.
+Status: Gate 1 agents loop is in-repo (orchestrator → Muse Code / fixture fixer → verifier);
+Muse Wonder triage and the morning report are wired for Gate 2. SAM still comes next. See
+[docs/new-work.md](docs/new-work.md) for what was built when.
 
 ## Try it
 
@@ -39,7 +40,14 @@ python3 -m harness.replay_check --route harness/routes/smoke.json --runs 10
 
 python3 -m nightshift.evaluator --spec contracts/examples/test-spec.json \
   --observations contracts/examples/observations.json       # decide a check
+
+python3 -m agents.gate1 --out runs/gate1 --skip-harness \
+  --observations agents/fixtures/obs-fixed.json             # repair → fix → verify
+python3 -m agents.loop --out runs/loop --runs 10 --offline-triage
+python3 -m agents.trust --out runs/trust                    # signing key stays off the fixer
 ```
+
+See [agents/README.md](agents/README.md) for Muse API / Muse Code setup (`MODEL_API_KEY`, `META_API_KEY`).
 
 ## Layout and lanes
 
@@ -50,7 +58,7 @@ python3 -m nightshift.evaluator --spec contracts/examples/test-spec.json \
 | [`nightshift/`](nightshift) | Contract helpers and the reference evaluator | Zayyad |
 | [`bugs/`](bugs) | Seeded bugs as patches against the clean game | Sean, Timo |
 | [`game/`](game) | Godot's 2D platformer demo, unmodified (MIT) | prior work |
-| `agents/` (next) | Repair requests, the Muse Code fixer, the verifier | Taofeek |
+| [`agents/`](agents) | Repair requests, Muse Code fixer, verifier, Wonder triage, morning report | Taofeek |
 
 ## Gates
 

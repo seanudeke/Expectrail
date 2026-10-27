@@ -45,13 +45,21 @@ def tree_digest(root: Path) -> str:
     return h.hexdigest()
 
 
-def prepare(game: Path, work: Path, patch: Path | None) -> None:
+def apply_patches(work: Path, patches: list[Path]) -> None:
+    """Apply unified diffs in order to a game copy (seed first, then candidate, …)."""
+    for patch in patches:
+        subprocess.run(
+            ["patch", "-p1", "--forward", "--batch", "-d", str(work), "-i", str(patch.resolve())],
+            check=True, capture_output=True, text=True,
+        )
+
+
+def prepare(game: Path, work: Path, patch: Path | None = None, patches: list[Path] | None = None) -> None:
     if work.exists():
         shutil.rmtree(work)
     shutil.copytree(game, work, ignore=shutil.ignore_patterns(".godot"))
-    if patch is not None:
-        subprocess.run(["patch", "-p1", "--forward", "--batch", "-d", str(work), "-i", str(patch.resolve())],
-                       check=True, capture_output=True, text=True)
+    ordered = list(patches) if patches is not None else ([patch] if patch is not None else [])
+    apply_patches(work, ordered)
     for name in ("nightshift_harness.gd", "nightshift_recorder.gd"):
         shutil.copy(REPO / "harness" / "godot" / name, work / name)
     project = (work / "project.godot").read_text(encoding="utf-8")
@@ -70,12 +78,13 @@ def godot_cmd(godot: Path, display: bool) -> list[str]:
 
 
 def run(route: Path, out: Path, patch: Path | None = None, game: Path | None = None, fps: int = 60,
-        godot: Path | None = None) -> dict:
+        godot: Path | None = None, patches: list[Path] | None = None) -> dict:
     game = game or REPO / "game" / "platformer"
     godot = godot or find_godot()
     out.mkdir(parents=True, exist_ok=True)
     work, frames = out / "work", out / "frames"
-    prepare(game, work, patch)
+    ordered = list(patches) if patches is not None else ([patch] if patch is not None else [])
+    prepare(game, work, patches=ordered)
     if frames.exists():
         shutil.rmtree(frames)
     frames.mkdir()
@@ -98,11 +107,15 @@ def run(route: Path, out: Path, patch: Path | None = None, game: Path | None = N
     version = re.search(r"Godot Engine v(\S+)", log)
     pngs = sorted(frames.glob("f*.png"))
     trace = json.loads((out / "trace.json").read_text(encoding="utf-8"))
+    primary = ordered[0] if ordered else None
     replay = {
         "format": "nightshift.replay/v0",
         "route": {"name": route_doc.get("name", route.stem), "sha256": sha256_file(route)},
-        "game": {"tree": tree_digest(game), "patch": str(patch) if patch else None,
-                 "patchSha256": sha256_file(patch) if patch else None},
+        "game": {"tree": tree_digest(game),
+                 "patch": ",".join(str(p) for p in ordered) if ordered else None,
+                 "patchSha256": sha256_file(primary) if primary and len(ordered) == 1 else (
+                     None if not ordered else hashlib.sha256(
+                         b"".join(sha256_file(p).encode() for p in ordered)).hexdigest())},
         "engine": {"name": "godot", "version": version.group(1) if version else GODOT_VERSION,
                    "renderer": "opengl3", "device": device.group(1).strip() if device else None},
         "capture": {"fps": fps, "physicsTicksPerSecond": trace.get("physicsTicksPerSecond"),
@@ -118,11 +131,13 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--route", type=Path, required=True)
     p.add_argument("--out", type=Path, required=True)
-    p.add_argument("--patch", type=Path, help="seeded-bug or candidate patch to apply to the copy")
+    p.add_argument("--patch", type=Path, action="append", default=[],
+                   help="patch to apply (repeatable; order is seed then candidate)")
     p.add_argument("--game", type=Path, help="game directory (default: game/platformer)")
     p.add_argument("--fps", type=int, default=60)
     args = p.parse_args(argv)
-    replay = run(args.route, args.out, args.patch, args.game, args.fps)
+    patches = args.patch or None
+    replay = run(args.route, args.out, patch=None, game=args.game, fps=args.fps, patches=patches)
     print(f"{replay['capture']['frames']} frames, device {replay['engine']['device']}: {args.out / 'replay.json'}")
     return 0
 
