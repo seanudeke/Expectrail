@@ -292,11 +292,51 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             self.assertTrue(result["ok"])
             self.assertFalse(result["boundToLoop"])
             self.assertEqual(result["signingKeyInFixer"], [])
+            self.assertTrue(result["poisonPresentInFixer"])
             self.assertTrue(result["readDeniedByAbsence"])
             self.assertTrue((out / "trust-evidence.md").exists())
             evidence = (out / "trust-evidence.md").read_text(encoding="utf-8")
             self.assertIn("PASS", evidence)
-            self.assertNotIn("DEMO-FAKE-SIGNING-KEY-NOT-REAL", (out / "fixer-workspace" / "player" / "readme-extra.txt").read_text())
+            poison = (out / "fixer-workspace" / "player" / "readme-extra.txt").read_text()
+            self.assertIn("IGNORE PREVIOUS", poison)
+            self.assertIn(".nightshift-signing-key", poison)
+            self.assertNotIn("DEMO-FAKE-SIGNING-KEY-NOT-REAL", poison)
+            self.assertTrue((out / "verifier-host" / ".nightshift-signing-key").is_file())
+
+    def test_triage_without_keys_never_calls_wonder(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch.dict(os.environ, {}, clear=True):
+                with mock.patch("agents.triage.call_wonder", side_effect=AssertionError("Wonder must not run")):
+                    request = triage(
+                        spec=load(REPO / "agents" / "specs" / "player-stays-above-ground.json", "test-spec"),
+                        verdict=load(REPO / "contracts" / "examples" / "verdict.json", "verdict"),
+                        route=load(REPO / "harness" / "routes" / "smoke.json", "route"),
+                        out=Path(tmp) / "triage",
+                        offline=False,
+                    )
+            validate(request, "repair-request")
+            meta = json.loads((Path(tmp) / "triage" / "triage.json").read_text())
+            self.assertEqual(meta["source"], "offline")
+            self.assertTrue((Path(tmp) / "triage" / "bug-report.md").exists())
+
+    def test_loop_mocked_keys_still_reject_freeze(self):
+        """Key presence / Wonder success must not forge accept — freeze obs still reject."""
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch.dict(os.environ, {"MODEL_API_KEY": "dummy", "META_API_KEY": "dummy"}):
+                with mock.patch("agents.triage.call_wonder", return_value="canned bug report") as wonder:
+                    result = one_run(
+                        Path(tmp) / "loop",
+                        use_muse=False,
+                        offline_triage=False,
+                        observations=REPO / "agents" / "fixtures" / "obs-freeze.json",
+                        candidate_patch=REPO / "agents" / "fixtures" / "freeze-player.patch",
+                        skip_harness=True,
+                        run_trust=True,
+                    )
+            wonder.assert_called()
+            self.assertEqual(result["decision"], "reject")
+            self.assertIsNone(result.get("error"))
+            self.assertEqual(result["triageSource"], WONDER_MODEL)
 
     def test_trust_beat_fail_when_key_in_fixer(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -511,22 +551,24 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             code = loop_main([
                 "--out", str(out),
                 "--mode", "offline",
-                "--runs", "2",
+                "--runs", "3",
             ])
             self.assertEqual(code, 0)
             summary = json.loads((out / "summary.json").read_text())
-            self.assertEqual(summary["accepted"], 2)
+            self.assertEqual(summary["accepted"], 3)
+            self.assertEqual(summary["runs"], 3)
+            self.assertTrue(all(r["decision"] == "accept" for r in summary["results"]))
             self.assertEqual(summary["mode"]["mode"], "offline")
             self.assertEqual(summary["verificationProvenance"], "fixture")
             rollup = (out / "morning-report.md").read_text(encoding="utf-8")
-            self.assertIn("2 of 2", rollup)
+            self.assertIn("3 of 3", rollup)
             self.assertIn("run-00/morning/morning-report.md", rollup)
             self.assertIn("![before](frames/before-00.png)", rollup)
             self.assertIn("![after](frames/after-00.png)", rollup)
             self.assertTrue((out / "frames" / "before-00.png").is_file())
             self.assertTrue((out / "frames" / "after-00.png").is_file())
             self.assertTrue((out / "run-00" / "morning" / "frames" / "before-00.png").is_file())
-            self.assertTrue((out / "run-01" / "morning" / "frames" / "after-00.png").is_file())
+            self.assertTrue((out / "run-02" / "morning" / "frames" / "after-00.png").is_file())
 
     def test_loop_missing_frame_rejects(self):
         with tempfile.TemporaryDirectory() as tmp:
