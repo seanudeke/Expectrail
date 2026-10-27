@@ -20,8 +20,8 @@ verification ◄── verifier (rebuild, replay, all checks) ◄── candidat
 | `test-spec` | Muse Spark drafts it; a person approves it once | evaluator, fixer (read-only) | Zayyad, Sean |
 | `observations` | SAM 3.1 adapter | evaluator | Zayyad |
 | `verdict` | evaluator | fixer, verifier, report | Zayyad |
-| `repair-request` | orchestrator | fixer | Taofeek |
-| `verification` | verifier | report, signing step | Taofeek |
+| `repair-request` | orchestrator (`agents.orchestrator` / `agents.triage`) | fixer | Taofeek |
+| `verification` | verifier (`agents.verifier`) | report, signing step (`agents.report`) | Taofeek |
 
 ## Rules the contracts encode
 

@@ -23,3 +23,6 @@ something; keep prior work out of it.
 | Oct 26 | Reference evaluator for four assertion types, with tests | `nightshift/`, `tests/` |
 | Oct 26 | First seeded bug: physics fall-through, variant 1 | `bugs/physics-fall-through/` |
 | Oct 26 | CI: tests and a capture smoke test on a GPU-less runner | `.github/workflows/ci.yml` |
+| Oct 26 | Agents lane Gate 1: orchestrator, Muse Code fixer, multi-patch verifier, freeze-player reject | `agents/`, `harness/run.py` |
+| Oct 26 | Agents lane Gate 2: Wonder triage, morning report, trust beat, 10-run loop CI | `agents/triage.py`, `report.py`, `trust.py`, `loop.py` |
+| Oct 26 | Harness-backed agents verify on Linux CI (accept / freeze reject / seed fail) | `.github/workflows/ci.yml` `agents-harness-verify` |

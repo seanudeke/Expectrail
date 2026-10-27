@@ -20,14 +20,16 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--route", type=Path, required=True)
     p.add_argument("--runs", type=int, default=10)
-    p.add_argument("--patch", type=Path)
+    p.add_argument("--patch", type=Path, action="append", default=[],
+                   help="patch to apply (repeatable; order is seed then candidate)")
     p.add_argument("--out", type=Path, default=Path("runs/replay-check"))
     args = p.parse_args(argv)
+    patches = args.patch or None
     first_frames = first_trace = None
     identical = 0
     for i in range(args.runs):
         out = args.out / f"run-{i:02d}"
-        replay = run(args.route, out, args.patch)
+        replay = run(args.route, out, patch=None, patches=patches)
         trace = [row.get("player") for row in json.loads((out / "trace.json").read_text())["rows"]]
         if first_frames is None:
             first_frames, first_trace = replay["frameSha256"], trace
@@ -41,8 +43,9 @@ def main(argv: list[str] | None = None) -> int:
         identical += same
         print(f"run {i}: {'identical' if same else f'{frames_diff} frames and {trace_diff} trace rows differ'}")
     print(f"{identical} of {args.runs} runs identical to the first")
-    summary = {"route": str(args.route), "patch": str(args.patch) if args.patch else None, "runs": args.runs,
-               "identical": identical}
+    summary = {"route": str(args.route),
+               "patches": [str(p) for p in patches] if patches else None,
+               "runs": args.runs, "identical": identical}
     (args.out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
     return 0 if identical == args.runs else 1
 

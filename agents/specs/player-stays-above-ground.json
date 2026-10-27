@@ -1,0 +1,31 @@
+{
+  "format": "nightshift.test-spec/v0",
+  "id": "player-stays-above-ground",
+  "instruction": "The player never falls through the ground.",
+  "objects": {
+    "player": {
+      "prompt": "small robot character"
+    },
+    "ground": {
+      "prompt": "grass-topped ground"
+    }
+  },
+  "assertion": {
+    "type": "never-crosses",
+    "object": "player",
+    "boundary": {
+      "relativeTo": "ground",
+      "edge": "top",
+      "side": "above",
+      "tolerancePx": 12
+    }
+  },
+  "window": {
+    "fromFrame": 0,
+    "toFrame": 119
+  },
+  "approval": {
+    "by": "sean",
+    "at": "2026-10-27T15:00:00Z"
+  }
+}
