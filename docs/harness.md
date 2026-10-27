@@ -36,7 +36,8 @@ On a 2-core cloud container with no GPU (Mesa llvmpipe, LLVM 20), Godot 4.7.2:
   settles replay on one machine and one binary only: frames from a GPU machine will differ, so
   evidence and baselines must come from the same runner type.
 - The seeded fall-through bug (`bugs/physics-fall-through/v1.patch`) shows the player below the
-  ground line from about frame 8 to frame 20, then off screen.
+  ground line from about frame 8 to frame 20, then off screen. Ten runs with the bug were also
+  bit-identical, so the failure reproduces the same way every time.
 
 Not settled yet: the input driver for gamepad-style analog input (routes only press actions), and
 resetting mid-run (each run starts the game fresh, which takes a few seconds).
