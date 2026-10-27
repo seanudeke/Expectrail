@@ -8,6 +8,7 @@ Modes:
   auto    — live steps when keys/muse are available, else fixtures
 
 Exit 0 only if every run ends with verification accept. Crashes never forge accept.
+Live/online triage that soft-falls to offline fixtures is treated as reject.
 """
 from __future__ import annotations
 
@@ -18,9 +19,9 @@ import traceback
 from pathlib import Path
 
 from agents.fixer import run_fixer
-from agents.keys import resolve_mode
+from agents.keys import resolve_mode, seal_mode_flags
 from agents.report import build_report
-from agents.triage import triage
+from agents.triage import WONDER_MODEL, triage
 from agents.trust import run_trust_check
 from agents.verifier import verify
 from harness.run import REPO
@@ -38,22 +39,10 @@ def one_run(
     run_trust: bool,
 ) -> dict:
     out.mkdir(parents=True, exist_ok=True)
-    # Signing key only on the morning/verifier side of this run — never in fixer-work.
+    # Signing key is created only AFTER the fixer returns so Muse never sees it
+    # on disk during exec (deny-by-absence for the overnight topology).
     signing_key = out / "verifier-host" / ".nightshift-signing-key"
-    signing_key.parent.mkdir(parents=True, exist_ok=True)
-    if not signing_key.exists():
-        signing_key.write_text("DEMO-FAKE-SIGNING-KEY-NOT-REAL\n", encoding="utf-8")
-
     trust = None
-    if run_trust:
-        trust = run_trust_check(out / "trust")
-        if not trust["ok"]:
-            return {
-                "decision": "reject",
-                "error": "trust beat failed",
-                "trust": trust,
-                "morning": None,
-            }
 
     try:
         request = triage(
@@ -63,20 +52,50 @@ def one_run(
             out=out / "triage",
             offline=offline_triage,
         )
+        triage_meta = json.loads((out / "triage" / "triage.json").read_text(encoding="utf-8"))
+        triage_source = triage_meta.get("source")
+        # Live / online triage must not soft-accept offline-fallback as success.
+        if not offline_triage and triage_source != WONDER_MODEL:
+            raise SystemExit(
+                f"live Wonder triage required; got source={triage_source!r}"
+            )
+
         fix_out = out / "fix"
-        # Refuse to mount the signing key into the fixer workspace.
-        if (fix_out / "fixer-work" / ".nightshift-signing-key").exists():
-            raise SystemExit("signing key must not appear in fixer-work")
+        if signing_key.exists():
+            # Stale key from a prior partial run — remove before Muse so it is absent.
+            signing_key.unlink()
         run_fixer(
             request, fix_out,
             candidate_patch=None if use_muse else (
                 candidate_patch or REPO / "agents" / "fixtures" / "fix-collision-mask.patch"
             ),
         )
-        if (fix_out / "fixer-work").exists():
-            leaked = list((fix_out / "fixer-work").rglob(".nightshift-signing-key"))
-            if leaked:
-                raise SystemExit(f"signing key leaked into fixer workspace: {leaked}")
+        fixer_work = fix_out / "fixer-work"
+        if not fixer_work.is_dir():
+            raise SystemExit("fixer-work missing after fixer")
+        leaked = list(fixer_work.rglob(".nightshift-signing-key"))
+        if leaked:
+            raise SystemExit(f"signing key leaked into fixer workspace: {leaked}")
+
+        # Materialize signing key only on the verifier side, after fixer completes.
+        signing_key.parent.mkdir(parents=True, exist_ok=True)
+        signing_key.write_text("DEMO-FAKE-SIGNING-KEY-NOT-REAL\n", encoding="utf-8")
+
+        if run_trust:
+            trust = run_trust_check(
+                out / "trust",
+                fixer_work=fixer_work,
+                verifier_host=signing_key.parent,
+            )
+            if not trust["ok"]:
+                return {
+                    "decision": "reject",
+                    "error": "trust beat failed",
+                    "trust": trust,
+                    "morning": None,
+                    "triageSource": triage_source,
+                    "verificationProvenance": "harness" if not skip_harness else "fixture",
+                }
 
         verification = verify(
             request, fix_out / "candidate.patch", out / "verify",
@@ -93,8 +112,9 @@ def one_run(
             "decision": verification["decision"],
             "morning": summary,
             "trust": trust,
-            "triageSource": json.loads((out / "triage" / "triage.json").read_text()).get("source"),
+            "triageSource": triage_source,
             "fixerSource": json.loads((fix_out / "candidate.json").read_text()).get("source"),
+            "verificationProvenance": "harness" if not skip_harness else "fixture",
         }
     except (Exception, SystemExit) as exc:  # noqa: BLE001 — overnight loop must not forge accept
         (out / "loop-error.txt").write_text(traceback.format_exc(), encoding="utf-8")
@@ -103,6 +123,7 @@ def one_run(
             "error": f"{type(exc).__name__}: {exc}",
             "trust": trust,
             "morning": None,
+            "verificationProvenance": "harness" if not skip_harness else "fixture",
         }
 
 
@@ -111,9 +132,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--out", type=Path, default=Path("runs/loop"))
     p.add_argument("--runs", type=int, default=1)
     p.add_argument("--mode", choices=("auto", "offline", "live"), default="auto")
-    p.add_argument("--use-muse", action="store_true", help="force Muse Code (overrides --mode fixer)")
-    p.add_argument("--online-triage", action="store_true", help="force Wonder triage")
-    p.add_argument("--offline-triage", action="store_true", help="force offline triage")
+    p.add_argument("--use-muse", action="store_true", help="force Muse Code (sealed: not with --mode offline)")
+    p.add_argument("--online-triage", action="store_true", help="force Wonder triage (sealed)")
+    p.add_argument("--offline-triage", action="store_true", help="force offline triage (sealed: not with --mode live)")
     p.add_argument("--observations", type=Path,
                    default=REPO / "agents" / "fixtures" / "obs-fixed.json")
     p.add_argument("--candidate-patch", type=Path)
@@ -122,21 +143,21 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--no-trust", action="store_true", help="skip trust beat (not for demo path)")
     args = p.parse_args(argv)
 
-    resolved = resolve_mode(args.mode)
+    resolved = seal_mode_flags(
+        resolve_mode(args.mode),
+        force_offline_triage=args.offline_triage,
+        force_online_triage=args.online_triage,
+        force_muse=args.use_muse,
+    )
     offline_triage = resolved["offline_triage"]
     use_muse = resolved["use_muse"]
-    if args.offline_triage:
-        offline_triage = True
-    if args.online_triage:
-        offline_triage = False
-    if args.use_muse:
-        use_muse = True
     skip_harness = False if args.no_skip_harness else args.skip_harness
     observations = None if args.no_skip_harness else args.observations
+    provenance = "harness" if not skip_harness else "fixture"
 
     print(
         f"mode={resolved['mode']} triage={'offline' if offline_triage else 'wonder'} "
-        f"fixer={'muse' if use_muse else 'fixture'} harness={'skip' if skip_harness else 'live'}"
+        f"fixer={'muse' if use_muse else 'fixture'} harness={provenance}"
     )
 
     results = []
@@ -159,6 +180,7 @@ def main(argv: list[str] | None = None) -> int:
         "mode": resolved,
         "runs": args.runs,
         "accepted": accepted,
+        "verificationProvenance": provenance,
         "results": results,
     }
     args.out.mkdir(parents=True, exist_ok=True)
