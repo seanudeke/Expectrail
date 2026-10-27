@@ -1,0 +1,19 @@
+{
+  "format": "nightshift.test-spec/v0",
+  "id": "player-is-visible",
+  "instruction": "The player is always drawn in front of the scenery.",
+  "objects": {
+    "player": {
+      "prompt": "small robot character"
+    }
+  },
+  "assertion": {
+    "type": "visible",
+    "object": "player",
+    "minFraction": 1.0
+  },
+  "window": {
+    "fromFrame": 0,
+    "toFrame": 119
+  }
+}

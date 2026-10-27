@@ -31,6 +31,8 @@ verification ◄── verifier (rebuild, replay, all checks) ◄── candidat
   absence is the thing being tested.
 - **Positions stay out of prompts.** A test spec's `objects` are short noun phrases for SAM 3.1.
   Spatial and temporal conditions live in the `assertion`, which the evaluator decides in code.
+  `nightshift.spec_writer` drafts specs with Muse Spark, rejects drafts with positional prompts or
+  unknown objects, and only a person adds the `approval`.
 - **Four assertion types, nothing else yet:** `visible`, `inside-region`, `never-crosses` and
   `reaches`. Any other instruction stays a draft marked needs review.
 - **Everything is named by digest.** A verdict records the sha256 of the spec and the observations
