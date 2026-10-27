@@ -47,17 +47,18 @@ def _bind_gameplay_verdict(doc: dict, check: dict) -> dict:
     """Schema-validate and bind filmed verdict to the gameplay check digest."""
     validate(doc, "gameplay-verdict")
     metrics_min = (doc.get("metrics") or {}).get("minDeltaX")
-    if metrics_min is not None and float(metrics_min) != float(doc["minDeltaX"]):
+    if metrics_min is None or float(metrics_min) != float(doc["minDeltaX"]):
         raise ContractError(
             f"gameplay-verdict: metrics.minDeltaX ({metrics_min}) != minDeltaX ({doc['minDeltaX']})"
         )
     expected = check.get("verdictSha256")
-    if expected:
-        actual = digest(doc)
-        if actual != expected:
-            raise ContractError(
-                f"gameplay-verdict digest mismatch: filmed={actual} check={expected}"
-            )
+    if not expected:
+        raise ContractError("gameplay check missing verdictSha256; cannot bind filmed verdict")
+    actual = digest(doc)
+    if actual != expected:
+        raise ContractError(
+            f"gameplay-verdict digest mismatch: filmed={actual} check={expected}"
+        )
     return doc
 
 

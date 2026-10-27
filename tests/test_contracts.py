@@ -21,6 +21,18 @@ class ContractsTest(unittest.TestCase):
             validate(spec)
         with self.assertRaises(ContractError):
             kind_of({"format": "something-else/v1"})
+        gameplay = json.loads((EXAMPLES / "gameplay-verdict.json").read_text())
+        gameplay["result"] = "maybe"
+        with self.assertRaises(ContractError):
+            validate(gameplay, "gameplay-verdict")
+        gameplay = json.loads((EXAMPLES / "gameplay-verdict.json").read_text())
+        del gameplay["metrics"]["deltaX"]
+        with self.assertRaises(ContractError):
+            validate(gameplay, "gameplay-verdict")
+        gameplay = json.loads((EXAMPLES / "gameplay-verdict.json").read_text())
+        gameplay["extra"] = True
+        with self.assertRaises(ContractError):
+            validate(gameplay, "gameplay-verdict")
 
     def test_digest_ignores_key_order(self):
         self.assertEqual(digest({"a": 1, "b": [1, 2]}), digest({"b": [1, 2], "a": 1}))

@@ -576,6 +576,17 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             self.assertIsNone(summary["gameplay"])
             report = (root / "morning" / "morning-report.md").read_text()
             self.assertNotIn("## Gameplay", report)
+            leftover_dict = build_report(
+                verification=verification,
+                candidate=None,
+                out=root / "morning-dict",
+                gameplay_verdict=leftover,
+            )
+            self.assertIsNone(leftover_dict["gameplay"])
+            self.assertNotIn(
+                "## Gameplay",
+                (root / "morning-dict" / "morning-report.md").read_text(),
+            )
 
     def test_morning_fails_closed_on_schema_invalid_or_digest_mismatch(self):
         from nightshift.contracts import ContractError, digest as cdigest
@@ -649,6 +660,30 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             )
             self.assertEqual(summary["gameplay"]["reason"], good["reason"])
             self.assertIn("endOnFloor:", (root / "morning-ok" / "morning-report.md").read_text())
+
+            diverged = dict(good)
+            diverged["metrics"] = dict(good["metrics"])
+            diverged["metrics"]["minDeltaX"] = float(good["minDeltaX"]) + 1.0
+            with self.assertRaises(ContractError):
+                build_report(
+                    verification={
+                        **validation,
+                        "checks": [
+                            {**validation["checks"][0], "verdictSha256": cdigest(diverged)},
+                        ],
+                    },
+                    candidate=None,
+                    out=root / "morning-min-mismatch",
+                    gameplay_verdict=diverged,
+                )
+            bare = {k: v for k, v in validation["checks"][0].items() if k != "verdictSha256"}
+            with self.assertRaises(ContractError):
+                build_report(
+                    verification={**validation, "checks": [bare]},
+                    candidate=None,
+                    out=root / "morning-no-sha",
+                    gameplay_verdict=good,
+                )
 
     def test_trust_beat(self):
         with tempfile.TemporaryDirectory() as tmp:
