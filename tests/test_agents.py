@@ -506,6 +506,10 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             self.assertIn(REASON_DELTA, report)
             self.assertIn("fixture-trace:trace-freeze.json", report)
             self.assertIn("deltaX:", report)
+            self.assertIn("endOnFloor:", report)
+            self.assertIn("belowStreak:", report)
+            self.assertIn("sampleCount:", report)
+            self.assertIn("minDeltaX:", report)
 
     def test_morning_fails_closed_when_gameplay_check_without_verdict(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -532,6 +536,119 @@ class TriageReportTrustLoopTest(unittest.TestCase):
                     candidate=None,
                     out=root / "morning",
                 )
+
+    def test_morning_ignores_leftover_verdict_without_gameplay_check(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            verify_dir = root / "verify"
+            verify_dir.mkdir()
+            leftover = json.loads(
+                (REPO / "contracts" / "examples" / "gameplay-verdict.json").read_text()
+            )
+            (verify_dir / "verdict-gameplay.json").write_text(
+                json.dumps(leftover) + "\n", encoding="utf-8"
+            )
+            verification = {
+                "format": "nightshift.verification/v0",
+                "candidate": {
+                    "patchSha256": "a" * 64,
+                    "baseTree": "b" * 64,
+                    "attempt": 1,
+                    "request": "rr",
+                },
+                "evaluator": {"name": "x", "version": "0"},
+                "checks": [
+                    {"spec": "editable", "kind": "regression", "route": "smoke",
+                     "result": "fail", "verdictSha256": "0" * 64},
+                ],
+                "decision": "reject",
+                "reasons": ["editable paths"],
+            }
+            (verify_dir / "verification.json").write_text(
+                json.dumps(verification) + "\n", encoding="utf-8"
+            )
+            summary = build_report(
+                verification=verification,
+                candidate=None,
+                out=root / "morning",
+                verification_path=verify_dir / "verification.json",
+            )
+            self.assertIsNone(summary["gameplay"])
+            report = (root / "morning" / "morning-report.md").read_text()
+            self.assertNotIn("## Gameplay", report)
+
+    def test_morning_fails_closed_on_schema_invalid_or_digest_mismatch(self):
+        from nightshift.contracts import ContractError, digest as cdigest
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            verify_dir = root / "verify"
+            verify_dir.mkdir()
+            good = json.loads(
+                (REPO / "contracts" / "examples" / "gameplay-verdict.json").read_text()
+            )
+            validation = {
+                "format": "nightshift.verification/v0",
+                "candidate": {
+                    "patchSha256": "a" * 64,
+                    "baseTree": "b" * 64,
+                    "attempt": 1,
+                    "request": "rr",
+                },
+                "evaluator": {"name": "x", "version": "0"},
+                "checks": [
+                    {
+                        "spec": "player-reaches-end-of-route",
+                        "kind": "gameplay",
+                        "route": "smoke",
+                        "result": "fail",
+                        "verdictSha256": cdigest(good),
+                    },
+                ],
+                "decision": "reject",
+                "reasons": ["gameplay failed"],
+            }
+            bad = dict(good)
+            bad.pop("reason")
+            (verify_dir / "verdict-gameplay.json").write_text(
+                json.dumps(bad) + "\n", encoding="utf-8"
+            )
+            with self.assertRaises(ContractError):
+                build_report(
+                    verification=validation,
+                    candidate=None,
+                    out=root / "morning-bad",
+                    verification_path=verify_dir / "verification.json",
+                )
+            (verify_dir / "verdict-gameplay.json").write_text(
+                json.dumps(good) + "\n", encoding="utf-8"
+            )
+            mismatched = dict(validation)
+            mismatched["checks"] = [
+                {**validation["checks"][0], "verdictSha256": "f" * 64},
+            ]
+            with self.assertRaises(ContractError):
+                build_report(
+                    verification=mismatched,
+                    candidate=None,
+                    out=root / "morning-mismatch",
+                    verification_path=verify_dir / "verification.json",
+                )
+            with self.assertRaises(FileNotFoundError):
+                build_report(
+                    verification=validation,
+                    candidate=None,
+                    out=root / "morning-missing-path",
+                    gameplay_verdict=root / "no-such-verdict.json",
+                )
+            summary = build_report(
+                verification=validation,
+                candidate=None,
+                out=root / "morning-ok",
+                verification_path=verify_dir / "verification.json",
+            )
+            self.assertEqual(summary["gameplay"]["reason"], good["reason"])
+            self.assertIn("endOnFloor:", (root / "morning-ok" / "morning-report.md").read_text())
 
     def test_trust_beat(self):
         with tempfile.TemporaryDirectory() as tmp:

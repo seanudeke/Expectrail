@@ -2,8 +2,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/seanudeke/nightshift/contracts/gameplay-verdict.schema.json",
   "title": "Gameplay verdict: trace-native motion check outside the fixer",
-  "description": "Verifier-side smoke gameplay from harness/fixture traces (min delta-x, end-on-floor, no sustained below-ground). Not a SAM observations verdict.",
+  "description": "Verifier-side smoke gameplay from harness/fixture traces (min delta-x, end-on-floor, no sustained below-ground). Not a SAM observations verdict. Top-level minDeltaX must match metrics.minDeltaX when both are present.",
   "type": "object",
+  "additionalProperties": false,
   "required": [
     "format",
     "spec",
@@ -31,7 +32,8 @@
     },
     "metrics": {
       "type": "object",
-      "required": ["deltaX", "sampleCount"],
+      "additionalProperties": false,
+      "required": ["deltaX", "sampleCount", "minDeltaX"],
       "properties": {
         "deltaX": { "type": "number" },
         "minDeltaX": { "type": "number" },
@@ -53,6 +55,7 @@
     },
     "evaluator": {
       "type": "object",
+      "additionalProperties": false,
       "required": ["name", "version"],
       "properties": {
         "name": { "type": "string" },

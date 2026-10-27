@@ -85,7 +85,7 @@ jobs:
             --out runs/agents-negatives/freeze-verify \
             --skip-harness --observations agents/fixtures/obs-freeze.json \
             && exit 1 || true
-          python -c "import json; from nightshift.contracts import validate; d=json.load(open('runs/agents-negatives/freeze-verify/verification.json')); assert d['decision']=='reject', d; kinds={c['kind']:c['result'] for c in d['checks']}; assert kinds.get('gameplay')=='fail', d; g=json.load(open('runs/agents-negatives/freeze-verify/verdict-gameplay.json')); validate(g,'gameplay-verdict'); assert 'delta-x' in g['reason']"
+          python -c "import json; from nightshift.contracts import validate; from agents.gameplay import REASON_DELTA; d=json.load(open('runs/agents-negatives/freeze-verify/verification.json')); assert d['decision']=='reject', d; kinds={c['kind']:c['result'] for c in d['checks']}; assert kinds.get('gameplay')=='fail', d; g=json.load(open('runs/agents-negatives/freeze-verify/verdict-gameplay.json')); validate(g,'gameplay-verdict'); assert g['reason']==REASON_DELTA, g; assert g['metrics']['minDeltaX']==g['minDeltaX'], g"
       - name: Trust beat (signing key absent from fixer)
         run: python -m agents.trust --out runs/agents-trust
       - name: Demo-path loop 10 accepts (offline mode)

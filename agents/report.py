@@ -13,7 +13,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from nightshift.contracts import load
+from nightshift.contracts import ContractError, digest, load, validate
 
 
 def _fake_sign(payload: bytes, key_material: bytes) -> str:
@@ -31,9 +31,34 @@ def _materialize_frames(srcs: list[Path], dest_dir: Path, prefix: str) -> list[d
         name = f"{prefix}-{i:02d}{src.suffix.lower() or '.png'}"
         dest = dest_dir / name
         shutil.copy2(src, dest)
-        digest = hashlib.sha256(dest.read_bytes()).hexdigest()
-        out.append({"role": prefix, "path": f"frames/{name}", "sha256": digest, "source": str(src)})
+        frame_digest = hashlib.sha256(dest.read_bytes()).hexdigest()
+        out.append({"role": prefix, "path": f"frames/{name}", "sha256": frame_digest, "source": str(src)})
     return out
+
+
+def _gameplay_check(verification: dict) -> dict | None:
+    for c in verification.get("checks", []):
+        if c.get("kind") == "gameplay":
+            return c
+    return None
+
+
+def _bind_gameplay_verdict(doc: dict, check: dict) -> dict:
+    """Schema-validate and bind filmed verdict to the gameplay check digest."""
+    validate(doc, "gameplay-verdict")
+    metrics_min = (doc.get("metrics") or {}).get("minDeltaX")
+    if metrics_min is not None and float(metrics_min) != float(doc["minDeltaX"]):
+        raise ContractError(
+            f"gameplay-verdict: metrics.minDeltaX ({metrics_min}) != minDeltaX ({doc['minDeltaX']})"
+        )
+    expected = check.get("verdictSha256")
+    if expected:
+        actual = digest(doc)
+        if actual != expected:
+            raise ContractError(
+                f"gameplay-verdict digest mismatch: filmed={actual} check={expected}"
+            )
+    return doc
 
 
 def _resolve_gameplay_verdict(
@@ -42,10 +67,16 @@ def _resolve_gameplay_verdict(
     gameplay_verdict: dict | Path | None,
     verification_path: Path | None,
 ) -> dict | None:
-    """Load gameplay verdict for morning. Fail-closed when gameplay check ran but artifact missing."""
-    has_gameplay_check = any(c.get("kind") == "gameplay" for c in verification.get("checks", []))
+    """Load gameplay verdict for morning.
+
+    Fail-closed when a gameplay check ran but the artifact is missing, schema-invalid,
+    or digest-mismatched. Ignore leftover sibling/dict when no gameplay check ran.
+    """
+    check = _gameplay_check(verification)
+    if check is None:
+        return None
     if isinstance(gameplay_verdict, dict):
-        return gameplay_verdict
+        return _bind_gameplay_verdict(gameplay_verdict, check)
     path: Path | None = None
     if isinstance(gameplay_verdict, Path):
         path = gameplay_verdict
@@ -56,14 +87,11 @@ def _resolve_gameplay_verdict(
     if path is not None:
         if not path.is_file():
             raise FileNotFoundError(f"gameplay verdict missing: {path}")
-        from nightshift.contracts import load
-        return load(path, "gameplay-verdict")
-    if has_gameplay_check:
-        raise FileNotFoundError(
-            "verification includes a gameplay check but no gameplay verdict was provided "
-            "(pass gameplay_verdict= or place verdict-gameplay.json beside verification.json)"
-        )
-    return None
+        return _bind_gameplay_verdict(load(path, "gameplay-verdict"), check)
+    raise FileNotFoundError(
+        "verification includes a gameplay check but no gameplay verdict was provided "
+        "(pass gameplay_verdict= or place verdict-gameplay.json beside verification.json)"
+    )
 
 
 def build_report(
