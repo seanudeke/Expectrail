@@ -1,0 +1,19 @@
+{
+  "format": "nightshift.test-spec/v0",
+  "id": "coins-are-visible",
+  "instruction": "Coins are drawn on screen while the player runs the route.",
+  "objects": {
+    "coin": {
+      "prompt": "gold coin"
+    }
+  },
+  "assertion": {
+    "type": "visible",
+    "object": "coin",
+    "minFraction": 0.9
+  },
+  "window": {
+    "fromFrame": 0,
+    "toFrame": 119
+  }
+}
