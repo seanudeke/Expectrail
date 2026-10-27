@@ -11,6 +11,15 @@ Orchestrator, Muse Code fixer, protected verifier, Muse Wonder triage, and morni
 
 Never commit keys. The fixer workspace must not contain signing material (see `python -m agents.trust`).
 
+## Suite kinds
+
+After editable/base-tree gates, the verifier emits four check kinds: `regression`, `gameplay`,
+`clean`, `held-out`. `decide()` accepts only when all four are present and pass (incomplete sets
+are `needs-review`). Clean uses `agents/fixtures/obs-clean.json` (or a harness replay with no
+seed/candidate patches). Held-out uses `agents/fixtures/obs-held-out.json` as an interim
+`evaluate()` control until Sean lands real held-out variants — never a rubber-stamp pass row.
+Neither clean nor held-out obs is mounted into fixer-work.
+
 ## Gate 1
 
 ```sh

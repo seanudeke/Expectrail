@@ -2,7 +2,7 @@ import copy
 import unittest
 
 from nightshift.contracts import validate
-from nightshift.evaluator import decide, evaluate
+from nightshift.evaluator import REQUIRED_CHECK_KINDS, decide, evaluate
 
 
 def spec(assertion, objects=("player", "ground"), window=None):
@@ -102,15 +102,69 @@ class OtherAssertionsTest(unittest.TestCase):
 
 
 class DecideTest(unittest.TestCase):
-    def check(self, kind, result):
-        return {"spec": kind, "kind": kind, "route": "r", "result": result}
+    def check(self, kind, result, spec=None):
+        return {"spec": spec or kind, "kind": kind, "route": "r", "result": result}
 
-    def test_any_failure_rejects_and_unclear_needs_review(self):
-        self.assertEqual(decide([self.check("regression", "pass"), self.check("gameplay", "pass")])[0], "accept")
-        self.assertEqual(decide([self.check("regression", "pass"), self.check("gameplay", "fail")])[0], "reject")
-        self.assertEqual(decide([self.check("regression", "pass"), self.check("held-out", "needs-review")])[0],
-                         "needs-review")
+    def four_pass(self):
+        return [
+            self.check("regression", "pass"),
+            self.check("gameplay", "pass"),
+            self.check("held-out", "pass"),
+            self.check("clean", "pass"),
+        ]
+
+    def test_required_kinds_constant(self):
+        self.assertEqual(REQUIRED_CHECK_KINDS, frozenset({"regression", "gameplay", "held-out", "clean"}))
+
+    def test_four_kind_pass_accepts(self):
+        self.assertEqual(decide(self.four_pass())[0], "accept")
+
+    def test_two_kind_pass_is_needs_review_not_accept(self):
+        decision, reasons = decide([
+            self.check("regression", "pass"),
+            self.check("gameplay", "pass"),
+        ])
+        self.assertEqual(decision, "needs-review")
+        self.assertTrue(any("missing required check kinds" in r for r in reasons))
+        self.assertTrue(any("clean" in r for r in reasons))
+        self.assertTrue(any("held-out" in r for r in reasons))
+
+    def test_any_failure_rejects(self):
+        self.assertEqual(
+            decide([self.check("regression", "pass"), self.check("gameplay", "fail")])[0],
+            "reject",
+        )
+        self.assertEqual(decide(self.four_pass()[:-1] + [self.check("clean", "fail")])[0], "reject")
+
+    def test_fail_beats_missing_kinds(self):
+        self.assertEqual(decide([self.check("regression", "fail")])[0], "reject")
+
+    def test_unclear_on_complete_suite_needs_review(self):
+        checks = self.four_pass()
+        checks[2] = self.check("held-out", "needs-review")
+        self.assertEqual(decide(checks)[0], "needs-review")
+
+    def test_empty_needs_review(self):
         self.assertEqual(decide([])[0], "needs-review")
+
+    def test_kind_set_not_length(self):
+        decision, reasons = decide([
+            self.check("regression", "pass"),
+            self.check("gameplay", "pass"),
+            self.check("held-out", "pass"),
+            self.check("held-out", "pass", spec="dup"),
+        ])
+        self.assertEqual(decision, "needs-review")
+        self.assertTrue(any("clean" in r for r in reasons))
+
+    def test_missing_kinds_beats_unclear(self):
+        decision, reasons = decide([
+            self.check("regression", "pass"),
+            self.check("gameplay", "needs-review"),
+        ])
+        self.assertEqual(decision, "needs-review")
+        self.assertTrue(any("missing required check kinds" in r for r in reasons))
+        self.assertFalse(any("needs review on" in r for r in reasons))
 
 
 if __name__ == "__main__":
