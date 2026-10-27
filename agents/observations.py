@@ -6,8 +6,6 @@ CI and local software renders stay consistent without a hand-tuned screen map.
 """
 from __future__ import annotations
 
-from statistics import median
-
 from nightshift.contracts import digest
 
 PLAYER_HALF_W = 20.0
@@ -21,13 +19,18 @@ GOAL_HALF = 40.0
 
 
 def _floor_y(rows: list[dict]) -> float:
+    """Lowest walkable surface in y-down space (max on-floor y).
+
+    Median of all on-floor samples skews upward when the smoke route lands on
+    platforms, which makes standing on the real ground look like fall-through.
+    """
     samples = [
         float(r["player"][1])
         for r in rows
         if r.get("player") is not None and r.get("onFloor") is True
     ]
     if samples:
-        return float(median(samples))
+        return float(max(samples))
     # Fall-through-only traces: use the earliest player y as a standing guess.
     for r in rows:
         if r.get("player") is not None:

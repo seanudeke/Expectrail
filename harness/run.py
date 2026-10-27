@@ -90,15 +90,25 @@ def run(route: Path, out: Path, patch: Path | None = None, game: Path | None = N
     frames.mkdir()
     route_doc = json.loads(route.read_text(encoding="utf-8"))
     env = dict(os.environ, LIBGL_ALWAYS_SOFTWARE=os.environ.get("LIBGL_ALWAYS_SOFTWARE", "1"))
-    subprocess.run([str(godot), "--headless", "--path", str(work), "--import"], check=True, capture_output=True,
-                   text=True, env=env, timeout=600)
+    try:
+        subprocess.run([str(godot), "--headless", "--path", str(work), "--import"], check=True,
+                       capture_output=True, text=True, env=env, timeout=600)
+    except subprocess.TimeoutExpired as exc:
+        (out / "godot.log").write_text((exc.stdout or "") + (exc.stderr or "") + "\nimport timed out\n",
+                                       encoding="utf-8")
+        raise SystemExit(f"godot import timed out; see {out / 'godot.log'}") from exc
     display = bool(os.environ.get("DISPLAY"))
     cmd = godot_cmd(godot, display) + [
         "--path", str(work), "--audio-driver", "Dummy", "--rendering-driver", "opengl3",
         "--write-movie", str((frames / "f.png").resolve()), "--fixed-fps", str(fps),
         "--", f"--route={route.resolve()}", f"--trace={(out / 'trace.json').resolve()}",
         f"--seed={route_doc.get('seed', 1)}"]
-    proc = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=1800)
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=1800)
+    except subprocess.TimeoutExpired as exc:
+        (out / "godot.log").write_text((exc.stdout or "") + (exc.stderr or "") + "\ncapture timed out\n",
+                                       encoding="utf-8")
+        raise SystemExit(f"godot capture timed out; see {out / 'godot.log'}") from exc
     (out / "godot.log").write_text(proc.stdout + proc.stderr, encoding="utf-8")
     if proc.returncode != 0 or not (out / "trace.json").exists():
         raise SystemExit(f"godot failed ({proc.returncode}); see {out / 'godot.log'}")

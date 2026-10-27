@@ -100,6 +100,19 @@ class ObservationsTest(unittest.TestCase):
         self.assertEqual(evaluate(game, from_trace(walk))["result"], "pass")
         self.assertEqual(evaluate(game, from_trace(freeze))["result"], "fail")
 
+    def test_floor_uses_lowest_surface_not_median(self):
+        # Ground at y=500, brief platform landings at y=300 would skew a median upward.
+        rows = (
+            [{"tick": i * 2, "player": [210 + i, 500.0], "onFloor": True} for i in range(8)]
+            + [{"tick": 20, "player": [300, 300.0], "onFloor": True},
+               {"tick": 22, "player": [310, 300.0], "onFloor": True}]
+        )
+        obs = from_trace({"format": "nightshift.trace/v0", "physicsTicksPerSecond": 120, "rows": rows})
+        ground_top = obs["frames"][0]["objects"]["ground"][0]["box"][1]
+        self.assertEqual(ground_top, 500.0)
+        standing = obs["frames"][0]["objects"]["player"][0]["box"][3]
+        self.assertLessEqual(standing, ground_top + 12)
+
 
 class VerifierDecideTest(unittest.TestCase):
     def test_fixed_observations_accept(self):

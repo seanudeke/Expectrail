@@ -60,13 +60,12 @@ def verify(
 
     failing = request["failing"][0]
     route_doc = failing["route"]
+    # Always materialize the request's route so verify is bound to the RR, not only
+    # the default smoke file on disk.
+    route_path = out / "route.json"
+    route_path.write_text(json.dumps(route_doc, indent=2) + "\n", encoding="utf-8")
     if route is None:
-        route = REPO / "harness" / "routes" / "smoke.json"
-        if route_doc.get("name") and route_doc["name"] != "smoke":
-            # Prefer embedded route written beside out.
-            route_path = out / "route.json"
-            route_path.write_text(json.dumps(route_doc, indent=2) + "\n", encoding="utf-8")
-            route = route_path
+        route = route_path
 
     patches: list[Path] = []
     seed = request["base"].get("patch")

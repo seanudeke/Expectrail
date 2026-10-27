@@ -28,6 +28,10 @@ python3 -m agents.verifier --request runs/gate1/repair-request.json \
 
 # Live Muse Code (requires META_API_KEY + muse + Linux Godot/Xvfb for harness verify)
 python3 -m agents.gate1 --out runs/gate1-muse --use-muse
+
+# Harness-backed verify (Linux + xvfb + Godot; CI job agents-harness-verify)
+python3 -m agents.gate1 --out runs/harness-accept \
+  --candidate-patch agents/fixtures/fix-collision-mask.patch
 ```
 
 ## Gate 2

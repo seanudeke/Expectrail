@@ -113,9 +113,15 @@ jobs:
           python-version: '3.13'
       - run: python -m pip install -r requirements-dev.txt
       - name: Install a virtual display and software OpenGL
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri libglx-mesa0
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri libglx-mesa0 patch
       - name: Download Godot 4.7.2 and check its SHA-512
         run: ./harness/get_godot.sh
+      - name: Flake control — seed+fix replay identical twice
+        run: >
+          python -m harness.replay_check --route harness/routes/smoke.json --runs 2
+          --out runs/harness-flake
+          --patch bugs/physics-fall-through/v1.patch
+          --patch agents/fixtures/fix-collision-mask.patch
       - name: Harness-backed Gate 1 accept (seed + fix candidate)
         run: >
           python -m agents.gate1 --out runs/harness-accept
@@ -167,4 +173,5 @@ jobs:
             runs/harness-seed/replay.json
             runs/harness-seed/trace.json
             runs/harness-seed/godot.log
+            runs/harness-flake/summary.json
           retention-days: 7
