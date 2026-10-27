@@ -36,10 +36,25 @@ python3 -m agents.gate1 --out runs/harness-accept \
 
 ## Gate 2
 
+Modes are sealed: `--mode offline` cannot be combined with `--use-muse` / `--online-triage`;
+`--mode live` cannot be combined with `--offline-triage`. Live Wonder that soft-falls to
+fixtures rejects the run. Signing key is written under `verifier-host/` only after the fixer
+returns. Default verification is fixture observations (`verificationProvenance`); pass
+`--no-skip-harness` for Godot harness verify.
+
 ```sh
-python3 -m agents.triage --out runs/triage --offline
-python3 -m agents.loop --out runs/loop --runs 10 --offline-triage
+# One-command overnight path (auto: Wonder/Muse when keys exist, else fixtures)
+python3 -m agents.loop --out runs/loop --mode auto --runs 1
+
+# CI / deterministic
+python3 -m agents.loop --out runs/loop --mode offline --runs 10
+
+# Force live Wonder + Muse Code (fails closed without keys + muse)
+export META_API_KEY=LLM_…
+export MODEL_API_KEY="$META_API_KEY"
+python3 -m agents.loop --out runs/loop-live --mode live --runs 1
+
+# Trust beat evidence for the demo (standalone sandbox, or bound by the loop)
 python3 -m agents.trust --out runs/trust
-python3 -m agents.report --verification runs/loop/run-00/verify/verification.json \
-  --candidate runs/loop/run-00/fix/candidate.patch --out runs/morning
+# → runs/trust/trust-evidence.md
 ```

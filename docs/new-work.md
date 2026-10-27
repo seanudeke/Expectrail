@@ -29,3 +29,4 @@ something; keep prior work out of it.
 | Oct 27 | Evaluation plan: three bug families, held-out variants, ground truth, gameplay checks | `docs/evaluation.md` |
 | Oct 27 | Test specs for the first three families (drafts awaiting approval) | `specs/` |
 | Oct 27 | Muse Spark spec writer: plain English to a validated test spec, then human approval | `nightshift/spec_writer.py` |
+| Oct 26 | Overnight loop auto/live/offline + filmable trust evidence | `agents/loop.py`, `agents/keys.py`, `agents/trust.py` |

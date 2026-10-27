@@ -43,12 +43,13 @@ python3 -m nightshift.evaluator --spec contracts/examples/test-spec.json \
 
 python3 -m agents.gate1 --out runs/gate1 --skip-harness \
   --observations agents/fixtures/obs-fixed.json             # repair → fix → verify
-python3 -m agents.loop --out runs/loop --runs 10 --offline-triage
+python3 -m agents.loop --out runs/loop --mode offline --runs 10
 python3 -m agents.trust --out runs/trust                    # signing key stays off the fixer
 
 export MODEL_API_KEY=...                                     # your Meta Model API key
 python3 -m nightshift.spec_writer draft "The player never falls through the ground" --out /tmp/spec.json
 python3 -m nightshift.spec_writer approve /tmp/spec.json --by <you>   # Muse Spark drafts; a person approves
+# Live overnight path when META_API_KEY is set: python3 -m agents.loop --mode live
 ```
 
 See [agents/README.md](agents/README.md) for Muse API / Muse Code setup (`MODEL_API_KEY`, `META_API_KEY`).

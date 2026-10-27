@@ -1,18 +1,23 @@
 """Agents lane: orchestrator, patchutil, fixer fixtures, verifier decide paths, trust, loop."""
 from __future__ import annotations
 
+import json
+import os
 import shutil
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from agents.fixer import run_fixer
+from agents.keys import muse_code_ready, resolve_mode, seal_mode_flags, wonder_key
+from agents.loop import main as loop_main
 from agents.loop import one_run
 from agents.observations import from_trace
 from agents.orchestrator import build_repair_request
 from agents.patchutil import assert_editable, paths_touched
 from agents.report import build_report
-from agents.triage import triage
+from agents.triage import WONDER_MODEL, triage
 from agents.trust import run_trust_check
 from agents.verifier import verify
 from harness.run import REPO, tree_digest
@@ -233,21 +238,279 @@ class TriageReportTrustLoopTest(unittest.TestCase):
 
     def test_trust_beat(self):
         with tempfile.TemporaryDirectory() as tmp:
-            result = run_trust_check(Path(tmp) / "trust")
+            out = Path(tmp) / "trust"
+            result = run_trust_check(out)
             self.assertTrue(result["ok"])
+            self.assertFalse(result["boundToLoop"])
             self.assertEqual(result["signingKeyInFixer"], [])
+            self.assertTrue(result["readDeniedByAbsence"])
+            self.assertTrue((out / "trust-evidence.md").exists())
+            evidence = (out / "trust-evidence.md").read_text(encoding="utf-8")
+            self.assertIn("PASS", evidence)
+            self.assertNotIn("DEMO-FAKE-SIGNING-KEY-NOT-REAL", (out / "fixer-workspace" / "player" / "readme-extra.txt").read_text())
+
+    def test_trust_beat_fail_when_key_in_fixer(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "trust"
+            run_trust_check(out)
+            planted = out / "fixer-workspace" / ".nightshift-signing-key"
+            planted.write_text("DEMO-FAKE-SIGNING-KEY-NOT-REAL\n", encoding="utf-8")
+            # Re-check bound topology with the poisoned fixer tree.
+            result = run_trust_check(
+                out / "recheck",
+                fixer_work=out / "fixer-workspace",
+                verifier_host=out / "verifier-host",
+            )
+            self.assertFalse(result["ok"])
+            self.assertIn("FAIL", (out / "recheck" / "trust-evidence.md").read_text())
+
+    def test_trust_bound_to_loop_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fixer = root / "fix" / "fixer-work"
+            verifier = root / "verifier-host"
+            fixer.mkdir(parents=True)
+            (fixer / "player").mkdir()
+            verifier.mkdir()
+            (verifier / ".nightshift-signing-key").write_text("DEMO-FAKE-SIGNING-KEY-NOT-REAL\n")
+            result = run_trust_check(root / "trust", fixer_work=fixer, verifier_host=verifier)
+            self.assertTrue(result["ok"])
+            self.assertTrue(result["boundToLoop"])
+            evidence = (root / "trust" / "trust-evidence.md").read_text()
+            self.assertIn(str(fixer), evidence)
+            self.assertIn(str(verifier), evidence)
 
     def test_loop_accepts_with_fixture_obs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_root = Path(tmp) / "loop"
+            result = one_run(
+                run_root,
+                use_muse=False,
+                offline_triage=True,
+                observations=REPO / "agents" / "fixtures" / "obs-fixed.json",
+                candidate_patch=REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
+                skip_harness=True,
+                run_trust=True,
+            )
+            self.assertEqual(result["decision"], "accept")
+            self.assertTrue(result["trust"]["ok"])
+            self.assertTrue(result["trust"]["boundToLoop"])
+            self.assertEqual(result["fixerSource"], "fixture")
+            self.assertEqual(result["triageSource"], "offline")
+            self.assertEqual(result["verificationProvenance"], "fixture")
+            fixer_work = run_root / "fix" / "fixer-work"
+            self.assertTrue(fixer_work.is_dir())
+            self.assertEqual(list(fixer_work.rglob(".nightshift-signing-key")), [])
+            self.assertTrue((run_root / "verifier-host" / ".nightshift-signing-key").is_file())
+            key = (run_root / "verifier-host" / ".nightshift-signing-key").read_text()
+            for path in fixer_work.rglob("*"):
+                if path.is_file():
+                    self.assertNotIn(key.strip(), path.read_text(encoding="utf-8", errors="ignore"))
+
+    def test_loop_out_of_glob_never_forges_accept(self):
         with tempfile.TemporaryDirectory() as tmp:
             result = one_run(
                 Path(tmp) / "loop",
                 use_muse=False,
                 offline_triage=True,
                 observations=REPO / "agents" / "fixtures" / "obs-fixed.json",
-                candidate_patch=REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
+                candidate_patch=REPO / "agents" / "fixtures" / "out-of-glob.patch",
                 skip_harness=True,
+                run_trust=True,
             )
-            self.assertEqual(result["decision"], "accept")
+            self.assertEqual(result["decision"], "reject")
+            self.assertIsNotNone(result.get("error"))
+            self.assertTrue((Path(tmp) / "loop" / "loop-error.txt").exists())
+
+    def test_loop_exception_never_forges_accept(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch("agents.loop.triage", side_effect=RuntimeError("boom")):
+                result = one_run(
+                    Path(tmp) / "loop",
+                    use_muse=False,
+                    offline_triage=True,
+                    observations=REPO / "agents" / "fixtures" / "obs-fixed.json",
+                    candidate_patch=REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
+                    skip_harness=True,
+                    run_trust=True,
+                )
+            self.assertEqual(result["decision"], "reject")
+            self.assertIn("RuntimeError", result["error"])
+            self.assertIsNone(result["morning"])
+            self.assertTrue((Path(tmp) / "loop" / "loop-error.txt").exists())
+
+    def test_loop_trust_fail_rejects(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch("agents.loop.run_trust_check", return_value={"ok": False, "detail": "nope"}):
+                result = one_run(
+                    Path(tmp) / "loop",
+                    use_muse=False,
+                    offline_triage=True,
+                    observations=REPO / "agents" / "fixtures" / "obs-fixed.json",
+                    candidate_patch=REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
+                    skip_harness=True,
+                    run_trust=True,
+                )
+            self.assertEqual(result["decision"], "reject")
+            self.assertEqual(result["error"], "trust beat failed")
+            self.assertIsNone(result["morning"])
+
+    def test_loop_live_triage_fallback_rejects(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            def fake_triage(**kwargs):
+                out = kwargs["out"]
+                out.mkdir(parents=True, exist_ok=True)
+                (out / "triage.json").write_text(json.dumps({"source": "offline-fallback"}) + "\n")
+                (out / "repair-request.json").write_text("{}")
+                return _request()
+
+            with mock.patch("agents.loop.triage", side_effect=fake_triage):
+                result = one_run(
+                    Path(tmp) / "loop",
+                    use_muse=False,
+                    offline_triage=False,
+                    observations=REPO / "agents" / "fixtures" / "obs-fixed.json",
+                    candidate_patch=REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
+                    skip_harness=True,
+                    run_trust=False,
+                )
+            self.assertEqual(result["decision"], "reject")
+            self.assertIn("live Wonder", result["error"])
+
+    def test_loop_verify_reject_not_crash(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result = one_run(
+                Path(tmp) / "loop",
+                use_muse=False,
+                offline_triage=True,
+                observations=REPO / "agents" / "fixtures" / "obs-freeze.json",
+                candidate_patch=REPO / "agents" / "fixtures" / "freeze-player.patch",
+                skip_harness=True,
+                run_trust=True,
+            )
+            self.assertEqual(result["decision"], "reject")
+            self.assertIsNone(result.get("error"))
+            self.assertIsNotNone(result["morning"])
+
+    def test_resolve_mode_offline_and_live_gates(self):
+        offline = resolve_mode("offline")
+        self.assertTrue(offline["offline_triage"])
+        self.assertFalse(offline["use_muse"])
+        with mock.patch.dict(os.environ, {}, clear=True):
+            with mock.patch("agents.keys.shutil.which", return_value=None):
+                with self.assertRaises(SystemExit) as cm:
+                    resolve_mode("live")
+                self.assertIn("Wonder", str(cm.exception))
+                auto = resolve_mode("auto")
+                self.assertTrue(auto["offline_triage"])
+                self.assertFalse(auto["use_muse"])
+        with mock.patch.dict(os.environ, {"MODEL_API_KEY": "k", "META_API_KEY": ""}, clear=True):
+            with mock.patch("agents.keys.shutil.which", return_value=None):
+                with self.assertRaises(SystemExit) as cm:
+                    resolve_mode("live")
+                self.assertIn("muse", str(cm.exception).lower())
+        with mock.patch.dict(os.environ, {"MODEL_API_KEY": "k", "META_API_KEY": "m"}):
+            with mock.patch("agents.keys.shutil.which", return_value="/usr/bin/muse"):
+                live = resolve_mode("live")
+                self.assertFalse(live["offline_triage"])
+                self.assertTrue(live["use_muse"])
+                auto = resolve_mode("auto")
+                self.assertFalse(auto["offline_triage"])
+                self.assertTrue(auto["use_muse"])
+        with self.assertRaises(ValueError):
+            resolve_mode("bogus")
+        self.assertTrue(wonder_key() is None or isinstance(wonder_key(), str))
+
+    def test_seal_mode_rejects_contradictions(self):
+        offline = resolve_mode("offline")
+        with self.assertRaises(SystemExit):
+            seal_mode_flags(offline, force_offline_triage=False, force_online_triage=True, force_muse=False)
+        with self.assertRaises(SystemExit):
+            seal_mode_flags(offline, force_offline_triage=False, force_online_triage=False, force_muse=True)
+        with mock.patch.dict(os.environ, {"MODEL_API_KEY": "k", "META_API_KEY": "m"}):
+            with mock.patch("agents.keys.shutil.which", return_value="/usr/bin/muse"):
+                live = resolve_mode("live")
+                with self.assertRaises(SystemExit):
+                    seal_mode_flags(live, force_offline_triage=True, force_online_triage=False, force_muse=False)
+
+    def test_muse_code_ready_requires_key(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            with mock.patch("agents.keys.shutil.which", return_value="/usr/bin/muse"):
+                self.assertFalse(muse_code_ready())
+        with mock.patch.dict(os.environ, {"META_API_KEY": "k"}):
+            with mock.patch("agents.keys.shutil.which", return_value="/usr/bin/muse"):
+                self.assertTrue(muse_code_ready())
+
+    def test_loop_main_offline_cli(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            code = loop_main([
+                "--out", str(Path(tmp) / "loop"),
+                "--mode", "offline",
+                "--runs", "2",
+            ])
+            self.assertEqual(code, 0)
+            summary = json.loads((Path(tmp) / "loop" / "summary.json").read_text())
+            self.assertEqual(summary["accepted"], 2)
+            self.assertEqual(summary["mode"]["mode"], "offline")
+            self.assertEqual(summary["verificationProvenance"], "fixture")
+
+    def test_loop_main_exit_one_when_any_run_rejects(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            outcomes = iter([
+                {"decision": "reject", "error": "boom", "morning": None},
+                {"decision": "accept", "morning": {}, "trust": {"ok": True}},
+            ])
+
+            def fake_one_run(*_a, **_k):
+                return next(outcomes)
+
+            with mock.patch("agents.loop.one_run", side_effect=fake_one_run):
+                code = loop_main([
+                    "--out", str(Path(tmp) / "loop"),
+                    "--mode", "offline",
+                    "--runs", "2",
+                ])
+            self.assertEqual(code, 1)
+            summary = json.loads((Path(tmp) / "loop" / "summary.json").read_text())
+            self.assertEqual(summary["accepted"], 1)
+            self.assertEqual(summary["runs"], 2)
+            self.assertNotEqual(summary["results"][0]["decision"], "accept")
+
+    def test_loop_main_live_without_keys_exits(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch.dict(os.environ, {}, clear=True):
+                with mock.patch("agents.keys.shutil.which", return_value=None):
+                    with self.assertRaises(SystemExit):
+                        loop_main(["--out", str(Path(tmp) / "loop"), "--mode", "live"])
+
+    def test_resolve_mode_auto_partial_and_empty_keys(self):
+        with mock.patch.dict(os.environ, {"MODEL_API_KEY": "only-wonder"}, clear=True):
+            with mock.patch("agents.keys.shutil.which", return_value=None):
+                auto = resolve_mode("auto")
+                self.assertFalse(auto["offline_triage"])
+                self.assertFalse(auto["use_muse"])
+        with mock.patch.dict(os.environ, {"MODEL_API_KEY": "", "META_API_KEY": ""}, clear=True):
+            with mock.patch("agents.keys.shutil.which", return_value=None):
+                auto = resolve_mode("auto")
+                self.assertTrue(auto["offline_triage"])
+                self.assertFalse(auto["use_muse"])
+                self.assertIsNone(wonder_key())
+        with mock.patch.dict(os.environ, {"MODEL_API_KEY": "m", "META_API_KEY": "meta"}, clear=True):
+            self.assertEqual(wonder_key(), "m")
+        with mock.patch.dict(os.environ, {"MODEL_API_KEY": "k"}, clear=True):
+            with mock.patch("agents.keys.shutil.which", return_value="/usr/bin/muse"):
+                with self.assertRaises(SystemExit) as cm:
+                    resolve_mode("live")
+                self.assertIn("META_API_KEY", str(cm.exception))
+
+    def test_loop_main_offline_use_muse_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(SystemExit):
+                loop_main([
+                    "--out", str(Path(tmp) / "loop"),
+                    "--mode", "offline",
+                    "--use-muse",
+                ])
 
 
 class SpecsEvaluateTest(unittest.TestCase):
