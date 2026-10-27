@@ -14,7 +14,10 @@ FIXER_FORBIDDEN_BASENAMES = frozenset({
     "obs-clean.json",
     "obs-held-out.json",
     "player-stays-above-ground.json",
+    # Retired opaque reaches label — deny forever so it cannot remount as a test-spec.
     "player-reaches-end-of-route.json",
+    # Current opaque motion id — deny so a fake SAM/spec file cannot mount either.
+    "player-motion-on-smoke.json",
     "evaluator.py",
 })
 

@@ -85,9 +85,51 @@ jobs:
             --out runs/agents-negatives/freeze-verify \
             --skip-harness --observations agents/fixtures/obs-freeze.json \
             && exit 1 || true
-          python -c "import json; from nightshift.contracts import validate; from agents.gameplay import REASON_DELTA; d=json.load(open('runs/agents-negatives/freeze-verify/verification.json')); assert d['decision']=='reject', d; kinds={c['kind']:c['result'] for c in d['checks']}; assert kinds.get('gameplay')=='fail', d; g=json.load(open('runs/agents-negatives/freeze-verify/verdict-gameplay.json')); validate(g,'gameplay-verdict'); assert g['reason']==REASON_DELTA, g; assert g['metrics']['minDeltaX']==g['minDeltaX'], g"
+          python -c "import json; from nightshift.contracts import validate; from agents.gameplay import REASON_DELTA; from agents.verifier import GAMEPLAY_SPEC_ID; d=json.load(open('runs/agents-negatives/freeze-verify/verification.json')); assert d['decision']=='reject', d; kinds={c['kind']:c['result'] for c in d['checks']}; assert kinds.get('gameplay')=='fail', d; g=json.load(open('runs/agents-negatives/freeze-verify/verdict-gameplay.json')); validate(g,'gameplay-verdict'); assert g['spec']==GAMEPLAY_SPEC_ID, g; assert g['reason']==REASON_DELTA, g; assert g['metrics']['minDeltaX']==g['minDeltaX'], g"
+          set +e
+          python -m agents.report --verification runs/agents-negatives/freeze-verify/verification.json --candidate runs/agents-negatives/freeze/candidate.patch --gameplay-verdict runs/agents-negatives/freeze-verify/verdict-gameplay.json --before agents/fixtures/frames/before-fall.png --after agents/fixtures/frames/after-fixed.png --out runs/agents-negatives/freeze-morning
+          report_status=$?
+          set -e
+          test "$report_status" -eq 1
+          python -c "from pathlib import Path; from nightshift.contracts import validate; import json; from agents.gameplay import REASON_DELTA; md=Path('runs/agents-negatives/freeze-morning/morning-report.md').read_text(); assert '## Gameplay' in md and REASON_DELTA in md, md; rc=json.load(open('runs/agents-negatives/freeze-morning/release-candidate.json')); validate(rc,'release-candidate'); assert rc['decision']=='reject'"
       - name: Trust beat (signing key absent from fixer)
         run: python -m agents.trust --out runs/agents-trust
+      - name: Mixed overnight films gameplay reject in rollup
+        run: |
+          python -m agents.loop --out runs/agents-loop-accept --runs 1 --mode offline
+          python -m agents.loop --out runs/agents-loop-freeze --runs 1 --mode offline \
+            --candidate-patch agents/fixtures/freeze-player.patch \
+            --observations agents/fixtures/obs-freeze.json || true
+          python - <<'PY'
+          import json, shutil
+          from pathlib import Path
+          from agents.gameplay import REASON_DELTA
+          from agents.report import write_loop_rollup
+          from agents.verifier import GAMEPLAY_SPEC_ID
+          accept = json.loads(Path("runs/agents-loop-accept/summary.json").read_text())
+          freeze = json.loads(Path("runs/agents-loop-freeze/summary.json").read_text())
+          assert accept["results"][0]["decision"] == "accept"
+          assert accept["results"][0]["gameplay"]["result"] == "pass"
+          assert freeze["results"][0]["decision"] == "reject"
+          assert freeze["results"][0]["gameplay"]["reason"] == REASON_DELTA
+          assert freeze["results"][0]["gameplay"]["spec"] == GAMEPLAY_SPEC_ID
+          out = Path("runs/agents-loop-mixed")
+          if out.exists():
+              shutil.rmtree(out)
+          out.mkdir(parents=True)
+          summary = {
+              "mode": {"mode": "offline"},
+              "runs": 2,
+              "accepted": 1,
+              "verificationProvenance": "fixture",
+              "results": [freeze["results"][0], accept["results"][0]],
+          }
+          (out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
+          md = write_loop_rollup(out, summary=summary).read_text()
+          assert "## Gameplay" in md and REASON_DELTA in md, md
+          assert "fixture-trace:trace-freeze.json" in md, md
+          print("mixed rollup ok")
+          PY
       - name: Demo-path loop 10 accepts (offline mode)
         run: python -m agents.loop --out runs/agents-loop --runs 10 --mode offline
       - name: Keep agent artifacts
@@ -104,6 +146,9 @@ jobs:
             runs/agents-loop/morning-report.md
             runs/agents-loop/frames/
             runs/agents-loop/run-00/morning/
+            runs/agents-loop-mixed/summary.json
+            runs/agents-loop-mixed/morning-report.md
+            runs/agents-negatives/freeze-morning/
           retention-days: 7
 
   agents-harness-verify:

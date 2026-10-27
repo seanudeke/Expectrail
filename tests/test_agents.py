@@ -27,10 +27,10 @@ from agents.loop import one_run
 from agents.observations import from_trace
 from agents.orchestrator import build_repair_request
 from agents.patchutil import assert_editable, paths_touched
-from agents.report import build_report, write_loop_rollup
+from agents.report import build_report, gameplay_film_stub, write_loop_rollup
 from agents.triage import WONDER_MODEL, triage
 from agents.trust import run_trust_check
-from agents.verifier import verify
+from agents.verifier import GAMEPLAY_SPEC_ID, verify
 from harness.run import REPO, tree_digest
 from nightshift.contracts import load, validate
 from nightshift.evaluator import decide, evaluate
@@ -177,13 +177,13 @@ class VerifierDecideTest(unittest.TestCase):
             self.assertIn("held-out", kinds)
             gameplay = json.loads((out / "verdict-gameplay.json").read_text())
             validate(gameplay, "gameplay-verdict")
+            self.assertEqual(gameplay["spec"], GAMEPLAY_SPEC_ID)
             self.assertEqual(gameplay["reason"], REASON_DELTA)
             self.assertTrue(str(gameplay["source"]).startswith("fixture-trace:"))
             from nightshift.contracts import digest as cdigest
-            self.assertEqual(
-                next(c for c in doc["checks"] if c["kind"] == "gameplay")["verdictSha256"],
-                cdigest(gameplay),
-            )
+            gp_check = next(c for c in doc["checks"] if c["kind"] == "gameplay")
+            self.assertEqual(gp_check["spec"], GAMEPLAY_SPEC_ID)
+            self.assertEqual(gp_check["verdictSha256"], cdigest(gameplay))
 
     def test_clean_fail_rejects(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -459,7 +459,10 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             self.assertIn("![before](frames/before-00.png)", report)
             self.assertIn("![after](frames/after-00.png)", report)
             self.assertIn("## Gameplay", report)
+            self.assertEqual(summary["gameplay"]["spec"], GAMEPLAY_SPEC_ID)
             rc = json.loads((root / "morning" / "release-candidate.json").read_text())
+            validate(rc, "release-candidate")
+            self.assertEqual(rc["decision"], "accept")
             self.assertEqual(rc["signingKey"], str(key))
             unsigned = build_report(
                 verification=verification,
@@ -499,6 +502,7 @@ class TriageReportTrustLoopTest(unittest.TestCase):
                 verification_path=root / "verify" / "verification.json",
             )
             self.assertEqual(summary["decision"], "reject")
+            self.assertEqual(summary["gameplay"]["spec"], GAMEPLAY_SPEC_ID)
             self.assertEqual(summary["gameplay"]["reason"], REASON_DELTA)
             self.assertEqual(summary["gameplay"]["source"], "fixture-trace:trace-freeze.json")
             report = (root / "morning" / "morning-report.md").read_text()
@@ -510,6 +514,10 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             self.assertIn("belowStreak:", report)
             self.assertIn("sampleCount:", report)
             self.assertIn("minDeltaX:", report)
+            rc = json.loads((root / "morning" / "release-candidate.json").read_text())
+            validate(rc, "release-candidate")
+            self.assertEqual(rc["decision"], "reject")
+            self.assertEqual(gameplay_film_stub(summary)["reason"], REASON_DELTA)
 
     def test_morning_fails_closed_when_gameplay_check_without_verdict(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -524,7 +532,7 @@ class TriageReportTrustLoopTest(unittest.TestCase):
                 },
                 "evaluator": {"name": "x", "version": "0"},
                 "checks": [
-                    {"spec": "player-reaches-end-of-route", "kind": "gameplay",
+                    {"spec": GAMEPLAY_SPEC_ID, "kind": "gameplay",
                      "route": "smoke", "result": "fail"},
                 ],
                 "decision": "reject",
@@ -609,7 +617,7 @@ class TriageReportTrustLoopTest(unittest.TestCase):
                 "evaluator": {"name": "x", "version": "0"},
                 "checks": [
                     {
-                        "spec": "player-reaches-end-of-route",
+                        "spec": GAMEPLAY_SPEC_ID,
                         "kind": "gameplay",
                         "route": "smoke",
                         "result": "fail",
@@ -708,6 +716,7 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             self.assertTrue((out / "verifier-host" / ".nightshift-signing-key").is_file())
 
     def test_fixer_forbidden_basenames_locked(self):
+        self.assertEqual(GAMEPLAY_SPEC_ID, "player-motion-on-smoke")
         self.assertEqual(
             FIXER_FORBIDDEN_BASENAMES,
             frozenset({
@@ -716,10 +725,12 @@ class TriageReportTrustLoopTest(unittest.TestCase):
                 "obs-held-out.json",
                 "player-stays-above-ground.json",
                 "player-reaches-end-of-route.json",
+                "player-motion-on-smoke.json",
                 "evaluator.py",
             }),
         )
         self.assertFalse((REPO / "agents" / "specs" / "player-reaches-end-of-route.json").exists())
+        self.assertFalse((REPO / "agents" / "specs" / "player-motion-on-smoke.json").exists())
 
     def test_trust_fails_when_suite_control_planted(self):
         plants = (
@@ -728,6 +739,7 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             "evaluator.py",
             "player-stays-above-ground.json",
             "player-reaches-end-of-route.json",
+            "player-motion-on-smoke.json",
         )
         for name in plants:
             with self.subTest(name=name):
@@ -779,6 +791,9 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             self.assertEqual(result["decision"], "reject")
             self.assertIsNone(result.get("error"))
             self.assertEqual(result["triageSource"], WONDER_MODEL)
+            self.assertEqual(result["gameplay"]["reason"], REASON_DELTA)
+            self.assertEqual(result["gameplay"]["spec"], GAMEPLAY_SPEC_ID)
+            self.assertEqual(result["morning"]["gameplay"]["reason"], REASON_DELTA)
 
     def test_trust_beat_fail_when_key_in_fixer(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1012,6 +1027,9 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             self.assertEqual(summary["accepted"], 3)
             self.assertEqual(summary["runs"], 3)
             self.assertTrue(all(r["decision"] == "accept" for r in summary["results"]))
+            for r in summary["results"]:
+                self.assertEqual(r["gameplay"]["result"], "pass")
+                self.assertEqual(r["gameplay"]["spec"], GAMEPLAY_SPEC_ID)
             self.assertEqual(summary["mode"]["mode"], "offline")
             self.assertEqual(summary["verificationProvenance"], "fixture")
             rollup = (out / "morning-report.md").read_text(encoding="utf-8")
@@ -1019,10 +1037,14 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             self.assertIn("run-00/morning/morning-report.md", rollup)
             self.assertIn("![before](frames/before-00.png)", rollup)
             self.assertIn("![after](frames/after-00.png)", rollup)
+            self.assertNotIn("## Gameplay", rollup)
             self.assertTrue((out / "frames" / "before-00.png").is_file())
             self.assertTrue((out / "frames" / "after-00.png").is_file())
             self.assertTrue((out / "run-00" / "morning" / "frames" / "before-00.png").is_file())
             self.assertTrue((out / "run-02" / "morning" / "frames" / "after-00.png").is_file())
+            rc = json.loads((out / "run-00" / "morning" / "release-candidate.json").read_text())
+            validate(rc, "release-candidate")
+            self.assertEqual(rc["decision"], "accept")
 
     def test_loop_missing_frame_rejects(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1052,6 +1074,8 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             )
             self.assertEqual(result_after["decision"], "reject")
             self.assertIn("FileNotFoundError", result_after["error"])
+            self.assertIsNone(result_after.get("morning"))
+            self.assertIsNone(result_after.get("gameplay"))
 
     def test_loop_empty_frame_lists_reject(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1068,6 +1092,7 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             )
             self.assertEqual(result["decision"], "reject")
             self.assertIn("non-empty", result["error"])
+            self.assertIsNone(result.get("gameplay"))
 
     def test_write_loop_rollup_mixed(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1078,7 +1103,7 @@ class TriageReportTrustLoopTest(unittest.TestCase):
                 "accepted": 1,
                 "verificationProvenance": "fixture",
                 "results": [
-                    {"decision": "reject", "error": "boom", "morning": None},
+                    {"decision": "reject", "error": "boom", "morning": None, "gameplay": None},
                     {"decision": "accept", "morning": {"frames": [{"role": "before", "path": "frames/before-00.png"}]}},
                 ],
             }
@@ -1087,6 +1112,92 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             self.assertIn("1 of 2", text)
             self.assertIn("Unresolved", text)
             self.assertNotIn("Latest accept frames", text)
+            self.assertNotIn("## Gameplay", text)
+
+    def test_write_loop_rollup_films_latest_gameplay_reject(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            summary = {
+                "mode": {"mode": "offline"},
+                "runs": 3,
+                "accepted": 1,
+                "verificationProvenance": "fixture",
+                "results": [
+                    {
+                        "decision": "reject",
+                        "gameplay": {
+                            "spec": GAMEPLAY_SPEC_ID,
+                            "result": "fail",
+                            "reason": "old reject",
+                            "source": "fixture-trace:old.json",
+                            "minDeltaX": 200.0,
+                            "deltaX": 1.0,
+                        },
+                    },
+                    {
+                        "decision": "reject",
+                        "gameplay": {
+                            "spec": GAMEPLAY_SPEC_ID,
+                            "result": "fail",
+                            "reason": REASON_DELTA,
+                            "source": "fixture-trace:trace-freeze.json",
+                            "minDeltaX": 200.0,
+                            "deltaX": 0.0,
+                        },
+                    },
+                    {"decision": "accept", "morning": {"frames": []}, "gameplay": {"result": "pass"}},
+                ],
+            }
+            text = write_loop_rollup(out, summary=summary).read_text(encoding="utf-8")
+            self.assertIn("## Unresolved", text)
+            self.assertIn("## Gameplay", text)
+            self.assertIn("run-01", text)
+            self.assertIn(f"spec: `{GAMEPLAY_SPEC_ID}`", text)
+            self.assertIn(REASON_DELTA, text)
+            self.assertIn("fixture-trace:trace-freeze.json", text)
+            self.assertIn("deltaX: `0.0`", text)
+            self.assertIn(f"gameplay=`fail` reason={REASON_DELTA}", text)
+            # Later non-accept with gameplay pass must not displace the fail film.
+            later_pass = {
+                "mode": {"mode": "offline"},
+                "runs": 2,
+                "accepted": 0,
+                "verificationProvenance": "fixture",
+                "results": [
+                    summary["results"][1],
+                    {
+                        "decision": "reject",
+                        "error": "trust beat failed",
+                        "gameplay": {"spec": GAMEPLAY_SPEC_ID, "result": "pass", "reason": "ok"},
+                    },
+                ],
+            }
+            later_text = write_loop_rollup(out / "later", summary=later_pass).read_text()
+            self.assertIn(REASON_DELTA, later_text)
+            self.assertNotIn("reason: ok", later_text.split("## Gameplay", 1)[1])
+            # Morning-only stub (no top-level gameplay) still films.
+            morning_only = {
+                "mode": {"mode": "offline"},
+                "runs": 1,
+                "accepted": 0,
+                "verificationProvenance": "fixture",
+                "results": [{
+                    "decision": "reject",
+                    "morning": {
+                        "gameplay": {
+                            "spec": GAMEPLAY_SPEC_ID,
+                            "result": "fail",
+                            "reason": REASON_DELTA,
+                            "source": "fixture-trace:trace-freeze.json",
+                            "minDeltaX": 200.0,
+                            "metrics": {"deltaX": 0.0},
+                        },
+                    },
+                }],
+            }
+            morning_text = write_loop_rollup(out / "morning-only", summary=morning_only).read_text()
+            self.assertIn(REASON_DELTA, morning_text)
+            self.assertIn(f"spec: `{GAMEPLAY_SPEC_ID}`", morning_text)
 
     def test_fixture_frames_are_pngs(self):
         for path in (BEFORE_FRAME, AFTER_FRAME):
@@ -1264,7 +1375,7 @@ class GameplayMotionTest(unittest.TestCase):
     def test_decide_still_rejects_on_gameplay_fail(self):
         decision, _ = decide([
             {"spec": "player-stays-above-ground", "kind": "regression", "route": "smoke", "result": "pass"},
-            {"spec": "player-reaches-end-of-route", "kind": "gameplay", "route": "smoke", "result": "fail"},
+            {"spec": GAMEPLAY_SPEC_ID, "kind": "gameplay", "route": "smoke", "result": "fail"},
             {"spec": "player-stays-above-ground", "kind": "held-out", "route": "r", "result": "pass"},
             {"spec": "player-stays-above-ground", "kind": "clean", "route": "r", "result": "pass"},
         ])

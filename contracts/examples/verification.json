@@ -19,7 +19,7 @@
       "verdictSha256": "0000000000000000000000000000000000000000000000000000000000000000"
     },
     {
-      "spec": "player-reaches-end-of-route",
+      "spec": "player-motion-on-smoke",
       "kind": "gameplay",
       "route": "smoke",
       "result": "fail",
@@ -28,7 +28,7 @@
   ],
   "decision": "reject",
   "reasons": [
-    "gameplay check player-reaches-end-of-route failed on smoke"
+    "gameplay check player-motion-on-smoke failed on smoke"
   ],
   "suite": {
     "candidate": {
@@ -47,5 +47,5 @@
       "observationsSha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
     }
   },
-  "_comment": "Example: freeze-player keeps the player from falling (regression pass) but fails the trace-native gameplay motion check (delta-x), so it is rejected. The check id player-reaches-end-of-route is an opaque label — not a SAM reaches assertion."
+  "_comment": "Example: freeze-player keeps the player from falling (regression pass) but fails the trace-native gameplay motion check (delta-x), so it is rejected. The check id player-motion-on-smoke is an opaque label — not a SAM reaches assertion. The retired reaches basename stays deny-listed forever."
 }

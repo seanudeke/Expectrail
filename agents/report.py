@@ -16,6 +16,24 @@ from pathlib import Path
 from nightshift.contracts import ContractError, digest, load, validate
 
 
+def gameplay_film_stub(morning: dict | None) -> dict | None:
+    """Compact per-run gameplay film for overnight summary.json / rollup."""
+    if not morning:
+        return None
+    g = morning.get("gameplay")
+    if not isinstance(g, dict):
+        return None
+    metrics = g.get("metrics") or {}
+    return {
+        "spec": g.get("spec"),
+        "result": g.get("result"),
+        "reason": g.get("reason"),
+        "source": g.get("source"),
+        "minDeltaX": g.get("minDeltaX"),
+        "deltaX": metrics.get("deltaX"),
+    }
+
+
 def _fake_sign(payload: bytes, key_material: bytes) -> str:
     """Detached signature placeholder (demo only). Real keys stay off the fixer host."""
     return hashlib.sha256(key_material + payload).hexdigest()
@@ -50,6 +68,11 @@ def _bind_gameplay_verdict(doc: dict, check: dict) -> dict:
     if metrics_min is None or float(metrics_min) != float(doc["minDeltaX"]):
         raise ContractError(
             f"gameplay-verdict: metrics.minDeltaX ({metrics_min}) != minDeltaX ({doc['minDeltaX']})"
+        )
+    check_spec = check.get("spec")
+    if check_spec and doc.get("spec") != check_spec:
+        raise ContractError(
+            f"gameplay-verdict spec mismatch: filmed={doc.get('spec')!r} check={check_spec!r}"
         )
     expected = check.get("verdictSha256")
     if not expected:
@@ -207,6 +230,7 @@ def build_report(
         "signingKey": key_note,
         "candidatePatchSha256": verification["candidate"]["patchSha256"],
     }
+    validate(rc, "release-candidate")
     (out / "release-candidate.json").write_text(json.dumps(rc, indent=2) + "\n", encoding="utf-8")
     lines.extend([
         "",
@@ -235,11 +259,19 @@ def build_report(
     return summary
 
 
+def _result_gameplay(result: dict) -> dict | None:
+    stub = result.get("gameplay")
+    if isinstance(stub, dict):
+        return stub
+    return gameplay_film_stub(result.get("morning"))
+
+
 def write_loop_rollup(out: Path, *, summary: dict) -> Path:
     """Top-level filmable rollup beside summary.json after N overnight runs.
 
     Latest-accept frames are copied under `out/frames/` so embeds stay valid even
     when CI only packages the rollup directory (not every run-NN tree).
+    Gameplay reject reasons film from per-run stubs (never invent when morning is null).
     """
     accepted = summary["accepted"]
     runs = summary["runs"]
@@ -255,14 +287,18 @@ def write_loop_rollup(out: Path, *, summary: dict) -> Path:
     last_accept_frames: list[dict] = []
     last_accept_run = -1
     last_accept_morning: Path | None = None
+    latest_reject_gameplay: tuple[int, dict] | None = None
     for i, result in enumerate(summary.get("results", [])):
         decision = result.get("decision")
         morning = result.get("morning")
         rel = f"run-{i:02d}/morning/morning-report.md"
         err = result.get("error")
+        gameplay = _result_gameplay(result)
         line = f"- run-{i:02d}: `{decision}`"
         if morning:
             line += f" → [{rel}]({rel})"
+        if gameplay:
+            line += f" gameplay=`{gameplay.get('result')}` reason={gameplay.get('reason')}"
         if err:
             line += f" ({err})"
         lines.append(line)
@@ -270,6 +306,8 @@ def write_loop_rollup(out: Path, *, summary: dict) -> Path:
             last_accept_frames = morning["frames"]
             last_accept_run = i
             last_accept_morning = out / f"run-{i:02d}" / "morning"
+        if decision != "accept" and gameplay and gameplay.get("result") == "fail":
+            latest_reject_gameplay = (i, gameplay)
 
     if accepted == runs and last_accept_frames and last_accept_morning is not None:
         rollup_frames = out / "frames"
@@ -293,7 +331,21 @@ def write_loop_rollup(out: Path, *, summary: dict) -> Path:
             "## Unresolved",
             "- overnight did not accept every run; see per-run errors and morning reports",
         ])
+        if latest_reject_gameplay is not None:
+            idx, g = latest_reject_gameplay
+            lines.extend([
+                "",
+                "## Gameplay",
+                f"(latest gameplay fail: run-{idx:02d})",
+                f"- spec: `{g.get('spec')}`",
+                f"- result: `{g.get('result')}`",
+                f"- reason: {g.get('reason')}",
+                f"- source: `{g.get('source')}`",
+                f"- minDeltaX: `{g.get('minDeltaX')}`",
+                f"- deltaX: `{g.get('deltaX')}`",
+            ])
 
+    out.mkdir(parents=True, exist_ok=True)
     path = out / "morning-report.md"
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return path

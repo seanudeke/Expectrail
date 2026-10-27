@@ -33,6 +33,22 @@ class ContractsTest(unittest.TestCase):
         gameplay["extra"] = True
         with self.assertRaises(ContractError):
             validate(gameplay, "gameplay-verdict")
+        rc = json.loads((EXAMPLES / "release-candidate.json").read_text())
+        rc["decision"] = "maybe"
+        with self.assertRaises(ContractError):
+            validate(rc, "release-candidate")
+        rc = json.loads((EXAMPLES / "release-candidate.json").read_text())
+        rc["extra"] = True
+        with self.assertRaises(ContractError):
+            validate(rc, "release-candidate")
+        rc = json.loads((EXAMPLES / "release-candidate.json").read_text())
+        rc["format"] = "nightshift.release-candidate/v1"
+        with self.assertRaises(ContractError):
+            validate(rc, "release-candidate")
+        rc = json.loads((EXAMPLES / "release-candidate.json").read_text())
+        del rc["verificationSha256"]
+        with self.assertRaises(ContractError):
+            validate(rc, "release-candidate")
 
     def test_digest_ignores_key_order(self):
         self.assertEqual(digest({"a": 1, "b": [1, 2]}), digest({"b": [1, 2], "a": 1}))

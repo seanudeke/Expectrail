@@ -15,6 +15,7 @@ KINDS = (
     "repair-request",
     "verification",
     "gameplay-verdict",
+    "release-candidate",
 )
 
 

@@ -1,0 +1,8 @@
+{
+  "format": "nightshift.release-candidate/v0",
+  "verificationSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "decision": "reject",
+  "signature": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "signingKey": "demo-fake-key",
+  "candidatePatchSha256": "2222222222222222222222222222222222222222222222222222222222222222"
+}

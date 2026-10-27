@@ -1,6 +1,6 @@
 {
   "format": "nightshift.gameplay-verdict/v0",
-  "spec": "player-reaches-end-of-route",
+  "spec": "player-motion-on-smoke",
   "result": "fail",
   "reason": "player delta-x below minimum (freeze or short walk)",
   "metrics": {

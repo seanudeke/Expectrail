@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/seanudeke/nightshift/contracts/release-candidate.schema.json",
+  "title": "Release candidate: signed pointer to a verification decision",
+  "description": "Verifier-host adjunct written by the morning report. Demo signatures are fake-hash placeholders; real keys stay off the fixer host.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "verificationSha256",
+    "decision",
+    "signature",
+    "signingKey",
+    "candidatePatchSha256"
+  ],
+  "properties": {
+    "format": {
+      "const": "nightshift.release-candidate/v0"
+    },
+    "verificationSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "decision": {
+      "enum": ["accept", "reject", "needs-review"]
+    },
+    "signature": {
+      "type": "string",
+      "minLength": 1
+    },
+    "signingKey": {
+      "type": "string",
+      "minLength": 1
+    },
+    "candidatePatchSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}
