@@ -17,12 +17,15 @@ After editable/base-tree gates, the verifier emits four check kinds: `regression
 `clean`, `held-out`. `decide()` accepts only when all four are present and pass (incomplete sets
 are `needs-review`). **Gameplay** is judged by `agents.gameplay` from the candidate harness
 `trace.json` (or mapped offline `agents/fixtures/trace-*.json`) — min Δx, end-on-floor, no
-sustained below-ground — not a SAM `reaches` / invented goal. Clean uses a no-patch harness
-replay when available; if Godot aborts on that second import (seen on CI), it falls back to
-`agents/fixtures/obs-clean.json` and still decides (`suite.clean.source=fixture-fallback`).
-Held-out uses `agents/fixtures/obs-held-out.json` as an interim `evaluate()` control until Sean
-lands real held-out variants — never a rubber-stamp pass row. Optional `suite` on
-`verification.json` records candidate/clean/held-out provenance.
+sustained below-ground — not a SAM `reaches` / invented goal. The verifier writes schema-valid
+`verdict-gameplay.json` (`nightshift.gameplay-verdict/v0`); morning films a `## Gameplay`
+section. The check id `player-reaches-end-of-route` is an opaque label (the old reaches
+test-spec file is retired). Clean uses a no-patch harness replay when available; if Godot
+aborts on that second import (seen on CI), it falls back to `agents/fixtures/obs-clean.json`
+and still decides (`suite.clean.source=fixture-fallback`). Held-out uses
+`agents/fixtures/obs-held-out.json` as an interim `evaluate()` control until Sean lands real
+held-out variants — never a rubber-stamp pass row. Optional `suite` on `verification.json`
+records candidate/clean/held-out provenance.
 
 Trust (`agents.trust`) proves deny-by-absence under fixer-work for the signing key **and** suite
 control basenames (`obs-clean.json`, `obs-held-out.json`, `evaluator.py`, suite specs) — mount

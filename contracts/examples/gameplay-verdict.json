@@ -1,0 +1,23 @@
+{
+  "format": "nightshift.gameplay-verdict/v0",
+  "spec": "player-reaches-end-of-route",
+  "result": "fail",
+  "reason": "player delta-x below minimum (freeze or short walk)",
+  "metrics": {
+    "deltaX": 0.0,
+    "minDeltaX": 200.0,
+    "firstX": 90.0,
+    "lastX": 90.0,
+    "lastY": 640.0,
+    "floorY": 640.0,
+    "sampleCount": 3,
+    "endOnFloor": false,
+    "belowStreak": 0
+  },
+  "source": "fixture-trace:trace-freeze.json",
+  "minDeltaX": 200.0,
+  "evaluator": {
+    "name": "agents.gameplay",
+    "version": "0.1.0"
+  }
+}

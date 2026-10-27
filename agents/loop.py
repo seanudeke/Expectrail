@@ -111,6 +111,8 @@ def one_run(
         after = list(after_frames) if after_frames is not None else [DEFAULT_AFTER]
         if not before or not after:
             raise SystemExit("morning report requires non-empty before and after frames")
+        verify_out = out / "verify"
+        gameplay_path = verify_out / "verdict-gameplay.json"
         summary = build_report(
             verification=verification,
             candidate=fix_out / "candidate.patch",
@@ -118,6 +120,8 @@ def one_run(
             before=before,
             after=after,
             signing_key_path=signing_key,
+            gameplay_verdict=gameplay_path if gameplay_path.is_file() else None,
+            verification_path=verify_out / "verification.json",
         )
         return {
             "decision": verification["decision"],

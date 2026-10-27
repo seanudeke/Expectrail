@@ -74,7 +74,10 @@ def check_motion(
     """Judge smoke gameplay from ordered samples. Fail-closed on empty/malformed."""
     present = [s for s in samples if s.get("x") is not None and s.get("y") is not None]
     if not present:
-        return _fail(REASON_EMPTY, {"deltaX": 0.0, "sampleCount": 0})
+        return _fail(
+            REASON_EMPTY,
+            {"deltaX": 0.0, "sampleCount": 0, "minDeltaX": float(min_delta_x)},
+        )
 
     first, last = present[0], present[-1]
     delta_x = float(last["x"] - first["x"])
@@ -137,7 +140,10 @@ def judge_trace(trace: dict, *, min_delta_x: float) -> dict:
     try:
         samples = samples_from_trace(trace)
     except ValueError as exc:
-        return _fail(str(exc), {"deltaX": 0.0, "sampleCount": 0})
+        return _fail(
+            str(exc),
+            {"deltaX": 0.0, "sampleCount": 0, "minDeltaX": float(min_delta_x)},
+        )
     return check_motion(samples, min_delta_x=min_delta_x)
 
 

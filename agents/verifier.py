@@ -193,17 +193,21 @@ def verify(
         out, observations_path=observations_path,
     )
     gameplay = judge_trace(gameplay_trace, min_delta_x=min_dx)
+    metrics = dict(gameplay.get("metrics") or {})
+    metrics.setdefault("minDeltaX", float(min_dx))
     gameplay_doc = {
         "format": "nightshift.gameplay-verdict/v0",
         "spec": GAMEPLAY_SPEC_ID,
         "result": gameplay["result"],
         "reason": gameplay["reason"],
-        "metrics": gameplay.get("metrics", {}),
+        "metrics": metrics,
         "source": gameplay_source,
-        "minDeltaX": min_dx,
+        "minDeltaX": float(min_dx),
         "evaluator": {"name": "agents.gameplay", "version": "0.1.0"},
     }
+    validate(gameplay_doc, "gameplay-verdict")
     (out / "verdict-gameplay.json").write_text(json.dumps(gameplay_doc, indent=2) + "\n", encoding="utf-8")
+    # Non-contract extract for operators; morning uses verdict-gameplay.json.
     (out / "gameplay-metrics.json").write_text(
         json.dumps(gameplay.get("metrics", {}), indent=2) + "\n", encoding="utf-8"
     )
