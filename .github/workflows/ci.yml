@@ -100,6 +100,9 @@ jobs:
             runs/agents-trust/
             runs/agents-trust/trust-evidence.md
             runs/agents-loop/summary.json
+            runs/agents-loop/morning-report.md
+            runs/agents-loop/frames/
+            runs/agents-loop/run-00/morning/
           retention-days: 7
 
   agents-harness-verify:

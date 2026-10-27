@@ -27,3 +27,4 @@ something; keep prior work out of it.
 | Oct 26 | Agents lane Gate 2: Wonder triage, morning report, trust beat, 10-run loop CI | `agents/triage.py`, `report.py`, `trust.py`, `loop.py` |
 | Oct 26 | Harness-backed agents verify on Linux CI (accept / freeze reject / seed fail) | `.github/workflows/ci.yml` `agents-harness-verify` |
 | Oct 26 | Overnight loop auto/live/offline + filmable trust evidence | `agents/loop.py`, `agents/keys.py`, `agents/trust.py` |
+| Oct 26 | Filmable morning report: before/after frames + overnight rollup | `agents/report.py`, `agents/loop.py`, `agents/fixtures/frames/` |
