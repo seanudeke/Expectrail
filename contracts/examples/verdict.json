@@ -1,0 +1,56 @@
+{
+  "format": "nightshift.verdict/v0",
+  "spec": {
+    "id": "player-stays-above-ground",
+    "sha256": "b13a75f28147198706af53354e8f3d1b5f2e4bf93febe60ffd4d8698e3e0085d"
+  },
+  "observations": {
+    "sha256": "0d79ef693fe9a149cf0f04f4a1953d0c457f96095169b63ec7f380e84738b8a6"
+  },
+  "result": "fail",
+  "reason": "player is 50px past the boundary (above 770, tolerance 12) (first at frame 8, 2 frames)",
+  "firstFrame": 8,
+  "evidence": [
+    {
+      "frame": 8,
+      "detail": "player is 50px past the boundary (above 770, tolerance 12)",
+      "boxes": {
+        "player": [
+          770,
+          700,
+          840,
+          820
+        ],
+        "ground": [
+          350,
+          770,
+          1600,
+          960
+        ]
+      }
+    },
+    {
+      "frame": 16,
+      "detail": "player is 170px past the boundary (above 770, tolerance 12)",
+      "boxes": {
+        "player": [
+          775,
+          820,
+          845,
+          940
+        ],
+        "ground": [
+          350,
+          770,
+          1600,
+          960
+        ]
+      }
+    }
+  ],
+  "framesJudged": 3,
+  "evaluator": {
+    "name": "nightshift.evaluator",
+    "version": "0.1.0"
+  }
+}

@@ -1,0 +1,121 @@
+{
+  "format": "nightshift.observations/v0",
+  "replay": {
+    "sha256": "d93bc0f0900b0a2b384f5c256562f2c5eb81a6cc8081acc6ba0766eaa9d3e917"
+  },
+  "model": {
+    "name": "sam-3.1",
+    "prompts": {
+      "player": "small robot character",
+      "ground": "grass-topped ground"
+    }
+  },
+  "_comment": "Hand-written example in the shape SAM 3.1 results are normalized to; not real model output.",
+  "frames": [
+    {
+      "frame": 0,
+      "objects": {
+        "player": [
+          {
+            "box": [
+              760,
+              660,
+              830,
+              780
+            ],
+            "score": 0.94,
+            "track": 1
+          }
+        ],
+        "ground": [
+          {
+            "box": [
+              350,
+              770,
+              1600,
+              960
+            ],
+            "score": 0.88,
+            "track": 2
+          }
+        ]
+      }
+    },
+    {
+      "frame": 8,
+      "objects": {
+        "player": [
+          {
+            "box": [
+              770,
+              700,
+              840,
+              820
+            ],
+            "score": 0.92,
+            "track": 1
+          }
+        ],
+        "ground": [
+          {
+            "box": [
+              350,
+              770,
+              1600,
+              960
+            ],
+            "score": 0.87,
+            "track": 2
+          }
+        ]
+      }
+    },
+    {
+      "frame": 16,
+      "objects": {
+        "player": [
+          {
+            "box": [
+              775,
+              820,
+              845,
+              940
+            ],
+            "score": 0.81,
+            "track": 1
+          }
+        ],
+        "ground": [
+          {
+            "box": [
+              350,
+              770,
+              1600,
+              960
+            ],
+            "score": 0.86,
+            "track": 2
+          }
+        ]
+      }
+    },
+    {
+      "frame": 30,
+      "objects": {
+        "player": [],
+        "ground": [
+          {
+            "box": [
+              350,
+              770,
+              1600,
+              960
+            ],
+            "score": 0.86,
+            "track": 2
+          }
+        ]
+      }
+    }
+  ]
+}

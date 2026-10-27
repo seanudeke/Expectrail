@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/seanudeke/nightshift/contracts/replay.schema.json",
+  "title": "Replay: what the harness captured for one route on one exact game",
+  "type": "object",
+  "required": [
+    "format",
+    "route",
+    "game",
+    "engine",
+    "capture",
+    "frameSha256"
+  ],
+  "properties": {
+    "format": {
+      "const": "nightshift.replay/v0"
+    },
+    "route": {
+      "type": "object",
+      "required": [
+        "name",
+        "sha256"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "game": {
+      "type": "object",
+      "required": [
+        "tree"
+      ],
+      "properties": {
+        "tree": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "patch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "patchSha256": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "engine": {
+      "type": "object",
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "const": "godot"
+        },
+        "version": {
+          "type": "string"
+        },
+        "renderer": {
+          "type": "string"
+        },
+        "device": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "capture": {
+      "type": "object",
+      "required": [
+        "fps",
+        "frames",
+        "pattern"
+      ],
+      "properties": {
+        "fps": {
+          "type": "integer"
+        },
+        "physicsTicksPerSecond": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "frames": {
+          "type": "integer"
+        },
+        "pattern": {
+          "type": "string"
+        }
+      }
+    },
+    "frameSha256": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      }
+    },
+    "trace": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
+  }
+}

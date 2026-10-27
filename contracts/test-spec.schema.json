@@ -1,0 +1,287 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/seanudeke/nightshift/contracts/test-spec.schema.json",
+  "title": "Test spec: a plain-English check turned into something an evaluator can decide",
+  "description": "Muse Spark drafts it from the instruction; a person approves it once. The fixer may read it but never edit it.",
+  "type": "object",
+  "required": [
+    "format",
+    "id",
+    "instruction",
+    "objects",
+    "assertion"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "format": {
+      "const": "nightshift.test-spec/v0"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "instruction": {
+      "type": "string"
+    },
+    "objects": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9-]*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "prompt"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "description": "a short noun phrase for SAM 3.1; no positions (Meta advises keeping them out of prompts)"
+          },
+          "minScore": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    },
+    "assertion": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "object"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "visible"
+            },
+            "object": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]*$"
+            },
+            "minFraction": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "object",
+            "region"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "inside-region"
+            },
+            "object": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]*$"
+            },
+            "region": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "required": [
+                    "box"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "box": {
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      },
+                      "minItems": 4,
+                      "maxItems": 4,
+                      "description": "[x0, y0, x1, y1] in pixels of the captured frame, y down"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "relativeTo"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "relativeTo": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9][a-z0-9-]*$"
+                    },
+                    "marginPx": {
+                      "type": "number"
+                    }
+                  }
+                }
+              ]
+            },
+            "tolerancePx": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "object",
+            "boundary"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "never-crosses"
+            },
+            "object": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]*$"
+            },
+            "boundary": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "required": [
+                    "relativeTo",
+                    "edge",
+                    "side"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "relativeTo": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9][a-z0-9-]*$"
+                    },
+                    "edge": {
+                      "enum": [
+                        "top",
+                        "bottom",
+                        "left",
+                        "right"
+                      ]
+                    },
+                    "side": {
+                      "enum": [
+                        "above",
+                        "below",
+                        "left-of",
+                        "right-of"
+                      ]
+                    },
+                    "tolerancePx": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "requireOverlap": {
+                      "type": "boolean",
+                      "description": "only judge frames where the two objects overlap on the other axis (default true)"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "axis",
+                    "value",
+                    "side"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "axis": {
+                      "enum": [
+                        "x",
+                        "y"
+                      ]
+                    },
+                    "value": {
+                      "type": "number"
+                    },
+                    "side": {
+                      "enum": [
+                        "above",
+                        "below",
+                        "left-of",
+                        "right-of"
+                      ]
+                    },
+                    "tolerancePx": {
+                      "type": "number",
+                      "minimum": 0
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "object",
+            "goal"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "reaches"
+            },
+            "object": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]*$"
+            },
+            "goal": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]*$"
+            },
+            "distancePx": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        }
+      ]
+    },
+    "window": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fromFrame": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "toFrame": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "required": [
+        "by",
+        "at"
+      ],
+      "properties": {
+        "by": {
+          "type": "string"
+        },
+        "at": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

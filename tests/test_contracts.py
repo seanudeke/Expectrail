@@ -1,0 +1,31 @@
+import json
+import unittest
+from pathlib import Path
+
+from nightshift.contracts import KINDS, ContractError, digest, kind_of, validate
+
+EXAMPLES = Path(__file__).resolve().parent.parent / "contracts" / "examples"
+
+
+class ContractsTest(unittest.TestCase):
+    def test_every_kind_has_a_schema_and_a_valid_example(self):
+        for kind in KINDS:
+            with self.subTest(kind=kind):
+                doc = json.loads((EXAMPLES / f"{kind}.json").read_text())
+                self.assertEqual(validate(doc), kind)
+
+    def test_invalid_documents_are_rejected(self):
+        spec = json.loads((EXAMPLES / "test-spec.json").read_text())
+        spec["assertion"] = {"type": "looks-fine", "object": "player"}
+        with self.assertRaises(ContractError):
+            validate(spec)
+        with self.assertRaises(ContractError):
+            kind_of({"format": "something-else/v1"})
+
+    def test_digest_ignores_key_order(self):
+        self.assertEqual(digest({"a": 1, "b": [1, 2]}), digest({"b": [1, 2], "a": 1}))
+        self.assertNotEqual(digest({"a": 1}), digest({"a": 2}))
+
+
+if __name__ == "__main__":
+    unittest.main()

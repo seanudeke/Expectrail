@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/seanudeke/nightshift/contracts/verdict.schema.json",
+  "title": "Verdict: the evaluator's decision for one test spec on one replay",
+  "type": "object",
+  "required": [
+    "format",
+    "spec",
+    "observations",
+    "result",
+    "reason",
+    "evaluator"
+  ],
+  "properties": {
+    "format": {
+      "const": "nightshift.verdict/v0"
+    },
+    "spec": {
+      "type": "object",
+      "required": [
+        "id",
+        "sha256"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "observations": {
+      "type": "object",
+      "required": [
+        "sha256"
+      ],
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "result": {
+      "enum": [
+        "pass",
+        "fail",
+        "needs-review"
+      ]
+    },
+    "reason": {
+      "type": "string"
+    },
+    "firstFrame": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "frame",
+          "detail"
+        ],
+        "properties": {
+          "frame": {
+            "type": "integer"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "boxes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 4,
+              "maxItems": 4,
+              "description": "[x0, y0, x1, y1] in pixels of the captured frame, y down"
+            }
+          }
+        }
+      }
+    },
+    "framesJudged": {
+      "type": "integer"
+    },
+    "evaluator": {
+      "type": "object",
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

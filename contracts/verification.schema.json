@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/seanudeke/nightshift/contracts/verification.schema.json",
+  "title": "Verification: whether a candidate patch is accepted, decided outside the fixer's reach",
+  "description": "accept only if every check passes; any fail rejects; anything else needs review. Passing means the candidate passed this suite, not that the game is correct.",
+  "type": "object",
+  "required": [
+    "format",
+    "candidate",
+    "evaluator",
+    "checks",
+    "decision",
+    "reasons"
+  ],
+  "properties": {
+    "format": {
+      "const": "nightshift.verification/v0"
+    },
+    "candidate": {
+      "type": "object",
+      "required": [
+        "patchSha256",
+        "baseTree",
+        "attempt"
+      ],
+      "properties": {
+        "patchSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "baseTree": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "request": {
+          "type": "string"
+        }
+      }
+    },
+    "evaluator": {
+      "type": "object",
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "checks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "spec",
+          "kind",
+          "route",
+          "result"
+        ],
+        "properties": {
+          "spec": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "kind": {
+            "enum": [
+              "regression",
+              "gameplay",
+              "held-out",
+              "clean"
+            ]
+          },
+          "route": {
+            "type": "string"
+          },
+          "result": {
+            "enum": [
+              "pass",
+              "fail",
+              "needs-review"
+            ]
+          },
+          "verdictSha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "decision": {
+      "enum": [
+        "accept",
+        "reject",
+        "needs-review"
+      ]
+    },
+    "reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

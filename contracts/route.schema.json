@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/seanudeke/nightshift/contracts/route.schema.json",
+  "title": "Route: the inputs a replay presses, on exact physics ticks",
+  "type": "object",
+  "required": [
+    "format",
+    "name",
+    "ticks",
+    "events"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "format": {
+      "const": "nightshift.route/v0"
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "description": {
+      "type": "string"
+    },
+    "ticks": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "physics ticks to run (the demo runs 120 per second)"
+    },
+    "seed": {
+      "type": "integer"
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "tick",
+          "action",
+          "pressed"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "tick": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "action": {
+            "type": "string",
+            "description": "an input action defined by the game, e.g. move_right"
+          },
+          "pressed": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

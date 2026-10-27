@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/seanudeke/nightshift/contracts/observations.schema.json",
+  "title": "Observations: what SAM 3.1 found in the frames of one replay",
+  "description": "An object with an empty list in a frame was looked for and not found. A frame that is absent was not looked at.",
+  "type": "object",
+  "required": [
+    "format",
+    "replay",
+    "model",
+    "frames"
+  ],
+  "properties": {
+    "format": {
+      "const": "nightshift.observations/v0"
+    },
+    "replay": {
+      "type": "object",
+      "required": [
+        "sha256"
+      ],
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "model": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "prompts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "frames": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "frame",
+          "objects"
+        ],
+        "properties": {
+          "frame": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "objects": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "box",
+                  "score"
+                ],
+                "properties": {
+                  "box": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    },
+                    "minItems": 4,
+                    "maxItems": 4,
+                    "description": "[x0, y0, x1, y1] in pixels of the captured frame, y down"
+                  },
+                  "score": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "track": {
+                    "type": "integer",
+                    "description": "SAM 3.1 track id, stable across frames when tracking is used"
+                  },
+                  "mask": {
+                    "type": "string",
+                    "description": "optional path to a mask PNG or an RLE string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
