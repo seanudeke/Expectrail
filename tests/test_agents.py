@@ -11,6 +11,15 @@ from pathlib import Path
 from unittest import mock
 
 from agents.fixer import run_fixer
+from agents.gameplay import (
+    MIN_DELTA_X_FIXTURE,
+    MIN_DELTA_X_HARNESS,
+    REASON_BELOW,
+    REASON_DELTA,
+    REASON_EMPTY,
+    REASON_END_FLOOR,
+    judge_trace,
+)
 from agents.isolation import FIXER_FORBIDDEN_BASENAMES
 from agents.keys import muse_code_ready, resolve_mode, seal_mode_flags, wonder_key
 from agents.loop import main as loop_main
@@ -72,6 +81,7 @@ class ObservationsTest(unittest.TestCase):
         obs = from_trace(trace)
         validate(obs, "observations")
         self.assertGreaterEqual(len(obs["frames"]), 2)
+        self.assertNotIn("goal", obs["frames"][0]["objects"])
 
     def test_from_trace_fallthrough_fails_regression_freeze_fails_gameplay(self):
         floor = 452.0
@@ -101,14 +111,13 @@ class ObservationsTest(unittest.TestCase):
             ],
         }
         reg = load(REPO / "agents" / "specs" / "player-stays-above-ground.json", "test-spec")
-        game = load(REPO / "agents" / "specs" / "player-reaches-end-of-route.json", "test-spec")
         reg = {**reg, "window": {"fromFrame": 0, "toFrame": 20}}
-        game = {**game, "window": {"fromFrame": 0, "toFrame": 20}}
 
         self.assertEqual(evaluate(reg, from_trace(fall))["result"], "fail")
         self.assertEqual(evaluate(reg, from_trace(walk))["result"], "pass")
-        self.assertEqual(evaluate(game, from_trace(walk))["result"], "pass")
-        self.assertEqual(evaluate(game, from_trace(freeze))["result"], "fail")
+        self.assertEqual(judge_trace(walk, min_delta_x=MIN_DELTA_X_FIXTURE)["result"], "pass")
+        self.assertEqual(judge_trace(freeze, min_delta_x=MIN_DELTA_X_FIXTURE)["result"], "fail")
+        self.assertEqual(judge_trace(freeze, min_delta_x=MIN_DELTA_X_FIXTURE)["reason"], REASON_DELTA)
 
     def test_floor_uses_lowest_surface_not_median(self):
         # Ground at y=500, brief platform landings at y=300 would skew a median upward.
@@ -166,6 +175,9 @@ class VerifierDecideTest(unittest.TestCase):
             self.assertEqual(kinds.get("gameplay"), "fail")
             self.assertIn("clean", kinds)
             self.assertIn("held-out", kinds)
+            gameplay = json.loads((out / "verdict-gameplay.json").read_text())
+            self.assertEqual(gameplay["reason"], REASON_DELTA)
+            self.assertTrue(str(gameplay["source"]).startswith("fixture-trace:"))
 
     def test_clean_fail_rejects(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -910,16 +922,121 @@ class TriageReportTrustLoopTest(unittest.TestCase):
                 ])
 
 
-class SpecsEvaluateTest(unittest.TestCase):
-    def test_gameplay_spec_distinguishes_freeze(self):
-        spec = load(REPO / "agents" / "specs" / "player-reaches-end-of-route.json", "test-spec")
-        fixed = load(REPO / "agents" / "fixtures" / "obs-fixed.json", "observations")
-        freeze = load(REPO / "agents" / "fixtures" / "obs-freeze.json", "observations")
-        self.assertEqual(evaluate(spec, fixed)["result"], "pass")
-        self.assertEqual(evaluate(spec, freeze)["result"], "fail")
+class GameplayMotionTest(unittest.TestCase):
+    def test_fixture_traces_parity(self):
+        fixed = json.loads((REPO / "agents" / "fixtures" / "trace-fixed.json").read_text())
+        freeze = json.loads((REPO / "agents" / "fixtures" / "trace-freeze.json").read_text())
+        fall = json.loads((REPO / "agents" / "fixtures" / "trace-fallthrough.json").read_text())
+        self.assertEqual(judge_trace(fixed, min_delta_x=MIN_DELTA_X_FIXTURE)["result"], "pass")
+        self.assertEqual(judge_trace(freeze, min_delta_x=MIN_DELTA_X_FIXTURE)["result"], "fail")
+        self.assertEqual(judge_trace(freeze, min_delta_x=MIN_DELTA_X_FIXTURE)["reason"], REASON_DELTA)
+        fall_g = judge_trace(fall, min_delta_x=MIN_DELTA_X_FIXTURE)
+        self.assertEqual(fall_g["result"], "fail")
+        self.assertEqual(fall_g["reason"], REASON_END_FLOOR)
+
+    def test_thresholds_and_edges(self):
+        floor = 640.0
+        short = {
+            "rows": [
+                {"tick": 0, "player": [0.0, floor], "onFloor": True},
+                {"tick": 10, "player": [150.0, floor], "onFloor": True},
+            ]
+        }
+        self.assertEqual(judge_trace(short, min_delta_x=MIN_DELTA_X_FIXTURE)["reason"], REASON_DELTA)
+        midair = {
+            "rows": [
+                {"tick": 0, "player": [0.0, floor], "onFloor": True},
+                {"tick": 10, "player": [300.0, floor - 80], "onFloor": False},
+            ]
+        }
+        self.assertEqual(judge_trace(midair, min_delta_x=MIN_DELTA_X_FIXTURE)["reason"], REASON_END_FLOOR)
+        empty = {"rows": [{"tick": 0, "player": None, "onFloor": False}]}
+        self.assertEqual(judge_trace(empty, min_delta_x=MIN_DELTA_X_FIXTURE)["reason"], REASON_EMPTY)
+        # Gravity-off freefall: never onFloor → fail-closed (no vacuous floor).
+        freefall = {
+            "rows": [
+                {"tick": 0, "player": [0.0, 100.0], "onFloor": False},
+                {"tick": 10, "player": [300.0, 400.0], "onFloor": False},
+            ]
+        }
+        self.assertEqual(judge_trace(freefall, min_delta_x=MIN_DELTA_X_FIXTURE)["reason"], REASON_END_FLOOR)
+        # Sustained below-ground then recover to floor → REASON_BELOW.
+        below = {
+            "rows": [
+                {"tick": 0, "player": [0.0, floor], "onFloor": True},
+                {"tick": 2, "player": [80.0, floor + 40], "onFloor": False},
+                {"tick": 4, "player": [160.0, floor + 80], "onFloor": False},
+                {"tick": 6, "player": [240.0, floor + 120], "onFloor": False},
+                {"tick": 8, "player": [320.0, floor], "onFloor": True},
+            ]
+        }
+        self.assertEqual(judge_trace(below, min_delta_x=MIN_DELTA_X_FIXTURE)["reason"], REASON_BELOW)
+        self.assertGreater(MIN_DELTA_X_HARNESS, MIN_DELTA_X_FIXTURE)
+
+    def test_observations_path_wins_over_leftover_harness_trace(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            # Plant a "good walk" leftover harness trace that would falsely pass freeze.
+            replay = out / "replay"
+            replay.mkdir(parents=True)
+            (replay / "trace.json").write_text(json.dumps({
+                "rows": [
+                    {"tick": 0, "player": [0.0, 640.0], "onFloor": True},
+                    {"tick": 10, "player": [500.0, 640.0], "onFloor": True},
+                ]
+            }) + "\n")
+            doc = verify(
+                _request(),
+                REPO / "agents" / "fixtures" / "freeze-player.patch",
+                out,
+                observations_path=REPO / "agents" / "fixtures" / "obs-freeze.json",
+                skip_harness=True,
+            )
+            self.assertEqual(doc["decision"], "reject")
+            kinds = {c["kind"]: c["result"] for c in doc["checks"]}
+            self.assertEqual(kinds.get("gameplay"), "fail")
+            gameplay = json.loads((out / "verdict-gameplay.json").read_text())
+            self.assertEqual(gameplay["reason"], REASON_DELTA)
+            self.assertEqual(gameplay["source"], "fixture-trace:trace-freeze.json")
+
+    def test_harness_trace_uses_harness_threshold(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            candidate_obs = load(REPO / "agents" / "fixtures" / "obs-fixed.json", "observations")
+
+            def harness_ok(_route, harness_out, patches=None, **_kw):
+                if patches == []:
+                    raise subprocess.CalledProcessError(-6, ["godot", "--import"])
+                harness_out.mkdir(parents=True, exist_ok=True)
+                # Short walk: passes fixture min (200) but fails harness min (400).
+                (harness_out / "trace.json").write_text(json.dumps({
+                    "rows": [
+                        {"tick": 0, "player": [0.0, 640.0], "onFloor": True},
+                        {"tick": 10, "player": [250.0, 640.0], "onFloor": True},
+                    ]
+                }) + "\n")
+                (harness_out / "replay.json").write_text("{}\n")
+
+            with mock.patch("agents.verifier.harness_run", side_effect=harness_ok):
+                with mock.patch("agents.verifier.from_trace", return_value=candidate_obs):
+                    doc = verify(
+                        _request(),
+                        REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
+                        out,
+                        skip_harness=False,
+                    )
+            self.assertEqual(doc["decision"], "reject")
+            gameplay = json.loads((out / "verdict-gameplay.json").read_text())
+            self.assertEqual(gameplay["source"], "harness-trace")
+            self.assertEqual(gameplay["minDeltaX"], MIN_DELTA_X_HARNESS)
+            self.assertEqual(gameplay["reason"], REASON_DELTA)
+
+    def test_decide_still_rejects_on_gameplay_fail(self):
         decision, _ = decide([
             {"spec": "player-stays-above-ground", "kind": "regression", "route": "smoke", "result": "pass"},
             {"spec": "player-reaches-end-of-route", "kind": "gameplay", "route": "smoke", "result": "fail"},
+            {"spec": "player-stays-above-ground", "kind": "held-out", "route": "r", "result": "pass"},
+            {"spec": "player-stays-above-ground", "kind": "clean", "route": "r", "result": "pass"},
         ])
         self.assertEqual(decision, "reject")
 

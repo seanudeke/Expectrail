@@ -23,6 +23,11 @@ import sys
 import traceback
 from pathlib import Path
 
+from agents.gameplay import (
+    MIN_DELTA_X_FIXTURE,
+    MIN_DELTA_X_HARNESS,
+    judge_trace,
+)
 from agents.isolation import arm
 from agents.observations import from_trace
 from agents.patchutil import assert_editable, sha256_file
@@ -31,9 +36,16 @@ from nightshift.contracts import digest, load, validate
 from nightshift.evaluator import decide, evaluate
 
 REGRESSION_SPEC = REPO / "agents" / "specs" / "player-stays-above-ground.json"
-GAMEPLAY_SPEC = REPO / "agents" / "specs" / "player-reaches-end-of-route.json"
+# Spec id kept for verification schema / filmable check rows; gameplay is judged
+# from the trace via agents.gameplay (not evaluate(reaches)).
+GAMEPLAY_SPEC_ID = "player-reaches-end-of-route"
 CLEAN_OBS = REPO / "agents" / "fixtures" / "obs-clean.json"
 HELD_OUT_OBS = REPO / "agents" / "fixtures" / "obs-held-out.json"
+TRACE_FIXTURES = {
+    "obs-fixed.json": REPO / "agents" / "fixtures" / "trace-fixed.json",
+    "obs-freeze.json": REPO / "agents" / "fixtures" / "trace-freeze.json",
+    "obs-fallthrough.json": REPO / "agents" / "fixtures" / "trace-fallthrough.json",
+}
 
 _NOT_RUN = arm(source="not-run", detail="suite checks skipped (early reject)")
 
@@ -59,6 +71,38 @@ def _early_suite() -> dict:
         "clean": dict(_NOT_RUN),
         "heldOut": dict(_NOT_RUN),
     }
+
+
+def _resolve_gameplay_trace(
+    out: Path,
+    *,
+    observations_path: Path | None,
+) -> tuple[dict, str, float]:
+    """Return (trace, source_label, min_delta_x).
+
+    When --observations is set (offline / skip-harness), mapped fixture traces win
+    so a leftover out/replay/trace.json cannot override freeze fixtures.
+    Otherwise use the live harness candidate trace.
+    """
+    if observations_path is not None:
+        mapped = TRACE_FIXTURES.get(observations_path.name)
+        if mapped is not None and mapped.is_file():
+            return (
+                json.loads(mapped.read_text(encoding="utf-8")),
+                f"fixture-trace:{mapped.name}",
+                MIN_DELTA_X_FIXTURE,
+            )
+        raise SystemExit(
+            f"no mapped fixture gameplay trace for observations {observations_path.name}"
+        )
+    harness_trace = out / "replay" / "trace.json"
+    if harness_trace.is_file():
+        return (
+            json.loads(harness_trace.read_text(encoding="utf-8")),
+            "harness-trace",
+            MIN_DELTA_X_HARNESS,
+        )
+    raise SystemExit("gameplay requires candidate replay/trace.json when observations are unset")
 
 
 def verify(
@@ -134,14 +178,42 @@ def verify(
 
     route_name = route_doc.get("name", route.stem)
     checks = []
-    for kind, spec_path in (("regression", REGRESSION_SPEC), ("gameplay", GAMEPLAY_SPEC)):
-        spec = load(spec_path, "test-spec")
-        # Prefer the failing spec from the request for regression when ids match.
-        if kind == "regression" and failing.get("spec", {}).get("id") == spec["id"]:
-            spec = failing["spec"]
-        verdict = evaluate(spec, observations)
-        (out / f"verdict-{spec['id']}.json").write_text(json.dumps(verdict, indent=2) + "\n", encoding="utf-8")
-        checks.append(_check(kind, spec["id"], route_name, verdict))
+    # Regression: still the observations evaluator (never-crosses).
+    reg_spec = load(REGRESSION_SPEC, "test-spec")
+    if failing.get("spec", {}).get("id") == reg_spec["id"]:
+        reg_spec = failing["spec"]
+    reg_verdict = evaluate(reg_spec, observations)
+    (out / f"verdict-{reg_spec['id']}.json").write_text(
+        json.dumps(reg_verdict, indent=2) + "\n", encoding="utf-8"
+    )
+    checks.append(_check("regression", reg_spec["id"], route_name, reg_verdict))
+
+    # Gameplay: same agents.gameplay predicate for harness trace and offline fixtures.
+    gameplay_trace, gameplay_source, min_dx = _resolve_gameplay_trace(
+        out, observations_path=observations_path,
+    )
+    gameplay = judge_trace(gameplay_trace, min_delta_x=min_dx)
+    gameplay_doc = {
+        "format": "nightshift.gameplay-verdict/v0",
+        "spec": GAMEPLAY_SPEC_ID,
+        "result": gameplay["result"],
+        "reason": gameplay["reason"],
+        "metrics": gameplay.get("metrics", {}),
+        "source": gameplay_source,
+        "minDeltaX": min_dx,
+        "evaluator": {"name": "agents.gameplay", "version": "0.1.0"},
+    }
+    (out / "verdict-gameplay.json").write_text(json.dumps(gameplay_doc, indent=2) + "\n", encoding="utf-8")
+    (out / "gameplay-metrics.json").write_text(
+        json.dumps(gameplay.get("metrics", {}), indent=2) + "\n", encoding="utf-8"
+    )
+    checks.append({
+        "spec": GAMEPLAY_SPEC_ID,
+        "kind": "gameplay",
+        "route": route_name,
+        "result": gameplay["result"],
+        "verdictSha256": digest(gameplay_doc),
+    })
 
     # Clean control: distinct obs source — never reuse the candidate observations object.
     # Harness clean-replay can SIGABRT on back-to-back Godot imports in CI; fall back to the

@@ -7,8 +7,7 @@
     "name": "nightshift.clean-control",
     "prompts": {
       "player": "small robot character",
-      "ground": "grass-topped ground",
-      "goal": "route end marker"
+      "ground": "grass-topped ground"
     }
   },
   "frames": [
@@ -37,18 +36,6 @@
             ],
             "score": 0.9,
             "track": 2
-          }
-        ],
-        "goal": [
-          {
-            "box": [
-              1100,
-              650,
-              1200,
-              780
-            ],
-            "score": 0.9,
-            "track": 3
           }
         ]
       }
@@ -79,18 +66,6 @@
             "score": 0.9,
             "track": 2
           }
-        ],
-        "goal": [
-          {
-            "box": [
-              1100,
-              650,
-              1200,
-              780
-            ],
-            "score": 0.9,
-            "track": 3
-          }
         ]
       }
     },
@@ -119,18 +94,6 @@
             ],
             "score": 0.9,
             "track": 2
-          }
-        ],
-        "goal": [
-          {
-            "box": [
-              1100,
-              650,
-              1200,
-              780
-            ],
-            "score": 0.9,
-            "track": 3
           }
         ]
       }
