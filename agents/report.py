@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import shutil
 import sys
 from pathlib import Path
 
@@ -18,6 +19,21 @@ from nightshift.contracts import load
 def _fake_sign(payload: bytes, key_material: bytes) -> str:
     """Detached signature placeholder (demo only). Real keys stay off the fixer host."""
     return hashlib.sha256(key_material + payload).hexdigest()
+
+
+def _materialize_frames(srcs: list[Path], dest_dir: Path, prefix: str) -> list[dict]:
+    """Copy frames into dest_dir; fail closed if any source is missing."""
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    out: list[dict] = []
+    for i, src in enumerate(srcs):
+        if not src.is_file():
+            raise FileNotFoundError(f"morning frame missing: {src}")
+        name = f"{prefix}-{i:02d}{src.suffix.lower() or '.png'}"
+        dest = dest_dir / name
+        shutil.copy2(src, dest)
+        digest = hashlib.sha256(dest.read_bytes()).hexdigest()
+        out.append({"role": prefix, "path": f"frames/{name}", "sha256": digest, "source": str(src)})
+    return out
 
 
 def build_report(
@@ -32,6 +48,14 @@ def build_report(
 ) -> dict:
     out.mkdir(parents=True, exist_ok=True)
     decision = verification["decision"]
+    before = list(before or [])
+    after = list(after or [])
+    frame_meta: list[dict] = []
+    if before or after:
+        frames_dir = out / "frames"
+        frame_meta.extend(_materialize_frames(before, frames_dir, "before"))
+        frame_meta.extend(_materialize_frames(after, frames_dir, "after"))
+
     lines = [
         "# Nightshift morning report",
         "",
@@ -48,12 +72,11 @@ def build_report(
     for r in verification.get("reasons", []):
         lines.append(f"- {r}")
 
-    if before or after:
+    if frame_meta:
         lines.extend(["", "## Before / after frames"])
-        for p in before or []:
-            lines.append(f"- before: `{p}`")
-        for p in after or []:
-            lines.append(f"- after: `{p}`")
+        for meta in frame_meta:
+            lines.append(f"- {meta['role']}: `{meta['path']}` (sha256 `{meta['sha256'][:16]}…`)")
+            lines.append(f"  ![{meta['role']}]({meta['path']})")
 
     if candidate and candidate.exists():
         lines.extend(["", "## Candidate diff (head)", "```diff", *candidate.read_text(encoding="utf-8").splitlines()[:80], "```"])
@@ -100,9 +123,76 @@ def build_report(
         "verificationSha256": rc["verificationSha256"],
         "candidateSha256": verification["candidate"]["patchSha256"],
         "unresolved": unresolved,
+        "frames": frame_meta,
+        "signingKey": key_note,
+        "signature": signature,
     }
     (out / "morning-summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     return summary
+
+
+def write_loop_rollup(out: Path, *, summary: dict) -> Path:
+    """Top-level filmable rollup beside summary.json after N overnight runs.
+
+    Latest-accept frames are copied under `out/frames/` so embeds stay valid even
+    when CI only packages the rollup directory (not every run-NN tree).
+    """
+    accepted = summary["accepted"]
+    runs = summary["runs"]
+    lines = [
+        "# Nightshift overnight morning rollup",
+        "",
+        f"**Accepted:** {accepted} of {runs}",
+        f"**Mode:** `{summary.get('mode', {}).get('mode', 'unknown')}`",
+        f"**Verification provenance:** `{summary.get('verificationProvenance', 'unknown')}`",
+        "",
+        "## Per-run",
+    ]
+    last_accept_frames: list[dict] = []
+    last_accept_run = -1
+    last_accept_morning: Path | None = None
+    for i, result in enumerate(summary.get("results", [])):
+        decision = result.get("decision")
+        morning = result.get("morning")
+        rel = f"run-{i:02d}/morning/morning-report.md"
+        err = result.get("error")
+        line = f"- run-{i:02d}: `{decision}`"
+        if morning:
+            line += f" → [{rel}]({rel})"
+        if err:
+            line += f" ({err})"
+        lines.append(line)
+        if decision == "accept" and morning and morning.get("frames"):
+            last_accept_frames = morning["frames"]
+            last_accept_run = i
+            last_accept_morning = out / f"run-{i:02d}" / "morning"
+
+    if accepted == runs and last_accept_frames and last_accept_morning is not None:
+        rollup_frames = out / "frames"
+        if rollup_frames.exists():
+            shutil.rmtree(rollup_frames)
+        rollup_frames.mkdir(parents=True, exist_ok=True)
+        lines.extend(["", "## Latest accept frames", f"(from run-{last_accept_run:02d})"])
+        for meta in last_accept_frames:
+            src = last_accept_morning / meta["path"]
+            if not src.is_file():
+                raise FileNotFoundError(f"rollup frame missing: {src}")
+            dest_name = Path(meta["path"]).name
+            dest = rollup_frames / dest_name
+            shutil.copy2(src, dest)
+            rel = f"frames/{dest_name}"
+            lines.append(f"- {meta['role']}: `{rel}`")
+            lines.append(f"  ![{meta['role']}]({rel})")
+    elif accepted < runs:
+        lines.extend([
+            "",
+            "## Unresolved",
+            "- overnight did not accept every run; see per-run errors and morning reports",
+        ])
+
+    path = out / "morning-report.md"
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return path
 
 
 def main(argv: list[str] | None = None) -> int:

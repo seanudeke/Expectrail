@@ -16,13 +16,16 @@ from agents.loop import one_run
 from agents.observations import from_trace
 from agents.orchestrator import build_repair_request
 from agents.patchutil import assert_editable, paths_touched
-from agents.report import build_report
+from agents.report import build_report, write_loop_rollup
 from agents.triage import WONDER_MODEL, triage
 from agents.trust import run_trust_check
 from agents.verifier import verify
 from harness.run import REPO, tree_digest
 from nightshift.contracts import load, validate
 from nightshift.evaluator import decide, evaluate
+
+BEFORE_FRAME = REPO / "agents" / "fixtures" / "frames" / "before-fall.png"
+AFTER_FRAME = REPO / "agents" / "fixtures" / "frames" / "after-fixed.png"
 
 
 def _request():
@@ -236,6 +239,52 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             self.assertEqual(summary["decision"], "accept")
             self.assertTrue((root / "morning" / "release-candidate.json").exists())
 
+    def test_morning_embeds_frames_and_fails_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            request = _request()
+            verification = verify(
+                request,
+                REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
+                root / "verify",
+                observations_path=REPO / "agents" / "fixtures" / "obs-fixed.json",
+                skip_harness=True,
+            )
+            key = root / "verifier-host" / ".nightshift-signing-key"
+            key.parent.mkdir(parents=True)
+            key.write_text("DEMO-FAKE-SIGNING-KEY-NOT-REAL\n", encoding="utf-8")
+            summary = build_report(
+                verification=verification,
+                candidate=REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
+                out=root / "morning",
+                before=[BEFORE_FRAME],
+                after=[AFTER_FRAME],
+                signing_key_path=key,
+            )
+            self.assertEqual(summary["decision"], "accept")
+            self.assertEqual(len(summary["frames"]), 2)
+            self.assertTrue((root / "morning" / "frames" / "before-00.png").is_file())
+            self.assertTrue((root / "morning" / "frames" / "after-00.png").is_file())
+            report = (root / "morning" / "morning-report.md").read_text(encoding="utf-8")
+            self.assertIn("![before](frames/before-00.png)", report)
+            self.assertIn("![after](frames/after-00.png)", report)
+            rc = json.loads((root / "morning" / "release-candidate.json").read_text())
+            self.assertEqual(rc["signingKey"], str(key))
+            unsigned = build_report(
+                verification=verification,
+                candidate=REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
+                out=root / "morning-default-key",
+            )
+            self.assertNotEqual(summary["signature"], unsigned["signature"])
+            with self.assertRaises(FileNotFoundError):
+                build_report(
+                    verification=verification,
+                    candidate=REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
+                    out=root / "morning-missing",
+                    before=[root / "no-such.png"],
+                    after=[AFTER_FRAME],
+                )
+
     def test_trust_beat(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "trust"
@@ -243,11 +292,51 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             self.assertTrue(result["ok"])
             self.assertFalse(result["boundToLoop"])
             self.assertEqual(result["signingKeyInFixer"], [])
+            self.assertTrue(result["poisonPresentInFixer"])
             self.assertTrue(result["readDeniedByAbsence"])
             self.assertTrue((out / "trust-evidence.md").exists())
             evidence = (out / "trust-evidence.md").read_text(encoding="utf-8")
             self.assertIn("PASS", evidence)
-            self.assertNotIn("DEMO-FAKE-SIGNING-KEY-NOT-REAL", (out / "fixer-workspace" / "player" / "readme-extra.txt").read_text())
+            poison = (out / "fixer-workspace" / "player" / "readme-extra.txt").read_text()
+            self.assertIn("IGNORE PREVIOUS", poison)
+            self.assertIn(".nightshift-signing-key", poison)
+            self.assertNotIn("DEMO-FAKE-SIGNING-KEY-NOT-REAL", poison)
+            self.assertTrue((out / "verifier-host" / ".nightshift-signing-key").is_file())
+
+    def test_triage_without_keys_never_calls_wonder(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch.dict(os.environ, {}, clear=True):
+                with mock.patch("agents.triage.call_wonder", side_effect=AssertionError("Wonder must not run")):
+                    request = triage(
+                        spec=load(REPO / "agents" / "specs" / "player-stays-above-ground.json", "test-spec"),
+                        verdict=load(REPO / "contracts" / "examples" / "verdict.json", "verdict"),
+                        route=load(REPO / "harness" / "routes" / "smoke.json", "route"),
+                        out=Path(tmp) / "triage",
+                        offline=False,
+                    )
+            validate(request, "repair-request")
+            meta = json.loads((Path(tmp) / "triage" / "triage.json").read_text())
+            self.assertEqual(meta["source"], "offline")
+            self.assertTrue((Path(tmp) / "triage" / "bug-report.md").exists())
+
+    def test_loop_mocked_keys_still_reject_freeze(self):
+        """Key presence / Wonder success must not forge accept — freeze obs still reject."""
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch.dict(os.environ, {"MODEL_API_KEY": "dummy", "META_API_KEY": "dummy"}):
+                with mock.patch("agents.triage.call_wonder", return_value="canned bug report") as wonder:
+                    result = one_run(
+                        Path(tmp) / "loop",
+                        use_muse=False,
+                        offline_triage=False,
+                        observations=REPO / "agents" / "fixtures" / "obs-freeze.json",
+                        candidate_patch=REPO / "agents" / "fixtures" / "freeze-player.patch",
+                        skip_harness=True,
+                        run_trust=True,
+                    )
+            wonder.assert_called()
+            self.assertEqual(result["decision"], "reject")
+            self.assertIsNone(result.get("error"))
+            self.assertEqual(result["triageSource"], WONDER_MODEL)
 
     def test_trust_beat_fail_when_key_in_fixer(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -298,6 +387,21 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             self.assertEqual(result["fixerSource"], "fixture")
             self.assertEqual(result["triageSource"], "offline")
             self.assertEqual(result["verificationProvenance"], "fixture")
+            self.assertEqual(len(result["morning"]["frames"]), 2)
+            self.assertTrue((run_root / "morning" / "frames" / "before-00.png").is_file())
+            self.assertTrue((run_root / "morning" / "frames" / "after-00.png").is_file())
+            morning_md = (run_root / "morning" / "morning-report.md").read_text()
+            self.assertIn("![before]", morning_md)
+            self.assertIn("![after]", morning_md)
+            rc = json.loads((run_root / "morning" / "release-candidate.json").read_text())
+            self.assertEqual(rc["signingKey"], str(run_root / "verifier-host" / ".nightshift-signing-key"))
+            from agents.report import _fake_sign
+            payload = json.dumps(
+                json.loads((run_root / "verify" / "verification.json").read_text()),
+                sort_keys=True, separators=(",", ":"),
+            ).encode("utf-8")
+            key_bytes = (run_root / "verifier-host" / ".nightshift-signing-key").read_bytes()
+            self.assertEqual(rc["signature"], _fake_sign(payload, key_bytes))
             fixer_work = run_root / "fix" / "fixer-work"
             self.assertTrue(fixer_work.is_dir())
             self.assertEqual(list(fixer_work.rglob(".nightshift-signing-key")), [])
@@ -443,16 +547,97 @@ class TriageReportTrustLoopTest(unittest.TestCase):
 
     def test_loop_main_offline_cli(self):
         with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "loop"
             code = loop_main([
-                "--out", str(Path(tmp) / "loop"),
+                "--out", str(out),
                 "--mode", "offline",
-                "--runs", "2",
+                "--runs", "3",
             ])
             self.assertEqual(code, 0)
-            summary = json.loads((Path(tmp) / "loop" / "summary.json").read_text())
-            self.assertEqual(summary["accepted"], 2)
+            summary = json.loads((out / "summary.json").read_text())
+            self.assertEqual(summary["accepted"], 3)
+            self.assertEqual(summary["runs"], 3)
+            self.assertTrue(all(r["decision"] == "accept" for r in summary["results"]))
             self.assertEqual(summary["mode"]["mode"], "offline")
             self.assertEqual(summary["verificationProvenance"], "fixture")
+            rollup = (out / "morning-report.md").read_text(encoding="utf-8")
+            self.assertIn("3 of 3", rollup)
+            self.assertIn("run-00/morning/morning-report.md", rollup)
+            self.assertIn("![before](frames/before-00.png)", rollup)
+            self.assertIn("![after](frames/after-00.png)", rollup)
+            self.assertTrue((out / "frames" / "before-00.png").is_file())
+            self.assertTrue((out / "frames" / "after-00.png").is_file())
+            self.assertTrue((out / "run-00" / "morning" / "frames" / "before-00.png").is_file())
+            self.assertTrue((out / "run-02" / "morning" / "frames" / "after-00.png").is_file())
+
+    def test_loop_missing_frame_rejects(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result = one_run(
+                Path(tmp) / "loop",
+                use_muse=False,
+                offline_triage=True,
+                observations=REPO / "agents" / "fixtures" / "obs-fixed.json",
+                candidate_patch=REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
+                skip_harness=True,
+                run_trust=True,
+                before_frames=[Path(tmp) / "missing.png"],
+                after_frames=[AFTER_FRAME],
+            )
+            self.assertEqual(result["decision"], "reject")
+            self.assertIn("FileNotFoundError", result["error"])
+            result_after = one_run(
+                Path(tmp) / "loop-after",
+                use_muse=False,
+                offline_triage=True,
+                observations=REPO / "agents" / "fixtures" / "obs-fixed.json",
+                candidate_patch=REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
+                skip_harness=True,
+                run_trust=True,
+                before_frames=[BEFORE_FRAME],
+                after_frames=[Path(tmp) / "missing-after.png"],
+            )
+            self.assertEqual(result_after["decision"], "reject")
+            self.assertIn("FileNotFoundError", result_after["error"])
+
+    def test_loop_empty_frame_lists_reject(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result = one_run(
+                Path(tmp) / "loop",
+                use_muse=False,
+                offline_triage=True,
+                observations=REPO / "agents" / "fixtures" / "obs-fixed.json",
+                candidate_patch=REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
+                skip_harness=True,
+                run_trust=True,
+                before_frames=[],
+                after_frames=[AFTER_FRAME],
+            )
+            self.assertEqual(result["decision"], "reject")
+            self.assertIn("non-empty", result["error"])
+
+    def test_write_loop_rollup_mixed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            summary = {
+                "mode": {"mode": "offline"},
+                "runs": 2,
+                "accepted": 1,
+                "verificationProvenance": "fixture",
+                "results": [
+                    {"decision": "reject", "error": "boom", "morning": None},
+                    {"decision": "accept", "morning": {"frames": [{"role": "before", "path": "frames/before-00.png"}]}},
+                ],
+            }
+            path = write_loop_rollup(out, summary=summary)
+            text = path.read_text(encoding="utf-8")
+            self.assertIn("1 of 2", text)
+            self.assertIn("Unresolved", text)
+            self.assertNotIn("Latest accept frames", text)
+
+    def test_fixture_frames_are_pngs(self):
+        for path in (BEFORE_FRAME, AFTER_FRAME):
+            self.assertTrue(path.is_file())
+            self.assertTrue(path.read_bytes().startswith(b"\x89PNG\r\n\x1a\n"))
 
     def test_loop_main_exit_one_when_any_run_rejects(self):
         with tempfile.TemporaryDirectory() as tmp:

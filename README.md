@@ -44,6 +44,7 @@ python3 -m nightshift.evaluator --spec contracts/examples/test-spec.json \
 python3 -m agents.gate1 --out runs/gate1 --skip-harness \
   --observations agents/fixtures/obs-fixed.json             # repair → fix → verify
 python3 -m agents.loop --out runs/loop --mode offline --runs 10
+# → runs/loop/morning-report.md (rollup) + per-run before/after frames
 python3 -m agents.trust --out runs/trust                    # signing key stays off the fixer
 
 export MODEL_API_KEY=...                                     # your Meta Model API key

@@ -20,12 +20,15 @@ from pathlib import Path
 
 from agents.fixer import run_fixer
 from agents.keys import resolve_mode, seal_mode_flags
-from agents.report import build_report
+from agents.report import build_report, write_loop_rollup
 from agents.triage import WONDER_MODEL, triage
 from agents.trust import run_trust_check
 from agents.verifier import verify
 from harness.run import REPO
 from nightshift.contracts import load
+
+DEFAULT_BEFORE = REPO / "agents" / "fixtures" / "frames" / "before-fall.png"
+DEFAULT_AFTER = REPO / "agents" / "fixtures" / "frames" / "after-fixed.png"
 
 
 def one_run(
@@ -37,6 +40,8 @@ def one_run(
     candidate_patch: Path | None,
     skip_harness: bool,
     run_trust: bool,
+    before_frames: list[Path] | None = None,
+    after_frames: list[Path] | None = None,
 ) -> dict:
     out.mkdir(parents=True, exist_ok=True)
     # Signing key is created only AFTER the fixer returns so Muse never sees it
@@ -102,10 +107,16 @@ def one_run(
             observations_path=observations,
             skip_harness=skip_harness or observations is not None,
         )
+        before = list(before_frames) if before_frames is not None else [DEFAULT_BEFORE]
+        after = list(after_frames) if after_frames is not None else [DEFAULT_AFTER]
+        if not before or not after:
+            raise SystemExit("morning report requires non-empty before and after frames")
         summary = build_report(
             verification=verification,
             candidate=fix_out / "candidate.patch",
             out=out / "morning",
+            before=before,
+            after=after,
             signing_key_path=signing_key,
         )
         return {
@@ -141,6 +152,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--skip-harness", action="store_true", default=True)
     p.add_argument("--no-skip-harness", action="store_true")
     p.add_argument("--no-trust", action="store_true", help="skip trust beat (not for demo path)")
+    p.add_argument("--before", type=Path, action="append", default=[],
+                   help="before frame(s) for morning report (default: fixture PNG)")
+    p.add_argument("--after", type=Path, action="append", default=[],
+                   help="after frame(s) for morning report (default: fixture PNG)")
     args = p.parse_args(argv)
 
     resolved = seal_mode_flags(
@@ -154,6 +169,8 @@ def main(argv: list[str] | None = None) -> int:
     skip_harness = False if args.no_skip_harness else args.skip_harness
     observations = None if args.no_skip_harness else args.observations
     provenance = "harness" if not skip_harness else "fixture"
+    before_frames = args.before or None
+    after_frames = args.after or None
 
     print(
         f"mode={resolved['mode']} triage={'offline' if offline_triage else 'wonder'} "
@@ -171,6 +188,8 @@ def main(argv: list[str] | None = None) -> int:
             candidate_patch=args.candidate_patch,
             skip_harness=skip_harness,
             run_trust=not args.no_trust,
+            before_frames=before_frames,
+            after_frames=after_frames,
         ))
         print(f"run {i}: {results[-1]['decision']}"
               + (f" ({results[-1].get('error')})" if results[-1].get("error") else ""))
@@ -185,7 +204,8 @@ def main(argv: list[str] | None = None) -> int:
     }
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
-    print(f"{accepted} of {args.runs} accepted")
+    rollup = write_loop_rollup(args.out, summary=summary)
+    print(f"{accepted} of {args.runs} accepted; morning rollup: {rollup}")
     return 0 if accepted == args.runs else 1
 
 
