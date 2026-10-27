@@ -45,6 +45,10 @@ python3 -m agents.gate1 --out runs/gate1 --skip-harness \
   --observations agents/fixtures/obs-fixed.json             # repair → fix → verify
 python3 -m agents.loop --out runs/loop --runs 10 --offline-triage
 python3 -m agents.trust --out runs/trust                    # signing key stays off the fixer
+
+export MODEL_API_KEY=...                                     # your Meta Model API key
+python3 -m nightshift.spec_writer draft "The player never falls through the ground" --out /tmp/spec.json
+python3 -m nightshift.spec_writer approve /tmp/spec.json --by <you>   # Muse Spark drafts; a person approves
 ```
 
 See [agents/README.md](agents/README.md) for Muse API / Muse Code setup (`MODEL_API_KEY`, `META_API_KEY`).
@@ -55,8 +59,9 @@ See [agents/README.md](agents/README.md) for Muse API / Muse Code setup (`MODEL_
 | --- | --- | --- |
 | [`contracts/`](contracts) | Schemas and examples for everything passed between lanes ([docs](docs/contracts.md)) | everyone |
 | [`harness/`](harness) | Route player, Movie Maker capture under Xvfb, replay check ([docs](docs/harness.md)) | Timo |
-| [`nightshift/`](nightshift) | Contract helpers and the reference evaluator | Zayyad |
-| [`bugs/`](bugs) | Seeded bugs as patches against the clean game | Sean, Timo |
+| [`nightshift/`](nightshift) | Contract helpers, the reference evaluator, and the Muse Spark spec writer | Zayyad, Sean |
+| [`specs/`](specs) | Test specs for the bug families; a person approves each one | Sean |
+| [`bugs/`](bugs) | Seeded bugs as patches against the clean game ([evaluation plan](docs/evaluation.md)) | Sean, Timo |
 | [`game/`](game) | Godot's 2D platformer demo, unmodified (MIT) | prior work |
 | [`agents/`](agents) | Repair requests, Muse Code fixer, verifier, Wonder triage, morning report | Taofeek |
 

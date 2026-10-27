@@ -26,3 +26,6 @@ something; keep prior work out of it.
 | Oct 26 | Agents lane Gate 1: orchestrator, Muse Code fixer, multi-patch verifier, freeze-player reject | `agents/`, `harness/run.py` |
 | Oct 26 | Agents lane Gate 2: Wonder triage, morning report, trust beat, 10-run loop CI | `agents/triage.py`, `report.py`, `trust.py`, `loop.py` |
 | Oct 26 | Harness-backed agents verify on Linux CI (accept / freeze reject / seed fail) | `.github/workflows/ci.yml` `agents-harness-verify` |
+| Oct 27 | Evaluation plan: three bug families, held-out variants, ground truth, gameplay checks | `docs/evaluation.md` |
+| Oct 27 | Test specs for the first three families (drafts awaiting approval) | `specs/` |
+| Oct 27 | Muse Spark spec writer: plain English to a validated test spec, then human approval | `nightshift/spec_writer.py` |
