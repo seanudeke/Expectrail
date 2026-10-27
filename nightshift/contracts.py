@@ -6,7 +6,16 @@ import json
 from pathlib import Path
 
 SCHEMAS = Path(__file__).resolve().parent.parent / "contracts"
-KINDS = ("route", "replay", "test-spec", "observations", "verdict", "repair-request", "verification")
+KINDS = (
+    "route",
+    "replay",
+    "test-spec",
+    "observations",
+    "verdict",
+    "repair-request",
+    "verification",
+    "gameplay-verdict",
+)
 
 
 class ContractError(ValueError):

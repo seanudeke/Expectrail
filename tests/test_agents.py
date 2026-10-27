@@ -176,8 +176,14 @@ class VerifierDecideTest(unittest.TestCase):
             self.assertIn("clean", kinds)
             self.assertIn("held-out", kinds)
             gameplay = json.loads((out / "verdict-gameplay.json").read_text())
+            validate(gameplay, "gameplay-verdict")
             self.assertEqual(gameplay["reason"], REASON_DELTA)
             self.assertTrue(str(gameplay["source"]).startswith("fixture-trace:"))
+            from nightshift.contracts import digest as cdigest
+            self.assertEqual(
+                next(c for c in doc["checks"] if c["kind"] == "gameplay")["verdictSha256"],
+                cdigest(gameplay),
+            )
 
     def test_clean_fail_rejects(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -414,9 +420,12 @@ class TriageReportTrustLoopTest(unittest.TestCase):
                 verification=verification,
                 candidate=REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
                 out=root / "morning",
+                verification_path=root / "verify" / "verification.json",
             )
             self.assertEqual(summary["decision"], "accept")
             self.assertTrue((root / "morning" / "release-candidate.json").exists())
+            self.assertEqual(summary["gameplay"]["result"], "pass")
+            validate(summary["gameplay"], "gameplay-verdict")
 
     def test_morning_embeds_frames_and_fails_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -432,6 +441,7 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             key = root / "verifier-host" / ".nightshift-signing-key"
             key.parent.mkdir(parents=True)
             key.write_text("DEMO-FAKE-SIGNING-KEY-NOT-REAL\n", encoding="utf-8")
+            vpath = root / "verify" / "verification.json"
             summary = build_report(
                 verification=verification,
                 candidate=REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
@@ -439,6 +449,7 @@ class TriageReportTrustLoopTest(unittest.TestCase):
                 before=[BEFORE_FRAME],
                 after=[AFTER_FRAME],
                 signing_key_path=key,
+                verification_path=vpath,
             )
             self.assertEqual(summary["decision"], "accept")
             self.assertEqual(len(summary["frames"]), 2)
@@ -447,12 +458,14 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             report = (root / "morning" / "morning-report.md").read_text(encoding="utf-8")
             self.assertIn("![before](frames/before-00.png)", report)
             self.assertIn("![after](frames/after-00.png)", report)
+            self.assertIn("## Gameplay", report)
             rc = json.loads((root / "morning" / "release-candidate.json").read_text())
             self.assertEqual(rc["signingKey"], str(key))
             unsigned = build_report(
                 verification=verification,
                 candidate=REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
                 out=root / "morning-default-key",
+                verification_path=vpath,
             )
             self.assertNotEqual(summary["signature"], unsigned["signature"])
             with self.assertRaises(FileNotFoundError):
@@ -462,6 +475,62 @@ class TriageReportTrustLoopTest(unittest.TestCase):
                     out=root / "morning-missing",
                     before=[root / "no-such.png"],
                     after=[AFTER_FRAME],
+                    verification_path=vpath,
+                )
+
+    def test_morning_freeze_reject_films_gameplay_metrics(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            verification = verify(
+                _request(),
+                REPO / "agents" / "fixtures" / "freeze-player.patch",
+                root / "verify",
+                observations_path=REPO / "agents" / "fixtures" / "obs-freeze.json",
+                skip_harness=True,
+            )
+            self.assertEqual(verification["decision"], "reject")
+            validate(json.loads((root / "verify" / "verdict-gameplay.json").read_text()), "gameplay-verdict")
+            summary = build_report(
+                verification=verification,
+                candidate=REPO / "agents" / "fixtures" / "freeze-player.patch",
+                out=root / "morning",
+                before=[BEFORE_FRAME],
+                after=[AFTER_FRAME],
+                verification_path=root / "verify" / "verification.json",
+            )
+            self.assertEqual(summary["decision"], "reject")
+            self.assertEqual(summary["gameplay"]["reason"], REASON_DELTA)
+            self.assertEqual(summary["gameplay"]["source"], "fixture-trace:trace-freeze.json")
+            report = (root / "morning" / "morning-report.md").read_text()
+            self.assertIn("## Gameplay", report)
+            self.assertIn(REASON_DELTA, report)
+            self.assertIn("fixture-trace:trace-freeze.json", report)
+            self.assertIn("deltaX:", report)
+
+    def test_morning_fails_closed_when_gameplay_check_without_verdict(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            verification = {
+                "format": "nightshift.verification/v0",
+                "candidate": {
+                    "patchSha256": "a" * 64,
+                    "baseTree": "b" * 64,
+                    "attempt": 1,
+                    "request": "rr",
+                },
+                "evaluator": {"name": "x", "version": "0"},
+                "checks": [
+                    {"spec": "player-reaches-end-of-route", "kind": "gameplay",
+                     "route": "smoke", "result": "fail"},
+                ],
+                "decision": "reject",
+                "reasons": ["gameplay failed"],
+            }
+            with self.assertRaises(FileNotFoundError):
+                build_report(
+                    verification=verification,
+                    candidate=None,
+                    out=root / "morning",
                 )
 
     def test_trust_beat(self):
@@ -498,6 +567,7 @@ class TriageReportTrustLoopTest(unittest.TestCase):
                 "evaluator.py",
             }),
         )
+        self.assertFalse((REPO / "agents" / "specs" / "player-reaches-end-of-route.json").exists())
 
     def test_trust_fails_when_suite_control_planted(self):
         plants = (
@@ -616,6 +686,8 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             self.assertIn("## Suite provenance", morning_md)
             self.assertIn("source=`fixture`", morning_md)
             self.assertIn("held-out: source=`interim-fixture`", morning_md)
+            self.assertIn("## Gameplay", morning_md)
+            self.assertEqual(result["morning"]["gameplay"]["result"], "pass")
             self.assertTrue(result["trust"]["suiteControlsAbsentFromFixer"])
             rc = json.loads((run_root / "morning" / "release-candidate.json").read_text())
             self.assertEqual(rc["signingKey"], str(run_root / "verifier-host" / ".nightshift-signing-key"))
@@ -719,6 +791,12 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             self.assertEqual(result["decision"], "reject")
             self.assertIsNone(result.get("error"))
             self.assertIsNotNone(result["morning"])
+            self.assertEqual(result["morning"]["gameplay"]["reason"], REASON_DELTA)
+            self.assertIn(REASON_DELTA, (Path(tmp) / "loop" / "morning" / "morning-report.md").read_text())
+            self.assertIn(
+                "fixture-trace:trace-freeze.json",
+                (Path(tmp) / "loop" / "morning" / "morning-report.md").read_text(),
+            )
 
     def test_resolve_mode_offline_and_live_gates(self):
         offline = resolve_mode("offline")

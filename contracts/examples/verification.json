@@ -47,5 +47,5 @@
       "observationsSha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
     }
   },
-  "_comment": "Example: a candidate that stops the fall by freezing the player passes the regression check but fails the gameplay check, so it is rejected."
+  "_comment": "Example: freeze-player keeps the player from falling (regression pass) but fails the trace-native gameplay motion check (delta-x), so it is rejected. The check id player-reaches-end-of-route is an opaque label — not a SAM reaches assertion."
 }

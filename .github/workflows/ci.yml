@@ -85,7 +85,7 @@ jobs:
             --out runs/agents-negatives/freeze-verify \
             --skip-harness --observations agents/fixtures/obs-freeze.json \
             && exit 1 || true
-          python -c "import json; d=json.load(open('runs/agents-negatives/freeze-verify/verification.json')); assert d['decision']=='reject', d; kinds={c['kind']:c['result'] for c in d['checks']}; assert kinds.get('gameplay')=='fail', d"
+          python -c "import json; from nightshift.contracts import validate; d=json.load(open('runs/agents-negatives/freeze-verify/verification.json')); assert d['decision']=='reject', d; kinds={c['kind']:c['result'] for c in d['checks']}; assert kinds.get('gameplay')=='fail', d; g=json.load(open('runs/agents-negatives/freeze-verify/verdict-gameplay.json')); validate(g,'gameplay-verdict'); assert 'delta-x' in g['reason']"
       - name: Trust beat (signing key absent from fixer)
         run: python -m agents.trust --out runs/agents-trust
       - name: Demo-path loop 10 accepts (offline mode)
@@ -149,7 +149,7 @@ jobs:
             --out runs/harness-negatives/freeze-verify
           status=$?
           set -e
-          python -c "import json; d=json.load(open('runs/harness-negatives/freeze-verify/verification.json')); assert d['decision']=='reject', d; kinds={c['kind']:c['result'] for c in d['checks']}; assert kinds.get('gameplay')=='fail', d; print(d['decision'], d['reasons'])"
+          python -c "import json; from nightshift.contracts import validate; d=json.load(open('runs/harness-negatives/freeze-verify/verification.json')); assert d['decision']=='reject', d; kinds={c['kind']:c['result'] for c in d['checks']}; assert kinds.get('gameplay')=='fail', d; g=json.load(open('runs/harness-negatives/freeze-verify/verdict-gameplay.json')); validate(g,'gameplay-verdict'); assert g['source']=='harness-trace'; g; print(d['decision'], d['reasons'])"
           test "$status" -ne 0
       - name: Seed-only fall-through fails regression on harness trace
         run: |

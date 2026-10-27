@@ -36,6 +36,36 @@ def _materialize_frames(srcs: list[Path], dest_dir: Path, prefix: str) -> list[d
     return out
 
 
+def _resolve_gameplay_verdict(
+    verification: dict,
+    *,
+    gameplay_verdict: dict | Path | None,
+    verification_path: Path | None,
+) -> dict | None:
+    """Load gameplay verdict for morning. Fail-closed when gameplay check ran but artifact missing."""
+    has_gameplay_check = any(c.get("kind") == "gameplay" for c in verification.get("checks", []))
+    if isinstance(gameplay_verdict, dict):
+        return gameplay_verdict
+    path: Path | None = None
+    if isinstance(gameplay_verdict, Path):
+        path = gameplay_verdict
+    elif verification_path is not None:
+        sibling = verification_path.parent / "verdict-gameplay.json"
+        if sibling.is_file():
+            path = sibling
+    if path is not None:
+        if not path.is_file():
+            raise FileNotFoundError(f"gameplay verdict missing: {path}")
+        from nightshift.contracts import load
+        return load(path, "gameplay-verdict")
+    if has_gameplay_check:
+        raise FileNotFoundError(
+            "verification includes a gameplay check but no gameplay verdict was provided "
+            "(pass gameplay_verdict= or place verdict-gameplay.json beside verification.json)"
+        )
+    return None
+
+
 def build_report(
     *,
     verification: dict,
@@ -45,6 +75,8 @@ def build_report(
     after: list[Path] | None = None,
     unresolved: list[str] | None = None,
     signing_key_path: Path | None = None,
+    gameplay_verdict: dict | Path | None = None,
+    verification_path: Path | None = None,
 ) -> dict:
     out.mkdir(parents=True, exist_ok=True)
     decision = verification["decision"]
@@ -55,6 +87,12 @@ def build_report(
         frames_dir = out / "frames"
         frame_meta.extend(_materialize_frames(before, frames_dir, "before"))
         frame_meta.extend(_materialize_frames(after, frames_dir, "after"))
+
+    gameplay = _resolve_gameplay_verdict(
+        verification,
+        gameplay_verdict=gameplay_verdict,
+        verification_path=verification_path,
+    )
 
     lines = [
         "# Nightshift morning report",
@@ -89,6 +127,24 @@ def build_report(
             if detail:
                 line += f" ({detail})"
             lines.append(line)
+
+    if gameplay is not None:
+        metrics = gameplay.get("metrics") or {}
+        lines.extend([
+            "",
+            "## Gameplay",
+            f"- result: `{gameplay.get('result')}`",
+            f"- reason: {gameplay.get('reason')}",
+            f"- source: `{gameplay.get('source')}`",
+            f"- minDeltaX: `{gameplay.get('minDeltaX')}`",
+            f"- deltaX: `{metrics.get('deltaX')}`",
+        ])
+        if "endOnFloor" in metrics:
+            lines.append(f"- endOnFloor: `{metrics.get('endOnFloor')}`")
+        if "belowStreak" in metrics:
+            lines.append(f"- belowStreak: `{metrics.get('belowStreak')}`")
+        if "sampleCount" in metrics:
+            lines.append(f"- sampleCount: `{metrics.get('sampleCount')}`")
 
     if frame_meta:
         lines.extend(["", "## Before / after frames"])
@@ -144,6 +200,7 @@ def build_report(
         "frames": frame_meta,
         "signingKey": key_note,
         "signature": signature,
+        "gameplay": gameplay,
     }
     (out / "morning-summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     return summary
@@ -220,6 +277,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--before", type=Path, action="append", default=[])
     p.add_argument("--after", type=Path, action="append", default=[])
     p.add_argument("--signing-key", type=Path, help="verifier-host key only; never in fixer workspace")
+    p.add_argument("--gameplay-verdict", type=Path,
+                   help="trace-native gameplay verdict (default: sibling verdict-gameplay.json)")
     p.add_argument("--out", type=Path, required=True)
     args = p.parse_args(argv)
     summary = build_report(
@@ -229,6 +288,8 @@ def main(argv: list[str] | None = None) -> int:
         before=args.before or None,
         after=args.after or None,
         signing_key_path=args.signing_key,
+        gameplay_verdict=args.gameplay_verdict,
+        verification_path=args.verification,
     )
     print(f"{summary['decision']}: {args.out / 'morning-report.md'}")
     return 0 if summary["decision"] == "accept" else 1

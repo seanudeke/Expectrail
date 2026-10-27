@@ -203,7 +203,9 @@ def verify(
         "minDeltaX": min_dx,
         "evaluator": {"name": "agents.gameplay", "version": "0.1.0"},
     }
+    validate(gameplay_doc, "gameplay-verdict")
     (out / "verdict-gameplay.json").write_text(json.dumps(gameplay_doc, indent=2) + "\n", encoding="utf-8")
+    # Non-contract extract for operators; morning uses verdict-gameplay.json.
     (out / "gameplay-metrics.json").write_text(
         json.dumps(gameplay.get("metrics", {}), indent=2) + "\n", encoding="utf-8"
     )

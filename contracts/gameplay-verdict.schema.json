@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/seanudeke/nightshift/contracts/gameplay-verdict.schema.json",
+  "title": "Gameplay verdict: trace-native motion check outside the fixer",
+  "description": "Verifier-side smoke gameplay from harness/fixture traces (min delta-x, end-on-floor, no sustained below-ground). Not a SAM observations verdict.",
+  "type": "object",
+  "required": [
+    "format",
+    "spec",
+    "result",
+    "reason",
+    "metrics",
+    "source",
+    "minDeltaX",
+    "evaluator"
+  ],
+  "properties": {
+    "format": {
+      "const": "nightshift.gameplay-verdict/v0"
+    },
+    "spec": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "result": {
+      "enum": ["pass", "fail"]
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1
+    },
+    "metrics": {
+      "type": "object",
+      "required": ["deltaX", "sampleCount"],
+      "properties": {
+        "deltaX": { "type": "number" },
+        "minDeltaX": { "type": "number" },
+        "firstX": { "type": "number" },
+        "lastX": { "type": "number" },
+        "lastY": { "type": "number" },
+        "floorY": { "type": ["number", "null"] },
+        "sampleCount": { "type": "integer", "minimum": 0 },
+        "endOnFloor": { "type": "boolean" },
+        "belowStreak": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1
+    },
+    "minDeltaX": {
+      "type": "number"
+    },
+    "evaluator": {
+      "type": "object",
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": "string" }
+      }
+    }
+  }
+}

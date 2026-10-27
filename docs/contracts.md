@@ -1,7 +1,8 @@
 # Lane contracts
 
-Seven JSON documents carry everything between the four lanes. Each has a schema in
-[`contracts/`](../contracts) and a worked example in [`contracts/examples/`](../contracts/examples).
+Eight JSON documents carry everything between the four lanes (seven lane hand-offs plus the
+agents adjunct `gameplay-verdict`). Each has a schema in [`contracts/`](../contracts) and a
+worked example in [`contracts/examples/`](../contracts/examples).
 Agree changes in the team channel first, then change the schema, the example and the code in one
 pull request. Every document starts with `"format": "nightshift.<kind>/v0"`.
 
@@ -22,6 +23,7 @@ verification ◄── verifier (rebuild, replay, all checks) ◄── candidat
 | `verdict` | evaluator | fixer, verifier, report | Zayyad |
 | `repair-request` | orchestrator (`agents.orchestrator` / `agents.triage`) | fixer | Taofeek |
 | `verification` | verifier (`agents.verifier`) | report, signing step (`agents.report`) | Taofeek |
+| `gameplay-verdict` | verifier (`agents.gameplay` / `agents.verifier`) | morning report | Taofeek |
 
 ## Rules the contracts encode
 
