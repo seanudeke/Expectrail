@@ -1,0 +1,13 @@
+# Godot editor cache and our run output
+.godot/
+/runs/
+/tools/
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+# Secrets never go in the repo
+.env
+*.key
+*.pem

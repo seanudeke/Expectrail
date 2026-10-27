@@ -1,0 +1,9 @@
+Nightshift
+Copyright 2026 the Nightshift contributors
+
+This product includes the Godot 2D platformer demo (game/platformer), taken unmodified from
+https://github.com/godotengine/godot-demo-projects at tag 4.7-6ad6167
+(commit 6ad6167e0577fe3622c18546138f456b107ce93c) and licensed under the MIT license
+(game/LICENSE-godot-demo-projects.md). Copyright (c) 2014-present Godot Engine contributors.
+Copyright (c) 2007-2014 Juan Linietsky, Ariel Manzur. Changes we make to it for the event
+(seeded bugs and their fixes) are listed in docs/new-work.md.
