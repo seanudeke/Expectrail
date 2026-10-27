@@ -15,7 +15,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
+import traceback
 from pathlib import Path
 
 from agents.observations import from_trace
@@ -115,6 +117,8 @@ def verify(
         checks.append(_check(kind, spec["id"], route_name, verdict))
 
     # Clean control: distinct obs source — never reuse the candidate observations object.
+    # Harness clean-replay can SIGABRT on back-to-back Godot imports in CI; fall back to the
+    # fixture so verify still emits a four-kind decision (fail still beats unclear).
     clean_path = clean_observations_path or CLEAN_OBS
     if skip_harness or observations_path is not None:
         clean_obs = load(clean_path, "observations")
@@ -125,12 +129,22 @@ def verify(
             )
         clean_route = "clean-control"
     else:
-        harness_run(route, out / "clean-replay", patches=[])
-        clean_trace = json.loads((out / "clean-replay" / "trace.json").read_text(encoding="utf-8"))
-        clean_replay_sha = sha256_file(out / "clean-replay" / "replay.json")
-        clean_obs = from_trace(clean_trace, replay_sha256=clean_replay_sha)
-        (out / "observations-clean.json").write_text(json.dumps(clean_obs, indent=2) + "\n", encoding="utf-8")
-        clean_route = "clean-control"
+        try:
+            harness_run(route, out / "clean-replay", patches=[])
+            clean_trace = json.loads((out / "clean-replay" / "trace.json").read_text(encoding="utf-8"))
+            clean_replay_sha = sha256_file(out / "clean-replay" / "replay.json")
+            clean_obs = from_trace(clean_trace, replay_sha256=clean_replay_sha)
+            (out / "observations-clean.json").write_text(
+                json.dumps(clean_obs, indent=2) + "\n", encoding="utf-8"
+            )
+            clean_route = "clean-control"
+        except (subprocess.CalledProcessError, SystemExit, OSError, TimeoutError) as exc:
+            (out / "clean-harness-error.txt").write_text(
+                f"{type(exc).__name__}: {exc}\n\n{traceback.format_exc()}",
+                encoding="utf-8",
+            )
+            clean_obs = load(clean_path, "observations")
+            clean_route = "clean-control-fixture-fallback"
     clean_spec = load(REGRESSION_SPEC, "test-spec")
     clean_verdict = evaluate(clean_spec, clean_obs)
     (out / "verdict-clean.json").write_text(json.dumps(clean_verdict, indent=2) + "\n", encoding="utf-8")
