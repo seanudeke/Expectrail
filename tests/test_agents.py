@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -207,6 +208,43 @@ class VerifierDecideTest(unittest.TestCase):
             self.assertEqual(doc["decision"], "needs-review")
             held = next(c for c in doc["checks"] if c["kind"] == "held-out")
             self.assertEqual(held["result"], "needs-review")
+
+    def test_harness_clean_abort_falls_back_and_still_decides(self):
+        """Godot SIGABRT on clean-replay must not leave verification.json unwritten."""
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            candidate_obs = load(REPO / "agents" / "fixtures" / "obs-freeze.json", "observations")
+
+            def harness_then_abort(_route, harness_out, patches=None, **_kw):
+                if patches == []:
+                    raise subprocess.CalledProcessError(-6, ["godot", "--import"], stderr="SIGABRT")
+                harness_out.mkdir(parents=True, exist_ok=True)
+                (harness_out / "trace.json").write_text(
+                    json.dumps({
+                        "rows": [{"tick": 0, "player": [0, 0], "onFloor": True}],
+                        "physicsTicksPerSecond": 120,
+                    }) + "\n"
+                )
+                (harness_out / "replay.json").write_text("{}\n")
+
+            with mock.patch("agents.verifier.harness_run", side_effect=harness_then_abort):
+                with mock.patch("agents.verifier.from_trace", return_value=candidate_obs):
+                    doc = verify(
+                        _request(),
+                        REPO / "agents" / "fixtures" / "freeze-player.patch",
+                        out,
+                        skip_harness=False,
+                    )
+            self.assertTrue((out / "verification.json").is_file())
+            self.assertTrue((out / "clean-harness-error.txt").is_file())
+            self.assertEqual(doc["decision"], "reject")
+            clean = next(c for c in doc["checks"] if c["kind"] == "clean")
+            self.assertEqual(clean["route"], "clean-control-fixture-fallback")
+            self.assertEqual(clean["result"], "pass")
+            self.assertEqual(
+                {c["kind"] for c in doc["checks"]},
+                {"regression", "gameplay", "clean", "held-out"},
+            )
 
     def test_same_digest_clean_obs_fails_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
