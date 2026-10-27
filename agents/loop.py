@@ -20,7 +20,7 @@ from pathlib import Path
 
 from agents.fixer import run_fixer
 from agents.keys import resolve_mode, seal_mode_flags
-from agents.report import build_report, write_loop_rollup
+from agents.report import build_report, gameplay_film_stub, write_loop_rollup
 from agents.triage import WONDER_MODEL, triage
 from agents.trust import run_trust_check
 from agents.verifier import verify
@@ -98,6 +98,7 @@ def one_run(
                     "error": "trust beat failed",
                     "trust": trust,
                     "morning": None,
+                    "gameplay": None,
                     "triageSource": triage_source,
                     "verificationProvenance": "harness" if not skip_harness else "fixture",
                 }
@@ -126,6 +127,7 @@ def one_run(
         return {
             "decision": verification["decision"],
             "morning": summary,
+            "gameplay": gameplay_film_stub(summary),
             "trust": trust,
             "triageSource": triage_source,
             "fixerSource": json.loads((fix_out / "candidate.json").read_text()).get("source"),
@@ -138,6 +140,7 @@ def one_run(
             "error": f"{type(exc).__name__}: {exc}",
             "trust": trust,
             "morning": None,
+            "gameplay": None,
             "verificationProvenance": "harness" if not skip_harness else "fixture",
         }
 

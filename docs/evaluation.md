@@ -61,8 +61,9 @@ A fix must keep the game playable. On the smoke route, the clean game:
 A candidate that stops the fall by freezing the player, or by removing gravity, fails these and is
 rejected even though the visual check passes. Taofeek's verifier implements them in
 `agents.gameplay` from the harness/fixture `trace.json` (not SAM observations or an invented
-goal). Harness smoke uses `MIN_DELTA_X_HARNESS` (slack under the ~485 clean measurement); offline
-fixtures use `MIN_DELTA_X_FIXTURE`. Same predicate for both.
+goal). The verification check id is the opaque label `player-motion-on-smoke` (not a SAM
+`reaches` assertion). Harness smoke uses `MIN_DELTA_X_HARNESS` (slack under the ~485 clean
+measurement); offline fixtures use `MIN_DELTA_X_FIXTURE`. Same predicate for both.
 
 ## What we report
 

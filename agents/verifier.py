@@ -36,9 +36,10 @@ from nightshift.contracts import digest, load, validate
 from nightshift.evaluator import decide, evaluate
 
 REGRESSION_SPEC = REPO / "agents" / "specs" / "player-stays-above-ground.json"
-# Spec id kept for verification schema / filmable check rows; gameplay is judged
-# from the trace via agents.gameplay (not evaluate(reaches)).
-GAMEPLAY_SPEC_ID = "player-reaches-end-of-route"
+# Opaque check id for verification / filmable rows. Judged by agents.gameplay from
+# the harness/fixture trace — not evaluate(reaches) and not a SAM goal.
+# Retired label player-reaches-end-of-route stays on FIXER_FORBIDDEN forever.
+GAMEPLAY_SPEC_ID = "player-motion-on-smoke"
 CLEAN_OBS = REPO / "agents" / "fixtures" / "obs-clean.json"
 HELD_OUT_OBS = REPO / "agents" / "fixtures" / "obs-held-out.json"
 TRACE_FIXTURES = {

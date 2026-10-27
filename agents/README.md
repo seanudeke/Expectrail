@@ -19,8 +19,11 @@ are `needs-review`). **Gameplay** is judged by `agents.gameplay` from the candid
 `trace.json` (or mapped offline `agents/fixtures/trace-*.json`) — min Δx, end-on-floor, no
 sustained below-ground — not a SAM `reaches` / invented goal. The verifier writes schema-valid
 `verdict-gameplay.json` (`nightshift.gameplay-verdict/v0`); morning films a `## Gameplay`
-section. The check id `player-reaches-end-of-route` is an opaque label (the old reaches
-test-spec file is retired). Clean uses a no-patch harness replay when available; if Godot
+section. The check id `player-motion-on-smoke` is an opaque motion label (not a SAM
+`reaches` goal). The retired `player-reaches-end-of-route.json` basename stays on the
+fixer deny-list forever; `player-motion-on-smoke.json` is deny-listed too so neither can
+mount into fixer-work. Overnight rollup films latest gameplay-reject reason/source/Δx.
+Clean uses a no-patch harness replay when available; if Godot
 aborts on that second import (seen on CI), it falls back to `agents/fixtures/obs-clean.json`
 and still decides (`suite.clean.source=fixture-fallback`). Held-out uses
 `agents/fixtures/obs-held-out.json` as an interim `evaluate()` control until Sean lands real
