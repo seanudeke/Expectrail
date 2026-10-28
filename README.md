@@ -13,7 +13,9 @@ never check what players see. Nightshift checks:
    into a structured test spec that a person approves once. SAM 3.1 finds and tracks the objects
    the spec names. A deterministic evaluator, not a model, decides pass or fail.
 3. **Fix.** Muse Code gets the failing check, the replay and the evidence, and patches the game in
-   its own container, which holds no evaluator, no held-out cases and no keys.
+   a fixer worktree that does not mount the evaluator, held-out cases, or signing keys
+   (deny-by-absence). Muse may still see other host paths on a shared filesystem; we do not claim
+   an OS container here.
 4. **Verify.** A separate verifier rebuilds, replays, and runs the regression, gameplay, held-out
    and clean checks. It accepts a candidate only if every check passes, and it rejects a fix that
    only looks right, such as one that stops the fall by freezing the player.
@@ -50,13 +52,14 @@ python3 -m agents.loop --out runs/loop --mode offline --runs 10
 # → runs/loop/morning-report.md (rollup) + per-run before/after frames
 python3 -m agents.trust --out runs/trust                    # signing key stays off the fixer
 
-export MODEL_API_KEY=...                                     # your Meta Model API key
+# Local Meta keys: copy .env.example → .env (gitignored) and set META_API_KEY / MODEL_API_KEY
 python3 -m nightshift.spec_writer draft "The player never falls through the ground" --out /tmp/spec.json
 python3 -m nightshift.spec_writer approve /tmp/spec.json --by <you>   # Muse Spark drafts; a person approves
-# Live overnight path when META_API_KEY is set: python3 -m agents.loop --mode live
+# Live Muse film (clean prompt): python3 -m agents.prove_live --out runs/prove
+# Live overnight path: python3 -m agents.loop --mode live
 ```
 
-See [agents/README.md](agents/README.md) for Muse API / Muse Code setup (`MODEL_API_KEY`, `META_API_KEY`).
+See [agents/README.md](agents/README.md) for Muse API / Muse Code setup (`.env`, `META_API_KEY`).
 
 ## Layout and lanes
 
@@ -72,8 +75,9 @@ See [agents/README.md](agents/README.md) for Muse API / Muse Code setup (`MODEL_
 
 ## Gates
 
-- **Gate 1, October 28:** one seeded bug caught by a visual assertion, fixed by Muse Code in its
-  own container, and accepted by the protected verifier, end to end on one level.
+- **Gate 1, October 28:** one seeded bug caught by a visual assertion, fixed by Muse Code in a
+  fixer worktree without verifier secrets mounted, and accepted by the protected verifier, end to
+  end on one level.
 - **Gate 2, November 1:** three bug families with four variants each, clean and held-out cases, the
   benchmark against a Muse Code with screenshots baseline, the morning report, and a demo path that
   passes 10 runs in a row.

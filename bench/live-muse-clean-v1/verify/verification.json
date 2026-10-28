@@ -1,0 +1,65 @@
+{
+  "format": "nightshift.verification/v0",
+  "candidate": {
+    "patchSha256": "ceda817fc43cb1249404a110b2517adc10e22b5d39ec7c29f0ed322862e38c09",
+    "baseTree": "6a273587d64e10a74c0160256cfdc4964f16ed3e93fe7ab178e1bedc5071b280",
+    "attempt": 1,
+    "request": "rr-gate1",
+    "requestSha256": "a8af3bb8fd86e4d3fa7ffbd927d1fd883ab08fa675398f57ff7d72d21d3515db"
+  },
+  "evaluator": {
+    "name": "nightshift.evaluator",
+    "version": "0.1.0"
+  },
+  "checks": [
+    {
+      "spec": "player-stays-above-ground",
+      "kind": "regression",
+      "route": "smoke",
+      "result": "pass",
+      "verdictSha256": "d80ceb0bba458fae54c607dc0bd4179d1cf44603bd4e0ba7daedd157640eec4d"
+    },
+    {
+      "spec": "player-motion-on-smoke",
+      "kind": "gameplay",
+      "route": "smoke",
+      "result": "pass",
+      "verdictSha256": "8fe554b6d79e9efd8034859fb695e3f332ae5c4da56819554f9358b9dd1b7d05"
+    },
+    {
+      "spec": "player-stays-above-ground",
+      "kind": "clean",
+      "route": "clean-control",
+      "result": "pass",
+      "verdictSha256": "ba04af679bb19958298b5603781770172f66310cc17a6241e17d1523d5b0d428"
+    },
+    {
+      "spec": "player-stays-above-ground",
+      "kind": "held-out",
+      "route": "held-out-interim",
+      "result": "pass",
+      "verdictSha256": "1dce769558a3b0e7c2ca6ffaf16e644eb803f0e33d9af975fd5cac0b7ff1dd08"
+    }
+  ],
+  "decision": "accept",
+  "reasons": [
+    "all 4 checks passed"
+  ],
+  "suite": {
+    "candidate": {
+      "source": "fixture",
+      "path": "/Users/fehintola/Documents/GitHub/Nightshift/agents/fixtures/obs-fixed.json",
+      "observationsSha256": "ca960e024b7a820654988c4b54228a693bf0a5b301292026c5ebfb2ae82d92ef"
+    },
+    "clean": {
+      "source": "fixture",
+      "path": "/Users/fehintola/Documents/GitHub/Nightshift/agents/fixtures/obs-clean.json",
+      "observationsSha256": "7395c39139725a6c16264350e9c455a584174ffc1aa09b4446596a8f316312ee"
+    },
+    "heldOut": {
+      "source": "interim-fixture",
+      "path": "/Users/fehintola/Documents/GitHub/Nightshift/agents/fixtures/obs-held-out.json",
+      "observationsSha256": "572202e6219eed6cd850d3d68aa9350f533571ecac38fcea81e858bc238f358f"
+    }
+  }
+}

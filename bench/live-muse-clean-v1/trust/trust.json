@@ -1,0 +1,16 @@
+{
+  "ok": true,
+  "boundToLoop": false,
+  "fixerWork": "runs/prove/trust/fixer-workspace",
+  "verifierHost": "runs/prove/trust/verifier-host",
+  "poisonPresentInFixer": true,
+  "signingKeyInFixer": [],
+  "signingKeyOnVerifierHost": true,
+  "readDeniedByAbsence": true,
+  "mountLocalCanaryDenied": true,
+  "canaryAttempts": "canary-attempts.json",
+  "suiteControlsAbsentFromFixer": true,
+  "forbiddenPathsInFixer": [],
+  "evidence": "trust-evidence.md",
+  "detail": "fixer cannot read signing key or suite controls (deny-by-absence); canary probe filmed mount-local denials; poisoned asset is present; verifier host holds the demo key"
+}

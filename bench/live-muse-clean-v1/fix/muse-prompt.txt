@@ -1,0 +1,62 @@
+You are fixing a Godot 4 2D platformer bug.
+
+Read the repair request at: repair-request.json
+It contains the failing check(s), verdict evidence, and route. The seeded failing
+build is already applied in this workspace.
+
+## Failing check and evidence
+### Failing check 1
+- Spec id: player-stays-above-ground
+- Instruction: The player never falls through the ground.
+- Assertion: {"boundary": {"edge": "top", "relativeTo": "ground", "side": "above", "tolerancePx": 12}, "object": "player", "type": "never-crosses"}
+- Verdict: fail — player is 50px past the boundary (above 770, tolerance 12) (first at frame 8, 2 frames)
+- First fail frame: 8
+- Route: smoke (240 ticks)
+- Key frames: frames/f00000008.png, frames/f00000016.png
+- Evidence: [
+  {
+    "frame": 8,
+    "detail": "player is 50px past the boundary (above 770, tolerance 12)",
+    "boxes": {
+      "player": [
+        770,
+        700,
+        840,
+        820
+      ],
+      "ground": [
+        350,
+        770,
+        1600,
+        960
+      ]
+    }
+  },
+  {
+    "frame": 16,
+    "detail": "player is 170px past the boundary (above 770, tolerance 12)",
+    "boxes": {
+      "player": [
+        775,
+        820,
+        845,
+        940
+      ],
+      "ground": [
+        350,
+        770,
+        1600,
+        960
+      ]
+    }
+  }
+]
+
+## Rules
+- Only edit files matching these globs (relative to the workspace root): player/**, level/**
+- Do not create or edit repair-request.json, logs, or any file outside those globs.
+- Do not read or search for signing keys, held-out tests, or evaluator code.
+- Produce the smallest correct fix for the failing assertion.
+- When done, leave the game files edited; do not commit.
+
+Attempt 1 of 3.

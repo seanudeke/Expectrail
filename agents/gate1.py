@@ -15,6 +15,7 @@ import sys
 from pathlib import Path
 
 from agents.fixer import run_fixer
+from agents.keys import load_dotenv
 from agents.orchestrator import build_repair_request
 from agents.report import build_report
 from agents.verifier import verify
@@ -26,6 +27,7 @@ DEFAULT_AFTER = REPO / "agents" / "fixtures" / "frames" / "after-fixed.png"
 
 
 def main(argv: list[str] | None = None) -> int:
+    load_dotenv()
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--out", type=Path, default=Path("runs/gate1"))
     p.add_argument("--candidate-patch", type=Path,
