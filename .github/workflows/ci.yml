@@ -80,7 +80,7 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-          from agents.observations import from_trace_synthetic
+          from agents.observations import from_trace_synthetic, with_reference_ground
           from nightshift.contracts import load
           from nightshift.evaluator import evaluate
           spec = load("agents/specs/player-stays-above-ground.json", "test-spec")
@@ -88,7 +88,13 @@ jobs:
           clean = json.loads((root / "clean" / "trace.json").read_text())
           rows = [r for r in clean["rows"] if r.get("player")]
           assert rows and all("ground" in r and "view" in r for r in rows), "harness did not log ground and view"
-          results = {name: evaluate(spec, from_trace_synthetic(json.loads((root / name / "trace.json").read_text())))["result"]
+          level = clean["levelSurfaces"]
+          assert level, "harness did not log the level surfaces"
+          # The harness's ground search and the verifier's, over the same clean level, must agree.
+          assert all(abs(a["ground"] - b["ground"]) < 0.01
+                     for a, b in zip(rows, [r for r in with_reference_ground(clean, level)["rows"] if r.get("player")])), "ground searches disagree"
+          results = {name: evaluate(spec, from_trace_synthetic(with_reference_ground(
+                         json.loads((root / name / "trace.json").read_text()), level)))["result"]
                      for name in ("clean", "sinking_v1", "sinking_v2")}
           print(results)
           # sinking v2 moves only the drawing, so the position log cannot see it; the SAM hybrid does.

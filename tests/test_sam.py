@@ -635,7 +635,7 @@ class VerifierWithSamTest(unittest.TestCase):
         self.assertTrue((out / "verdict-clean-coins-visible.json").is_file())
         self.assertEqual(json.loads((out / "observations.json").read_text())["model"]["name"],
                          "nightshift.trace-synthetic")
-        self.assertIn("engine's position log", doc["suite"]["candidate"]["detail"])
+        self.assertIn("position log against the clean level's ground line", doc["suite"]["candidate"]["detail"])
         self.assertIn("player-always-visible", doc["suite"]["clean"]["detail"])
         # No private held-out set here: SAM never saw a held-out route, so no accept.
         self.assertEqual({c["spec"]: c["result"] for c in doc["checks"]
@@ -742,6 +742,10 @@ class VerifierWithSamTest(unittest.TestCase):
         harness.assert_not_called()
 
 
+# The clean level for these synthetic traces: one solid floor whose top is at y 650.
+LEVEL = [[[-2000.0, 650.0], [4000.0, 650.0], [4000.0, 714.0], [-2000.0, 714.0]]]
+
+
 def ground_trace(sink: float = 0.0, ticks: int = 240, ground: float = 650.0, view=(2.0, 0.0, 0.0, 2.0, 600.0, -520.0)):
     """A harness-shaped trace with the engine's ground line and camera: the player stands on the
     ground (origin 13.25 above it, as in the clean game), sunk by ``sink`` world px."""
@@ -800,15 +804,19 @@ class EngineGroundTest(unittest.TestCase):
         real = sam.MetaSamClient
         with mock.patch.dict(os.environ, {"NIGHTSHIFT_SAM_CACHE": "off"}), \
                 mock.patch.object(sam, "MetaSamClient", side_effect=lambda: real(transport=scene.transport, retries=0)):
-            _, source = _ground_observations(ground_spec, ground_trace(), "0" * 64, scene.dir, use_sam=True)
+            _, source = _ground_observations(ground_spec, ground_trace(), "0" * 64, scene.dir, True, LEVEL)
             self.assertEqual(source, "hybrid")
-            _, source = _ground_observations(ground_spec, ground_trace(), "0" * 64, scene.dir, use_sam=False)
+            _, source = _ground_observations(ground_spec, ground_trace(), "0" * 64, scene.dir, False, LEVEL)
             self.assertEqual(source, "engine")
             old = ground_trace()
             for row in old["rows"]:
                 row.pop("ground")
-            _, source = _ground_observations(ground_spec, old, "0" * 64, scene.dir, use_sam=True)
+                row.pop("view")
+            _, source = _ground_observations(ground_spec, old, "0" * 64, scene.dir, True, None)
             self.assertEqual(source, "engine")
+            # A current-harness trace without a trusted reference is needs-review, never its own yardstick.
+            with self.assertRaises(SystemExit):
+                _ground_observations(ground_spec, ground_trace(), "0" * 64, scene.dir, False, None)
 
     def test_the_sink_the_player_fixture_is_a_valid_candidate(self):
         from agents.patchutil import assert_editable, paths_touched
@@ -817,6 +825,65 @@ class EngineGroundTest(unittest.TestCase):
         self.assertEqual(assert_editable(text, ["player/**", "level/**"]), [])
         self.assertIn("+collision_mask = 30", text)          # the real fix
         self.assertIn("+position = Vector2(0, 12)", text)    # and the robot drawn 26 px into the ground
+
+    def test_a_candidate_cannot_move_the_ground_it_is_judged_by(self):
+        from agents.observations import from_trace_synthetic, with_reference_ground
+        ground_spec = load(REPO / "agents" / "specs" / "player-stays-above-ground.json", "test-spec")
+        # The candidate buries the robot 26 px and lowers its own level by 26 px to match.
+        cheat = ground_trace(sink=26, ground=650.0)
+        for row in cheat["rows"]:
+            row["ground"] = 676.0
+        self.assertEqual(evaluate(ground_spec, from_trace_synthetic(cheat))["result"], "pass")
+        judged = with_reference_ground(cheat, LEVEL)
+        self.assertEqual(judged["groundReference"], "clean level")
+        self.assertEqual(evaluate(ground_spec, from_trace_synthetic(judged))["result"], "fail")
+
+    def test_the_ground_search_ignores_platforms_overhead_and_counts_a_sunk_surface(self):
+        from agents.observations import surface_under
+        platform = [[0.0, 400.0], [200.0, 400.0], [200.0, 464.0], [0.0, 464.0]]
+        ramp = [[300.0, 650.0], [400.0, 600.0], [400.0, 714.0], [300.0, 714.0]]
+        level = LEVEL + [platform, ramp]
+        self.assertEqual(surface_under(level, 100.0, 636.75), 650.0)   # standing under a platform
+        self.assertEqual(surface_under(level, 100.0, 662.75), 650.0)   # sunk 26 px: still that surface
+        self.assertEqual(surface_under(level, 100.0, 396.75), 400.0)   # standing on the platform
+        self.assertAlmostEqual(surface_under(level, 350.0, 600.0), 615.0)  # highest point under the body on the ramp
+        self.assertIsNone(surface_under([], 0.0, 0.0))
+
+    def test_a_frame_is_drawn_with_the_camera_logged_one_tick_later(self):
+        from agents.observations import engine_ground_by_frame
+        trace = ground_trace()
+        for row in trace["rows"]:
+            row["view"] = [2.0, 0.0, 0.0, 2.0, 0.0, -float(row["tick"])]  # the camera scrolls 1 px a tick
+        by_frame = engine_ground_by_frame(trace, (1600, 960), [10, 119])
+        self.assertEqual(by_frame[10]["ground"][0]["box"][1], 2 * 650.0 - 22)    # frame 10 shows tick 21, camera of tick 22
+        self.assertEqual(by_frame[119]["ground"][0]["box"][1], 2 * 650.0 - 239)  # the last frame keeps its own
+
+    def test_the_reference_level_comes_from_an_unpatched_replay_and_is_memoized(self):
+        import agents.verifier as verifier
+        calls = []
+
+        def harness(route, out, patches=None, **_kw):
+            calls.append(patches)
+            out.mkdir(parents=True, exist_ok=True)
+            (out / "trace.json").write_text(json.dumps({"rows": [], "levelSurfaces": LEVEL}))
+        with mock.patch.object(verifier, "harness_run", side_effect=harness), \
+                mock.patch.dict(verifier._REFERENCE_SURFACES, {}, clear=True):
+            self.assertEqual(verifier.reference_surfaces(Path(self.tmp.name)), LEVEL)
+            self.assertEqual(verifier.reference_surfaces(Path(self.tmp.name)), LEVEL)
+        self.assertEqual(calls, [[]])  # one replay, with no patches at all
+
+        def broken(route, out, patches=None, **_kw):
+            raise OSError("godot aborted")
+        with mock.patch.object(verifier, "harness_run", side_effect=broken), \
+                mock.patch.dict(verifier._REFERENCE_SURFACES, {}, clear=True):
+            self.assertIsNone(verifier.reference_surfaces(Path(self.tmp.name)))
+
+    def test_the_lower_the_floor_fixture_moves_the_level_not_just_the_player(self):
+        from agents.patchutil import assert_editable, paths_touched
+        text = (REPO / "agents" / "fixtures" / "fix-and-lower-the-floor.patch").read_text()
+        self.assertEqual(sorted(paths_touched(text)), ["level/tileset.tres", "player/player.tscn"])
+        self.assertEqual(assert_editable(text, ["player/**", "level/**"]), [])
+        self.assertIn("PackedVector2Array(-32, 4, 32, 4, 32, 32, -32, 32)", text)
 
     def test_the_sinking_bugs_are_valid_patches_on_the_player(self):
         from agents.patchutil import paths_touched

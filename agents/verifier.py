@@ -18,8 +18,9 @@ provenance (harness vs fixture vs fixture-fallback vs unavailable).
 
 With NIGHTSHIFT_OBS_PROVIDER=sam, the specs in SAM_SPECS (player always visible, coins
 visible) are also judged on SAM 3.1's view of the candidate, clean and held-out replays, and
-every one must pass. The ground spec stays on the engine's position log: SAM cannot see the
-ground in this game's art (docs/sam.md).
+every one must pass. SAM cannot see the ground in this game's art, so the ground spec is judged
+against the clean level's ground line (from an unpatched reference replay, so a candidate cannot
+move it): on SAM's box for the robot when SAM is on, on the position log otherwise (docs/sam.md).
 """
 from __future__ import annotations
 
@@ -37,7 +38,9 @@ from agents.gameplay import (
     judge_trace,
 )
 from agents.isolation import arm
-from agents.observations import engine_ground_by_frame, from_trace, has_engine_ground, resolve_provider
+from agents.observations import (
+    engine_ground_by_frame, from_trace, has_engine_ground, resolve_provider, with_reference_ground,
+)
 from agents.patchutil import assert_editable, sha256_file
 from harness.run import REPO, run as harness_run, tree_digest
 from nightshift.contracts import digest, load, validate
@@ -65,7 +68,7 @@ HELDOUT_ENV = "NIGHTSHIFT_HELDOUT_DIR"
 # Specs SAM 3.1 can judge in this game, approved after the live probes (docs/sam.md). With
 # NIGHTSHIFT_OBS_PROVIDER=sam they are judged on SAM's view of every replay the verifier makes
 # (candidate, clean and held-out routes), in addition to the ground spec. SAM cannot see the
-# ground in this art, so the ground spec is always judged on the engine's position log.
+# ground in this art, so the ground spec compares the robot with the clean level's ground line.
 SAM_SPECS = ("specs/player-always-visible.json", "specs/coins-visible.json")
 SAM_SPECS_ENV = "NIGHTSHIFT_SAM_SPECS"  # comma-separated repo paths, to override SAM_SPECS
 
@@ -122,22 +125,66 @@ def _sam_verdicts(specs: list[dict], trace: dict | None, replay_sha: str, frames
     return results
 
 
+# A two-tick replay of the unpatched game: enough for the harness to report the level's surfaces.
+LEVEL_REFERENCE_ROUTE = {"format": "nightshift.route/v0", "name": "level-reference",
+                         "description": "Two idle ticks of the clean game, to read its level surfaces.",
+                         "ticks": 2, "seed": 1, "events": []}
+_REFERENCE_SURFACES: dict[str, list] = {}
+
+
+def reference_surfaces(out: Path) -> list | None:
+    """The clean game's level surfaces (every solid tile polygon, world coordinates), or None.
+
+    Read from a replay of the unpatched game, never from a candidate's, so a candidate that edits
+    the level cannot move the ground it is judged against. Memoized per game tree; one retry, since
+    Godot has aborted on back-to-back imports in CI.
+    """
+    key = tree_digest(REPO / "game" / "platformer")
+    if key in _REFERENCE_SURFACES:
+        return _REFERENCE_SURFACES[key]
+    run_dir = out / "level-reference"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    route = run_dir / "route.json"
+    route.write_text(json.dumps(LEVEL_REFERENCE_ROUTE) + "\n", encoding="utf-8")
+    for _attempt in range(2):
+        try:
+            harness_run(route, run_dir / "replay", patches=[])
+            surfaces = json.loads((run_dir / "replay" / "trace.json").read_text(encoding="utf-8")).get("levelSurfaces")
+        except (subprocess.CalledProcessError, OSError, TimeoutError, ValueError):
+            continue
+        if surfaces:
+            _REFERENCE_SURFACES[key] = surfaces
+            return surfaces
+        return None
+    return None
+
+
 def _ground_observations(spec: dict, trace: dict, replay_sha: str, frames_dir: Path | None,
-                         use_sam: bool) -> tuple[dict, str]:
+                         use_sam: bool, reference: list | None) -> tuple[dict, str]:
     """Observations for the ground spec, and how they were made.
 
-    With SAM on and a trace that carries the engine's ground line and camera: "hybrid", SAM's box
-    for the robot compared with the level's ground line projected into frame pixels, which catches
-    a robot drawn inside the ground even when its physics looks fine. Otherwise "engine", the
-    position log against the same ground line (or, on older traces, against the robot's own
-    on-floor height). A SAM failure raises SystemExit, which callers turn into needs-review.
+    Traces from the current harness (they carry the camera, ``view``) are judged against the clean
+    game's ground (``reference``), never the ground the candidate shipped; without a reference
+    that is needs-review. Then: with SAM on, "hybrid", SAM's box for the robot against that ground
+    line in frame pixels, which also catches a robot only drawn inside the ground; otherwise
+    "engine", the position log against the same line. Older traces keep the old check. Any failure
+    raises SystemExit, which callers turn into needs-review.
     """
+    if any(r.get("view") for r in trace.get("rows") or []):
+        if not reference:
+            raise SystemExit("no clean-level reference for the ground line (its replay failed), so the "
+                             "candidate's own level cannot be trusted as the yardstick")
+        trace = with_reference_ground(trace, reference)
     if use_sam and has_engine_ground(trace) and frames_dir is not None and Path(frames_dir).is_dir():
-        from agents.sam_observations import frame_files, png_size
+        from agents.sam_observations import SamError, frame_files, png_size
 
-        frames = frame_files(Path(frames_dir))
+        try:
+            frames = frame_files(Path(frames_dir))
+            size = png_size(next(iter(frames.values()))) if frames else None
+        except (SamError, OSError) as exc:
+            raise SystemExit(f"sam observations unavailable: {exc}") from exc
         if frames:
-            engine = engine_ground_by_frame(trace, png_size(next(iter(frames.values()))), list(frames))
+            engine = engine_ground_by_frame(trace, size, list(frames))
             obs = from_trace(trace, replay_sha256=replay_sha, frames_dir=str(frames_dir), spec=spec, provider="sam",
                              engine_objects=engine)
             return obs, "hybrid"
@@ -145,8 +192,8 @@ def _ground_observations(spec: dict, trace: dict, replay_sha: str, frames_dir: P
 
 
 GROUND_SOURCES = {
-    "hybrid": "ground spec judged on SAM's robot box against the engine's ground line",
-    "engine": "ground spec judged on the engine's position log",
+    "hybrid": "ground spec judged on SAM's robot box against the clean level's ground line",
+    "engine": "ground spec judged on the position log against the clean level's ground line",
 }
 
 
@@ -189,11 +236,13 @@ def held_out_set() -> tuple[Path | None, dict | None, str | None]:
 
 def _run_held_out_routes(
     root: Path, manifest: dict, spec: dict, patches: list[Path], out: Path, use_sam: bool = False,
+    reference: list | None = None,
 ) -> tuple[dict, dict]:
     """Replay seed + candidate on each private route; return (verdict, suite arm).
 
     A route passes only if every visual spec and the gameplay check pass on it: the ground
-    spec on the engine's position log, plus the SAM specs on SAM's view when ``use_sam``.
+    spec against the clean level's ground line (see _ground_observations), plus the SAM specs
+    on SAM's view when ``use_sam``.
     A harness failure on any route makes the whole check needs-review, never pass.
     """
     sam_spec_docs = sam_specs(spec["id"]) if use_sam else []
@@ -212,7 +261,8 @@ def _run_held_out_routes(
             trace = json.loads((run_dir / "trace.json").read_text(encoding="utf-8"))
             replay_sha = sha256_file(run_dir / "replay.json")
             try:
-                obs, ground_source = _ground_observations(spec, trace, replay_sha, run_dir / "frames", use_sam)
+                obs, ground_source = _ground_observations(spec, trace, replay_sha, run_dir / "frames", use_sam,
+                                                          reference)
             except SystemExit as exc:
                 (run_dir / f"observations-{spec['id']}-error.txt").write_text(f"{exc}\n", encoding="utf-8")
                 obs, ground_source = None, "unavailable"
@@ -250,8 +300,8 @@ def _run_held_out_routes(
         path=str(out / "held-out"),
         observations_sha256=digest(verdict),
         detail=(f"{len(rows)} private held-out route(s) via {HELDOUT_ENV}"
-                + (f"; ground spec from {', '.join(sorted({r['groundSource'] for r in rows if r.get('groundSource')})) or 'none'}"
-                   " (hybrid: SAM's robot box against the engine's ground line), SAM specs on SAM's view"
+                + (f"; ground spec judged by {', '.join(sorted({r['groundSource'] for r in rows if r.get('groundSource')})) or 'nothing'}"
+                   " (hybrid means SAM's robot box against the clean level's ground line), SAM specs on SAM's view"
                    if use_sam else "")),
     )
     return verdict, held_arm
@@ -367,8 +417,8 @@ def verify(
         patches.append(_resolve(seed))
     patches.append(candidate)
 
-    # Regression: the ground spec (never-crosses), always judged on the engine's position log;
-    # SAM cannot see the ground in this art. With SAM on, the SAM specs are judged as well.
+    # Regression: the ground spec (never-crosses) against the clean level's ground line, on SAM's
+    # robot box when SAM is on (see _ground_observations). With SAM on, the SAM specs as well.
     reg_spec = load(REGRESSION_SPEC, "test-spec")
     if failing.get("spec", {}).get("id") == reg_spec["id"]:
         reg_spec = failing["spec"]
@@ -377,6 +427,8 @@ def verify(
     sam_note = (f"; SAM 3.1 judges {', '.join(s['id'] for s in sam_spec_docs)} on its own observations"
                 if use_sam else "")
     trace, replay_sha, frames_dir = None, "0" * 64, None
+    # The clean game's level surfaces: the ground every replay here is judged against.
+    reference = None if (skip_harness or observations_path is not None) else reference_surfaces(out)
 
     if observations_path is not None:
         observations = load(observations_path, "observations")
@@ -393,7 +445,8 @@ def verify(
         replay_sha = sha256_file(out / "replay" / "replay.json")
         frames_dir = out / "replay" / "frames"
         try:
-            observations, ground_source = _ground_observations(reg_spec, trace, replay_sha, frames_dir, use_sam)
+            observations, ground_source = _ground_observations(reg_spec, trace, replay_sha, frames_dir, use_sam,
+                                                               reference)
         except SystemExit as exc:
             # The engine observations could not be built: the regression check is needs-review,
             # never a pass, and the other checks still run.
@@ -509,7 +562,7 @@ def verify(
             clean_frames = out / "clean-replay" / "frames"
             try:
                 clean_obs, clean_ground_source = _ground_observations(clean_spec, clean_trace, clean_replay_sha,
-                                                                      clean_frames, use_sam)
+                                                                      clean_frames, use_sam, reference)
             except SystemExit as exc:
                 clean_obs = None
                 (out / "observations-clean-error.txt").write_text(f"{exc}\n", encoding="utf-8")
@@ -561,7 +614,7 @@ def verify(
         held_arm = arm(source="unavailable", detail=f"held-out set unusable: {held_problem}")
     elif use_private:
         held_verdict, held_arm = _run_held_out_routes(held_root, held_manifest, held_spec, patches, out,
-                                                      use_sam=use_sam)
+                                                      use_sam=use_sam, reference=reference)
         (out / "verdict-held-out.json").write_text(json.dumps(held_verdict, indent=2) + "\n", encoding="utf-8")
         checks.append(_check("held-out", held_spec["id"], "held-out-routes", held_verdict))
     elif held_path.is_file():
