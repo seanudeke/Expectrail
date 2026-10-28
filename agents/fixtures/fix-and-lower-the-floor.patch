@@ -1,0 +1,39 @@
+--- a/player/player.tscn
++++ b/player/player.tscn
+@@ -187,7 +187,7 @@
+ 
+ [node name="Player" type="CharacterBody2D" unique_id=457318108]
+ scale = Vector2(0.8, 0.8)
+-collision_mask = 14
++collision_mask = 30
+ floor_constant_speed = true
+ platform_on_leave = 2
+ script = ExtResource("3")
+--- a/level/tileset.tres
++++ b/level/tileset.tres
+@@ -101,10 +101,10 @@
+ texture_region_size = Vector2i(64, 64)
+ 0:0/next_alternative_id = 8
+ 0:0/0 = 0
+-0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-32, -22, 32, -22, 32, 32, -32, 32)
++0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-32, 4, 32, 4, 32, 32, -32, 32)
+ 0:0/1 = 1
+ 0:0/1/flip_h = true
+-0:0/1/physics_layer_0/polygon_0/points = PackedVector2Array(32, -22, -32, -22, -32, 32, 32, 32)
++0:0/1/physics_layer_0/polygon_0/points = PackedVector2Array(32, 4, -32, 4, -32, 32, 32, 32)
+ 0:0/2 = 2
+ 0:0/2/flip_v = true
+ 0:0/2/physics_layer_0/polygon_0/points = PackedVector2Array(-32, 22, 32, 22, 32, -32, -32, -32)
+@@ -169,10 +169,10 @@
+ texture_region_size = Vector2i(64, 64)
+ 0:0/next_alternative_id = 8
+ 0:0/0 = 0
+-0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-32, -22, 32, -22, 32, 32, -32, 32)
++0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-32, 4, 32, 4, 32, 32, -32, 32)
+ 0:0/1 = 1
+ 0:0/1/flip_h = true
+-0:0/1/physics_layer_0/polygon_0/points = PackedVector2Array(32, -22, -32, -22, -32, 32, 32, 32)
++0:0/1/physics_layer_0/polygon_0/points = PackedVector2Array(32, 4, -32, 4, -32, 32, 32, 32)
+ 0:0/2 = 2
+ 0:0/2/flip_v = true
+ 0:0/2/physics_layer_0/polygon_0/points = PackedVector2Array(-32, 22, 32, 22, 32, -32, -32, -32)
