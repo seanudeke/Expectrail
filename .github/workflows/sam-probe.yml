@@ -10,6 +10,11 @@ name: SAM probe
 on:
   workflow_dispatch:
     inputs:
+      mode:
+        description: probe (look at frames) or verify (Gate 1 accept path with SAM on, incl. private held-out routes)
+        type: choice
+        options: [probe, verify]
+        default: probe
       every:
         description: Probe every Nth frame of each run (10 means 13 frames a run)
         default: '10'
@@ -28,12 +33,16 @@ on:
       runs:
         description: Only these runs, e.g. clean,physics-fall-through_v1 (default all)
         default: ''
+      candidate:
+        description: verify mode only, the candidate patch to verify
+        default: agents/fixtures/fix-collision-mask.patch
 
 permissions:
   contents: read
 
 jobs:
   sam-probe:
+    if: ${{ inputs.mode != 'verify' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -146,3 +155,78 @@ jobs:
             sleep $((attempt * 3))
           done
           exit 1
+
+  # mode=verify: the real Gate 1 accept path (seeded fall-through + the known-good fix) with SAM on,
+  # including the private held-out routes. Only check results leave the runner, as annotations:
+  # no frames, no artifacts, no route names, so nothing from the held-out set is published.
+  sam-verify:
+    if: ${{ inputs.mode == 'verify' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SAM_KEY_SET: ${{ secrets.MODEL_API_KEY != '' || secrets.META_API_KEY != '' }}
+      HELDOUT_TOKEN_SET: ${{ secrets.HELDOUT_TOKEN != '' }}
+    steps:
+      - name: Require a Meta Model API key secret
+        if: env.SAM_KEY_SET != 'true'
+        run: |
+          echo "::error::Set the MODEL_API_KEY (or META_API_KEY) repository secret first."
+          exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Install a virtual display and software OpenGL
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri libglx-mesa0 patch
+      - name: Download Godot 4.7.2 and check its SHA-512
+        run: ./harness/get_godot.sh
+      - name: Fetch the private held-out set (verifier side only)
+        if: env.HELDOUT_TOKEN_SET == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: seanudeke/Nightshift-heldout
+          token: ${{ secrets.HELDOUT_TOKEN }}
+          path: heldout-set
+          persist-credentials: false
+      - name: Point the verifier at the held-out set
+        if: env.HELDOUT_TOKEN_SET == 'true'
+        run: echo "NIGHTSHIFT_HELDOUT_DIR=$GITHUB_WORKSPACE/heldout-set" >> "$GITHUB_ENV"
+      - name: Gate 1 accept path with SAM on
+        env:
+          MODEL_API_KEY: ${{ secrets.MODEL_API_KEY || secrets.META_API_KEY }}
+          NIGHTSHIFT_OBS_PROVIDER: sam
+          EVERY: ${{ inputs.every }}
+          CANDIDATE: ${{ inputs.candidate }}
+        run: |
+          [[ "$EVERY" =~ ^[0-9]+$ ]] || { echo "::error::every must be a number"; exit 1; }
+          [[ "$CANDIDATE" =~ ^agents/fixtures/[A-Za-z0-9._-]+\.patch$ && -f "$CANDIDATE" ]] || { echo "::error::candidate must be a patch under agents/fixtures/"; exit 1; }
+          export NIGHTSHIFT_SAM_EVERY="$EVERY"
+          set +e
+          python -m agents.gate1 --out runs/sam-verify --candidate-patch "$CANDIDATE"
+          echo "gate1 exit $?"
+          set -e
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          out = Path("runs/sam-verify/verify")
+          doc = json.loads((out / "verification.json").read_text())
+          rows = ", ".join(f"{c['kind']} {c['spec']} {c['result']}" for c in doc["checks"])
+          sources = {k: v.get("source") for k, v in (doc.get("suite") or {}).items() if isinstance(v, dict)}
+          print(f"::notice title=SAM verify decision::{doc['decision']}; sources {sources}")
+          print(f"::notice title=SAM verify checks::{rows}")
+          held = out / "verdict-held-out.json"
+          if held.is_file():
+              routes = json.loads(held.read_text()).get("routes", [])
+              per_spec = {}
+              for r in routes:
+                  for spec, result in (r.get("visuals") or {}).items():
+                      per_spec.setdefault(spec, []).append(result)
+              summary = "; ".join(f"{s}: {v.count('pass')}/{len(v)} routes pass" for s, v in per_spec.items())
+              gameplay = sum(r.get("gameplay") == "pass" for r in routes)
+              print(f"::notice title=SAM verify held-out::{summary}; gameplay {gameplay}/{len(routes)} routes pass")
+          for name in sorted(p.name for p in out.glob("observations-*-error.txt")):
+              print(f"::warning title=SAM verify error::{name}: {(out / name).read_text().strip()[:300]}")
+          PY

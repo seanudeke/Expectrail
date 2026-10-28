@@ -272,6 +272,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--after", type=Path, action="append", default=[],
                    help="after frame(s) for morning report (default: fixture PNG)")
     args = p.parse_args(argv)
+    # A mistyped NIGHTSHIFT_OBS_PROVIDER is a configuration error: stop here, before the fixer
+    # runs, rather than let verify fail later and be recorded as a rejected candidate.
+    from agents.observations import resolve_provider
+    resolve_provider()
 
     resolved = seal_mode_flags(
         resolve_mode(args.mode),
