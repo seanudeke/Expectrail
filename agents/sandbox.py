@@ -23,9 +23,31 @@ from agents.keys import muse_subprocess_env
 SANDBOX_KINDS = frozenset({"bwrap", "docker", "none"})
 
 
+def _bwrap_usable() -> bool:
+    """True when bwrap can create a namespace (GHA often blocks uid_map until sysctl)."""
+    if not shutil.which("bwrap"):
+        return False
+    cmd = [
+        "bwrap",
+        "--die-with-parent",
+        "--unshare-pid",
+        "--dev", "/dev",
+        "--tmpfs", "/tmp",
+    ]
+    for ro in ("/usr", "/bin", "/lib", "/lib64"):
+        if Path(ro).exists():
+            cmd.extend(["--ro-bind", ro, ro])
+    cmd.extend(["--", "true"])
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return proc.returncode == 0
+
+
 def detect_sandbox() -> str:
     """Return bwrap | docker | none (first usable tool)."""
-    if shutil.which("bwrap"):
+    if _bwrap_usable():
         return "bwrap"
     if shutil.which("docker"):
         # Probe that docker daemon answers (cheap version check).
@@ -58,18 +80,28 @@ def _bwrap_cmd(work: Path, argv: list[str], *, network: bool) -> list[str]:
     ]
     if not network:
         cmd.append("--unshare-net")
-    for ro in ("/usr", "/bin", "/lib", "/lib64", "/etc/ssl", "/etc/ca-certificates"):
+    for ro in (
+        "/usr", "/bin", "/lib", "/lib64",
+        "/etc/ssl", "/etc/ca-certificates",
+        # DNS + name service (without these Muse cannot reach api.meta.ai).
+        "/etc/resolv.conf", "/etc/hosts", "/etc/nsswitch.conf",
+        "/etc/protocols", "/etc/services",
+    ):
         if Path(ro).exists():
             cmd.extend(["--ro-bind", ro, ro])
-    # Host muse binary (Linux ELF) when present.
+    # Host muse binary (Linux ELF) when present. Give Muse a writable tmpfs $HOME so
+    # session locks / update stamps work; never rw-bind the real host home.
+    home = Path.home()
+    cmd.extend(["--tmpfs", str(home), "--setenv", "HOME", str(home)])
     muse = shutil.which("muse")
     if muse:
         muse_path = Path(muse).resolve()
+        cmd.extend(["--dir", str(muse_path.parent)])
         cmd.extend(["--ro-bind", str(muse_path), str(muse_path)])
-        # Common user-local lib dir for muse installs.
-        local = Path.home() / ".local"
-        if local.is_dir():
-            cmd.extend(["--ro-bind", str(local), str(local)])
+        for sub in ("lib", "share"):
+            p = home / ".local" / sub
+            if p.is_dir():
+                cmd.extend(["--ro-bind", str(p), str(p)])
     cmd.extend(["--"] + argv)
     return cmd
 
@@ -142,18 +174,35 @@ def probe_blocked_canary_read(
     resolved_kind = kind if kind is not None else detect_sandbox()
     canary = canary.resolve()
     marker = "DEMO-FAKE-SIGNING-KEY-NOT-REAL"
+    key_raw = canary.read_bytes() if canary.is_file() else b""
     argv = ["cat", str(canary)]
+
+    def _leaked(blob: str | bytes, *, exit_ok: bool) -> bool:
+        if isinstance(blob, str):
+            data = blob.encode("utf-8", errors="surrogateescape")
+            text = blob
+        else:
+            data = blob
+            text = blob.decode("utf-8", errors="ignore")
+        if marker in text:
+            return True
+        if key_raw and key_raw in data:
+            return True
+        # Successful cat of the canary path is a leak even when stdout is mangled.
+        return bool(exit_ok and data)
+
     # Inside docker/bwrap the host absolute path usually does not exist.
     if resolved_kind == "none":
         # Honesty: host process can still read the canary.
         try:
-            text = canary.read_text(encoding="utf-8", errors="ignore")
+            raw = canary.read_bytes()
+            text = raw.decode("utf-8", errors="ignore")
             return {
                 "kind": "none",
                 "enforced": False,
                 "blocked": False,
                 "exitCode": 0,
-                "leakedKeyBytes": marker in text,
+                "leakedKeyBytes": _leaked(raw, exit_ok=True),
                 "stdout": text[:200],
                 "stderr": "",
                 "detail": "no OS sandbox; host process can read canary (deny-by-absence only)",
@@ -172,7 +221,7 @@ def probe_blocked_canary_read(
 
     proc = run_sandboxed(argv, work=work, network=False, kind=resolved_kind, timeout=60)
     out = (proc.stdout or "") + (proc.stderr or "")
-    leaked = marker in out
+    leaked = _leaked(out, exit_ok=proc.returncode == 0)
     blocked = proc.returncode != 0 and not leaked
     return {
         "kind": resolved_kind,

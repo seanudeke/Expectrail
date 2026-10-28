@@ -1,2 +1,4 @@
 # Test-only dependency: the contract schemas are checked with jsonschema.
 jsonschema==4.26.0
+# Ed25519 per-run verifier signing (agents.signing / morning RC).
+cryptography==42.0.2

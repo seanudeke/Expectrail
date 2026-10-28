@@ -40,6 +40,7 @@ from agents.orchestrator import build_repair_request
 from agents.patchutil import assert_editable, paths_touched
 from agents.gate1 import main as gate1_main
 from agents.report import build_report, gameplay_film_stub, verify_release_candidate, write_loop_rollup
+from agents.signing import generate_run_keys, sign_payload, verify_payload
 from agents.triage import WONDER_MODEL, triage
 from agents.daily import EXIT_CODES, main as daily_main
 from agents.prove_live import main as prove_live_main
@@ -49,6 +50,13 @@ from agents.verifier import GAMEPLAY_SPEC_ID, verify
 from harness.run import REPO, tree_digest
 from nightshift.contracts import load, validate
 from nightshift.evaluator import decide, evaluate
+
+
+def _signing_key(root: Path) -> Path:
+    """Fresh Ed25519 private key under root/verifier-host (or root if named key)."""
+    info = generate_run_keys(root if root.name == "verifier-host" else root / "verifier-host")
+    return info["privatePathObj"]
+
 
 BEFORE_FRAME = REPO / "agents" / "fixtures" / "frames" / "before-fall.png"
 AFTER_FRAME = REPO / "agents" / "fixtures" / "frames" / "after-fixed.png"
@@ -565,9 +573,7 @@ class TriageReportTrustLoopTest(unittest.TestCase):
                 observations_path=REPO / "agents" / "fixtures" / "obs-fixed.json",
                 skip_harness=True,
             )
-            key = root / "verifier-host" / ".nightshift-signing-key"
-            key.parent.mkdir(parents=True)
-            key.write_text("DEMO-FAKE-SIGNING-KEY-NOT-REAL\n", encoding="utf-8")
+            key = _signing_key(root)
             vpath = root / "verify" / "verification.json"
             summary = build_report(
                 verification=verification,
@@ -586,18 +592,24 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             self.assertIn("![before](frames/before-00.png)", report)
             self.assertIn("![after](frames/after-00.png)", report)
             self.assertIn("## Gameplay", report)
+            self.assertIn("public key", report.lower())
             self.assertEqual(summary["gameplay"]["spec"], GAMEPLAY_SPEC_ID)
             rc = json.loads((root / "morning" / "release-candidate.json").read_text())
             validate(rc, "release-candidate")
             self.assertEqual(rc["decision"], "accept")
             self.assertEqual(rc["signingKey"], str(key))
+            self.assertEqual(rc["algorithm"], "ed25519")
+            self.assertTrue(rc.get("publicKey"))
+            other = _signing_key(root / "other-host")
             unsigned = build_report(
                 verification=verification,
                 candidate=REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
                 out=root / "morning-default-key",
+                signing_key_path=other,
                 verification_path=vpath,
             )
             self.assertNotEqual(summary["signature"], unsigned["signature"])
+            self.assertNotEqual(summary["publicKey"], unsigned["publicKey"])
             with self.assertRaises(FileNotFoundError):
                 build_report(
                     verification=verification,
@@ -1055,21 +1067,22 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             self.assertTrue(result["trust"]["suiteControlsAbsentFromFixer"])
             rc = json.loads((run_root / "morning" / "release-candidate.json").read_text())
             self.assertEqual(rc["signingKey"], str(run_root / "verifier-host" / ".nightshift-signing-key"))
-            from agents.report import _fake_sign
             payload = json.dumps(
                 json.loads((run_root / "verify" / "verification.json").read_text()),
                 sort_keys=True, separators=(",", ":"),
             ).encode("utf-8")
             key_bytes = (run_root / "verifier-host" / ".nightshift-signing-key").read_bytes()
-            self.assertEqual(rc["signature"], _fake_sign(payload, key_bytes))
+            self.assertEqual(len(key_bytes), 32)
+            self.assertEqual(rc["algorithm"], "ed25519")
+            self.assertEqual(rc["signature"], sign_payload(payload, key_bytes))
+            self.assertTrue(verify_payload(payload, rc["signature"], rc["publicKey"]))
             fixer_work = run_root / "fix" / "fixer-work"
             self.assertTrue(fixer_work.is_dir())
             self.assertEqual(list(fixer_work.rglob(".nightshift-signing-key")), [])
             self.assertTrue((run_root / "verifier-host" / ".nightshift-signing-key").is_file())
-            key = (run_root / "verifier-host" / ".nightshift-signing-key").read_text()
             for path in fixer_work.rglob("*"):
                 if path.is_file():
-                    self.assertNotIn(key.strip(), path.read_text(encoding="utf-8", errors="ignore"))
+                    self.assertNotIn(key_bytes, path.read_bytes())
 
     def test_loop_out_of_glob_never_forges_accept(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1414,8 +1427,7 @@ class TriageReportTrustLoopTest(unittest.TestCase):
                 observations_path=REPO / "agents" / "fixtures" / "obs-fixed.json",
                 skip_harness=True,
             )
-            key = root / "key"
-            key.write_text("DEMO-FAKE-SIGNING-KEY-NOT-REAL\n", encoding="utf-8")
+            key = _signing_key(root)
             summary = build_report(
                 verification=verification,
                 candidate=REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
@@ -1425,8 +1437,17 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             )
             rc = json.loads((root / "morning" / "release-candidate.json").read_text())
             verify_release_candidate(rc, verification, key_material=key.read_bytes())
+            # Wrong private key material (not 32-byte Ed25519) fails closed via public verify
+            # after optional re-sign check skips; forge a bad signature against published pub.
+            bad = dict(rc)
+            bad["signature"] = sign_payload(
+                __import__("json").dumps(verification, sort_keys=True, separators=(",", ":")).encode(),
+                _signing_key(root / "evil").read_bytes(),
+            )
             with self.assertRaises(ContractError):
-                verify_release_candidate(rc, verification, key_material=b"wrong-key")
+                verify_release_candidate(bad, verification)
+            with self.assertRaises(ContractError):
+                verify_release_candidate(rc, verification, key_material=b"x" * 32)
             tampered = dict(verification)
             tampered["reasons"] = list(verification.get("reasons", [])) + ["tamper"]
             with self.assertRaises(ContractError):
@@ -1477,7 +1498,8 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             fixer_keys = list((out / "fix" / "fixer-work").rglob(".nightshift-signing-key"))
             self.assertEqual(fixer_keys, [])
             self.assertTrue(stale.is_file())
-            self.assertIn("DEMO-FAKE", stale.read_text())
+            self.assertEqual(len(stale.read_bytes()), 32)
+            self.assertTrue(stale.with_name(stale.name + ".pub").is_file())
 
     def test_exception_path_preserves_triage_source(self):
         """Out-of-glob fails in fixer before candidate.json — triage preserved, fixer not invented."""
@@ -2138,6 +2160,14 @@ class CleanPromptEnvHonestyTest(unittest.TestCase):
         self.assertIn("agents-live-muse", yml)
         self.assertIn("agents-sandbox", yml)
         self.assertIn("bubblewrap", yml)
+        self.assertIn("agents-bench-compare", yml)
+        self.assertIn("agents.bench_compare", yml)
+        self.assertIn("agents-oct29-film", yml)
+        self.assertIn("agents.film_oct29", yml)
+        self.assertIn("HELDOUT_TOKEN_SET:", yml)
+        # Meta install.sh needs bash (`set -o pipefail`); dash `sh` fails on Ubuntu runners.
+        self.assertNotIn("install.sh | sh", yml)
+        self.assertIn("install.sh | bash", yml)
 
     def test_ci_job_if_never_uses_secrets_context(self):
         """GitHub rejects `secrets.*` in job-level `if:` and the whole workflow fails to start.
@@ -2242,6 +2272,201 @@ class PrivateHeldOutTest(unittest.TestCase):
                     skip_harness=True,
                 )
             self.assertEqual(doc["suite"]["heldOut"]["source"], "interim-fixture")
+
+
+class SigningEd25519Test(unittest.TestCase):
+    def test_generate_sign_verify_and_tamper_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            keys = generate_run_keys(root / "verifier-host")
+            priv = Path(keys["privatePath"]).read_bytes()
+            self.assertEqual(len(priv), 32)
+            self.assertEqual(len(Path(keys["publicPath"]).read_bytes()), 32)
+            payload = b'{"decision":"accept"}'
+            sig = sign_payload(payload, priv)
+            self.assertTrue(verify_payload(payload, sig, keys["publicKey"]))
+            self.assertFalse(verify_payload(payload + b"x", sig, keys["publicKey"]))
+            other = generate_run_keys(root / "other")
+            self.assertFalse(verify_payload(payload, sig, other["publicKey"]))
+
+    def test_morning_publishes_public_half(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            verification = verify(
+                _request(),
+                REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
+                root / "verify",
+                observations_path=REPO / "agents" / "fixtures" / "obs-fixed.json",
+                skip_harness=True,
+            )
+            key = _signing_key(root)
+            summary = build_report(
+                verification=verification,
+                candidate=REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
+                out=root / "morning",
+                signing_key_path=key,
+                verification_path=root / "verify" / "verification.json",
+            )
+            rc = json.loads((root / "morning" / "release-candidate.json").read_text())
+            validate(rc, "release-candidate")
+            self.assertEqual(rc["publicKey"], summary["publicKey"])
+            md = (root / "morning" / "morning-report.md").read_text()
+            self.assertIn(rc["publicKey"], md)
+            verify_release_candidate(rc, verification)
+            rc["signature"] = sign_payload(
+                b"not-the-payload",
+                key.read_bytes(),
+            )
+            from nightshift.contracts import ContractError
+            with self.assertRaises(ContractError):
+                verify_release_candidate(rc, verification)
+
+
+class ObservationsProviderTest(unittest.TestCase):
+    def test_default_trace_provider(self):
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("NIGHTSHIFT_OBS_PROVIDER", None)
+            trace = {"physicsTicksPerSecond": 120, "rows": [
+                {"tick": 0, "player": [210.0, 452.0], "onFloor": True},
+                {"tick": 2, "player": [220.0, 452.0], "onFloor": True},
+            ]}
+            doc = from_trace(trace, replay_sha256="a" * 64)
+            validate(doc, "observations")
+            self.assertEqual(doc["model"]["name"], "nightshift.trace-synthetic")
+
+    def test_sam_provider_fails_closed_without_adapter(self):
+        with self.assertRaises(SystemExit):
+            from_trace({"rows": []}, provider="sam")
+
+
+class BenchCompareTest(unittest.TestCase):
+    def test_offline_scaffold_nightshift_arm(self):
+        from agents.bench_compare import build_compare
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "bench"
+            doc = build_compare(out, skip_harness=True, live_muse=False)
+            self.assertTrue(doc["nightshiftOk"])
+            self.assertIsNone(doc["museOk"])
+            self.assertTrue((out / "bench-compare.md").is_file())
+            arms = {a["name"]: a for a in doc["arms"]}
+            self.assertTrue(arms["muse-screenshots"]["skipped"])
+            self.assertTrue(arms["nightshift"]["publicKey"])
+
+
+class FilmOct29Test(unittest.TestCase):
+    def test_missing_muse_exits_2(self):
+        from agents.film_oct29 import main as film_main
+        with tempfile.TemporaryDirectory() as tmp:
+            env = {k: v for k, v in os.environ.items() if k != "META_API_KEY"}
+            with mock.patch.dict(os.environ, env, clear=True):
+                with mock.patch("agents.film_oct29.muse_code_ready", return_value=False):
+                    code = film_main(["--out", str(Path(tmp) / "film")])
+            self.assertEqual(code, 2)
+            self.assertIn("INCOMPLETE", (Path(tmp) / "film" / "film.md").read_text())
+
+    def test_skip_harness_cannot_overall_pass(self):
+        from agents.film_oct29 import main as film_main
+        from agents.keys import PROMPT_POLICY
+        from agents.observations import from_trace_synthetic
+
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "film"
+
+            def fake_gate1(argv):
+                gate = out / "muse-gate"
+                (gate / "fix" / "fixer-work" / "player").mkdir(parents=True)
+                (gate / "fix" / "fixer-work" / "player" / "readme-extra.txt").write_text("poison")
+                (gate / "verify").mkdir(parents=True)
+                (gate / "morning").mkdir(parents=True)
+                generate_run_keys(gate / "verifier-host")
+                meta = {
+                    "source": "muse",
+                    "promptPolicy": PROMPT_POLICY,
+                    "patchSha256": "a" * 64,
+                }
+                (gate / "fix" / "candidate.json").write_text(json.dumps(meta) + "\n")
+                (gate / "fix" / "sandbox.json").write_text(json.dumps({"kind": "bwrap"}) + "\n")
+                verification = {
+                    "decision": "accept",
+                    "reasons": ["ok"],
+                    "suite": {
+                        "candidate": {"source": "fixture"},
+                        "heldOut": {"source": "interim-fixture"},
+                    },
+                }
+                (gate / "verify" / "verification.json").write_text(
+                    json.dumps(verification) + "\n"
+                )
+                rc = {
+                    "format": "nightshift.release-candidate/v0",
+                    "verificationSha256": "b" * 64,
+                    "decision": "accept",
+                    "signature": "sig",
+                    "signingKey": "k",
+                    "algorithm": "ed25519",
+                    "publicKey": "c" * 44,
+                    "candidatePatchSha256": "d" * 64,
+                }
+                (gate / "morning" / "release-candidate.json").write_text(json.dumps(rc) + "\n")
+                return 0
+
+            with mock.patch("agents.film_oct29.muse_code_ready", return_value=True):
+                with mock.patch("agents.film_oct29.gate1_main", side_effect=fake_gate1):
+                    with mock.patch(
+                        "agents.film_oct29.run_trust_check",
+                        return_value={"ok": True, "detail": "mocked"},
+                    ):
+                        with mock.patch(
+                            "agents.film_oct29.verify_release_candidate",
+                        ):
+                            code = film_main([
+                                "--out", str(out),
+                                "--skip-harness",
+                                "--allow-interim-heldout",
+                            ])
+            self.assertEqual(code, 1)
+            md = (out / "film.md").read_text()
+            self.assertIn("Overall: FAIL", md)
+            self.assertIn("not valid Oct29 Godot footage", md)
+            self.assertEqual(list(out.rglob(".nightshift-signing-key")), [])
+            # silence unused import if lint; exercise synthetic helper exists
+            self.assertTrue(callable(from_trace_synthetic))
+
+
+class ObservationsSamSeamTest(unittest.TestCase):
+    def test_env_sam_without_adapter_fails_closed(self):
+        with mock.patch.dict(os.environ, {"NIGHTSHIFT_OBS_PROVIDER": "sam"}):
+            with self.assertRaises(SystemExit):
+                from_trace({"rows": []})
+
+    def test_unknown_provider_fails_closed(self):
+        with self.assertRaises(SystemExit):
+            from_trace({"rows": []}, provider="nope")
+
+    def test_stub_adapter_from_replay(self):
+        import types
+        import sys as _sys
+        from agents.observations import from_trace_synthetic
+
+        calls = {}
+
+        def from_replay(trace, replay_sha256="0" * 64, fps=60, physics_tps=None, frames_dir=None):
+            calls["frames_dir"] = frames_dir
+            return from_trace_synthetic(trace, replay_sha256=replay_sha256, fps=fps)
+
+        mod = types.ModuleType("agents.sam_observations")
+        mod.from_replay = from_replay
+        with mock.patch.dict(_sys.modules, {"agents.sam_observations": mod}):
+            doc = from_trace(
+                {"physicsTicksPerSecond": 120, "rows": [
+                    {"tick": 0, "player": [1.0, 2.0], "onFloor": True},
+                    {"tick": 2, "player": [3.0, 2.0], "onFloor": True},
+                ]},
+                provider="sam",
+                frames_dir="/tmp/frames",
+            )
+        self.assertEqual(calls["frames_dir"], "/tmp/frames")
+        validate(doc, "observations")
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/seanudeke/nightshift/contracts/release-candidate.schema.json",
   "title": "Release candidate: signed pointer to a verification decision",
-  "description": "Verifier-host adjunct written by the morning report. Demo signatures are fake-hash placeholders; real keys stay off the fixer host.",
+  "description": "Verifier-host adjunct written by the morning report. Ed25519 signatures; private key stays off the fixer host. publicKey is the published half.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -11,7 +11,9 @@
     "decision",
     "signature",
     "signingKey",
-    "candidatePatchSha256"
+    "candidatePatchSha256",
+    "algorithm",
+    "publicKey"
   ],
   "properties": {
     "format": {
@@ -30,7 +32,16 @@
     },
     "signingKey": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "description": "Path note for the private key on the verifier host (never the raw private bytes)."
+    },
+    "algorithm": {
+      "const": "ed25519"
+    },
+    "publicKey": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Base64 raw Ed25519 public key (32 bytes)."
     },
     "candidatePatchSha256": {
       "type": "string",

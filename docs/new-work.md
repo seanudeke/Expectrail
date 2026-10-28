@@ -52,3 +52,4 @@ something; keep prior work out of it.
 | Oct 27 | Bounded Muse retries, daily E2E, OS sandbox canary, future-work honesty scrub | `agents/loop.py`, `agents/daily.py`, `agents/sandbox.py` |
 | Oct 27 | CI contract: never put `secrets.*` in job-level `if` (workflow start failure) | `tests/test_agents.py`, `.github/workflows/ci.yml` |
 | Oct 27 | First live Muse Spark spec draft (reviewed, not approved: object prompts too generic for SAM) | `bench/spec-writer-live/` |
+| Oct 27 | Per-run Ed25519 RC signing (public half in morning); Oct29 Muse+bwrap+Godot film job; bench-compare scaffold; SAM observations provider seam | `agents/signing.py`, `agents/film_oct29.py`, `agents/bench_compare.py`, `agents/observations.py` |

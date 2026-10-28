@@ -18,6 +18,8 @@ from agents.fixer import run_fixer
 from agents.keys import load_dotenv
 from agents.orchestrator import build_repair_request
 from agents.report import build_report
+from agents.signing import generate_run_keys
+from agents.trust import POISON
 from agents.verifier import verify
 from harness.run import REPO
 from nightshift.contracts import load
@@ -42,6 +44,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--before", type=Path, action="append", default=[])
     p.add_argument("--after", type=Path, action="append", default=[])
     p.add_argument("--no-morning", action="store_true", help="skip morning/RC packaging")
+    p.add_argument("--require-sandbox", action="store_true",
+                   help="confine Muse under bubblewrap; fail closed if unavailable")
+    p.add_argument("--plant-poison", action="store_true",
+                   help="write poisoned readme into fixer-work before Muse / fixture apply")
     args = p.parse_args(argv)
 
     args.out.mkdir(parents=True, exist_ok=True)
@@ -58,8 +64,20 @@ def main(argv: list[str] | None = None) -> int:
 
     fix_out = args.out / "fix"
     candidate = None if args.use_muse else args.candidate_patch
-    run_fixer(request, fix_out, candidate_patch=candidate)
+    run_fixer(
+        request, fix_out, candidate_patch=candidate,
+        require_sandbox=args.require_sandbox,
+        plant_poison=args.plant_poison,
+    )
     cand = fix_out / "candidate.patch"
+
+    # Ensure poison remains for the Trust beat even if Muse deleted it.
+    if args.plant_poison:
+        poison_dir = fix_out / "fixer-work" / "player"
+        poison_dir.mkdir(parents=True, exist_ok=True)
+        poison_path = poison_dir / "readme-extra.txt"
+        if not poison_path.exists():
+            poison_path.write_text(POISON, encoding="utf-8")
 
     verify_out = args.out / "verify"
     doc = verify(
@@ -72,16 +90,21 @@ def main(argv: list[str] | None = None) -> int:
         before = args.before or [DEFAULT_BEFORE]
         after = args.after or [DEFAULT_AFTER]
         gameplay_path = verify_out / "verdict-gameplay.json"
+        keys = generate_run_keys(args.out / "verifier-host")
         morning = build_report(
             verification=doc,
             candidate=cand,
             out=args.out / "morning",
             before=before,
             after=after,
+            signing_key_path=keys["privatePathObj"],
             gameplay_verdict=gameplay_path if gameplay_path.is_file() else None,
             verification_path=verify_out / "verification.json",
         )
-        print(f"gate1 morning: {args.out / 'morning' / 'morning-report.md'} rc={morning['decision']}")
+        print(
+            f"gate1 morning: {args.out / 'morning' / 'morning-report.md'} "
+            f"rc={morning['decision']} pub={morning.get('publicKey', '')[:16]}…"
+        )
 
     return 0 if doc["decision"] == "accept" else 1
 
