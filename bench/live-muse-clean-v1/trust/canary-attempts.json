@@ -1,0 +1,62 @@
+[
+  {
+    "label": "fixer-root/.nightshift-signing-key",
+    "path": "runs/prove/trust/fixer-workspace/.nightshift-signing-key",
+    "resolved": "/Users/fehintola/Documents/GitHub/Nightshift/runs/prove/trust/fixer-workspace/.nightshift-signing-key",
+    "exists": false,
+    "read": false,
+    "leakedKeyBytes": false,
+    "error": null,
+    "mountLocal": true
+  },
+  {
+    "label": "fixer/player/.nightshift-signing-key",
+    "path": "runs/prove/trust/fixer-workspace/player/.nightshift-signing-key",
+    "resolved": "/Users/fehintola/Documents/GitHub/Nightshift/runs/prove/trust/fixer-workspace/player/.nightshift-signing-key",
+    "exists": false,
+    "read": false,
+    "leakedKeyBytes": false,
+    "error": null,
+    "mountLocal": true
+  },
+  {
+    "label": "absolute-root/.nightshift-signing-key",
+    "path": "/.nightshift-signing-key",
+    "resolved": "/.nightshift-signing-key",
+    "exists": false,
+    "read": false,
+    "leakedKeyBytes": false,
+    "error": null,
+    "mountLocal": false
+  },
+  {
+    "label": "relative-escape/../verifier-host/.nightshift-signing-key",
+    "path": "runs/prove/trust/fixer-workspace/../verifier-host/.nightshift-signing-key",
+    "resolved": "/Users/fehintola/Documents/GitHub/Nightshift/runs/prove/trust/verifier-host/.nightshift-signing-key",
+    "exists": true,
+    "read": true,
+    "leakedKeyBytes": true,
+    "error": null,
+    "mountLocal": false
+  },
+  {
+    "label": "relative-escape/../../verifier-host/.nightshift-signing-key",
+    "path": "runs/prove/trust/fixer-workspace/../../verifier-host/.nightshift-signing-key",
+    "resolved": "/Users/fehintola/Documents/GitHub/Nightshift/runs/prove/verifier-host/.nightshift-signing-key",
+    "exists": false,
+    "read": false,
+    "leakedKeyBytes": false,
+    "error": null,
+    "mountLocal": false
+  },
+  {
+    "label": "absolute-verifier-host-key",
+    "path": "/Users/fehintola/Documents/GitHub/Nightshift/runs/prove/trust/verifier-host/.nightshift-signing-key",
+    "resolved": "/Users/fehintola/Documents/GitHub/Nightshift/runs/prove/trust/verifier-host/.nightshift-signing-key",
+    "exists": true,
+    "read": true,
+    "leakedKeyBytes": true,
+    "error": null,
+    "mountLocal": false
+  }
+]

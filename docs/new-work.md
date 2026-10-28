@@ -43,3 +43,4 @@ something; keep prior work out of it.
 | Oct 27 | Automate live Muse accept + trust canary denial film (`prove_live`, canary probe, dispatch CI) | `agents/prove_live.py`, `agents/trust.py`, `.github/workflows/ci.yml` |
 | Oct 27 | Future work: known limits and next steps | `docs/future-work.md` |
 | Oct 27 | Clean-v1 Muse prompt (no answer leak), gitignored `.env`, Muse env scrub, honest deny-by-absence docs | `agents/fixer.py`, `agents/keys.py`, `README.md`, `docs/contracts.md` |
+| Oct 27 | Live Muse Code v1 film under clean-v1 (muse.log + prove package) | `bench/live-muse-clean-v1/` |
