@@ -48,3 +48,4 @@ something; keep prior work out of it.
 | Oct 27 | Real held-out check: verifier replays candidates on private held-out routes (`NIGHTSHIFT_HELDOUT_DIR`), CI fetch via secret, held-out variants v3/v4 in the private repo | `agents/verifier.py`, `.github/workflows/ci.yml`, `docs/evaluation.md` |
 | Oct 27 | Bounded Muse retries, daily E2E, OS sandbox canary, future-work honesty scrub | `agents/loop.py`, `agents/daily.py`, `agents/sandbox.py` |
 | Oct 27 | CI contract: never put `secrets.*` in job-level `if` (workflow start failure) | `tests/test_agents.py`, `.github/workflows/ci.yml` |
+| Oct 27 | First live Muse Spark spec draft (reviewed, not approved: object prompts too generic for SAM) | `bench/spec-writer-live/` |
