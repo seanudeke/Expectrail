@@ -1,0 +1,49 @@
+{
+  "decision": "accept",
+  "report": "morning-report.md",
+  "releaseCandidate": "release-candidate.json",
+  "verificationSha256": "235a53261677713abbaec30924c30a2e2a027fb8cd0287258ada106baed3d84e",
+  "candidateSha256": "ceda817fc43cb1249404a110b2517adc10e22b5d39ec7c29f0ed322862e38c09",
+  "requestId": "rr-gate1",
+  "requestSha256": "a8af3bb8fd86e4d3fa7ffbd927d1fd883ab08fa675398f57ff7d72d21d3515db",
+  "unresolved": [],
+  "frames": [
+    {
+      "role": "before",
+      "path": "frames/before-00.png",
+      "sha256": "d64794a278dd4b2110aa609aa31912664bd79706edf045a4fde586727bc6c7d8",
+      "source": "/Users/fehintola/Documents/GitHub/Nightshift/agents/fixtures/frames/before-fall.png"
+    },
+    {
+      "role": "after",
+      "path": "frames/after-00.png",
+      "sha256": "cadd538835e83f370118504a7a9248ebd1cf57cf6a2af437de5b310fe9d484bb",
+      "source": "/Users/fehintola/Documents/GitHub/Nightshift/agents/fixtures/frames/after-fixed.png"
+    }
+  ],
+  "signingKey": "demo-fake-key",
+  "signature": "d29c64eba2c6aed626aa02c70eb6f6d416b46f8c70a768734b0472a7750aa21d",
+  "gameplay": {
+    "format": "nightshift.gameplay-verdict/v0",
+    "spec": "player-motion-on-smoke",
+    "result": "pass",
+    "reason": "player moved 290.0px (min 200.0), ended on floor, no sustained below-ground",
+    "metrics": {
+      "deltaX": 290.0,
+      "minDeltaX": 200.0,
+      "firstX": 90.0,
+      "lastX": 380.0,
+      "lastY": 640.0,
+      "floorY": 640.0,
+      "sampleCount": 3,
+      "endOnFloor": true,
+      "belowStreak": 0
+    },
+    "source": "fixture-trace:trace-fixed.json",
+    "minDeltaX": 200.0,
+    "evaluator": {
+      "name": "agents.gameplay",
+      "version": "0.1.0"
+    }
+  }
+}

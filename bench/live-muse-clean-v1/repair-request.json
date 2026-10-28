@@ -1,0 +1,151 @@
+{
+  "format": "nightshift.repair-request/v0",
+  "id": "rr-gate1",
+  "base": {
+    "tree": "6a273587d64e10a74c0160256cfdc4964f16ed3e93fe7ab178e1bedc5071b280",
+    "patch": "bugs/physics-fall-through/v1.patch"
+  },
+  "editable": [
+    "player/**",
+    "level/**"
+  ],
+  "failing": [
+    {
+      "spec": {
+        "format": "nightshift.test-spec/v0",
+        "id": "player-stays-above-ground",
+        "instruction": "The player never falls through the ground.",
+        "objects": {
+          "player": {
+            "prompt": "small robot character"
+          },
+          "ground": {
+            "prompt": "grass-topped ground"
+          }
+        },
+        "assertion": {
+          "type": "never-crosses",
+          "object": "player",
+          "boundary": {
+            "relativeTo": "ground",
+            "edge": "top",
+            "side": "above",
+            "tolerancePx": 12
+          }
+        },
+        "window": {
+          "fromFrame": 0,
+          "toFrame": 119
+        },
+        "approval": {
+          "by": "sean",
+          "at": "2026-10-27T15:00:00Z"
+        }
+      },
+      "verdict": {
+        "format": "nightshift.verdict/v0",
+        "spec": {
+          "id": "player-stays-above-ground",
+          "sha256": "b13a75f28147198706af53354e8f3d1b5f2e4bf93febe60ffd4d8698e3e0085d"
+        },
+        "observations": {
+          "sha256": "0d79ef693fe9a149cf0f04f4a1953d0c457f96095169b63ec7f380e84738b8a6"
+        },
+        "result": "fail",
+        "reason": "player is 50px past the boundary (above 770, tolerance 12) (first at frame 8, 2 frames)",
+        "firstFrame": 8,
+        "evidence": [
+          {
+            "frame": 8,
+            "detail": "player is 50px past the boundary (above 770, tolerance 12)",
+            "boxes": {
+              "player": [
+                770,
+                700,
+                840,
+                820
+              ],
+              "ground": [
+                350,
+                770,
+                1600,
+                960
+              ]
+            }
+          },
+          {
+            "frame": 16,
+            "detail": "player is 170px past the boundary (above 770, tolerance 12)",
+            "boxes": {
+              "player": [
+                775,
+                820,
+                845,
+                940
+              ],
+              "ground": [
+                350,
+                770,
+                1600,
+                960
+              ]
+            }
+          }
+        ],
+        "framesJudged": 3,
+        "evaluator": {
+          "name": "nightshift.evaluator",
+          "version": "0.1.0"
+        }
+      },
+      "route": {
+        "format": "nightshift.route/v0",
+        "name": "smoke",
+        "description": "Walk right, jump twice, stop. Four seconds at 60 ticks per second.",
+        "ticks": 240,
+        "seed": 1,
+        "events": [
+          {
+            "tick": 10,
+            "action": "move_right",
+            "pressed": true
+          },
+          {
+            "tick": 70,
+            "action": "jump",
+            "pressed": true
+          },
+          {
+            "tick": 85,
+            "action": "jump",
+            "pressed": false
+          },
+          {
+            "tick": 140,
+            "action": "jump",
+            "pressed": true
+          },
+          {
+            "tick": 160,
+            "action": "jump",
+            "pressed": false
+          },
+          {
+            "tick": 200,
+            "action": "move_right",
+            "pressed": false
+          }
+        ]
+      },
+      "keyFrames": [
+        "frames/f00000008.png",
+        "frames/f00000016.png"
+      ]
+    }
+  ],
+  "budget": {
+    "attempts": 3,
+    "minutesPerAttempt": 15
+  },
+  "notes": "Held-out variants, the evaluator and the gameplay checks are not in your workspace."
+}

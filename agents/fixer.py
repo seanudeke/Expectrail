@@ -1,4 +1,4 @@
-"""Run Muse Code in an isolated worktree and emit a candidate patch.
+"""Run Muse Code in a fixer worktree and emit a candidate patch.
 
     python3 -m agents.fixer --request rr.json --out runs/fix \\
         [--candidate-patch agents/fixtures/fix-collision-mask.patch]
@@ -6,18 +6,27 @@
 Without META_API_KEY (or with --candidate-patch), uses the fixture patch so CI can
 verify the loop without calling Muse. With a key, runs `muse exec` against a copy
 that already has the seeded bug applied.
+
+The Muse prompt is clean-v1: failing check + evidence + editable globs only — no
+solution hints. Fixer-work does not mount verifier secrets (deny-by-absence); this
+is not an OS container/sandbox claim.
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
-import os
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
-from agents.keys import muse_code_ready
+from agents.keys import (
+    PROMPT_POLICY,
+    load_dotenv,
+    muse_code_ready,
+    muse_subprocess_env,
+)
 from agents.patchutil import assert_editable, path_allowed, sha256_file
 from harness.run import REPO, apply_patches, tree_digest
 from nightshift.contracts import load, validate
@@ -28,6 +37,54 @@ IGNORE_DIFF_NAMES = {
     "muse.log",
     ".DS_Store",
 }
+
+
+def build_muse_prompt(request: dict, *, rr_relpath: str, attempt: int) -> str:
+    """Clean-v1 Muse prompt: failing check, evidence, editable files — no fix answer."""
+    globs = ", ".join(request["editable"])
+    failing = request.get("failing") or []
+    evidence_blocks: list[str] = []
+    for i, item in enumerate(failing):
+        spec = item.get("spec") or {}
+        verdict = item.get("verdict") or {}
+        route = item.get("route") or {}
+        key_frames = item.get("keyFrames") or []
+        evidence_blocks.append(
+            "\n".join([
+                f"### Failing check {i + 1}",
+                f"- Spec id: {spec.get('id', '(none)')}",
+                f"- Instruction: {spec.get('instruction', '')}",
+                f"- Assertion: {json.dumps(spec.get('assertion', {}), sort_keys=True)}",
+                f"- Verdict: {verdict.get('result')} — {verdict.get('reason')}",
+                f"- First fail frame: {verdict.get('firstFrame')}",
+                f"- Route: {route.get('name')} ({route.get('ticks')} ticks)",
+                f"- Key frames: {', '.join(key_frames) if key_frames else '(none listed)'}",
+                f"- Evidence: {json.dumps(verdict.get('evidence', [])[:5], indent=2)}",
+            ])
+        )
+    failing_section = "\n\n".join(evidence_blocks) if evidence_blocks else "(no failing checks in request)"
+    return f"""You are fixing a Godot 4 2D platformer bug.
+
+Read the repair request at: {rr_relpath}
+It contains the failing check(s), verdict evidence, and route. The seeded failing
+build is already applied in this workspace.
+
+## Failing check and evidence
+{failing_section}
+
+## Rules
+- Only edit files matching these globs (relative to the workspace root): {globs}
+- Do not create or edit repair-request.json, logs, or any file outside those globs.
+- Do not read or search for signing keys, held-out tests, or evaluator code.
+- Produce the smallest correct fix for the failing assertion.
+- When done, leave the game files edited; do not commit.
+
+Attempt {attempt} of {request['budget']['attempts']}.
+"""
+
+
+def prompt_sha256(prompt: str) -> str:
+    return hashlib.sha256(prompt.encode("utf-8")).hexdigest()
 
 
 def _diff_worktree(clean_seeded: Path, edited: Path, editable: list[str] | None = None) -> str:
@@ -49,7 +106,6 @@ def _diff_worktree(clean_seeded: Path, edited: Path, editable: list[str] | None 
             continue
         a_path, b_path = clean_seeded / rel, edited / rel
         if not a_path.exists():
-            # New file outside the seeded game: skip unless it matches editable.
             if editable is None or not path_allowed(rel, editable):
                 continue
             a_lines: list[str] = []
@@ -80,7 +136,6 @@ def prepare_fixer_workspace(request: dict, work: Path, game: Path | None = None)
         if not seed_path.is_absolute():
             seed_path = REPO / seed_path
         apply_patches(work, [seed_path])
-    # Isolation marker: no signing key in fixer workspace.
     forbidden = work / ".nightshift-signing-key"
     if forbidden.exists():
         raise SystemExit("signing key must not be present in the fixer workspace")
@@ -105,38 +160,36 @@ def run_fixer(
     shutil.copytree(work, baseline, ignore=shutil.ignore_patterns(".godot"))
 
     patch_path = out / "candidate.patch"
+    prompt_meta: dict | None = None
     if candidate_patch is not None:
         text = candidate_patch.read_text(encoding="utf-8")
         patch_path.write_text(text, encoding="utf-8")
         apply_patches(work, [patch_path])
         source = "fixture"
     elif muse_code_ready():
-        # Keep the request outside the game tree so it cannot appear in the candidate diff.
-        rr_path = out / "repair-request.json"
-        rr_path.write_text(json.dumps(request, indent=2) + "\n", encoding="utf-8")
-        globs = ", ".join(request["editable"])
-        prompt = f"""You are fixing a Godot 4 2D platformer bug.
-
-Read the repair request at: {rr_path.resolve()}
-
-Rules:
-- Only edit files matching these globs (relative to the workspace root): {globs}
-- Do not create or edit repair-request.json, logs, or any file outside those globs.
-- Do not read or search for signing keys, held-out tests, or evaluator code.
-- Produce the smallest correct fix for the failing assertion.
-- The seeded bug is already applied in this workspace. Restore correct physics so the
-  player does not fall through the ground (Player collision_mask should include the
-  ground layer again; typically collision_mask = 30 in player/player.tscn).
-- When done, leave the game files edited; do not commit.
-
-Attempt {attempt} of {request['budget']['attempts']}.
-"""
+        # Copy RR into the worktree (ignored from candidate diff) so Muse can read it
+        # under --trust-workspace without leaving the fixer folder.
+        rr_work = work / "repair-request.json"
+        rr_work.write_text(json.dumps(request, indent=2) + "\n", encoding="utf-8")
+        (out / "repair-request.json").write_text(
+            json.dumps(request, indent=2) + "\n", encoding="utf-8"
+        )
+        prompt = build_muse_prompt(request, rr_relpath="repair-request.json", attempt=attempt)
+        prompt_meta = {
+            "promptPolicy": PROMPT_POLICY,
+            "promptSha256": prompt_sha256(prompt),
+        }
+        (out / "muse-prompt.txt").write_text(prompt, encoding="utf-8")
+        env = muse_subprocess_env()
+        (out / "muse-env-names.json").write_text(
+            json.dumps(sorted(env.keys()), indent=2) + "\n", encoding="utf-8"
+        )
         proc = subprocess.run(
             ["muse", "exec", "--disable-approval", "--trust-workspace", prompt],
             cwd=str(work),
             capture_output=True,
             text=True,
-            env=dict(os.environ),
+            env=env,
             timeout=int(request["budget"].get("minutesPerAttempt", 15) * 60),
         )
         (out / "muse.log").write_text(proc.stdout + "\n" + proc.stderr, encoding="utf-8")
@@ -165,11 +218,14 @@ Attempt {attempt} of {request['budget']['attempts']}.
         "baseTree": request["base"]["tree"],
         "patch": "candidate.patch",
     }
+    if prompt_meta:
+        meta.update(prompt_meta)
     (out / "candidate.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
     return meta
 
 
 def main(argv: list[str] | None = None) -> int:
+    load_dotenv()
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--request", type=Path, required=True)
     p.add_argument("--out", type=Path, required=True)
