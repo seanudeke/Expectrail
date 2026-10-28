@@ -20,9 +20,10 @@ never check what players see. Nightshift checks:
 5. **Hand over.** By morning: before-and-after frames, the diff, unresolved cases, and a release
    candidate signed outside the fixer's reach, for a human to approve.
 
-Status: Gate 1 agents loop is in-repo (orchestrator → Muse Code / fixture fixer → verifier);
-Muse Wonder triage and the morning report are wired for Gate 2. SAM still comes next. See
-[docs/new-work.md](docs/new-work.md) for what was built when.
+Status: Agents offline Gate-2 film path is in-repo (orchestrator → fixer → verifier → morning/RC
+→ overnight rollup/trust). SAM observations (Zayyad) and real held-out variants (Sean) still
+come next for the evaluation matrix. See [docs/new-work.md](docs/new-work.md) and
+[agents/demo-path.md](agents/demo-path.md).
 
 ## Try it
 

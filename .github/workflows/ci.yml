@@ -68,7 +68,7 @@ jobs:
           python -m agents.gate1 --out runs/agents-gate1 --skip-harness \
             --observations agents/fixtures/obs-fixed.json \
             --candidate-patch agents/fixtures/fix-collision-mask.patch
-          python -c "import json; d=json.load(open('runs/agents-gate1/verify/verification.json')); assert d['decision']=='accept', d; kinds={c['kind']:c['result'] for c in d['checks']}; assert kinds.get('gameplay')=='pass', d"
+          python -c "import json; from nightshift.contracts import validate; from pathlib import Path; d=json.load(open('runs/agents-gate1/verify/verification.json')); assert d['decision']=='accept', d; kinds={c['kind']:c['result'] for c in d['checks']}; assert kinds.get('gameplay')=='pass', d; md=Path('runs/agents-gate1/morning/morning-report.md').read_text(); assert '## Gameplay' in md and '## Suite provenance' in md, md; rc=json.load(open('runs/agents-gate1/morning/release-candidate.json')); validate(rc,'release-candidate'); assert rc['decision']=='accept'"
       - name: Freeze-player must reject
         run: |
           python -m agents.orchestrator \

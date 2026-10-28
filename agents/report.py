@@ -39,6 +39,32 @@ def _fake_sign(payload: bytes, key_material: bytes) -> str:
     return hashlib.sha256(key_material + payload).hexdigest()
 
 
+def verify_release_candidate(
+    rc: dict,
+    verification: dict,
+    *,
+    key_material: bytes | None = None,
+) -> None:
+    """Recompute demo signature / verification digest; fail closed on tamper."""
+    validate(rc, "release-candidate")
+    payload = json.dumps(verification, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    expected_sha = hashlib.sha256(payload).hexdigest()
+    if rc.get("verificationSha256") != expected_sha:
+        raise ContractError(
+            f"release-candidate verificationSha256 mismatch: "
+            f"rc={rc.get('verificationSha256')} recomputed={expected_sha}"
+        )
+    if rc.get("decision") != verification.get("decision"):
+        raise ContractError(
+            f"release-candidate decision mismatch: rc={rc.get('decision')!r} "
+            f"verification={verification.get('decision')!r}"
+        )
+    key = key_material if key_material is not None else b"nightshift-demo-fake-signing-key"
+    expected_sig = _fake_sign(payload, key)
+    if rc.get("signature") != expected_sig:
+        raise ContractError("release-candidate signature mismatch for provided key material")
+
+
 def _materialize_frames(srcs: list[Path], dest_dir: Path, prefix: str) -> list[dict]:
     """Copy frames into dest_dir; fail closed if any source is missing."""
     dest_dir.mkdir(parents=True, exist_ok=True)
@@ -321,6 +347,7 @@ def write_loop_rollup(out: Path, *, summary: dict) -> Path:
     last_accept_run = -1
     last_accept_morning: Path | None = None
     latest_reject_gameplay: tuple[int, dict] | None = None
+    needs_review_runs: list[tuple[int, dict]] = []
     trust_lines: list[str] = []
     for i, result in enumerate(summary.get("results", [])):
         decision = result.get("decision")
@@ -358,6 +385,8 @@ def write_loop_rollup(out: Path, *, summary: dict) -> Path:
             last_accept_morning = out / f"run-{i:02d}" / "morning"
         if decision != "accept" and gameplay and gameplay.get("result") == "fail":
             latest_reject_gameplay = (i, gameplay)
+        if decision == "needs-review":
+            needs_review_runs.append((i, result))
 
     if accepted == runs and last_accept_frames and last_accept_morning is not None:
         rollup_frames = out / "frames"
@@ -394,6 +423,13 @@ def write_loop_rollup(out: Path, *, summary: dict) -> Path:
                 f"- minDeltaX: `{g.get('minDeltaX')}`",
                 f"- deltaX: `{g.get('deltaX')}`",
             ])
+        if needs_review_runs:
+            lines.extend(["", "## Needs-review"])
+            for idx, result in needs_review_runs:
+                morning = result.get("morning") or {}
+                unresolved = morning.get("unresolved") or []
+                detail = unresolved[0] if unresolved else (result.get("error") or "needs review")
+                lines.append(f"- run-{idx:02d}: {detail}")
 
     if trust_lines:
         lines.extend(["", "## Trust", *trust_lines])

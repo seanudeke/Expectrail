@@ -107,6 +107,7 @@ def one_run(
                     "morning": None,
                     "gameplay": None,
                     "triageSource": triage_source,
+                    "fixerSource": json.loads((fix_out / "candidate.json").read_text()).get("source"),
                     "verificationProvenance": "harness" if not skip_harness else "fixture",
                 })
 
@@ -142,14 +143,24 @@ def one_run(
         })
     except (Exception, SystemExit) as exc:  # noqa: BLE001 — overnight loop must not forge accept
         (out / "loop-error.txt").write_text(traceback.format_exc(), encoding="utf-8")
-        return _with_timing({
+        payload = {
             "decision": "reject",
             "error": f"{type(exc).__name__}: {exc}",
             "trust": trust,
             "morning": None,
             "gameplay": None,
             "verificationProvenance": "harness" if not skip_harness else "fixture",
-        })
+        }
+        # Preserve known provenance; never invent fixer/triage sources.
+        if "triage_source" in locals() and triage_source is not None:
+            payload["triageSource"] = triage_source
+        fix_meta = out / "fix" / "candidate.json"
+        if fix_meta.is_file():
+            try:
+                payload["fixerSource"] = json.loads(fix_meta.read_text(encoding="utf-8")).get("source")
+            except (OSError, json.JSONDecodeError):
+                pass
+        return _with_timing(payload)
 
 
 def main(argv: list[str] | None = None) -> int:
