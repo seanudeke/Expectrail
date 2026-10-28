@@ -43,6 +43,17 @@ SAM's robot box is the next step after Gate 2.
 One honest limit: "always visible" cannot see a robot that sinks partway into the ground but stays
 on screen. The ground spec on the position log still covers that.
 
+**End to end with SAM on (October 28, live API, harness replays, private held-out route):**
+
+| Candidate | Without SAM | With SAM |
+| --- | --- | --- |
+| `fix-collision-mask.patch` (the real fix) | accept | **accept**: all 8 checks pass, held-out route passes every visual spec (run 40698021243) |
+| `fix-but-hide-player.patch` (stops the fall, draws the robot behind the scenery) | **accept** | **reject**: player-always-visible fails on the candidate and on the held-out route; ground, gameplay, coins and clean all pass (run 40698743697) |
+
+The second row is the reason vision is in the loop: the position log says the robot is exactly
+where it should be, and only the picture shows it can't be seen. To repeat either run: Actions,
+**SAM probe**, mode `verify`, and the candidate's path under `agents/fixtures/`.
+
 ## Where SAM runs
 
 SAM 3.1 is on the Meta Model API, the same service and key type as Muse Spark. No GPU and no
