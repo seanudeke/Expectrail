@@ -5,11 +5,13 @@ Orchestrator, Muse Code fixer, protected verifier, Muse Wonder triage, and morni
 ## Muse credentials (Phase 0)
 
 1. Claim hackathon credit and create a key at [dev.meta.ai](https://dev.meta.ai) (`LLM_…`).
-2. **Cursor Chat on Wonder:** Settings → Models → OpenAI API key = Meta key, override base URL `https://api.meta.ai/v1`, add custom model `muse-wonder-1.0`.
-3. **Muse Code fixer:** `export META_API_KEY=LLM_…` and ensure `muse` is on `PATH` (`curl -fsSL https://dev.meta.ai/install.sh | sh`).
-4. **Wonder triage API:** same key as `MODEL_API_KEY` or `META_API_KEY`.
+2. Copy `.env.example` → `.env` (gitignored) and set `META_API_KEY=LLM_…` (optionally also `MODEL_API_KEY`).
+   Agent CLIs call `load_dotenv()` once at entry; process env always wins over `.env`.
+3. **Chat on Wonder (optional):** Settings → Models → API key = Meta key, base URL `https://api.meta.ai/v1`, model `muse-wonder-1.0`.
+4. **Muse Code fixer:** ensure `muse` is on `PATH` (`curl -fsSL https://dev.meta.ai/install.sh | sh`).
+5. **Wonder triage API:** uses `MODEL_API_KEY` or `META_API_KEY` from env / `.env`.
 
-Never commit keys. The fixer workspace must not contain signing material (see `python -m agents.trust`).
+Never commit `.env` or keys. The fixer worktree must not contain signing material (see `python -m agents.trust`).
 
 ## Suite kinds
 
@@ -33,10 +35,14 @@ an unusable set is `needs-review`, never a pass). Offline and fixture runs keep
 checkout off any machine where Muse Code runs. Optional `suite` on `verification.json`
 records candidate/clean/held-out provenance.
 
-Trust (`agents.trust`) proves deny-by-absence under fixer-work for the signing key **and** suite
+Trust (`agents.trust`) proves **deny-by-absence** under fixer-work for the signing key **and** suite
 control basenames (`obs-clean.json`, `obs-held-out.json`, `evaluator.py`, suite specs,
-`verdict-gameplay.json`) — mount absence only, not whole-repo read isolation. Overnight rollup
-films `triage=` / `fixer=` sources and Trust PASS/FAIL when trust ran (`--no-trust` omits Trust).
+`verdict-gameplay.json`). That is mount absence only — not an OS container or sandbox. A scripted
+canary probe films mount-local denials; sibling host-FS paths may still be reachable and are
+filmed honestly. Overnight rollup films `triage=` / `fixer=` sources and Trust PASS/FAIL when
+trust ran (`--no-trust` omits Trust). Muse Code prompts use policy `clean-v1` (failing check +
+evidence + editable globs; no solution hints); `candidate.json` records `promptPolicy` /
+`promptSha256` when Muse runs.
 
 ## Gate 1
 
@@ -84,7 +90,7 @@ export META_API_KEY=LLM_…
 export MODEL_API_KEY="$META_API_KEY"
 python3 -m agents.loop --out runs/loop-live --mode live --runs 1
 
-# Trust beat evidence for the demo (standalone sandbox, or bound by the loop)
+# Trust beat evidence for the demo (standalone topology, or bound by the loop)
 python3 -m agents.trust --out runs/trust
 # → runs/trust/trust-evidence.md + canary-attempts.json (scripted denial film)
 ```

@@ -45,8 +45,9 @@ verification ◄── verifier (rebuild, replay, all checks) ◄── candidat
   route, the game tree, the patch and every frame. Anyone can recompute a verdict.
 - **The fixer gets a repair request and nothing more.** It can read the failing spec and verdict,
   the route and key frames. Held-out variants, clean controls, the evaluator, the gameplay checks
-  and every key live on the verifier's side, on a different machine or container: Muse Code's
-  sandbox stops writes outside its workspace, not reads.
+  and every key live on the verifier's side and are not mounted into fixer-work (deny-by-absence).
+  Muse Code's vendor write confine stops writes outside its workspace; it does not claim OS read
+  isolation on a shared host filesystem.
 - **Accept only if every check passes.** `verification.decision` is `accept` only when every
   regression, gameplay, held-out and clean check passes; any failure rejects; anything unclear
   needs review. An incomplete check set (missing a required kind) is `needs-review`, never

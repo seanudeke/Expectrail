@@ -1,9 +1,57 @@
-"""Detect whether live Muse Wonder / Muse Code can run in this environment."""
+"""Detect whether live Muse Wonder / Muse Code can run in this environment.
+
+Also loads a gitignored repo-root `.env` at CLI entry (never from readiness helpers),
+so local Meta keys work without exporting them every shell. Process env always wins.
+"""
 from __future__ import annotations
 
 import os
 import shutil
-from typing import TypedDict
+from pathlib import Path
+from typing import Mapping, TypedDict
+
+from harness.run import REPO
+
+# Keys we will adopt from a local `.env` (setdefault only).
+DOTENV_KEYS = frozenset({
+    "META_API_KEY",
+    "MODEL_API_KEY",
+    "META_API_BASE",
+    "NIGHTSHIFT_MODEL_API_BASE",
+    "NIGHTSHIFT_SPEC_MODEL",
+})
+
+# Muse Code subprocess: model key + runtime/TLS/temp/proxy hygiene — not a sandbox.
+MUSE_ENV_ALLOWLIST = frozenset({
+    "META_API_KEY",
+    "PATH",
+    "HOME",
+    "USER",
+    "LOGNAME",
+    "LANG",
+    "LC_ALL",
+    "LC_CTYPE",
+    "TERM",
+    "TMPDIR",
+    "TMP",
+    "TEMP",
+    "SSL_CERT_FILE",
+    "SSL_CERT_DIR",
+    "REQUESTS_CA_BUNDLE",
+    "CURL_CA_BUNDLE",
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "NO_PROXY",
+    "http_proxy",
+    "https_proxy",
+    "no_proxy",
+    "XDG_CACHE_HOME",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME",
+    "XDG_RUNTIME_DIR",
+})
+
+PROMPT_POLICY = "clean-v1"
 
 
 class ModeResolution(TypedDict, total=False):
@@ -13,6 +61,52 @@ class ModeResolution(TypedDict, total=False):
     wonder_key_present: bool
     muse_ready: bool
     verification_default: str  # fixture | harness — informational; loop may override
+
+
+def load_dotenv(path: Path | None = None) -> dict[str, str]:
+    """Load KEY=VAL from a `.env` file into os.environ via setdefault.
+
+    - Missing file: no-op.
+    - Never overrides keys already present in the process environment (including empty
+      string — CI/tests that clear or set META_API_KEY win).
+    - Only adopts keys in DOTENV_KEYS.
+    - Supports optional `export ` prefix, optional quotes, spaces around `=`.
+    Returns the key→value pairs that were newly set (for tests).
+    """
+    env_path = path if path is not None else REPO / ".env"
+    if not env_path.is_file():
+        return {}
+    adopted: dict[str, str] = {}
+    text = env_path.read_text(encoding="utf-8-sig")
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[len("export "):].strip()
+        if "=" not in line:
+            raise SystemExit(f"malformed .env line (no '='): {raw!r} in {env_path}")
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+            value = value[1:-1]
+        if key not in DOTENV_KEYS:
+            continue
+        if value == "":
+            continue
+        if key in os.environ:
+            continue
+        os.environ[key] = value
+        adopted[key] = value
+    return adopted
+
+
+def muse_subprocess_env(base: Mapping[str, str] | None = None) -> dict[str, str]:
+    """Allowlisted env for `muse exec` — leak hygiene, not OS isolation."""
+    src = dict(base) if base is not None else dict(os.environ)
+    out = {k: v for k, v in src.items() if k in MUSE_ENV_ALLOWLIST and v != ""}
+    return out
 
 
 def wonder_key() -> str | None:

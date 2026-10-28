@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import shutil
 import subprocess
 import sys
@@ -26,7 +25,7 @@ from pathlib import Path
 
 from agents.fixer import prepare_fixer_workspace
 from agents.gate1 import main as gate1_main
-from agents.keys import muse_code_ready
+from agents.keys import load_dotenv, muse_code_ready, muse_subprocess_env
 from agents.orchestrator import build_repair_request
 from agents.trust import FAKE_KEY, POISON, probe_canary_reads, run_trust_check
 from harness.run import REPO
@@ -69,24 +68,29 @@ def _run_muse_gate(out: Path, *, skip_harness: bool) -> dict:
         }
     meta = json.loads(cand_meta_path.read_text(encoding="utf-8"))
     verification = json.loads(verify_path.read_text(encoding="utf-8"))
+    from agents.keys import PROMPT_POLICY
     ok = (
         code == 0
         and meta.get("source") == "muse"
+        and meta.get("promptPolicy") == PROMPT_POLICY
         and verification.get("decision") == "accept"
     )
     return {
         "ok": ok,
         "skipped": False,
         "source": meta.get("source"),
+        "promptPolicy": meta.get("promptPolicy"),
         "decision": verification.get("decision"),
         "patchSha256": meta.get("patchSha256"),
         "gateOut": str(gate_out),
         "museLog": str(gate_out / "fix" / "muse.log"),
         "morning": str(gate_out / "morning" / "morning-report.md"),
         "detail": (
-            f"muse candidate accepted ({meta.get('patchSha256', '')[:12]}…)"
+            f"muse candidate accepted under {PROMPT_POLICY} "
+            f"({meta.get('patchSha256', '')[:12]}…)"
             if ok
             else f"live muse gate failed: source={meta.get('source')} "
+            f"promptPolicy={meta.get('promptPolicy')} "
             f"decision={verification.get('decision')} exit={code}"
         ),
         "exitCode": code,
@@ -150,7 +154,7 @@ Workspace: {work.resolve()}
         cwd=str(work),
         capture_output=True,
         text=True,
-        env=dict(os.environ),
+        env=muse_subprocess_env(),
         timeout=600,
     )
     log_text = (proc.stdout or "") + "\n" + (proc.stderr or "")
@@ -281,6 +285,7 @@ def write_prove_report(
 
 
 def main(argv: list[str] | None = None) -> int:
+    load_dotenv()
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--out", type=Path, default=Path("runs/prove"))
     p.add_argument(

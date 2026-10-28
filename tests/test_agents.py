@@ -11,7 +11,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from agents.fixer import run_fixer
+from agents.fixer import build_muse_prompt, prompt_sha256, run_fixer
 from agents.gameplay import (
     MIN_DELTA_X_FIXTURE,
     MIN_DELTA_X_HARNESS,
@@ -22,7 +22,17 @@ from agents.gameplay import (
     judge_trace,
 )
 from agents.isolation import FIXER_FORBIDDEN_BASENAMES
-from agents.keys import muse_code_ready, resolve_mode, seal_mode_flags, wonder_key
+from agents.keys import (
+    DOTENV_KEYS,
+    MUSE_ENV_ALLOWLIST,
+    PROMPT_POLICY,
+    load_dotenv,
+    muse_code_ready,
+    muse_subprocess_env,
+    resolve_mode,
+    seal_mode_flags,
+    wonder_key,
+)
 from agents.loop import main as loop_main
 from agents.loop import one_run
 from agents.observations import from_trace
@@ -1800,6 +1810,167 @@ class GameplayMotionTest(unittest.TestCase):
         ])
         self.assertEqual(decision, "reject")
 
+
+class CleanPromptEnvHonestyTest(unittest.TestCase):
+    def test_muse_prompt_no_solution_leakage(self):
+        req = _request()
+        prompt = build_muse_prompt(req, rr_relpath="repair-request.json", attempt=2)
+        lowered = prompt.lower()
+        self.assertNotIn("collision_mask", lowered)
+        self.assertNotIn("typically collision_mask", lowered)
+        self.assertNotIn("ground layer again", lowered)
+        self.assertNotIn("collision_mask = 30", prompt)
+        self.assertIn("player/**", prompt)
+        self.assertIn("level/**", prompt)
+        self.assertIn("Attempt 2 of", prompt)
+        self.assertIn(str(req["budget"]["attempts"]), prompt)
+        self.assertIn("repair-request.json", prompt)
+        self.assertIn("Failing check", prompt)
+        self.assertIn("signing keys", prompt.lower())
+        self.assertEqual(PROMPT_POLICY, "clean-v1")
+        self.assertEqual(len(prompt_sha256(prompt)), 64)
+
+    def test_muse_prompt_custom_editable_globs(self):
+        req = _request()
+        req["editable"] = ["sprites/**", "entities/**"]
+        prompt = build_muse_prompt(req, rr_relpath="repair-request.json", attempt=1)
+        self.assertIn("sprites/**", prompt)
+        self.assertIn("entities/**", prompt)
+
+    def test_offline_triage_bug_report_no_answer(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            triage(
+                spec=load(REPO / "agents" / "specs" / "player-stays-above-ground.json", "test-spec"),
+                verdict=load(REPO / "contracts" / "examples" / "verdict.json", "verdict"),
+                route=load(REPO / "harness" / "routes" / "smoke.json", "route"),
+                out=Path(tmp) / "triage",
+                offline=True,
+            )
+            report = (Path(tmp) / "triage" / "bug-report.md").read_text()
+            self.assertNotIn("collision_mask", report)
+            self.assertNotIn("Suggested fix direction", report)
+
+    def test_load_dotenv_sets_and_does_not_override(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / ".env"
+            path.write_text(
+                "# comment\n\nMETA_API_KEY=from-file\nMODEL_API_KEY=\nexport META_API_BASE=https://example.test\n",
+                encoding="utf-8",
+            )
+            with mock.patch.dict(os.environ, {}, clear=True):
+                adopted = load_dotenv(path)
+                self.assertEqual(adopted.get("META_API_KEY"), "from-file")
+                self.assertEqual(os.environ.get("META_API_KEY"), "from-file")
+                self.assertEqual(os.environ.get("META_API_BASE"), "https://example.test")
+                self.assertNotIn("MODEL_API_KEY", adopted)
+            with mock.patch.dict(os.environ, {"META_API_KEY": "from-process"}, clear=True):
+                adopted = load_dotenv(path)
+                self.assertNotIn("META_API_KEY", adopted)
+                self.assertEqual(os.environ["META_API_KEY"], "from-process")
+
+    def test_load_dotenv_missing_file_noop(self):
+        with mock.patch.dict(os.environ, {"META_API_KEY": "keep"}, clear=True):
+            adopted = load_dotenv(Path("/nonexistent/nightshift.env"))
+            self.assertEqual(adopted, {})
+            self.assertEqual(os.environ["META_API_KEY"], "keep")
+
+    def test_muse_env_allowlist_scrub(self):
+        polluted = {
+            "META_API_KEY": "k",
+            "PATH": "/bin",
+            "HOME": "/tmp",
+            "AWS_SECRET_ACCESS_KEY": "secret",
+            "GITHUB_TOKEN": "gh",
+            "TMPDIR": "/tmp",
+            "SSL_CERT_FILE": "/etc/ssl/cert.pem",
+        }
+        env = muse_subprocess_env(polluted)
+        self.assertEqual(env["META_API_KEY"], "k")
+        self.assertIn("TMPDIR", env)
+        self.assertIn("SSL_CERT_FILE", env)
+        self.assertNotIn("AWS_SECRET_ACCESS_KEY", env)
+        self.assertNotIn("GITHUB_TOKEN", env)
+        self.assertTrue(set(env).issubset(MUSE_ENV_ALLOWLIST))
+        self.assertIn("META_API_KEY", MUSE_ENV_ALLOWLIST)
+        self.assertEqual(DOTENV_KEYS & {"META_API_KEY", "MODEL_API_KEY"},
+                         {"META_API_KEY", "MODEL_API_KEY"})
+
+    def test_fixer_muse_passes_scrubbed_env_and_clean_prompt(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "fix"
+            captured = {}
+
+            real_run = subprocess.run
+
+            def fake_run(cmd, **kwargs):
+                if not (cmd and cmd[0] == "muse"):
+                    return real_run(cmd, **kwargs)
+                captured["cmd"] = cmd
+                captured["env"] = kwargs.get("env")
+                captured["cwd"] = kwargs.get("cwd")
+                # Simulate Muse editing collision_mask without us putting the answer in the prompt.
+                work = Path(kwargs["cwd"])
+                tscn = work / "player" / "player.tscn"
+                tscn.write_text(
+                    tscn.read_text(encoding="utf-8").replace(
+                        "collision_mask = 14", "collision_mask = 30"
+                    ),
+                    encoding="utf-8",
+                )
+                return mock.Mock(returncode=0, stdout="ok", stderr="")
+
+            with mock.patch.dict(os.environ, {"META_API_KEY": "test-key", "AWS_SECRET_ACCESS_KEY": "x"}):
+                with mock.patch("agents.fixer.muse_code_ready", return_value=True):
+                    with mock.patch("agents.fixer.subprocess.run", side_effect=fake_run):
+                        meta = run_fixer(_request(), out, candidate_patch=None)
+            self.assertEqual(meta["source"], "muse")
+            self.assertEqual(meta["promptPolicy"], PROMPT_POLICY)
+            self.assertIn("promptSha256", meta)
+            self.assertNotIn("AWS_SECRET_ACCESS_KEY", captured["env"])
+            self.assertEqual(captured["env"].get("META_API_KEY"), "test-key")
+            prompt = captured["cmd"][3]
+            self.assertNotIn("collision_mask", prompt.lower())
+            self.assertTrue((out / "muse-prompt.txt").is_file())
+            self.assertNotIn("collision_mask", (out / "muse-prompt.txt").read_text().lower())
+            self.assertTrue((out / "muse.log").is_file())
+
+    def test_trust_evidence_no_false_container_claim(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "trust"
+            run_trust_check(out)
+            evidence = (out / "trust-evidence.md").read_text()
+            self.assertIn("deny-by-absence", evidence)
+            banned = (
+                "runs in a container",
+                "sandboxed isolation",
+                "OS isolation proven",
+                "own container",
+            )
+            lowered = evidence.lower()
+            for phrase in banned:
+                self.assertNotIn(phrase.lower(), lowered)
+            self.assertIn("does **not** claim an OS", evidence)
+
+    def test_docs_isolation_honesty(self):
+        agents_readme = (REPO / "agents" / "README.md").read_text()
+        self.assertIn("deny-by-absence", agents_readme)
+        self.assertNotIn("standalone sandbox", agents_readme)
+        root = (REPO / "README.md").read_text()
+        self.assertNotIn("its own container", root)
+        contracts = (REPO / "docs" / "contracts.md").read_text()
+        self.assertIn("deny-by-absence", contracts)
+        self.assertNotIn("different machine or container", contracts)
+
+    def test_env_example_and_gitignore(self):
+        example = (REPO / ".env.example").read_text()
+        self.assertIn("META_API_KEY=", example)
+        self.assertNotRegex(example, r"LLM_[A-Za-z0-9]")
+        gitignore = (REPO / ".gitignore").read_text()
+        self.assertIn(".env", gitignore)
+        tracked = subprocess.check_output(
+            ["git", "ls-files", ".env"], cwd=str(REPO), text=True
+        ).strip()
+        self.assertEqual(tracked, "")
 
 
 def _walk_trace(*, frozen: bool = False) -> dict:

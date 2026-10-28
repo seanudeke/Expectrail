@@ -1,0 +1,10 @@
+{
+  "format": "nightshift.release-candidate/v0",
+  "verificationSha256": "235a53261677713abbaec30924c30a2e2a027fb8cd0287258ada106baed3d84e",
+  "decision": "accept",
+  "signature": "d29c64eba2c6aed626aa02c70eb6f6d416b46f8c70a768734b0472a7750aa21d",
+  "signingKey": "demo-fake-key",
+  "candidatePatchSha256": "ceda817fc43cb1249404a110b2517adc10e22b5d39ec7c29f0ed322862e38c09",
+  "requestId": "rr-gate1",
+  "requestSha256": "a8af3bb8fd86e4d3fa7ffbd927d1fd883ab08fa675398f57ff7d72d21d3515db"
+}

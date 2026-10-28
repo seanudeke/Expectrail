@@ -16,12 +16,12 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from agents.keys import load_dotenv, wonder_key
 from agents.orchestrator import build_repair_request
 from harness.run import REPO
 from nightshift.contracts import load
 
 WONDER_MODEL = "muse-wonder-1.0"
-API_BASE = os.environ.get("META_API_BASE", "https://api.meta.ai/v1")
 
 
 def _bug_report_offline(spec: dict, verdict: dict, route: dict, log_text: str) -> str:
@@ -40,11 +40,13 @@ def _bug_report_offline(spec: dict, verdict: dict, route: dict, log_text: str) -
         "## Log tail",
         "\n".join(log_text.strip().splitlines()[-40:]) or "(no log)",
         "",
-        "Suggested fix direction: restore Player collision_mask so the ground layer is included.",
+        "Infer the smallest correct fix from the failing assertion and evidence above.",
+        "Do not invent held-out checks or signing material.",
     ])
 
 
-def call_wonder(prompt: str, api_key: str) -> str:
+def call_wonder(prompt: str, api_key: str, *, api_base: str | None = None) -> str:
+    base = api_base or os.environ.get("META_API_BASE", "https://api.meta.ai/v1")
     body = json.dumps({
         "model": WONDER_MODEL,
         "messages": [
@@ -53,7 +55,7 @@ def call_wonder(prompt: str, api_key: str) -> str:
         ],
     }).encode("utf-8")
     req = urllib.request.Request(
-        f"{API_BASE}/chat/completions",
+        f"{base}/chat/completions",
         data=body,
         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
         method="POST",
@@ -76,13 +78,18 @@ def triage(
 ) -> dict:
     out.mkdir(parents=True, exist_ok=True)
     prompt = _bug_report_offline(spec, verdict, route, log_text)
-    api_key = os.environ.get("MODEL_API_KEY") or os.environ.get("META_API_KEY")
+    api_base = os.environ.get("META_API_BASE", "https://api.meta.ai/v1")
+    api_key = wonder_key()
     if offline or not api_key:
         report = prompt
         source = "offline"
     else:
         try:
-            report = call_wonder(prompt + "\n\nWrite a short actionable bug report for Muse Code.", api_key)
+            report = call_wonder(
+                prompt + "\n\nWrite a short actionable bug report for Muse Code.",
+                api_key,
+                api_base=api_base,
+            )
             source = WONDER_MODEL
         except (urllib.error.URLError, KeyError, TimeoutError) as exc:
             report = prompt + f"\n\n(Wonder call failed: {exc}; using offline report.)"
@@ -106,6 +113,7 @@ def triage(
 
 
 def main(argv: list[str] | None = None) -> int:
+    load_dotenv()
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--spec", type=Path, default=REPO / "agents" / "specs" / "player-stays-above-ground.json")
     p.add_argument("--verdict", type=Path, default=REPO / "contracts" / "examples" / "verdict.json")
