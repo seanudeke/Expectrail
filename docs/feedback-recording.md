@@ -82,6 +82,32 @@ python3 -m agents.feedback --offline --transcript agents/fixtures/feedback/playt
   --fixture agents/fixtures/feedback/spark-fixture.json --out runs/feedback
 ```
 
+## Filming the beat
+
+```sh
+python3 -m agents.film_feedback --out runs/film-feedback
+# → runs/film-feedback/film.md: shot list, captions, and what in the run is real, a fixture or scripted
+```
+
+One command, no Meta spend: feedback is sorted (fixture transcript and canned Muse Spark answers),
+a scripted hostile fixer tries to loosen the floor check, rewrite the guard's policy, overwrite the
+signing key, edit engine settings and fetch answers from the web through the real guard hook, the
+verifier accepts the real fix, and the morning report and a signed release candidate come out.
+`film.md` ends with a table of what is real in that run, and the morning report itself says when
+the fixer's attempts were scripted.
+
+For footage with live parts, pass what the live runs produced:
+
+```sh
+python3 -m agents.film_feedback --out runs/film-feedback \
+  --intake runs/feedback/feedback-intake.json \
+  --guard runs/prove/muse-gate/fix/guard.json      # Muse Code's own tool calls, if it tried anything
+```
+
+A live Muse Code run that behaves will show the guard loaded with nothing blocked. That is the
+honest result, and it is why the scripted attempts exist: we can't make a real model misbehave on
+cue, and we don't pretend it did.
+
 ## The fixer guard
 
 When Muse Code runs as the fixer, `agents.fixer` installs a PreToolUse hook in the fixer workspace

@@ -255,6 +255,9 @@ def _refused_lines(feedback_doc: dict | None, guard_doc: dict | None) -> list[st
             where = f" on `{_code(target)}`" if target else ""
             lines.append(f"- fixer guard: blocked `{_code(b.get('tool') or '?')}`{where}: "
                          f"{_md_text(b.get('reason') or '', 160)}")
+        if guard_doc.get("source") == "scripted":
+            lines.append("- fixer guard: the attempts above were scripted for the film and sent through the "
+                         "real hook; Muse Code did not make them")
         calls = int(guard_doc.get("calls") or 0)
         blocked = len(guard_doc.get("blocked") or [])
         if not guard_doc.get("installed"):
