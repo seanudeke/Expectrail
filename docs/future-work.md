@@ -10,8 +10,9 @@ would build next, so anyone judging or extending it knows where the edges are.
 - One way to play: scripted routes, replayed on exact physics ticks.
 - Three bug families with four seeded variants each, plus clean runs ([evaluation plan](evaluation.md)).
 - Four visual assertion types: visible, inside-region, never-crosses and reaches.
-- A fixer that writes small patches in its own container, a separate verifier, and a person who
-  approves the release candidate.
+- A fixer that writes small patches in a worktree that does not mount verifier secrets
+  (deny-by-absence; OS sandbox via bubblewrap/docker when available), a separate verifier, and a
+  person who approves the release candidate.
 
 ## Finding bugs
 
@@ -91,10 +92,11 @@ sample frames instead of sending every one, and skip routes a change cannot affe
 Next: CI integrations, the morning report as a pull request comment, export to issue trackers, and
 release pipelines that check a release candidate's signature before shipping it.
 
-**The trust test is one planted instruction.**
+**The trust test is one planted instruction plus a canary probe.**
 
-Next: a set of poisoned assets instead of one, network access denied by default in the fixer's
-container, and provenance for every artifact a night produces.
+Next: a set of poisoned assets instead of one, stronger default network denial inside the fixer
+sandbox on every host (not only when bwrap/docker is present), and provenance for every artifact a
+night produces.
 
 ## Helping
 

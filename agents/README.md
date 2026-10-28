@@ -114,3 +114,21 @@ python3 -m agents.prove_live --out runs/prove --muse-trust-probe
 ```
 
 Without `META_API_KEY`, full mode exits 2 (skipped) so automation can fail closed without inventing spend.
+
+## Daily E2E (from Oct 28)
+
+```sh
+# Offline film (default; CI schedule + PRs — no Meta spend)
+python3 -m agents.daily --out runs/daily --mode offline
+# Exit 0=PASS, 1=FAIL, 2=SKIPPED (no invented spend)
+
+# Auto: live prove when muse+key ready, else offline
+python3 -m agents.daily --out runs/daily --mode auto
+
+# Require OS sandbox for trust canary (bwrap on Linux CI; docker probe when available)
+python3 -m agents.trust --out runs/trust --require-sandbox
+```
+
+Bounded Muse retries: live overnight loop re-invokes Muse up to `budget.attempts` on verify
+reject / empty patch; each attempt is filmed under `fix/attempt-NN/`. Fixture path stays
+single-shot.

@@ -1,4 +1,4 @@
-"""Overnight agent loop: triage → fix → verify → morning report (+ trust beat).
+"""Overnight agent loop: triage → fix (bounded retries) → verify → morning (+ trust).
 
     python3 -m agents.loop --out runs/loop [--mode auto|offline|live] [--runs 1]
 
@@ -7,13 +7,15 @@ Modes:
   live    — Wonder + Muse Code; requires keys (fails closed if missing)
   auto    — live steps when keys/muse are available, else fixtures
 
+Live Muse honors repair-request ``budget.attempts`` (re-prompt on verify reject /
+empty patch). Fixture path is always a single attempt.
 Exit 0 only if every run ends with verification accept. Crashes never forge accept.
-Live/online triage that soft-falls to offline fixtures is treated as reject.
 """
 from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import sys
 import time
 import traceback
@@ -33,6 +35,23 @@ DEFAULT_BEFORE = REPO / "agents" / "fixtures" / "frames" / "before-fall.png"
 DEFAULT_AFTER = REPO / "agents" / "fixtures" / "frames" / "after-fixed.png"
 
 
+def _promote_candidate(attempt_out: Path, fix_out: Path) -> None:
+    fix_out.mkdir(parents=True, exist_ok=True)
+    for name in (
+        "candidate.patch", "candidate.json", "muse.log", "muse-prompt.txt",
+        "muse-env-names.json", "sandbox.json", "repair-request.json",
+    ):
+        src = attempt_out / name
+        if src.is_file():
+            shutil.copy2(src, fix_out / name)
+    work = attempt_out / "fixer-work"
+    dest = fix_out / "fixer-work"
+    if work.is_dir():
+        if dest.exists():
+            shutil.rmtree(dest)
+        shutil.copytree(work, dest, ignore=shutil.ignore_patterns(".godot"))
+
+
 def one_run(
     out: Path,
     *,
@@ -44,16 +63,18 @@ def one_run(
     run_trust: bool,
     before_frames: list[Path] | None = None,
     after_frames: list[Path] | None = None,
+    require_sandbox: bool = False,
 ) -> dict:
     out.mkdir(parents=True, exist_ok=True)
-    # Signing key is created only AFTER the fixer returns so Muse never sees it
-    # on disk during exec (deny-by-absence for the overnight topology).
     signing_key = out / "verifier-host" / ".nightshift-signing-key"
     trust = None
     t0 = time.perf_counter()
+    attempt_films: list[dict] = []
 
     def _with_timing(payload: dict) -> dict:
         payload["timing"] = {"wallClockMs": round((time.perf_counter() - t0) * 1000, 3)}
+        payload["attempts"] = attempt_films
+        payload["attemptsConsumed"] = len(attempt_films)
         return payload
 
     try:
@@ -66,60 +87,123 @@ def one_run(
         )
         triage_meta = json.loads((out / "triage" / "triage.json").read_text(encoding="utf-8"))
         triage_source = triage_meta.get("source")
-        # Live / online triage must not soft-accept offline-fallback as success.
         if not offline_triage and triage_source != WONDER_MODEL:
             raise SystemExit(
                 f"live Wonder triage required; got source={triage_source!r}"
             )
 
         fix_out = out / "fix"
-        if signing_key.exists():
-            # Stale key from a prior partial run — remove before Muse so it is absent.
-            signing_key.unlink()
-        run_fixer(
-            request, fix_out,
-            candidate_patch=None if use_muse else (
-                candidate_patch or REPO / "agents" / "fixtures" / "fix-collision-mask.patch"
-            ),
+        max_attempts = 1 if not use_muse else int(request["budget"]["attempts"])
+        fixture = None if use_muse else (
+            candidate_patch or REPO / "agents" / "fixtures" / "fix-collision-mask.patch"
         )
-        fixer_work = fix_out / "fixer-work"
-        if not fixer_work.is_dir():
-            raise SystemExit("fixer-work missing after fixer")
-        leaked = list(fixer_work.rglob(".nightshift-signing-key"))
-        if leaked:
-            raise SystemExit(f"signing key leaked into fixer workspace: {leaked}")
+        prior_reject: dict | None = None
+        verification = None
+        last_meta: dict | None = None
 
-        # Materialize signing key only on the verifier side, after fixer completes.
-        signing_key.parent.mkdir(parents=True, exist_ok=True)
-        signing_key.write_text("DEMO-FAKE-SIGNING-KEY-NOT-REAL\n", encoding="utf-8")
-
-        if run_trust:
-            trust = run_trust_check(
-                out / "trust",
-                fixer_work=fixer_work,
-                verifier_host=signing_key.parent,
+        for attempt in range(1, max_attempts + 1):
+            if signing_key.exists():
+                signing_key.unlink()
+            attempt_out = fix_out / f"attempt-{attempt:02d}"
+            meta = run_fixer(
+                request,
+                attempt_out,
+                candidate_patch=fixture,
+                attempt=attempt,
+                allow_empty=use_muse,
+                require_sandbox=require_sandbox,
+                prior_reject=prior_reject,
             )
-            if not trust["ok"]:
-                return _with_timing({
-                    "decision": "reject",
-                    "error": "trust beat failed",
-                    "trust": trust,
-                    "morning": None,
-                    "gameplay": None,
-                    "triageSource": triage_source,
-                    "fixerSource": json.loads((fix_out / "candidate.json").read_text()).get("source"),
-                    "verificationProvenance": "harness" if not skip_harness else "fixture",
-                })
+            last_meta = meta
+            _promote_candidate(attempt_out, fix_out)
+            film = {
+                "attempt": attempt,
+                "source": meta.get("source"),
+                "ok": meta.get("ok", True),
+                "empty": meta.get("empty", False),
+                "patchSha256": meta.get("patchSha256"),
+                "dir": str(attempt_out.relative_to(out)) if attempt_out.is_relative_to(out) else str(attempt_out),
+            }
+            attempt_films.append(film)
 
-        verification = verify(
-            request, fix_out / "candidate.patch", out / "verify",
-            observations_path=observations,
-            skip_harness=skip_harness or observations is not None,
-        )
+            if meta.get("empty"):
+                prior_reject = {"reason": "empty-patch", "attempt": attempt}
+                film["decision"] = "retry-empty"
+                continue
+
+            fixer_work = fix_out / "fixer-work"
+            if not fixer_work.is_dir():
+                raise SystemExit("fixer-work missing after fixer")
+            leaked = list(fixer_work.rglob(".nightshift-signing-key"))
+            if leaked:
+                raise SystemExit(f"signing key leaked into fixer workspace: {leaked}")
+
+            signing_key.parent.mkdir(parents=True, exist_ok=True)
+            signing_key.write_text("DEMO-FAKE-SIGNING-KEY-NOT-REAL\n", encoding="utf-8")
+
+            if run_trust and trust is None:
+                trust = run_trust_check(
+                    out / "trust",
+                    fixer_work=fixer_work,
+                    verifier_host=signing_key.parent,
+                    require_sandbox=require_sandbox,
+                )
+                if not trust["ok"]:
+                    return _with_timing({
+                        "decision": "reject",
+                        "error": "trust beat failed",
+                        "trust": trust,
+                        "morning": None,
+                        "gameplay": None,
+                        "triageSource": triage_source,
+                        "fixerSource": meta.get("source"),
+                        "verificationProvenance": "harness" if not skip_harness else "fixture",
+                    })
+
+            verify_dir = out / "verify" / f"attempt-{attempt:02d}"
+            verification = verify(
+                request, fix_out / "candidate.patch", verify_dir,
+                observations_path=observations,
+                skip_harness=skip_harness or observations is not None,
+            )
+            # Promote latest verify to out/verify for morning consumers.
+            final_verify = out / "verify"
+            for name in ("verification.json", "verdict-gameplay.json"):
+                src = verify_dir / name
+                if src.is_file():
+                    final_verify.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(src, final_verify / name)
+            film["decision"] = verification["decision"]
+            film["reasons"] = verification.get("reasons")
+            if verification["decision"] == "accept":
+                break
+            prior_reject = {
+                "decision": verification["decision"],
+                "reasons": verification.get("reasons"),
+                "attempt": attempt,
+            }
+            if signing_key.exists():
+                signing_key.unlink()
+
+        if verification is None or not (out / "verify" / "verification.json").is_file():
+            return _with_timing({
+                "decision": "reject",
+                "error": "budget exhausted without an acceptable candidate",
+                "trust": trust,
+                "morning": None,
+                "gameplay": None,
+                "triageSource": triage_source,
+                "fixerSource": (last_meta or {}).get("source"),
+                "verificationProvenance": "harness" if not skip_harness else "fixture",
+            })
+
         before = list(before_frames) if before_frames is not None else [DEFAULT_BEFORE]
         after = list(after_frames) if after_frames is not None else [DEFAULT_AFTER]
         if not before or not after:
             raise SystemExit("morning report requires non-empty before and after frames")
+        if not signing_key.exists():
+            signing_key.parent.mkdir(parents=True, exist_ok=True)
+            signing_key.write_text("DEMO-FAKE-SIGNING-KEY-NOT-REAL\n", encoding="utf-8")
         verify_out = out / "verify"
         gameplay_path = verify_out / "verdict-gameplay.json"
         summary = build_report(
@@ -138,7 +222,7 @@ def one_run(
             "gameplay": gameplay_film_stub(summary),
             "trust": trust,
             "triageSource": triage_source,
-            "fixerSource": json.loads((fix_out / "candidate.json").read_text()).get("source"),
+            "fixerSource": (last_meta or {}).get("source"),
             "verificationProvenance": "harness" if not skip_harness else "fixture",
         })
     except (Exception, SystemExit) as exc:  # noqa: BLE001 — overnight loop must not forge accept
@@ -151,7 +235,6 @@ def one_run(
             "gameplay": None,
             "verificationProvenance": "harness" if not skip_harness else "fixture",
         }
-        # Preserve known provenance; never invent fixer/triage sources.
         if "triage_source" in locals() and triage_source is not None:
             payload["triageSource"] = triage_source
         fix_meta = out / "fix" / "candidate.json"
@@ -179,6 +262,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--skip-harness", action="store_true", default=True)
     p.add_argument("--no-skip-harness", action="store_true")
     p.add_argument("--no-trust", action="store_true", help="skip trust beat (not for demo path)")
+    p.add_argument("--require-sandbox", action="store_true",
+                   help="require OS sandbox for Muse + trust blocked canary")
     p.add_argument("--before", type=Path, action="append", default=[],
                    help="before frame(s) for morning report (default: fixture PNG)")
     p.add_argument("--after", type=Path, action="append", default=[],
@@ -219,13 +304,13 @@ def main(argv: list[str] | None = None) -> int:
             run_trust=not args.no_trust,
             before_frames=before_frames,
             after_frames=after_frames,
+            require_sandbox=args.require_sandbox,
         ))
         print(f"run {i}: {results[-1]['decision']}"
               + (f" ({results[-1].get('error')})" if results[-1].get("error") else ""))
 
     finished = datetime.now(timezone.utc)
     accepted = sum(1 for r in results if r["decision"] == "accept")
-    # Offline fixtures never invent Meta spend; live/auto without a meter stay unset.
     if offline_triage and not use_muse:
         cost = {
             "modelCalls": 0,
@@ -233,8 +318,12 @@ def main(argv: list[str] | None = None) -> int:
             "costProvenance": "unmetered-offline",
         }
     else:
+        # Only Muse attempts count as model calls; fixture/auto-without-muse stays 0.
+        muse_calls = 0
+        if use_muse:
+            muse_calls = sum(int(r.get("attemptsConsumed") or 0) for r in results)
         cost = {
-            "modelCalls": 0,
+            "modelCalls": muse_calls,
             "costUsd": None,
             "costProvenance": "unmetered-live-unset",
         }
