@@ -76,8 +76,8 @@ fixtures rejects the run. Per-run Ed25519 keys are generated under `verifier-hos
 returns (private half never in fixer-work; public half published in the morning RC).
 Default verification is fixture observations (`verificationProvenance`); pass
 `--no-skip-harness` for Godot harness verify. Observations default to the
-trace/position-log stand-in; set `NIGHTSHIFT_OBS_PROVIDER=sam` once
-`agents.sam_observations` is wired with Zayyad.
+trace/position-log stand-in; set `NIGHTSHIFT_OBS_PROVIDER=sam` to use SAM 3.1 through
+the Meta Model API instead (needs `MODEL_API_KEY` and harness frames; see `docs/sam.md`).
 
 ```sh
 # One-command overnight path (auto: Wonder/Muse when keys exist, else fixtures)

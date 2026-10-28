@@ -104,7 +104,10 @@ def _run_held_out_routes(
                 row["harnessRetried"] = True
                 harness_run(root / entry["file"], run_dir, patches=patches)
             trace = json.loads((run_dir / "trace.json").read_text(encoding="utf-8"))
-            obs = from_trace(trace, replay_sha256=sha256_file(run_dir / "replay.json"))
+            obs = from_trace(
+                trace, replay_sha256=sha256_file(run_dir / "replay.json"),
+                frames_dir=str(run_dir / "frames") if (run_dir / "frames").is_dir() else None, spec=spec,
+            )
             visual = evaluate(spec, obs)
             play = judge_trace(trace, min_delta_x=float(entry["minDeltaX"]))
             parts = (visual["result"], play["result"])
@@ -245,6 +248,12 @@ def verify(
         patches.append(_resolve(seed))
     patches.append(candidate)
 
+    # Regression: still the observations evaluator (never-crosses). Loaded before observations
+    # so the sam provider gets its prompts, window and sampling from the spec it will be judged by.
+    reg_spec = load(REGRESSION_SPEC, "test-spec")
+    if failing.get("spec", {}).get("id") == reg_spec["id"]:
+        reg_spec = failing["spec"]
+
     if observations_path is not None:
         observations = load(observations_path, "observations")
         candidate_arm = arm(
@@ -259,29 +268,43 @@ def verify(
         trace = json.loads((out / "replay" / "trace.json").read_text(encoding="utf-8"))
         replay_sha = sha256_file(out / "replay" / "replay.json")
         frames_dir = out / "replay" / "frames"
-        observations = from_trace(
-            trace,
-            replay_sha256=replay_sha,
-            frames_dir=str(frames_dir) if frames_dir.is_dir() else None,
-        )
-        (out / "observations.json").write_text(json.dumps(observations, indent=2) + "\n", encoding="utf-8")
-        candidate_arm = arm(
-            source="harness",
-            path=str(out / "observations.json"),
-            observations_sha256=digest(observations),
-        )
+        try:
+            observations = from_trace(
+                trace,
+                replay_sha256=replay_sha,
+                frames_dir=str(frames_dir) if frames_dir.is_dir() else None,
+                spec=reg_spec,
+            )
+        except SystemExit as exc:
+            # The observations provider (SAM) could not judge the candidate: the regression
+            # check is needs-review, never a pass, and the other checks still run.
+            observations = None
+            (out / "observations-error.txt").write_text(f"{exc}\n", encoding="utf-8")
+            candidate_arm = arm(source="unavailable", detail=f"candidate observations unavailable: {exc}")
+        else:
+            (out / "observations.json").write_text(json.dumps(observations, indent=2) + "\n", encoding="utf-8")
+            candidate_arm = arm(
+                source="harness",
+                path=str(out / "observations.json"),
+                observations_sha256=digest(observations),
+            )
 
     route_name = route_doc.get("name", route.stem)
     checks = []
-    # Regression: still the observations evaluator (never-crosses).
-    reg_spec = load(REGRESSION_SPEC, "test-spec")
-    if failing.get("spec", {}).get("id") == reg_spec["id"]:
-        reg_spec = failing["spec"]
-    reg_verdict = evaluate(reg_spec, observations)
-    (out / f"verdict-{reg_spec['id']}.json").write_text(
-        json.dumps(reg_verdict, indent=2) + "\n", encoding="utf-8"
-    )
-    checks.append(_check("regression", reg_spec["id"], route_name, reg_verdict))
+    if observations is None:
+        checks.append({
+            "spec": reg_spec["id"],
+            "kind": "regression",
+            "route": route_name,
+            "result": "needs-review",
+            "verdictSha256": "0" * 64,
+        })
+    else:
+        reg_verdict = evaluate(reg_spec, observations)
+        (out / f"verdict-{reg_spec['id']}.json").write_text(
+            json.dumps(reg_verdict, indent=2) + "\n", encoding="utf-8"
+        )
+        checks.append(_check("regression", reg_spec["id"], route_name, reg_verdict))
 
     # Gameplay: same agents.gameplay predicate for harness trace and offline fixtures.
     gameplay_trace, gameplay_source, min_dx = _resolve_gameplay_trace(
@@ -318,6 +341,7 @@ def verify(
     # Harness clean-replay can SIGABRT on back-to-back Godot imports in CI; fall back to the
     # fixture so verify still emits a four-kind decision (fail still beats unclear).
     clean_path = clean_observations_path or CLEAN_OBS
+    clean_spec = load(REGRESSION_SPEC, "test-spec")
     if skip_harness or observations_path is not None:
         clean_obs = load(clean_path, "observations")
         if digest(clean_obs) == digest(observations):
@@ -336,7 +360,11 @@ def verify(
             harness_run(route, out / "clean-replay", patches=[])
             clean_trace = json.loads((out / "clean-replay" / "trace.json").read_text(encoding="utf-8"))
             clean_replay_sha = sha256_file(out / "clean-replay" / "replay.json")
-            clean_obs = from_trace(clean_trace, replay_sha256=clean_replay_sha)
+            clean_frames = out / "clean-replay" / "frames"
+            clean_obs = from_trace(
+                clean_trace, replay_sha256=clean_replay_sha,
+                frames_dir=str(clean_frames) if clean_frames.is_dir() else None, spec=clean_spec,
+            )
             (out / "observations-clean.json").write_text(
                 json.dumps(clean_obs, indent=2) + "\n", encoding="utf-8"
             )
@@ -352,7 +380,7 @@ def verify(
                 encoding="utf-8",
             )
             clean_obs = load(clean_path, "observations")
-            if digest(clean_obs) == digest(observations):
+            if observations is not None and digest(clean_obs) == digest(observations):
                 raise SystemExit(
                     "clean fixture-fallback must be distinct from candidate observations "
                     f"(same digest {digest(observations)[:12]}…)"
@@ -364,7 +392,6 @@ def verify(
                 observations_sha256=digest(clean_obs),
                 detail=f"clean harness failed; see {out / 'clean-harness-error.txt'}",
             )
-    clean_spec = load(REGRESSION_SPEC, "test-spec")
     clean_verdict = evaluate(clean_spec, clean_obs)
     (out / "verdict-clean.json").write_text(json.dumps(clean_verdict, indent=2) + "\n", encoding="utf-8")
     checks.append(_check("clean", clean_spec["id"], clean_route, clean_verdict))

@@ -1,9 +1,10 @@
-"""Observations providers: trace stand-in today; SAM 3.1 seam for Gate 2.
+"""Observations providers: trace stand-in by default; SAM 3.1 when asked.
 
 Default provider ``trace`` builds nightshift.observations/v0 from harness
 trace.json world positions (y-down boxes). Set ``NIGHTSHIFT_OBS_PROVIDER=sam``
-(or pass provider=\"sam\") once Zayyad's SAM adapter is installed — verifier and
-loop call ``load_observations`` / ``from_trace`` through this module only.
+(or pass provider=\"sam\") to use SAM 3.1 through the Meta Model API
+(``agents.sam_observations``, docs/sam.md). Verifier and loop call ``from_trace``
+through this module only.
 
 Gameplay motion is still judged by agents.gameplay from the harness/fixture
 trace; SAM replaces the position-log stand-in for the observations document.
@@ -114,10 +115,10 @@ def from_trace_synthetic(
 
 
 def _load_sam_provider() -> Callable[..., dict]:
-    """Import Zayyad's SAM adapter when present.
+    """Import the SAM 3.1 adapter (``agents.sam_observations``, Meta Model API).
 
-    Expected module: ``agents.sam_observations`` with ``from_replay(...)`` matching
-    ``from_trace_synthetic`` kwargs (trace may be unused; frames/dir preferred).
+    ``from_replay(...)`` takes ``from_trace_synthetic``'s kwargs plus ``frames_dir`` and
+    ``spec`` (prompts, window, sampling); the trace itself is unused there.
     """
     try:
         mod = importlib.import_module("agents.sam_observations")
@@ -149,11 +150,14 @@ def from_trace(
     *,
     provider: str | None = None,
     frames_dir: str | None = None,
+    spec: dict | None = None,
 ) -> dict:
     """Dispatch to the configured observations provider.
 
-    ``provider=trace`` (default): synthetic boxes from the position log.
-    ``provider=sam``: delegates to ``agents.sam_observations`` once wired.
+    ``provider=trace`` (default): synthetic boxes from the position log; ``spec`` is ignored.
+    ``provider=sam``: ``agents.sam_observations`` (SAM 3.1 over the captured frames). A SAM
+    failure surfaces as SystemExit, which the verifier already turns into needs-review for the
+    clean and held-out checks; it is never a pass.
     """
     kind = resolve_provider(provider)
     if kind == "trace":
@@ -161,20 +165,27 @@ def from_trace(
             trace, replay_sha256=replay_sha256, fps=fps, physics_tps=physics_tps,
         )
     sam = _load_sam_provider()
+    sam_error = getattr(importlib.import_module("agents.sam_observations"), "SamError", None)
+    catch = sam_error if isinstance(sam_error, type) and issubclass(sam_error, Exception) else ()
+
     kwargs = {
         "replay_sha256": replay_sha256,
         "fps": fps,
         "physics_tps": physics_tps,
         "frames_dir": frames_dir,
+        "spec": spec,
     }
-    try:
-        return sam(trace, **kwargs)
-    except TypeError as exc:
-        # Only strip frames_dir when the adapter rejects that kwarg.
-        if frames_dir is None or "frames_dir" not in str(exc):
-            raise
-        kwargs.pop("frames_dir")
-        return sam(trace, **kwargs)
+    while True:
+        try:
+            return sam(trace, **kwargs)
+        except catch as exc:
+            raise SystemExit(f"sam observations unavailable: {exc}") from exc
+        except TypeError as exc:
+            # An older adapter may not take every kwarg; drop only the one it rejects.
+            dropped = next((k for k in ("spec", "frames_dir") if k in kwargs and f"'{k}'" in str(exc)), None)
+            if dropped is None:
+                raise
+            kwargs.pop(dropped)
 
 
 def observations_digest(doc: dict) -> str:
