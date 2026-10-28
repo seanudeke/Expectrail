@@ -152,9 +152,8 @@ Both are inputs on the SAM probe workflow, together with `runs` to probe only so
 1. **Held-out routes under SAM.** Run the verifier with `NIGHTSHIFT_OBS_PROVIDER=sam` on the
    verifier machine and read `verdict-held-out.json`: each route lists `visuals` per spec. Coins
    in particular may be off screen on some private route.
-2. **Ground spec tolerance.** Clean never goes above +7 frame px and the sinking bugs sit at +47
-   or more. The spec says 12; 20 would leave more room on both sides. Sean decides, and the spec
-   needs his re-approval anyway (its player prompt is now "blue robot").
+2. **Ground spec tolerance: decided.** Clean never goes above +7 frame px and the sinking bugs sit
+   at +47 or more; Sean approved 20 px on October 28, with the player prompt "blue robot".
 3. **Score margin.** The lowest clean scores were 0.64 (player) and 0.69 (coins) against the 0.5
    threshold. Watch it when the art or the camera changes.
 4. **Cost of confirming.** A passing replay now costs 120 requests per spec instead of 31; the

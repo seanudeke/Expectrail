@@ -17,11 +17,15 @@
       "relativeTo": "ground",
       "edge": "top",
       "side": "above",
-      "tolerancePx": 12
+      "tolerancePx": 20
     }
   },
   "window": {
     "fromFrame": 0,
     "toFrame": 119
+  },
+  "approval": {
+    "by": "Sean Keluo-Udeke",
+    "at": "2026-10-28T17:18:27Z"
   }
 }
