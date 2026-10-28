@@ -34,3 +34,18 @@ schema-valid RCs and suite/gameplay sections.
 
 `--no-trust` is for local debugging only — the demo path keeps trust on so the rollup films
 `## Trust` PASS evidence.
+
+Gate 1 one-shot (also writes `morning/` + schema-valid RC):
+
+```sh
+python3 -m agents.gate1 --out runs/gate1 --skip-harness \
+  --observations agents/fixtures/obs-fixed.json
+```
+
+Bound trust recheck against an overnight run:
+
+```sh
+python3 -m agents.trust --out runs/trust-recheck \
+  --fixer-work runs/demo-path/run-00/fix/fixer-work \
+  --verifier-host runs/demo-path/run-00/verifier-host
+```

@@ -1,10 +1,11 @@
-"""Gate 1 end-to-end: repair-request → fixer → verifier for physics-fall-through.
+"""Gate 1 end-to-end: repair-request → fixer → verifier → morning for physics-fall-through.
 
     python3 -m agents.gate1 --out runs/gate1 \\
         [--candidate-patch agents/fixtures/fix-collision-mask.patch]
 
 Builds a repair request from the example failing verdict (or --verdict), runs the
-fixer (fixture or muse), then the verifier. Exit 0 only on verification accept.
+fixer (fixture or muse), then the verifier, then a filmable morning report + RC.
+Exit 0 only on verification accept.
 """
 from __future__ import annotations
 
@@ -15,9 +16,13 @@ from pathlib import Path
 
 from agents.fixer import run_fixer
 from agents.orchestrator import build_repair_request
+from agents.report import build_report
 from agents.verifier import verify
 from harness.run import REPO
 from nightshift.contracts import load
+
+DEFAULT_BEFORE = REPO / "agents" / "fixtures" / "frames" / "before-fall.png"
+DEFAULT_AFTER = REPO / "agents" / "fixtures" / "frames" / "after-fixed.png"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -32,6 +37,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--route", type=Path, default=REPO / "harness" / "routes" / "smoke.json")
     p.add_argument("--skip-harness", action="store_true")
     p.add_argument("--observations", type=Path)
+    p.add_argument("--before", type=Path, action="append", default=[])
+    p.add_argument("--after", type=Path, action="append", default=[])
+    p.add_argument("--no-morning", action="store_true", help="skip morning/RC packaging")
     args = p.parse_args(argv)
 
     args.out.mkdir(parents=True, exist_ok=True)
@@ -51,11 +59,28 @@ def main(argv: list[str] | None = None) -> int:
     run_fixer(request, fix_out, candidate_patch=candidate)
     cand = fix_out / "candidate.patch"
 
+    verify_out = args.out / "verify"
     doc = verify(
-        request, cand, args.out / "verify", route=args.route,
+        request, cand, verify_out, route=args.route,
         observations_path=args.observations, skip_harness=args.skip_harness,
     )
     print(f"gate1 {doc['decision']}: {'; '.join(doc['reasons'])}")
+
+    if not args.no_morning:
+        before = args.before or [DEFAULT_BEFORE]
+        after = args.after or [DEFAULT_AFTER]
+        gameplay_path = verify_out / "verdict-gameplay.json"
+        morning = build_report(
+            verification=doc,
+            candidate=cand,
+            out=args.out / "morning",
+            before=before,
+            after=after,
+            gameplay_verdict=gameplay_path if gameplay_path.is_file() else None,
+            verification_path=verify_out / "verification.json",
+        )
+        print(f"gate1 morning: {args.out / 'morning' / 'morning-report.md'} rc={morning['decision']}")
+
     return 0 if doc["decision"] == "accept" else 1
 
 

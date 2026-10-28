@@ -200,8 +200,16 @@ def _fail(out: Path, fixer: Path, verifier: Path, detail: str, *, bound: bool) -
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--out", type=Path, default=Path("runs/trust"))
+    p.add_argument("--fixer-work", type=Path,
+                   help="bind trust check to an existing fixer-work tree (demo recheck)")
+    p.add_argument("--verifier-host", type=Path,
+                   help="bind trust check to an existing verifier-host dir")
     args = p.parse_args(argv)
-    result = run_trust_check(args.out)
+    result = run_trust_check(
+        args.out,
+        fixer_work=args.fixer_work,
+        verifier_host=args.verifier_host,
+    )
     print(result["detail"])
     print(f"evidence: {args.out / 'trust-evidence.md'}")
     return 0 if result["ok"] else 1

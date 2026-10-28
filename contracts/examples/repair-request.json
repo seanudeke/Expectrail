@@ -130,5 +130,9 @@
     "attempts": 3,
     "minutesPerAttempt": 15
   },
-  "notes": "Held-out variants, the evaluator and the gameplay checks are not in your workspace."
+  "notes": "Held-out variants, the evaluator and the gameplay checks are not in your workspace.",
+  "triage": {
+    "source": "offline",
+    "model": "muse-wonder-1.0"
+  }
 }

@@ -39,6 +39,7 @@ films `triage=` / `fixer=` sources and Trust PASS/FAIL when trust ran (`--no-tru
 
 ```sh
 # Offline/CI path (fixture candidate + synthetic observations — no Godot required)
+# Also writes runs/gate1/morning/ (report + release-candidate.json)
 python3 -m agents.gate1 --out runs/gate1 --skip-harness \
   --observations agents/fixtures/obs-fixed.json
 

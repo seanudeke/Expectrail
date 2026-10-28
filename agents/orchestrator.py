@@ -28,6 +28,7 @@ def build_repair_request(
     key_frames: list[str] | None = None,
     attempts: int = 3,
     notes: str | None = None,
+    triage: dict | None = None,
 ) -> dict:
     validate(spec, "test-spec")
     validate(verdict, "verdict")
@@ -57,6 +58,8 @@ def build_repair_request(
         doc["notes"] = (
             "Held-out variants, the evaluator and the gameplay checks are not in your workspace."
         )
+    if triage is not None:
+        doc["triage"] = triage
     validate(doc, "repair-request")
     return doc
 

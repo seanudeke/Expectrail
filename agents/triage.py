@@ -89,6 +89,7 @@ def triage(
             source = "offline-fallback"
 
     (out / "bug-report.md").write_text(report + "\n", encoding="utf-8")
+    triage_meta = {"source": source, "model": WONDER_MODEL}
     request = build_repair_request(
         request_id=f"rr-triage-{spec.get('id', 'bug')}",
         spec=spec,
@@ -97,9 +98,10 @@ def triage(
         base_patch=base_patch,
         key_frames=key_frames,
         notes=f"Triage source: {source}. See bug-report.md.",
+        triage=triage_meta,
     )
     (out / "repair-request.json").write_text(json.dumps(request, indent=2) + "\n", encoding="utf-8")
-    (out / "triage.json").write_text(json.dumps({"source": source, "model": WONDER_MODEL}, indent=2) + "\n")
+    (out / "triage.json").write_text(json.dumps(triage_meta, indent=2) + "\n", encoding="utf-8")
     return request
 
 

@@ -5,6 +5,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -27,7 +28,8 @@ from agents.loop import one_run
 from agents.observations import from_trace
 from agents.orchestrator import build_repair_request
 from agents.patchutil import assert_editable, paths_touched
-from agents.report import build_report, gameplay_film_stub, write_loop_rollup
+from agents.gate1 import main as gate1_main
+from agents.report import build_report, gameplay_film_stub, verify_release_candidate, write_loop_rollup
 from agents.triage import WONDER_MODEL, triage
 from agents.trust import run_trust_check
 from agents.verifier import GAMEPLAY_SPEC_ID, verify
@@ -1308,6 +1310,174 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             self.assertIn("## Unresolved", text)
             self.assertNotIn("Latest accept frames", text)
             self.assertNotIn("## Gameplay", text)
+
+    def test_rollup_films_needs_review(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            summary = {
+                "format": "nightshift.overnight-summary/v0",
+                "mode": {"mode": "offline", "offline_triage": True, "use_muse": False},
+                "runs": 1,
+                "accepted": 0,
+                "verificationProvenance": "fixture",
+                "cost": {"modelCalls": 0, "costUsd": None, "costProvenance": "unmetered-offline"},
+                "timing": {"wallClockMs": 1.0},
+                "results": [{
+                    "decision": "needs-review",
+                    "morning": {"unresolved": ["held-out check needs review"]},
+                    "gameplay": None,
+                    "timing": {"wallClockMs": 1.0},
+                }],
+            }
+            validate(summary, "overnight-summary")
+            text = write_loop_rollup(Path(tmp), summary=summary).read_text()
+            self.assertIn("`needs-review`", text)
+            self.assertIn("## Needs-review", text)
+            self.assertIn("held-out check needs review", text)
+            self.assertIn("## Unresolved", text)
+            self.assertNotIn("Latest accept frames", text)
+
+    def test_rc_verify_detects_tamper_and_wrong_key(self):
+        from nightshift.contracts import ContractError
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            verification = verify(
+                _request(),
+                REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
+                root / "verify",
+                observations_path=REPO / "agents" / "fixtures" / "obs-fixed.json",
+                skip_harness=True,
+            )
+            key = root / "key"
+            key.write_text("DEMO-FAKE-SIGNING-KEY-NOT-REAL\n", encoding="utf-8")
+            summary = build_report(
+                verification=verification,
+                candidate=REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
+                out=root / "morning",
+                signing_key_path=key,
+                verification_path=root / "verify" / "verification.json",
+            )
+            rc = json.loads((root / "morning" / "release-candidate.json").read_text())
+            verify_release_candidate(rc, verification, key_material=key.read_bytes())
+            with self.assertRaises(ContractError):
+                verify_release_candidate(rc, verification, key_material=b"wrong-key")
+            tampered = dict(verification)
+            tampered["reasons"] = list(verification.get("reasons", [])) + ["tamper"]
+            with self.assertRaises(ContractError):
+                verify_release_candidate(rc, tampered, key_material=key.read_bytes())
+            self.assertEqual(summary["decision"], "accept")
+
+    def test_loop_live_unset_cost_provenance_without_meta_calls(self):
+        """Wonder key present but muse not ready → unmetered-live-unset, no invented spend."""
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "loop"
+            env = {k: v for k, v in os.environ.items() if k not in ("META_API_KEY",)}
+            env["MODEL_API_KEY"] = "dummy"
+            with mock.patch.dict(os.environ, env, clear=True):
+                with mock.patch("agents.keys.muse_code_ready", return_value=False):
+                    with mock.patch("agents.triage.call_wonder", return_value="canned bug report"):
+                        code = loop_main([
+                            "--out", str(out),
+                            "--mode", "auto",
+                            "--runs", "1",
+                        ])
+            self.assertEqual(code, 0)
+            summary = json.loads((out / "summary.json").read_text())
+            self.assertFalse(summary["mode"]["use_muse"])
+            self.assertFalse(summary["mode"]["offline_triage"])
+            self.assertEqual(summary["cost"]["costProvenance"], "unmetered-live-unset")
+            self.assertIsNone(summary["cost"]["costUsd"])
+            self.assertEqual(summary["cost"]["modelCalls"], 0)
+            rollup = (out / "morning-report.md").read_text()
+            self.assertIn("unmetered-live-unset", rollup)
+            self.assertEqual(summary["results"][0]["triageSource"], WONDER_MODEL)
+
+    def test_stale_signing_key_cleared_before_fixer(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "loop"
+            stale = out / "verifier-host" / ".nightshift-signing-key"
+            stale.parent.mkdir(parents=True)
+            stale.write_text("STALE\n", encoding="utf-8")
+            result = one_run(
+                out,
+                use_muse=False,
+                offline_triage=True,
+                observations=REPO / "agents" / "fixtures" / "obs-fixed.json",
+                candidate_patch=REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
+                skip_harness=True,
+                run_trust=True,
+            )
+            self.assertEqual(result["decision"], "accept")
+            fixer_keys = list((out / "fix" / "fixer-work").rglob(".nightshift-signing-key"))
+            self.assertEqual(fixer_keys, [])
+            self.assertTrue(stale.is_file())
+            self.assertIn("DEMO-FAKE", stale.read_text())
+
+    def test_exception_path_preserves_triage_source(self):
+        """Out-of-glob fails in fixer before candidate.json — triage preserved, fixer not invented."""
+        with tempfile.TemporaryDirectory() as tmp:
+            result = one_run(
+                Path(tmp) / "loop",
+                use_muse=False,
+                offline_triage=True,
+                observations=REPO / "agents" / "fixtures" / "obs-fixed.json",
+                candidate_patch=REPO / "agents" / "fixtures" / "out-of-glob.patch",
+                skip_harness=True,
+                run_trust=True,
+            )
+            self.assertEqual(result["decision"], "reject")
+            self.assertIsNone(result.get("morning"))
+            self.assertEqual(result.get("triageSource"), "offline")
+            self.assertIsNone(result.get("fixerSource"))
+
+    def test_gate1_writes_morning_and_rc(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "gate1"
+            code = gate1_main([
+                "--out", str(out),
+                "--skip-harness",
+                "--observations", str(REPO / "agents" / "fixtures" / "obs-fixed.json"),
+            ])
+            self.assertEqual(code, 0)
+            self.assertTrue((out / "morning" / "morning-report.md").is_file())
+            rc = json.loads((out / "morning" / "release-candidate.json").read_text())
+            validate(rc, "release-candidate")
+            self.assertEqual(rc["decision"], "accept")
+
+    def test_triage_embeds_structured_provenance_on_rr(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            request = triage(
+                spec=load(REPO / "agents" / "specs" / "player-stays-above-ground.json", "test-spec"),
+                verdict=load(REPO / "contracts" / "examples" / "verdict.json", "verdict"),
+                route=load(REPO / "harness" / "routes" / "smoke.json", "route"),
+                out=Path(tmp) / "triage",
+                offline=True,
+            )
+            validate(request, "repair-request")
+            self.assertEqual(request["triage"]["source"], "offline")
+            self.assertEqual(request["triage"]["model"], WONDER_MODEL)
+
+    def test_trust_cli_bind_flags(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            standalone = run_trust_check(root / "trust")
+            self.assertTrue(standalone["ok"])
+            code = subprocess.run(
+                [
+                    sys.executable, "-m", "agents.trust",
+                    "--out", str(root / "recheck"),
+                    "--fixer-work", str(root / "trust" / "fixer-workspace"),
+                    "--verifier-host", str(root / "trust" / "verifier-host"),
+                ],
+                cwd=str(REPO),
+                capture_output=True,
+                text=True,
+                check=False,
+            ).returncode
+            self.assertEqual(code, 0)
+            bound = json.loads((root / "recheck" / "trust.json").read_text())
+            self.assertTrue(bound["ok"])
+            self.assertTrue(bound["boundToLoop"])
 
     def test_write_loop_rollup_films_latest_gameplay_reject(self):
         with tempfile.TemporaryDirectory() as tmp:
