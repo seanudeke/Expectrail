@@ -34,7 +34,7 @@ Turn the user's plain-English check into one JSON object in the nightshift.test-
 
 Rules:
 - "objects" names each thing the check is about. Each "prompt" is a short noun phrase a segmentation
-  model can find in a frame, such as "small robot character" or "gold coin". Never put a position,
+  model can find in a frame, such as "blue robot" or "gold coin". Never put a position,
   direction or relation in a prompt ("left", "above", "on the ground" are not allowed there).
 - "assertion" is exactly one of these four types, and nothing else:
   1. {"type": "visible", "object": O, "minFraction": 0..1}: O is found in at least that share of frames.

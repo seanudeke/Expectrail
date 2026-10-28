@@ -1,0 +1,11 @@
+--- a/player/player.tscn
++++ b/player/player.tscn
+@@ -232,7 +232,7 @@
+ limit_bottom = 690
+ 
+ [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1531075157]
+-position = Vector2(0, -14)
++position = Vector2(0, -40)
+ shape = SubResource("11")
+ 
+ [node name="Jump" type="AudioStreamPlayer2D" parent="." unique_id=2076416565]

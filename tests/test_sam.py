@@ -68,6 +68,8 @@ class Scene:
         self.bodies = []
 
     def answer(self, i: int, prompt: str) -> str:
+        if prompt in self.extra:
+            return self.extra[prompt](i)
         if prompt == SPEC["objects"]["player"]["prompt"]:
             if i in self.missing:
                 return ""
@@ -311,7 +313,7 @@ class FromReplayTest(unittest.TestCase):
         self.assertEqual(v_sampled["firstFrame"], 36)
         self.assertEqual(stats["framesAnalyzed"], 13 + 9)
         self.assertEqual(sampled["analysis"]["refined"], {"frames": 9, "from": 31, "to": 39})
-        self.assertEqual(sampled["model"]["prompts"]["player"], "small robot character")
+        self.assertEqual(sampled["model"]["prompts"]["player"], "blue robot")
 
     def test_without_refinement_the_first_frame_is_only_as_exact_as_the_sample(self):
         scene = Scene(self.root, bottom=player_bottom_falling)
@@ -382,7 +384,7 @@ class FromReplayTest(unittest.TestCase):
         coin = lambda i: box_token(0, (62, 40, 70, 50), 0.8) if i == 57 else box_token(0, (140, 10, 150, 20), 0.8)
         scene = Scene(self.root, extra={"gold coin": coin})
         spec = {"format": "nightshift.test-spec/v0", "id": "reach-coin", "instruction": "x",
-                "objects": {"player": {"prompt": "small robot character"}, "coin": {"prompt": "gold coin"}},
+                "objects": {"player": {"prompt": "blue robot"}, "coin": {"prompt": "gold coin"}},
                 "assertion": {"type": "reaches", "object": "player", "goal": "coin", "distancePx": 0}}
         doc, stats = self.run_scene(scene, every=10, spec=spec)
         self.assertEqual(evaluate(spec, doc)["result"], "pass")
@@ -401,7 +403,7 @@ class FromReplayTest(unittest.TestCase):
         coin = lambda i: box_token(0, (62, 40, 70, 50), 0.8) if i == 6 else box_token(0, (140, 10, 150, 20), 0.8)
         scene = Scene(self.root, extra={"gold coin": coin}, missing={4})
         spec = {"format": "nightshift.test-spec/v0", "id": "reach-coin", "instruction": "x",
-                "objects": {"player": {"prompt": "small robot character"}, "coin": {"prompt": "gold coin"}},
+                "objects": {"player": {"prompt": "blue robot"}, "coin": {"prompt": "gold coin"}},
                 "assertion": {"type": "reaches", "object": "player", "goal": "coin", "distancePx": 0}}
         doc, _ = self.run_scene(scene, every=4, spec=spec)
         self.assertEqual(evaluate(spec, doc)["result"], "pass")
