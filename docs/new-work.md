@@ -56,3 +56,4 @@ something; keep prior work out of it.
 | Oct 27 | Harness performance: cached `.godot/` asset import, --disable-vsync, warm-cache CLI, unit tests | `harness/run.py`, `docs/harness.md`, `tests/test_harness.py` |
 | Oct 28 | First wave seeded bugs: physics fall-through v2, missing-texture v1 & v2, layering v1 & v2 | `bugs/`, `tests/test_harness.py`, `bugs/README.md` |
 | Oct 28 | Containerized harness: Dockerfile.harness, .dockerignore, docker_run.sh, pre-warmed cache | `Dockerfile.harness`, `.dockerignore`, `harness/docker_run.sh`, `docs/harness.md` |
+| Oct 28 | Seeded-bug fixes and checks: missing-texture v1 now really loses its texture, layering v2 moved to the player sprite (was identical to v1), `harness.check_seeded` + CI job, keyed import cache, Mac Godot SHA-512 check, Docker context excludes `/tools` and `.godot` | `bugs/`, `harness/check_seeded.py`, `harness/run.py`, `harness/macos/get_godot_mac.sh`, `.dockerignore` |

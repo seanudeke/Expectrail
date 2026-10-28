@@ -21,8 +21,11 @@ How it works:
 
 1. It copies `game/platformer` to `<out>/work`, applies one or more patches in order (seed, then
    candidate), and adds `nightshift_harness.gd` to the copy as an autoload. The game in the
-   repository never changes. Base asset imports are cached (`tools/godot_cache/.godot`), so runs
-   skip redundant full-project re-imports and finish in a fraction of the time.
+   repository never changes. Base asset imports are cached (`tools/godot_cache/.godot`), so clean
+   runs skip the full-project re-import. The cache is keyed to the exact Godot binary and game files
+   (`tools/godot_cache/.godot.key`) and is rebuilt when either changes; an import folder inside
+   `game/platformer` (from the editor or a local play session) is never used. Frames are identical
+   with and without the cache.
 2. It imports any newly patched assets incrementally, then runs it under a virtual display
    (`xvfb-run`) with the Compatibility renderer on software OpenGL (Mesa llvmpipe). `--headless`
    cannot be used for capture: it does not render.
@@ -50,3 +53,12 @@ On a 2-core cloud container with no GPU (Mesa llvmpipe, LLVM 20), Godot 4.7.2:
 
 Not settled yet: the input driver for gamepad-style analog input (routes only press actions), and
 resetting mid-run (each run starts the game fresh, which takes a few seconds).
+
+## Seeded bugs must be visible
+
+```sh
+python3 -m harness.check_seeded            # replays every bugs/<family>/v*.patch against the clean route
+```
+
+Each seeded variant must change at least one frame compared with the clean game; otherwise it is a
+bug nobody could see, and the benchmark would count it as a miss. CI runs this as `seeded-bugs`.
