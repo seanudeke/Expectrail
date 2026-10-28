@@ -25,6 +25,7 @@ from pathlib import Path
 from agents.fixer import run_fixer
 from agents.keys import resolve_mode, seal_mode_flags
 from agents.report import build_report, gameplay_film_stub, write_loop_rollup
+from agents.signing import generate_run_keys
 from agents.triage import WONDER_MODEL, triage
 from agents.trust import run_trust_check
 from agents.verifier import verify
@@ -104,6 +105,9 @@ def one_run(
         for attempt in range(1, max_attempts + 1):
             if signing_key.exists():
                 signing_key.unlink()
+            pub = signing_key.with_name(signing_key.name + ".pub")
+            if pub.exists():
+                pub.unlink()
             attempt_out = fix_out / f"attempt-{attempt:02d}"
             meta = run_fixer(
                 request,
@@ -138,8 +142,7 @@ def one_run(
             if leaked:
                 raise SystemExit(f"signing key leaked into fixer workspace: {leaked}")
 
-            signing_key.parent.mkdir(parents=True, exist_ok=True)
-            signing_key.write_text("DEMO-FAKE-SIGNING-KEY-NOT-REAL\n", encoding="utf-8")
+            generate_run_keys(signing_key.parent)
 
             if run_trust and trust is None:
                 trust = run_trust_check(
@@ -182,8 +185,9 @@ def one_run(
                 "reasons": verification.get("reasons"),
                 "attempt": attempt,
             }
-            if signing_key.exists():
-                signing_key.unlink()
+            for stale in (signing_key, signing_key.with_name(signing_key.name + ".pub")):
+                if stale.exists():
+                    stale.unlink()
 
         if verification is None or not (out / "verify" / "verification.json").is_file():
             return _with_timing({
@@ -202,8 +206,7 @@ def one_run(
         if not before or not after:
             raise SystemExit("morning report requires non-empty before and after frames")
         if not signing_key.exists():
-            signing_key.parent.mkdir(parents=True, exist_ok=True)
-            signing_key.write_text("DEMO-FAKE-SIGNING-KEY-NOT-REAL\n", encoding="utf-8")
+            generate_run_keys(signing_key.parent)
         verify_out = out / "verify"
         gameplay_path = verify_out / "verdict-gameplay.json"
         summary = build_report(

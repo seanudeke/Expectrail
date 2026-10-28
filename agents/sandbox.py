@@ -142,18 +142,35 @@ def probe_blocked_canary_read(
     resolved_kind = kind if kind is not None else detect_sandbox()
     canary = canary.resolve()
     marker = "DEMO-FAKE-SIGNING-KEY-NOT-REAL"
+    key_raw = canary.read_bytes() if canary.is_file() else b""
     argv = ["cat", str(canary)]
+
+    def _leaked(blob: str | bytes, *, exit_ok: bool) -> bool:
+        if isinstance(blob, str):
+            data = blob.encode("utf-8", errors="surrogateescape")
+            text = blob
+        else:
+            data = blob
+            text = blob.decode("utf-8", errors="ignore")
+        if marker in text:
+            return True
+        if key_raw and key_raw in data:
+            return True
+        # Successful cat of the canary path is a leak even when stdout is mangled.
+        return bool(exit_ok and data)
+
     # Inside docker/bwrap the host absolute path usually does not exist.
     if resolved_kind == "none":
         # Honesty: host process can still read the canary.
         try:
-            text = canary.read_text(encoding="utf-8", errors="ignore")
+            raw = canary.read_bytes()
+            text = raw.decode("utf-8", errors="ignore")
             return {
                 "kind": "none",
                 "enforced": False,
                 "blocked": False,
                 "exitCode": 0,
-                "leakedKeyBytes": marker in text,
+                "leakedKeyBytes": _leaked(raw, exit_ok=True),
                 "stdout": text[:200],
                 "stderr": "",
                 "detail": "no OS sandbox; host process can read canary (deny-by-absence only)",
@@ -172,7 +189,7 @@ def probe_blocked_canary_read(
 
     proc = run_sandboxed(argv, work=work, network=False, kind=resolved_kind, timeout=60)
     out = (proc.stdout or "") + (proc.stderr or "")
-    leaked = marker in out
+    leaked = _leaked(out, exit_ok=proc.returncode == 0)
     blocked = proc.returncode != 0 and not leaked
     return {
         "kind": resolved_kind,

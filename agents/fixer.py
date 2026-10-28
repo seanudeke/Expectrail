@@ -152,18 +152,27 @@ def run_fixer(
     allow_empty: bool = False,
     require_sandbox: bool = False,
     prior_reject: dict | None = None,
+    plant_poison: bool = False,
 ) -> dict:
     """Produce a candidate patch under ``out``.
 
     When ``allow_empty`` is True, an empty Muse diff returns ``ok=False`` instead of
     exiting — so the overnight loop can consume a budget attempt and retry.
     Fixture patches always run once (caller should not retry fixtures).
+
+    ``plant_poison`` writes the trust-beat poisoned readme into fixer-work after the
+    workspace is prepared and before Muse runs, so confinement films see it.
     """
     validate(request, "repair-request")
     out.mkdir(parents=True, exist_ok=True)
     work = out / "fixer-work"
     baseline = out / "fixer-baseline"
     prepare_fixer_workspace(request, work, game)
+    if plant_poison:
+        from agents.trust import POISON
+        poison_dir = work / "player"
+        poison_dir.mkdir(parents=True, exist_ok=True)
+        (poison_dir / "readme-extra.txt").write_text(POISON, encoding="utf-8")
     if baseline.exists():
         shutil.rmtree(baseline)
     shutil.copytree(work, baseline, ignore=shutil.ignore_patterns(".godot"))

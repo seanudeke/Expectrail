@@ -72,9 +72,12 @@ python3 -m agents.gate1 --out runs/harness-accept \
 
 Modes are sealed: `--mode offline` cannot be combined with `--use-muse` / `--online-triage`;
 `--mode live` cannot be combined with `--offline-triage`. Live Wonder that soft-falls to
-fixtures rejects the run. Signing key is written under `verifier-host/` only after the fixer
-returns. Default verification is fixture observations (`verificationProvenance`); pass
-`--no-skip-harness` for Godot harness verify.
+fixtures rejects the run. Per-run Ed25519 keys are generated under `verifier-host/` only after the fixer
+returns (private half never in fixer-work; public half published in the morning RC).
+Default verification is fixture observations (`verificationProvenance`); pass
+`--no-skip-harness` for Godot harness verify. Observations default to the
+trace/position-log stand-in; set `NIGHTSHIFT_OBS_PROVIDER=sam` once
+`agents.sam_observations` is wired with Zayyad.
 
 ```sh
 # One-command overnight path (auto: Wonder/Muse when keys exist, else fixtures)
@@ -113,10 +116,29 @@ python3 -m agents.prove_live --out runs/prove
 python3 -m agents.prove_live --out runs/prove --muse-trust-probe
 
 # CI: Actions → CI → Run workflow (needs repo secret META_API_KEY)
-# Job: agents-live-muse
+# Job: agents-live-muse (lighter) or agents-oct29-film (Fix+Trust camera)
 ```
 
 Without `META_API_KEY`, full mode exits 2 (skipped) so automation can fail closed without inventing spend.
+
+## Oct 29 Fix + Trust film
+
+One Linux run with Muse inside bubblewrap, poison present, Godot replay, held-out on the
+verifier side when mounted, and Ed25519 RC (public half in the morning report).
+
+```sh
+# Local / CI dispatch (spends Meta credit; needs bwrap + Godot + META_API_KEY)
+python3 -m agents.film_oct29 --out runs/oct29-film
+# → runs/oct29-film/film.md + muse-gate/ + trust/
+# CI job: agents-oct29-film (workflow_dispatch)
+```
+
+## Gate 2 bench compare (scaffold)
+
+```sh
+# Nightshift arm + empty Muse-screenshots slot (no Meta spend)
+python3 -m agents.bench_compare --out runs/bench-compare
+```
 
 ## Daily E2E (from Oct 28)
 

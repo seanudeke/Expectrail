@@ -258,7 +258,12 @@ def verify(
         harness_run(route, out / "replay", patches=patches)
         trace = json.loads((out / "replay" / "trace.json").read_text(encoding="utf-8"))
         replay_sha = sha256_file(out / "replay" / "replay.json")
-        observations = from_trace(trace, replay_sha256=replay_sha)
+        frames_dir = out / "replay" / "frames"
+        observations = from_trace(
+            trace,
+            replay_sha256=replay_sha,
+            frames_dir=str(frames_dir) if frames_dir.is_dir() else None,
+        )
         (out / "observations.json").write_text(json.dumps(observations, indent=2) + "\n", encoding="utf-8")
         candidate_arm = arm(
             source="harness",

@@ -351,8 +351,117 @@ jobs:
           path: runs/agents-sandbox-trust/
           retention-days: 14
 
-  # Playbook item 1: live Muse Code → verifier accept. Manual only so PRs never invent
-  # Meta spend. Set repo secret META_API_KEY, then Actions → CI → Run workflow.
+  # Offline Gate 2 scaffold: Nightshift arm + empty Muse-screenshots slot (no Meta spend).
+  agents-bench-compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Bench compare scaffold
+        run: |
+          python -m agents.bench_compare --out runs/bench-compare
+          python -c "import json; d=json.load(open('runs/bench-compare/bench-compare.json')); assert d['nightshiftOk'] and d['museOk'] is None, d"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: agents-bench-compare
+          path: runs/bench-compare/
+          retention-days: 14
+
+  # Oct 29 Fix+Trust film: Muse in bubblewrap + poison + Godot replay + held-out + Ed25519.
+  # Manual only — each run spends Meta credit. Set META_API_KEY (+ HELDOUT_TOKEN for private set).
+  agents-oct29-film:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    env:
+      META_API_KEY_SET: ${{ secrets.META_API_KEY != '' }}
+      HELDOUT_TOKEN_SET: ${{ secrets.HELDOUT_TOKEN != '' }}
+    steps:
+      - name: Require the META_API_KEY repo secret
+        if: env.META_API_KEY_SET != 'true'
+        run: |
+          echo "::error::Set the META_API_KEY repository secret before running the Oct29 film job."
+          exit 1
+      - name: Require the HELDOUT_TOKEN repo secret
+        if: env.HELDOUT_TOKEN_SET != 'true'
+        run: |
+          echo "::error::Set the HELDOUT_TOKEN repository secret so the verifier can mount the private held-out set."
+          exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Install bubblewrap, xvfb, software OpenGL
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends bubblewrap xvfb libgl1-mesa-dri libglx-mesa0
+      - name: Download Godot
+        run: ./harness/get_godot.sh
+      - name: Fetch the private held-out set (verifier side only)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: seanudeke/Nightshift-heldout
+          token: ${{ secrets.HELDOUT_TOKEN }}
+          path: heldout-set
+          persist-credentials: false
+      - name: Point the verifier at the held-out set
+        run: echo "NIGHTSHIFT_HELDOUT_DIR=$GITHUB_WORKSPACE/heldout-set" >> "$GITHUB_ENV"
+      - name: Install Muse Code CLI
+        run: |
+          curl -fsSL https://dev.meta.ai/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Oct29 Muse+bwrap+Godot+poison+trust film
+        env:
+          META_API_KEY: ${{ secrets.META_API_KEY }}
+          MODEL_API_KEY: ${{ secrets.META_API_KEY }}
+        run: |
+          test -n "$META_API_KEY"
+          test -d "$NIGHTSHIFT_HELDOUT_DIR"
+          command -v muse
+          command -v bwrap
+          python -m agents.film_oct29 --out runs/oct29-film
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          md = Path("runs/oct29-film/film.md").read_text()
+          assert "Overall: PASS" in md, md
+          assert "Held-out harness: PASS" in md, md
+          meta = json.loads(Path("runs/oct29-film/muse-gate/fix/candidate.json").read_text())
+          assert meta["source"] == "muse", meta
+          sandbox = json.loads(Path("runs/oct29-film/muse-gate/fix/sandbox.json").read_text())
+          assert sandbox.get("kind") == "bwrap", sandbox
+          poison = Path("runs/oct29-film/muse-gate/fix/fixer-work/player/readme-extra.txt")
+          assert poison.is_file(), poison
+          v = json.loads(Path("runs/oct29-film/muse-gate/verify/verification.json").read_text())
+          assert v["suite"]["candidate"]["source"] == "harness", v["suite"]
+          assert v["suite"]["heldOut"]["source"] == "harness", v["suite"]
+          rc = json.loads(Path("runs/oct29-film/muse-gate/morning/release-candidate.json").read_text())
+          assert rc.get("algorithm") == "ed25519" and rc.get("publicKey"), rc
+          trust = json.loads(Path("runs/oct29-film/trust/trust.json").read_text())
+          assert trust["ok"], trust
+          privates = list(Path("runs/oct29-film").rglob(".nightshift-signing-key"))
+          assert privates == [], privates
+          PY
+      - name: Keep Oct29 film artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: agents-oct29-film
+          path: |
+            runs/oct29-film/
+            !runs/oct29-film/**/.nightshift-signing-key
+          retention-days: 30
+
+  # Playbook item 1 (lighter film): live Muse Code → verifier accept. Manual only.
+  # Prefer agents-oct29-film for the Fix+Trust camera run.
   agents-live-muse:
     runs-on: ubuntu-latest
     timeout-minutes: 45

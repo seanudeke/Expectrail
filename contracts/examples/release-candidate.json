@@ -2,8 +2,10 @@
   "format": "nightshift.release-candidate/v0",
   "verificationSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   "decision": "reject",
-  "signature": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-  "signingKey": "demo-fake-key",
+  "signature": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+  "signingKey": "runs/demo/verifier-host/.nightshift-signing-key",
+  "algorithm": "ed25519",
+  "publicKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
   "candidatePatchSha256": "2222222222222222222222222222222222222222222222222222222222222222",
   "requestId": "rr-0001",
   "requestSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"

@@ -7,12 +7,14 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
 import json
 import shutil
 import sys
 from pathlib import Path
 
+from agents.signing import ALGORITHM, generate_run_keys, sign_payload, verify_payload
 from nightshift.contracts import ContractError, digest, load, validate
 
 
@@ -34,18 +36,18 @@ def gameplay_film_stub(morning: dict | None) -> dict | None:
     }
 
 
-def _fake_sign(payload: bytes, key_material: bytes) -> str:
-    """Detached signature placeholder (demo only). Real keys stay off the fixer host."""
-    return hashlib.sha256(key_material + payload).hexdigest()
-
-
 def verify_release_candidate(
     rc: dict,
     verification: dict,
     *,
     key_material: bytes | None = None,
+    public_key_b64: str | None = None,
 ) -> None:
-    """Recompute demo signature / verification digest; fail closed on tamper."""
+    """Recompute verification digest and verify Ed25519 signature; fail closed on tamper.
+
+    Prefer ``public_key_b64`` (published half). ``key_material`` may be the raw private
+    key (32 bytes) for offline tests that only keep the private file.
+    """
     validate(rc, "release-candidate")
     payload = json.dumps(verification, sort_keys=True, separators=(",", ":")).encode("utf-8")
     expected_sha = hashlib.sha256(payload).hexdigest()
@@ -59,10 +61,20 @@ def verify_release_candidate(
             f"release-candidate decision mismatch: rc={rc.get('decision')!r} "
             f"verification={verification.get('decision')!r}"
         )
-    key = key_material if key_material is not None else b"nightshift-demo-fake-signing-key"
-    expected_sig = _fake_sign(payload, key)
-    if rc.get("signature") != expected_sig:
-        raise ContractError("release-candidate signature mismatch for provided key material")
+    pub = public_key_b64 or rc.get("publicKey")
+    if not pub:
+        raise ContractError("release-candidate missing publicKey")
+    if key_material is not None:
+        if len(key_material) != 32:
+            raise ContractError(
+                f"key_material must be 32 raw Ed25519 private bytes (got {len(key_material)})"
+            )
+        # Re-sign check: private must produce the same signature (wrong key fails).
+        expected = sign_payload(payload, key_material)
+        if rc.get("signature") != expected:
+            raise ContractError("release-candidate signature mismatch for provided key material")
+    if not verify_payload(payload, rc.get("signature", ""), pub):
+        raise ContractError("release-candidate signature does not verify with publicKey")
 
 
 def _materialize_frames(srcs: list[Path], dest_dir: Path, prefix: str) -> list[dict]:
@@ -260,18 +272,34 @@ def build_report(
         lines.append("- none")
 
     payload = json.dumps(verification, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    key_bytes = b"nightshift-demo-fake-signing-key"
-    key_note = "demo-fake-key"
-    if signing_key_path and signing_key_path.exists():
-        key_bytes = signing_key_path.read_bytes()
-        key_note = str(signing_key_path)
-    signature = _fake_sign(payload, key_bytes)
+    if signing_key_path is None:
+        keys = generate_run_keys(out.parent / "verifier-host")
+        signing_key_path = keys["privatePathObj"]
+    elif not signing_key_path.exists():
+        raise FileNotFoundError(
+            "morning report requires a verifier-host private key "
+            f"(missing {signing_key_path!s}); call agents.signing.generate_run_keys first"
+        )
+    key_bytes = signing_key_path.read_bytes()
+    if len(key_bytes) != 32:
+        raise ContractError(
+            f"signing key at {signing_key_path} must be 32 raw Ed25519 private bytes "
+            f"(got {len(key_bytes)})"
+        )
+    key_note = str(signing_key_path)
+    pub_path = signing_key_path.with_name(signing_key_path.name + ".pub")
+    if not pub_path.is_file():
+        raise FileNotFoundError(f"public key missing next to private key: {pub_path}")
+    public_b64 = base64.b64encode(pub_path.read_bytes()).decode("ascii")
+    signature = sign_payload(payload, key_bytes)
     rc = {
         "format": "nightshift.release-candidate/v0",
         "verificationSha256": hashlib.sha256(payload).hexdigest(),
         "decision": decision,
         "signature": signature,
         "signingKey": key_note,
+        "algorithm": ALGORITHM,
+        "publicKey": public_b64,
         "candidatePatchSha256": cand["patchSha256"],
     }
     if request_id:
@@ -285,8 +313,10 @@ def build_report(
         "## Signed release candidate",
         f"- file: `release-candidate.json`",
         f"- verification sha256: `{rc['verificationSha256']}`",
-        f"- signature: `{signature[:16]}…`",
-        f"- signing material: `{key_note}` (never mounted into the fixer workspace)",
+        f"- algorithm: `{ALGORITHM}`",
+        f"- signature: `{signature[:24]}…`",
+        f"- public key (published half): `{public_b64}`",
+        f"- private key path: `{key_note}` (never mounted into the fixer workspace)",
     ])
     if request_id:
         lines.append(f"- request id: `{request_id}`")
@@ -306,6 +336,8 @@ def build_report(
         "unresolved": unresolved,
         "frames": frame_meta,
         "signingKey": key_note,
+        "algorithm": ALGORITHM,
+        "publicKey": public_b64,
         "signature": signature,
         "gameplay": gameplay,
     }
