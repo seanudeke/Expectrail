@@ -83,15 +83,19 @@ def _bwrap_cmd(work: Path, argv: list[str], *, network: bool) -> list[str]:
     for ro in ("/usr", "/bin", "/lib", "/lib64", "/etc/ssl", "/etc/ca-certificates"):
         if Path(ro).exists():
             cmd.extend(["--ro-bind", ro, ro])
-    # Host muse binary (Linux ELF) when present.
+    # Host muse binary (Linux ELF) when present. Give Muse a writable tmpfs $HOME so
+    # session locks / update stamps work; never rw-bind the real host home.
+    home = Path.home()
+    cmd.extend(["--tmpfs", str(home), "--setenv", "HOME", str(home)])
     muse = shutil.which("muse")
     if muse:
         muse_path = Path(muse).resolve()
+        cmd.extend(["--dir", str(muse_path.parent)])
         cmd.extend(["--ro-bind", str(muse_path), str(muse_path)])
-        # Common user-local lib dir for muse installs.
-        local = Path.home() / ".local"
-        if local.is_dir():
-            cmd.extend(["--ro-bind", str(local), str(local)])
+        for sub in ("lib", "share"):
+            p = home / ".local" / sub
+            if p.is_dir():
+                cmd.extend(["--ro-bind", str(p), str(p)])
     cmd.extend(["--"] + argv)
     return cmd
 
