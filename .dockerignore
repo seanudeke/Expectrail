@@ -1,0 +1,11 @@
+.git
+.env
+.venv
+__pycache__
+*.pyc
+/runs
+/tools/godot_mac
+/heldout-set
+# Never bake the host's Godot binary or any import cache (possibly made on macOS) into the image
+/tools
+**/.godot

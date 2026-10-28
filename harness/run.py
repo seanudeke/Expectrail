@@ -18,11 +18,13 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 GODOT_VERSION = "4.7.2-stable"
 AUTOLOAD = 'NightshiftHarness="*res://nightshift_harness.gd"'
+DEFAULT_CACHE_DIR = REPO / "tools" / "godot_cache" / ".godot"
 
 
 def sha256_file(path: Path) -> str:
@@ -35,6 +37,75 @@ def find_godot() -> Path:
         return Path(env)
     out = subprocess.run([str(REPO / "harness" / "get_godot.sh")], check=True, capture_output=True, text=True)
     return Path(out.stdout.strip().splitlines()[-1])
+
+
+def get_cache_dir() -> Path:
+    env = os.environ.get("NIGHTSHIFT_GODOT_CACHE")
+    if env:
+        p = Path(env)
+        return p if p.name == ".godot" else p / ".godot"
+    return DEFAULT_CACHE_DIR
+
+
+def cache_key(game: Path, godot: Path) -> str:
+    """Identify what an import cache was built from: the Godot binary and the exact game files.
+
+    A cache built by another Godot build (another version, or the macOS editor) or from a game
+    tree that has since changed is stale and must not be reused for a run.
+    """
+    st = godot.resolve().stat()
+    h = hashlib.sha256()
+    h.update(f"{GODOT_VERSION}\0{godot.resolve()}\0{st.st_size}\0{st.st_mtime_ns}\0".encode())
+    h.update(tree_digest(game).encode())
+    return h.hexdigest()
+
+
+def _key_file(cache_dir: Path) -> Path:
+    # Kept beside the cache, not inside it, so the key never lands in a run's .godot/.
+    return cache_dir.with_name(cache_dir.name + ".key")
+
+
+def ensure_import_cache(game: Path, godot: Path, env: dict) -> Path | None:
+    """Return an import cache built from exactly this game and Godot binary, warming it if needed.
+
+    Only the external cache directory is used, and only when its key matches. An import folder
+    inside the clean game itself (left by the editor or a local play session) is never trusted.
+    Warming happens in a private staging folder and is swapped in at the end, so parallel runs
+    cannot see a half-built cache; any failure falls back to a normal full import (slower, same
+    frames).
+    """
+    cache_dir = get_cache_dir()
+    key = cache_key(game, godot)
+    key_file = _key_file(cache_dir)
+    if (cache_dir / "imported").is_dir() and key_file.is_file() \
+            and key_file.read_text(encoding="utf-8").strip() == key:
+        return cache_dir
+
+    staging = None
+    try:
+        cache_dir.parent.mkdir(parents=True, exist_ok=True)
+        staging = Path(tempfile.mkdtemp(prefix="staging-", dir=cache_dir.parent))
+        copy = staging / "game"
+        shutil.copytree(game, copy, ignore=shutil.ignore_patterns(".godot"))
+        subprocess.run(
+            [str(godot), "--headless", "--path", str(copy), "--import"],
+            check=True, capture_output=True, text=True, env=env, timeout=600,
+        )
+        if not (copy / ".godot" / "imported").is_dir():
+            return None
+        if cache_dir.exists():
+            retired = staging / "retired"
+            cache_dir.rename(retired)
+        (copy / ".godot").rename(cache_dir)
+        key_file.write_text(key + "\n", encoding="utf-8")
+        return cache_dir
+    except Exception as exc:
+        print(f"harness: warning: cache warming failed ({exc}); falling back to direct import",
+              file=sys.stderr)
+        return None
+    finally:
+        if staging is not None:
+            shutil.rmtree(staging, ignore_errors=True)
 
 
 def tree_digest(root: Path) -> str:
@@ -54,10 +125,13 @@ def apply_patches(work: Path, patches: list[Path]) -> None:
         )
 
 
-def prepare(game: Path, work: Path, patch: Path | None = None, patches: list[Path] | None = None) -> None:
+def prepare(game: Path, work: Path, patch: Path | None = None, patches: list[Path] | None = None,
+            cache: Path | None = None) -> None:
     if work.exists():
         shutil.rmtree(work)
     shutil.copytree(game, work, ignore=shutil.ignore_patterns(".godot"))
+    if cache and (cache / "imported").is_dir():
+        shutil.copytree(cache, work / ".godot")
     ordered = list(patches) if patches is not None else ([patch] if patch is not None else [])
     apply_patches(work, ordered)
     for name in ("nightshift_harness.gd", "nightshift_recorder.gd"):
@@ -78,29 +152,37 @@ def godot_cmd(godot: Path, display: bool) -> list[str]:
 
 
 def run(route: Path, out: Path, patch: Path | None = None, game: Path | None = None, fps: int = 60,
-        godot: Path | None = None, patches: list[Path] | None = None) -> dict:
+        godot: Path | None = None, patches: list[Path] | None = None,
+        force_import: bool = False) -> dict:
     game = game or REPO / "game" / "platformer"
     godot = godot or find_godot()
     out.mkdir(parents=True, exist_ok=True)
     work, frames = out / "work", out / "frames"
     ordered = list(patches) if patches is not None else ([patch] if patch is not None else [])
-    prepare(game, work, patches=ordered)
+    env = dict(os.environ, LIBGL_ALWAYS_SOFTWARE=os.environ.get("LIBGL_ALWAYS_SOFTWARE", "1"))
+    cache = ensure_import_cache(game, godot, env)
+    prepare(game, work, patches=ordered, cache=cache)
     if frames.exists():
         shutil.rmtree(frames)
     frames.mkdir()
     route_doc = json.loads(route.read_text(encoding="utf-8"))
-    env = dict(os.environ, LIBGL_ALWAYS_SOFTWARE=os.environ.get("LIBGL_ALWAYS_SOFTWARE", "1"))
-    try:
-        subprocess.run([str(godot), "--headless", "--path", str(work), "--import"], check=True,
-                       capture_output=True, text=True, env=env, timeout=600)
-    except subprocess.TimeoutExpired as exc:
-        (out / "godot.log").write_text((exc.stdout or "") + (exc.stderr or "") + "\nimport timed out\n",
-                                       encoding="utf-8")
-        raise SystemExit(f"godot import timed out; see {out / 'godot.log'}") from exc
+
+    # If the clean cache is populated and no patches modified assets, skip --import (~7s savings).
+    # Patched runs run an incremental --import, which finishes in ~0.2s since all base assets are cached.
+    needs_import = force_import or (not cache) or bool(ordered) or not (work / ".godot" / "imported").is_dir()
+    if needs_import:
+        try:
+            subprocess.run([str(godot), "--headless", "--path", str(work), "--import"], check=True,
+                           capture_output=True, text=True, env=env, timeout=600)
+        except subprocess.TimeoutExpired as exc:
+            (out / "godot.log").write_text((exc.stdout or "") + (exc.stderr or "") + "\nimport timed out\n",
+                                           encoding="utf-8")
+            raise SystemExit(f"godot import timed out; see {out / 'godot.log'}") from exc
     display = bool(os.environ.get("DISPLAY"))
     cmd = godot_cmd(godot, display) + [
         "--path", str(work), "--audio-driver", "Dummy", "--rendering-driver", "opengl3",
         "--write-movie", str((frames / "f.png").resolve()), "--fixed-fps", str(fps),
+        "--disable-vsync",
         "--", f"--route={route.resolve()}", f"--trace={(out / 'trace.json').resolve()}",
         f"--seed={route_doc.get('seed', 1)}"]
     try:
@@ -139,15 +221,29 @@ def run(route: Path, out: Path, patch: Path | None = None, game: Path | None = N
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    p.add_argument("--route", type=Path, required=True)
-    p.add_argument("--out", type=Path, required=True)
+    p.add_argument("--route", type=Path)
+    p.add_argument("--out", type=Path)
     p.add_argument("--patch", type=Path, action="append", default=[],
                    help="patch to apply (repeatable; order is seed then candidate)")
     p.add_argument("--game", type=Path, help="game directory (default: game/platformer)")
     p.add_argument("--fps", type=int, default=60)
+    p.add_argument("--warm-cache", action="store_true",
+                   help="warm the .godot/ import cache and exit")
+    p.add_argument("--force-import", action="store_true",
+                   help="force full godot --import even if cache is present")
     args = p.parse_args(argv)
+    if args.warm_cache:
+        game = args.game or REPO / "game" / "platformer"
+        godot = find_godot()
+        env = dict(os.environ, LIBGL_ALWAYS_SOFTWARE=os.environ.get("LIBGL_ALWAYS_SOFTWARE", "1"))
+        cache = ensure_import_cache(game, godot, env)
+        print(f"harness cache ready at {cache}")
+        return 0
+    if not args.route or not args.out:
+        p.error("--route and --out are required unless --warm-cache is specified")
     patches = args.patch or None
-    replay = run(args.route, args.out, patch=None, game=args.game, fps=args.fps, patches=patches)
+    replay = run(args.route, args.out, patch=None, game=args.game, fps=args.fps, patches=patches,
+                 force_import=args.force_import)
     print(f"{replay['capture']['frames']} frames, device {replay['engine']['device']}: {args.out / 'replay.json'}")
     return 0
 

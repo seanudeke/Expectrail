@@ -1,0 +1,10 @@
+--- a/level/coin.tscn
++++ b/level/coin.tscn
+@@ -171,7 +171,6 @@ script = ExtResource("4")
+ 
+ [node name="Sprite2D" type="Sprite2D" parent="." unique_id=842016281]
+ scale = Vector2(0.65, 0.65)
+-texture = ExtResource("1")
+ hframes = 8
+ vframes = 2
+
