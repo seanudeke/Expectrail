@@ -17,7 +17,7 @@
   ],
   "properties": {
     "format": {
-      "const": "nightshift.release-candidate/v0"
+      "enum": ["pixelproof.release-candidate/v0", "nightshift.release-candidate/v0"]
     },
     "verificationSha256": {
       "type": "string",

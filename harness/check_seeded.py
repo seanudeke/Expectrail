@@ -60,7 +60,7 @@ def main(argv: list[str] | None = None) -> int:
               f"{', trace differs' if row['traceDiffersFromClean'] else ''}")
 
     summary = {
-        "format": "nightshift.seeded-check/v0",
+        "format": "pixelproof.seeded-check/v0",
         "route": args.route.name,
         "variants": rows,
         "ok": all(r["visible"] for r in rows),

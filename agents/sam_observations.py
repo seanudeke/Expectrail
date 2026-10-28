@@ -1,17 +1,17 @@
 """SAM 3.1 observations through the Meta Model API: the ``sam`` observations provider.
 
 For the frames of one replay, asks SAM 3.1 (model ``sam-3.1`` on ``POST /v1/responses``) to find
-each object a test spec names, and writes nightshift.observations/v0 with boxes in pixels of the
+each object a test spec names, and writes pixelproof.observations/v0 with boxes in pixels of the
 captured frame. The evaluator then decides the spec over that document, exactly as it does for the
 position-log stand-in.
 
 Looking at fewer frames (docs/sam.md has the reasoning and the limits):
-  - sample: every Nth frame of the spec's window, plus its last frame (NIGHTSHIFT_SAM_EVERY,
+  - sample: every Nth frame of the spec's window, plus its last frame (PIXELPROOF_SAM_EVERY,
     default 4, the rate in docs/evaluation.md);
   - refine: when the spec fails on a sampled frame, look at every frame between the last passing
     sample and the first failing one, so the first bad frame in the report is exact;
   - cache: results are kept by frame SHA-256, prompt, model and request settings, so a frame that
-    was already judged is never sent again (NIGHTSHIFT_SAM_CACHE; "off" disables it).
+    was already judged is never sent again (PIXELPROOF_SAM_CACHE; "off" disables it).
 A frame that was not looked at is absent from the document, as the contract says.
 
 The key is read from MODEL_API_KEY in the environment (or the gitignored .env) and nowhere else.
@@ -19,7 +19,7 @@ It is not on the fixer's environment allowlist (agents.keys.MUSE_ENV_ALLOWLIST),
 never sees it.
 
     python3 -m agents.sam_observations --run runs/seeded/clean --spec specs/player-stays-above-ground.json
-    NIGHTSHIFT_OBS_PROVIDER=sam ...   # the verifier then uses this module through agents.observations
+    PIXELPROOF_OBS_PROVIDER=sam ...   # the verifier then uses this module through agents.observations
 """
 from __future__ import annotations
 
@@ -42,14 +42,14 @@ from concurrent.futures import FIRST_EXCEPTION, ThreadPoolExecutor, wait
 from pathlib import Path
 from typing import Callable
 
-from nightshift.evaluator import evaluate
+from pixelproof.evaluator import evaluate
 
-API_BASE = os.environ.get("NIGHTSHIFT_MODEL_API_BASE", "https://api.meta.ai/v1")
-MODEL = os.environ.get("NIGHTSHIFT_SAM_MODEL", "sam-3.1")
+API_BASE = os.environ.get("PIXELPROOF_MODEL_API_BASE", "https://api.meta.ai/v1")
+MODEL = os.environ.get("PIXELPROOF_SAM_MODEL", "sam-3.1")
 KEY_ENV = "MODEL_API_KEY"
-EVERY_ENV = "NIGHTSHIFT_SAM_EVERY"
-CACHE_ENV = "NIGHTSHIFT_SAM_CACHE"
-WORKERS_ENV = "NIGHTSHIFT_SAM_WORKERS"
+EVERY_ENV = "PIXELPROOF_SAM_EVERY"
+CACHE_ENV = "PIXELPROOF_SAM_CACHE"
+WORKERS_ENV = "PIXELPROOF_SAM_WORKERS"
 DEFAULT_EVERY = 4
 DEFAULT_WORKERS = 4
 # Bump when the request or the parsing changes, so older cache entries are never reused.
@@ -320,7 +320,7 @@ def default_cache_dir() -> Path | None:
     if raw is not None:
         return None if raw.strip().lower() in ("", "off", "0", "none") else Path(raw).expanduser()
     base = os.environ.get("XDG_CACHE_HOME") or str(Path.home() / ".cache")
-    return Path(base) / "nightshift" / "sam"
+    return Path(base) / "pixelproof" / "sam"
 
 
 class Cache:
@@ -503,7 +503,7 @@ def observe(frames: dict[int, Path], indices: list[int], prompts: dict[str, str]
 
 def _document(observed, prompts, model, replay_sha256, captured, in_window, every, refined) -> dict:
     return {
-        "format": "nightshift.observations/v0",
+        "format": "pixelproof.observations/v0",
         "replay": {"sha256": replay_sha256},
         "model": {"name": model, "provider": "meta-model-api", "prompts": dict(prompts)},
         "frames": [{"frame": i, "objects": {name: observed[i][name] for name in prompts}}
@@ -532,7 +532,7 @@ def from_replay(
     workers: int | None = None,
     stats: dict | None = None,
 ) -> dict:
-    """nightshift.observations/v0 for one replay, from SAM 3.1. Matches the seam's signature.
+    """pixelproof.observations/v0 for one replay, from SAM 3.1. Matches the seam's signature.
 
     ``trace``, ``fps`` and ``physics_tps`` are accepted for the seam and unused: SAM looks at
     pixels only. ``spec`` supplies the prompts, the frame window and the assertion that decides
@@ -586,7 +586,7 @@ def _from_replay(frames_dir, replay_sha256, *, spec, prompts, every, refine, cli
 
 def main(argv: list[str] | None = None) -> int:
     from agents.keys import load_dotenv
-    from nightshift.contracts import digest, load, validate
+    from pixelproof.contracts import digest, load, validate
 
     p = argparse.ArgumentParser(description="SAM 3.1 observations for one replay, then the verdict.")
     p.add_argument("--run", type=Path, required=True, help="a harness run dir with frames/ and replay.json")

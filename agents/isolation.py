@@ -8,9 +8,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from pixelproof.legacy import LEGACY_SIGNING_KEY
+
 # Closed list for Gate 1 filmable trust. Basename match under fixer-work.
 FIXER_FORBIDDEN_BASENAMES = frozenset({
-    ".nightshift-signing-key",
+    ".pixelproof-signing-key",
+    # The key's name before the October 28 rename: a stale copy must never mount either.
+    LEGACY_SIGNING_KEY,
     "obs-clean.json",
     "obs-held-out.json",
     "player-stays-above-ground.json",

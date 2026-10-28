@@ -1,5 +1,5 @@
 {
-  "format": "nightshift.verdict/v0",
+  "format": "pixelproof.verdict/v0",
   "spec": {
     "id": "player-stays-above-ground",
     "sha256": "b13a75f28147198706af53354e8f3d1b5f2e4bf93febe60ffd4d8698e3e0085d"
@@ -50,7 +50,7 @@
   ],
   "framesJudged": 3,
   "evaluator": {
-    "name": "nightshift.evaluator",
+    "name": "pixelproof.evaluator",
     "version": "0.1.0"
   }
 }

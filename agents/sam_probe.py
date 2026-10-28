@@ -28,7 +28,7 @@ from agents.sam_observations import (
     Cache, MetaSamClient, SamError, _document, default_cache_dir, frame_files, observe, sample,
     sha256_bytes, window,
 )
-from nightshift.evaluator import DEFAULT_MIN_SCORE, EDGE, SIDE, _overlap, evaluate
+from pixelproof.evaluator import DEFAULT_MIN_SCORE, EDGE, SIDE, _overlap, evaluate
 
 COLORS = ["#00e05a", "#2f8cff", "#ff4fd8", "#ffb000", "#00d5e0", "#ff5a36"]
 
@@ -269,7 +269,7 @@ def annotations(report: dict) -> list[str]:
 
 def main(argv: list[str] | None = None) -> int:
     from agents.keys import load_dotenv
-    from nightshift.contracts import load
+    from pixelproof.contracts import load
 
     p = argparse.ArgumentParser(description="Probe SAM 3.1 on a few frames of each run before trusting it.")
     p.add_argument("--runs", type=Path, nargs="+", required=True, help="run dirs with frames/ (and trace.json)")

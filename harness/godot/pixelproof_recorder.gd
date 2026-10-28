@@ -1,5 +1,5 @@
 extends Node
-## Records the player's position at the end of each physics tick (see nightshift_harness.gd).
+## Records the player's position at the end of each physics tick (see pixelproof_harness.gd).
 
 
 func _physics_process(_delta: float) -> void:

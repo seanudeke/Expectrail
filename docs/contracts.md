@@ -5,7 +5,19 @@ agents adjuncts `gameplay-verdict`, `release-candidate`, and `overnight-summary`
 schema in [`contracts/`](../contracts) and a worked example in
 [`contracts/examples/`](../contracts/examples).
 Agree changes in the team channel first, then change the schema, the example and the code in one
-pull request. Every document starts with `"format": "nightshift.<kind>/v0"`.
+pull request. Every document starts with `"format": "pixelproof.<kind>/v0"`.
+
+### Names from before the rename
+
+The project was called Nightshift until October 28, 2026. Everything we write now uses the new
+names, and the old ones are still read, so the private held-out set, the recorded runs in
+[`bench/`](../bench) and existing shells keep working ([`pixelproof/legacy.py`](../pixelproof/legacy.py)):
+
+- `nightshift.<kind>/v0` is accepted wherever `pixelproof.<kind>/v0` is, including route files
+  the harness replays.
+- `NIGHTSHIFT_X` environment variables (and `.env` entries) are adopted as `PIXELPROOF_X` when the
+  new name is unset, with a warning. The new name always wins.
+- `.nightshift-signing-key` stays on the fixer's deny list next to `.pixelproof-signing-key`.
 
 ```
 route ──► harness ──► replay + frames ──► SAM 3.1 ──► observations ─┐
@@ -36,12 +48,12 @@ verification ◄── verifier (rebuild, replay, all checks) ◄── candidat
   absence is the thing being tested.
 - **Positions stay out of prompts.** A test spec's `objects` are short noun phrases for SAM 3.1.
   Spatial and temporal conditions live in the `assertion`, which the evaluator decides in code.
-  `nightshift.spec_writer` drafts specs with Muse Spark, rejects drafts with positional prompts or
+  `pixelproof.spec_writer` drafts specs with Muse Spark, rejects drafts with positional prompts or
   unknown objects, and only a person adds the `approval`.
 - **Four assertion types, nothing else yet:** `visible`, `inside-region`, `never-crosses` and
   `reaches`. Any other instruction stays a draft marked needs review.
 - **Everything is named by digest.** A verdict records the sha256 of the spec and the observations
-  (`nightshift.contracts.digest`: sorted keys, no spaces), and a replay records the sha256 of the
+  (`pixelproof.contracts.digest`: sorted keys, no spaces), and a replay records the sha256 of the
   route, the game tree, the patch and every frame. Anyone can recompute a verdict.
 - **The fixer gets a repair request and nothing more.** It can read the failing spec and verdict,
   the route and key frames. Held-out variants, clean controls, the evaluator, the gameplay checks

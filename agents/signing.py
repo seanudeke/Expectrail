@@ -1,6 +1,6 @@
 """Per-run verifier-host signing keys (Ed25519).
 
-Private key stays on the verifier host only (``.nightshift-signing-key``).
+Private key stays on the verifier host only (``.pixelproof-signing-key``).
 Public half is published in the morning report / release-candidate.
 """
 from __future__ import annotations
@@ -15,8 +15,8 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
 )
 
 ALGORITHM = "ed25519"
-PRIVATE_NAME = ".nightshift-signing-key"
-PUBLIC_NAME = ".nightshift-signing-key.pub"
+PRIVATE_NAME = ".pixelproof-signing-key"
+PUBLIC_NAME = ".pixelproof-signing-key.pub"
 
 
 def generate_run_keys(verifier_host: Path) -> dict:

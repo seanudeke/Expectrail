@@ -15,7 +15,7 @@
   "additionalProperties": false,
   "properties": {
     "format": {
-      "const": "nightshift.repair-request/v0"
+      "enum": ["pixelproof.repair-request/v0", "nightshift.repair-request/v0"]
     },
     "id": {
       "type": "string"

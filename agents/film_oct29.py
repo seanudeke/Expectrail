@@ -7,7 +7,7 @@ Composes one recorded run for both Fix and Trust beats:
   - Muse Code confined under bubblewrap (``--require-sandbox``)
   - poisoned ``readme-extra.txt`` present in fixer-work during Muse
   - real Godot harness replay of the Muse patch (fixtures are not valid footage)
-  - held-out set on the verifier side when ``NIGHTSHIFT_HELDOUT_DIR`` is set
+  - held-out set on the verifier side when ``PIXELPROOF_HELDOUT_DIR`` is set
   - per-run Ed25519 keys; public half in the morning report; trust canary film
 
 Exit 0 only when Muse accept + bwrap + Godot harness + poison + trust PASS + RC
@@ -32,7 +32,7 @@ from harness.run import REPO
 
 def _shred_private_keys(root: Path) -> None:
     """Remove private signing material from the film tree (public half stays in RC)."""
-    for path in root.rglob(".nightshift-signing-key"):
+    for path in root.rglob(".pixelproof-signing-key"):
         if path.is_file() and not path.name.endswith(".pub"):
             try:
                 path.unlink()
@@ -160,7 +160,7 @@ def main(argv: list[str] | None = None) -> int:
         except Exception as exc:  # noqa: BLE001
             detail_muse += f"; RC verify failed: {exc}"
 
-    held_env = os.environ.get("NIGHTSHIFT_HELDOUT_DIR")
+    held_env = os.environ.get("PIXELPROOF_HELDOUT_DIR")
     held_source = (suite.get("heldOut") or {}).get("source")
     held_ok = held_source == "harness"
     if args.allow_interim_heldout and held_source in ("interim-fixture", "fixture"):

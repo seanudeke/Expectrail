@@ -1,5 +1,5 @@
 {
-  "format": "nightshift.observations/v0",
+  "format": "pixelproof.observations/v0",
   "replay": {
     "sha256": "d93bc0f0900b0a2b384f5c256562f2c5eb81a6cc8081acc6ba0766eaa9d3e917"
   },

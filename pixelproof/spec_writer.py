@@ -1,9 +1,9 @@
 """Draft a test spec from a plain-English check with Muse Spark, then have a person approve it.
 
     export MODEL_API_KEY=...              # your Meta Model API key; never commit it
-    python3 -m nightshift.spec_writer draft "The player never falls through the ground" \
+    python3 -m pixelproof.spec_writer draft "The player never falls through the ground" \
         --id player-stays-above-ground --out specs/player-stays-above-ground.json
-    python3 -m nightshift.spec_writer approve specs/player-stays-above-ground.json --by sean
+    python3 -m pixelproof.spec_writer approve specs/player-stays-above-ground.json --by sean
 
 Muse Spark only drafts. A draft is checked against contracts/test-spec.schema.json, and against
 Meta's advice to keep positions out of SAM prompts, and it has no approval until a person adds one.
@@ -21,16 +21,16 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
-from nightshift.contracts import ContractError, schema, validate
+from pixelproof.contracts import ContractError, schema, validate
 
-API_BASE = os.environ.get("NIGHTSHIFT_MODEL_API_BASE", "https://api.meta.ai/v1")
-DEFAULT_MODEL = os.environ.get("NIGHTSHIFT_SPEC_MODEL", "muse-spark-1.3")
+API_BASE = os.environ.get("PIXELPROOF_MODEL_API_BASE", "https://api.meta.ai/v1")
+DEFAULT_MODEL = os.environ.get("PIXELPROOF_SPEC_MODEL", "muse-spark-1.3")
 # Words that describe position. SAM 3.1 finds things; where they are is the evaluator's job.
 POSITIONAL = re.compile(r"\b(left|right|above|below|under|over|top|bottom|behind|in front|near|beside|"
                         r"next to|inside|outside|on top|underneath|between)\b", re.I)
 
-SYSTEM_PROMPT = """You write test specs for Nightshift, a system that checks what players see in a game.
-Turn the user's plain-English check into one JSON object in the nightshift.test-spec/v0 format.
+SYSTEM_PROMPT = """You write test specs for Pixel Proof, a system that checks what players see in a game.
+Turn the user's plain-English check into one JSON object in the pixelproof.test-spec/v0 format.
 
 Rules:
 - "objects" names each thing the check is about. Each "prompt" is a short noun phrase a segmentation
@@ -50,7 +50,7 @@ Return only the JSON object."""
 
 EXAMPLE_IN = "The dialog text always fits inside the dialog box."
 EXAMPLE_OUT = {
-    "format": "nightshift.test-spec/v0", "id": "dialog-text-fits-box", "instruction": EXAMPLE_IN,
+    "format": "pixelproof.test-spec/v0", "id": "dialog-text-fits-box", "instruction": EXAMPLE_IN,
     "objects": {"text": {"prompt": "dialog text"}, "box": {"prompt": "dialog box"}},
     "assertion": {"type": "inside-region", "object": "text", "region": {"relativeTo": "box"}, "tolerancePx": 4},
 }
@@ -78,7 +78,7 @@ def request_body(instruction: str, model: str, structured: bool = True, problems
     if structured:
         spec_schema = {k: v for k, v in schema("test-spec").items() if not k.startswith("$")}
         body["response_format"] = {"type": "json_schema",
-                                   "json_schema": {"name": "nightshift_test_spec", "schema": spec_schema}}
+                                   "json_schema": {"name": "pixelproof_test_spec", "schema": spec_schema}}
     else:
         body["response_format"] = {"type": "json_object"}
     return body
@@ -152,7 +152,7 @@ def draft(instruction: str, spec_id: str | None = None, model: str = DEFAULT_MOD
         doc = _parse(response)
         if "unsupported" in doc:
             return None, [f"unsupported: {doc['unsupported']}"]
-        doc["format"] = "nightshift.test-spec/v0"
+        doc["format"] = "pixelproof.test-spec/v0"
         doc["instruction"] = instruction
         doc["id"] = spec_id or doc.get("id") or slug(instruction)
         doc.pop("approval", None)
@@ -182,7 +182,7 @@ def approve(path: Path, by: str, at: str | None = None) -> dict:
 
 
 def main(argv=None) -> int:
-    p = argparse.ArgumentParser(description="Draft and approve Nightshift test specs.")
+    p = argparse.ArgumentParser(description="Draft and approve Pixel Proof test specs.")
     sub = p.add_subparsers(dest="cmd", required=True)
     d = sub.add_parser("draft", help="ask Muse Spark for a draft spec")
     d.add_argument("instruction")
@@ -203,7 +203,7 @@ def main(argv=None) -> int:
             text = json.dumps(spec, indent=2) + "\n"
             if args.out:
                 args.out.write_text(text, encoding="utf-8")
-                print(f"draft written to {args.out}; review it, then run: python3 -m nightshift.spec_writer "
+                print(f"draft written to {args.out}; review it, then run: python3 -m pixelproof.spec_writer "
                       f"approve {args.out} --by <you>")
             else:
                 print(text, end="")

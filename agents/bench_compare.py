@@ -1,15 +1,15 @@
-"""Gate 2 scaffold: Muse Code (screenshot judge) vs Nightshift verifier.
+"""Gate 2 scaffold: Muse Code (screenshot judge) vs Pixel Proof verifier.
 
 Builds a comparison contract and runner shell. Does **not** invent Muse wins —
 live Muse screenshot judging stays behind ``--live-muse`` and META_API_KEY.
 
-    # Offline scaffold (CI-safe): Nightshift side only + empty Muse slot
+    # Offline scaffold (CI-safe): Pixel Proof side only + empty Muse slot
     python3 -m agents.bench_compare --out runs/bench-compare
 
     # Later (Sean + Taofeek): fill Muse arm when the screenshot-judge prompt lands
     python3 -m agents.bench_compare --out runs/bench-compare --live-muse
 
-Exit 0 when the comparison document validates and the Nightshift arm completes.
+Exit 0 when the comparison document validates and the Pixel Proof arm completes.
 """
 from __future__ import annotations
 
@@ -22,13 +22,13 @@ from pathlib import Path
 from agents.gate1 import main as gate1_main
 from agents.keys import load_dotenv, muse_code_ready
 from harness.run import REPO
-from nightshift.contracts import validate
+from pixelproof.contracts import validate
 
-FORMAT = "nightshift.bench-compare/v0"
+FORMAT = "pixelproof.bench-compare/v0"
 
 
-def _nightshift_arm(out: Path, *, skip_harness: bool) -> dict:
-    gate_out = out / "nightshift"
+def _pixelproof_arm(out: Path, *, skip_harness: bool) -> dict:
+    gate_out = out / "pixelproof"
     argv = [
         "--out", str(gate_out),
         "--candidate-patch",
@@ -53,7 +53,7 @@ def _nightshift_arm(out: Path, *, skip_harness: bool) -> dict:
         public_key = rc.get("publicKey")
         validate(rc, "release-candidate")
     return {
-        "name": "nightshift",
+        "name": "pixelproof",
         "ok": code == 0 and decision == "accept",
         "decision": decision,
         "exitCode": code,
@@ -61,9 +61,9 @@ def _nightshift_arm(out: Path, *, skip_harness: bool) -> dict:
         "morning": str(morning) if morning.is_file() else None,
         "publicKey": public_key,
         "detail": (
-            "Nightshift fixture fix → verifier accept + Ed25519 RC"
+            "Pixel Proof fixture fix → verifier accept + Ed25519 RC"
             if code == 0 and decision == "accept"
-            else f"Nightshift arm failed exit={code} decision={decision}"
+            else f"Pixel Proof arm failed exit={code} decision={decision}"
         ),
     }
 
@@ -82,7 +82,7 @@ def _muse_screenshots_arm(out: Path, *, live: bool) -> dict:
             "# Muse Code screenshot-judge arm",
             "",
             "Gate 2 comparison slot. Fill with Sean's Muse-screenshots baseline:",
-            "- same bug / frames as the Nightshift arm",
+            "- same bug / frames as the Pixel Proof arm",
             "- Muse asked to accept/reject from screenshots alone",
             "- record muse.log + decision; never forge accept offline",
             "",
@@ -124,27 +124,27 @@ def build_compare(
     live_muse: bool = False,
 ) -> dict:
     out.mkdir(parents=True, exist_ok=True)
-    nightshift = _nightshift_arm(out, skip_harness=skip_harness)
+    pixelproof = _pixelproof_arm(out, skip_harness=skip_harness)
     muse = _muse_screenshots_arm(out, live=live_muse)
     doc = {
         "format": FORMAT,
         "generatedAt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "arms": [nightshift, muse],
-        "nightshiftOk": bool(nightshift.get("ok")),
+        "arms": [pixelproof, muse],
+        "pixelproofOk": bool(pixelproof.get("ok")),
         "museOk": muse.get("ok"),
         "detail": (
-            "Nightshift arm filmed; Muse screenshot arm is a scaffold until the judge lands"
+            "Pixel Proof arm filmed; Muse screenshot arm is a scaffold until the judge lands"
         ),
     }
     (out / "bench-compare.json").write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
     lines = [
-        "# Bench compare — Muse screenshots vs Nightshift",
+        "# Bench compare — Muse screenshots vs Pixel Proof",
         "",
         f"- Generated: `{doc['generatedAt']}`",
-        f"- Nightshift: {'PASS' if nightshift.get('ok') else 'FAIL'} — {nightshift.get('detail')}",
+        f"- Pixel Proof: {'PASS' if pixelproof.get('ok') else 'FAIL'} — {pixelproof.get('detail')}",
     ]
-    if nightshift.get("publicKey"):
-        lines.append(f"- Nightshift RC public key: `{nightshift['publicKey']}`")
+    if pixelproof.get("publicKey"):
+        lines.append(f"- Pixel Proof RC public key: `{pixelproof['publicKey']}`")
     muse_label = "SKIPPED" if muse.get("skipped") else ("PASS" if muse.get("ok") else "FAIL")
     lines.append(f"- Muse screenshots: {muse_label} — {muse.get('detail')}")
     lines.append("")
@@ -156,13 +156,13 @@ def main(argv: list[str] | None = None) -> int:
     load_dotenv()
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--out", type=Path, default=Path("runs/bench-compare"))
-    p.add_argument("--harness", action="store_true", help="Godot replay for Nightshift arm")
+    p.add_argument("--harness", action="store_true", help="Godot replay for Pixel Proof arm")
     p.add_argument("--live-muse", action="store_true",
                    help="attempt Muse screenshot judge (fails closed until wired)")
     args = p.parse_args(argv)
     doc = build_compare(args.out, skip_harness=not args.harness, live_muse=args.live_muse)
     print((args.out / "bench-compare.md").read_text(encoding="utf-8"))
-    if not doc.get("nightshiftOk"):
+    if not doc.get("pixelproofOk"):
         return 1
     if args.live_muse:
         muse = next(a for a in doc["arms"] if a["name"] == "muse-screenshots")

@@ -30,7 +30,7 @@ from agents.triage import WONDER_MODEL, triage
 from agents.trust import run_trust_check
 from agents.verifier import verify
 from harness.run import REPO
-from nightshift.contracts import load, validate
+from pixelproof.contracts import load, validate
 
 DEFAULT_BEFORE = REPO / "agents" / "fixtures" / "frames" / "before-fall.png"
 DEFAULT_AFTER = REPO / "agents" / "fixtures" / "frames" / "after-fixed.png"
@@ -67,7 +67,7 @@ def one_run(
     require_sandbox: bool = False,
 ) -> dict:
     out.mkdir(parents=True, exist_ok=True)
-    signing_key = out / "verifier-host" / ".nightshift-signing-key"
+    signing_key = out / "verifier-host" / ".pixelproof-signing-key"
     trust = None
     t0 = time.perf_counter()
     attempt_films: list[dict] = []
@@ -138,7 +138,7 @@ def one_run(
             fixer_work = fix_out / "fixer-work"
             if not fixer_work.is_dir():
                 raise SystemExit("fixer-work missing after fixer")
-            leaked = list(fixer_work.rglob(".nightshift-signing-key"))
+            leaked = list(fixer_work.rglob(".pixelproof-signing-key"))
             if leaked:
                 raise SystemExit(f"signing key leaked into fixer workspace: {leaked}")
 
@@ -331,7 +331,7 @@ def main(argv: list[str] | None = None) -> int:
             "costProvenance": "unmetered-live-unset",
         }
     summary = {
-        "format": "nightshift.overnight-summary/v0",
+        "format": "pixelproof.overnight-summary/v0",
         "mode": resolved,
         "runs": args.runs,
         "accepted": accepted,

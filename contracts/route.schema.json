@@ -12,7 +12,7 @@
   "additionalProperties": false,
   "properties": {
     "format": {
-      "const": "nightshift.route/v0"
+      "enum": ["pixelproof.route/v0", "nightshift.route/v0"]
     },
     "name": {
       "type": "string",

@@ -1,12 +1,12 @@
 import copy
 import unittest
 
-from nightshift.contracts import validate
-from nightshift.evaluator import REQUIRED_CHECK_KINDS, decide, evaluate
+from pixelproof.contracts import validate
+from pixelproof.evaluator import REQUIRED_CHECK_KINDS, decide, evaluate
 
 
 def spec(assertion, objects=("player", "ground"), window=None):
-    doc = {"format": "nightshift.test-spec/v0", "id": "t", "instruction": "test",
+    doc = {"format": "pixelproof.test-spec/v0", "id": "t", "instruction": "test",
            "objects": {name: {"prompt": name} for name in objects}, "assertion": assertion}
     if window:
         doc["window"] = window
@@ -14,7 +14,7 @@ def spec(assertion, objects=("player", "ground"), window=None):
 
 
 def obs(*frames):
-    return {"format": "nightshift.observations/v0", "replay": {"sha256": "0" * 64}, "model": {"name": "sam-3.1"},
+    return {"format": "pixelproof.observations/v0", "replay": {"sha256": "0" * 64}, "model": {"name": "sam-3.1"},
             "frames": [{"frame": n, "objects": objects} for n, objects in frames]}
 
 

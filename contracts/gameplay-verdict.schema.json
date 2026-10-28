@@ -17,7 +17,7 @@
   ],
   "properties": {
     "format": {
-      "const": "nightshift.gameplay-verdict/v0"
+      "enum": ["pixelproof.gameplay-verdict/v0", "nightshift.gameplay-verdict/v0"]
     },
     "spec": {
       "type": "string",

@@ -38,11 +38,11 @@ class HarnessTest(unittest.TestCase):
 
     def test_get_cache_dir_default_and_env(self):
         with mock.patch.dict(os.environ):
-            os.environ.pop("NIGHTSHIFT_GODOT_CACHE", None)  # a developer may have it set
+            os.environ.pop("PIXELPROOF_GODOT_CACHE", None)  # a developer may have it set
             self.assertEqual(get_cache_dir(), DEFAULT_CACHE_DIR)
-        with mock.patch.dict(os.environ, {"NIGHTSHIFT_GODOT_CACHE": "/custom/path"}):
+        with mock.patch.dict(os.environ, {"PIXELPROOF_GODOT_CACHE": "/custom/path"}):
             self.assertEqual(get_cache_dir(), Path("/custom/path/.godot"))
-        with mock.patch.dict(os.environ, {"NIGHTSHIFT_GODOT_CACHE": "/custom/path/.godot"}):
+        with mock.patch.dict(os.environ, {"PIXELPROOF_GODOT_CACHE": "/custom/path/.godot"}):
             self.assertEqual(get_cache_dir(), Path("/custom/path/.godot"))
 
     def test_prepare_with_cache(self):
@@ -62,10 +62,10 @@ class HarnessTest(unittest.TestCase):
             prepare(game, work, cache=cache)
 
             self.assertTrue((work / "project.godot").is_file())
-            self.assertTrue((work / "nightshift_harness.gd").is_file())
-            self.assertTrue((work / "nightshift_recorder.gd").is_file())
+            self.assertTrue((work / "pixelproof_harness.gd").is_file())
+            self.assertTrue((work / "pixelproof_recorder.gd").is_file())
             self.assertTrue((work / ".godot" / "imported" / "sample.ctex").is_file())
-            self.assertIn("NightshiftHarness", (work / "project.godot").read_text(encoding="utf-8"))
+            self.assertIn("PixelProofHarness", (work / "project.godot").read_text(encoding="utf-8"))
 
     def _fake_godot_import(self, calls):
         """subprocess.run stand-in: '--import' creates .godot/imported in the target project."""
@@ -92,7 +92,7 @@ class HarnessTest(unittest.TestCase):
             godot = root / "fake-godot"
             godot.touch()
             calls = []
-            with mock.patch.dict(os.environ, {"NIGHTSHIFT_GODOT_CACHE": str(root / "cache")}):
+            with mock.patch.dict(os.environ, {"PIXELPROOF_GODOT_CACHE": str(root / "cache")}):
                 with mock.patch("subprocess.run", side_effect=self._fake_godot_import(calls)):
                     found = ensure_import_cache(game, godot, {})
             self.assertEqual(found, root / "cache" / ".godot")
@@ -107,7 +107,7 @@ class HarnessTest(unittest.TestCase):
             godot = root / "fake-godot"
             godot.touch()
             calls = []
-            with mock.patch.dict(os.environ, {"NIGHTSHIFT_GODOT_CACHE": str(root / "cache")}):
+            with mock.patch.dict(os.environ, {"PIXELPROOF_GODOT_CACHE": str(root / "cache")}):
                 with mock.patch("subprocess.run", side_effect=self._fake_godot_import(calls)):
                     first = ensure_import_cache(game, godot, {})
                     again = ensure_import_cache(game, godot, {})
@@ -130,7 +130,7 @@ class HarnessTest(unittest.TestCase):
             godot = root / "fake-godot"
             godot.touch()
             boom = subprocess.CalledProcessError(1, ["godot", "--import"])
-            with mock.patch.dict(os.environ, {"NIGHTSHIFT_GODOT_CACHE": str(root / "cache")}):
+            with mock.patch.dict(os.environ, {"PIXELPROOF_GODOT_CACHE": str(root / "cache")}):
                 with mock.patch("subprocess.run", side_effect=boom):
                     self.assertIsNone(ensure_import_cache(game, godot, {}))
 
@@ -159,7 +159,7 @@ class HarnessTest(unittest.TestCase):
                     return mock.Mock(returncode=0, stdout="Godot Engine v4.7.2 Using Device: test", stderr="")
                 return fake_import(cmd, **kw)
 
-            with mock.patch.dict(os.environ, {"NIGHTSHIFT_GODOT_CACHE": str(root / "cache")}):
+            with mock.patch.dict(os.environ, {"PIXELPROOF_GODOT_CACHE": str(root / "cache")}):
                 with mock.patch("subprocess.run", side_effect=fake_subp):
                     ensure_import_cache(game, godot_mock, {})  # warm once
                     calls.clear()

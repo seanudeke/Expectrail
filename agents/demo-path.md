@@ -9,7 +9,7 @@ python3 -m agents.loop --out runs/demo-path --mode offline --runs 10
 Open:
 
 - `runs/demo-path/morning-report.md` — overnight rollup (accepts, wall-clock, cost stub, trust)
-- `runs/demo-path/summary.json` — schema-valid `nightshift.overnight-summary/v0`
+- `runs/demo-path/summary.json` — schema-valid `pixelproof.overnight-summary/v0`
 - `runs/demo-path/frames/` — latest accept before/after
 - `runs/demo-path/run-00/morning/release-candidate.json` — signed RC pointer
 - `runs/demo-path/run-00/trust/trust-evidence.md` — deny-by-absence evidence

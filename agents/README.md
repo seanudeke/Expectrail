@@ -20,7 +20,7 @@ After editable/base-tree gates, the verifier emits four check kinds: `regression
 are `needs-review`). **Gameplay** is judged by `agents.gameplay` from the candidate harness
 `trace.json` (or mapped offline `agents/fixtures/trace-*.json`) — min Δx, end-on-floor, no
 sustained below-ground — not a SAM `reaches` / invented goal. The verifier writes schema-valid
-`verdict-gameplay.json` (`nightshift.gameplay-verdict/v0`); morning films a `## Gameplay`
+`verdict-gameplay.json` (`pixelproof.gameplay-verdict/v0`); morning films a `## Gameplay`
 section. The check id `player-motion-on-smoke` is an opaque motion label (not a SAM
 `reaches` goal). The retired `player-reaches-end-of-route.json` basename stays on the
 fixer deny-list forever; `player-motion-on-smoke.json` is deny-listed too so neither can
@@ -28,7 +28,7 @@ mount into fixer-work. Overnight rollup films latest gameplay-reject reason/sour
 Clean uses a no-patch harness replay when available; if Godot
 aborts on that second import (seen on CI), it falls back to `agents/fixtures/obs-clean.json`
 and still decides (`suite.clean.source=fixture-fallback`). Held-out replays the
-seed + candidate on the private held-out routes when `NIGHTSHIFT_HELDOUT_DIR` points at a checkout
+seed + candidate on the private held-out routes when `PIXELPROOF_HELDOUT_DIR` points at a checkout
 of `seanudeke/Nightshift-heldout` (suite source `harness`; visual spec and gameplay must both pass;
 an unusable set is `needs-review`, never a pass). Offline and fixture runs keep
 `agents/fixtures/obs-held-out.json` as a labeled `interim-fixture` control. Keep the held-out
@@ -76,7 +76,7 @@ fixtures rejects the run. Per-run Ed25519 keys are generated under `verifier-hos
 returns (private half never in fixer-work; public half published in the morning RC).
 Default verification is fixture observations (`verificationProvenance`); pass
 `--no-skip-harness` for Godot harness verify. Observations default to the
-trace/position-log stand-in; set `NIGHTSHIFT_OBS_PROVIDER=sam` to use SAM 3.1 through
+trace/position-log stand-in; set `PIXELPROOF_OBS_PROVIDER=sam` to use SAM 3.1 through
 the Meta Model API instead (needs `MODEL_API_KEY` and harness frames; see `docs/sam.md`).
 
 ```sh
@@ -85,7 +85,7 @@ python3 -m agents.loop --out runs/loop --mode auto --runs 1
 
 # CI / deterministic — see agents/demo-path.md for the filmable hand-over checklist
 python3 -m agents.loop --out runs/loop --mode offline --runs 10
-# → summary.json is nightshift.overnight-summary/v0 (wall-clock + unmetered-offline cost)
+# → summary.json is pixelproof.overnight-summary/v0 (wall-clock + unmetered-offline cost)
 python3 -m agents.bench --summary runs/loop/summary.json
 
 # Force live Wonder + Muse Code (fails closed without keys + muse)
@@ -136,7 +136,7 @@ python3 -m agents.film_oct29 --out runs/oct29-film
 ## Gate 2 bench compare (scaffold)
 
 ```sh
-# Nightshift arm + empty Muse-screenshots slot (no Meta spend)
+# Pixel Proof arm + empty Muse-screenshots slot (no Meta spend)
 python3 -m agents.bench_compare --out runs/bench-compare
 ```
 

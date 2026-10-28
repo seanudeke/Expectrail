@@ -98,7 +98,7 @@ jobs:
           python -m agents.gate1 --out runs/agents-gate1 --skip-harness \
             --observations agents/fixtures/obs-fixed.json \
             --candidate-patch agents/fixtures/fix-collision-mask.patch
-          python -c "import json; from nightshift.contracts import validate; from pathlib import Path; d=json.load(open('runs/agents-gate1/verify/verification.json')); assert d['decision']=='accept', d; kinds={c['kind']:c['result'] for c in d['checks']}; assert kinds.get('gameplay')=='pass', d; md=Path('runs/agents-gate1/morning/morning-report.md').read_text(); assert '## Gameplay' in md and '## Suite provenance' in md, md; rc=json.load(open('runs/agents-gate1/morning/release-candidate.json')); validate(rc,'release-candidate'); assert rc['decision']=='accept'"
+          python -c "import json; from pixelproof.contracts import validate; from pathlib import Path; d=json.load(open('runs/agents-gate1/verify/verification.json')); assert d['decision']=='accept', d; kinds={c['kind']:c['result'] for c in d['checks']}; assert kinds.get('gameplay')=='pass', d; md=Path('runs/agents-gate1/morning/morning-report.md').read_text(); assert '## Gameplay' in md and '## Suite provenance' in md, md; rc=json.load(open('runs/agents-gate1/morning/release-candidate.json')); validate(rc,'release-candidate'); assert rc['decision']=='accept'"
       - name: Freeze-player must reject
         run: |
           python -m agents.orchestrator \
@@ -115,13 +115,13 @@ jobs:
             --out runs/agents-negatives/freeze-verify \
             --skip-harness --observations agents/fixtures/obs-freeze.json \
             && exit 1 || true
-          python -c "import json; from nightshift.contracts import validate; from agents.gameplay import REASON_DELTA; from agents.verifier import GAMEPLAY_SPEC_ID; d=json.load(open('runs/agents-negatives/freeze-verify/verification.json')); assert d['decision']=='reject', d; kinds={c['kind']:c['result'] for c in d['checks']}; assert kinds.get('gameplay')=='fail', d; g=json.load(open('runs/agents-negatives/freeze-verify/verdict-gameplay.json')); validate(g,'gameplay-verdict'); assert g['spec']==GAMEPLAY_SPEC_ID, g; assert g['reason']==REASON_DELTA, g; assert g['metrics']['minDeltaX']==g['minDeltaX'], g"
+          python -c "import json; from pixelproof.contracts import validate; from agents.gameplay import REASON_DELTA; from agents.verifier import GAMEPLAY_SPEC_ID; d=json.load(open('runs/agents-negatives/freeze-verify/verification.json')); assert d['decision']=='reject', d; kinds={c['kind']:c['result'] for c in d['checks']}; assert kinds.get('gameplay')=='fail', d; g=json.load(open('runs/agents-negatives/freeze-verify/verdict-gameplay.json')); validate(g,'gameplay-verdict'); assert g['spec']==GAMEPLAY_SPEC_ID, g; assert g['reason']==REASON_DELTA, g; assert g['metrics']['minDeltaX']==g['minDeltaX'], g"
           set +e
           python -m agents.report --verification runs/agents-negatives/freeze-verify/verification.json --candidate runs/agents-negatives/freeze/candidate.patch --gameplay-verdict runs/agents-negatives/freeze-verify/verdict-gameplay.json --before agents/fixtures/frames/before-fall.png --after agents/fixtures/frames/after-fixed.png --out runs/agents-negatives/freeze-morning
           report_status=$?
           set -e
           test "$report_status" -eq 1
-          python -c "from pathlib import Path; from nightshift.contracts import validate; import json; from agents.gameplay import REASON_DELTA; md=Path('runs/agents-negatives/freeze-morning/morning-report.md').read_text(); assert '## Gameplay' in md and REASON_DELTA in md, md; rc=json.load(open('runs/agents-negatives/freeze-morning/release-candidate.json')); validate(rc,'release-candidate'); assert rc['decision']=='reject'"
+          python -c "from pathlib import Path; from pixelproof.contracts import validate; import json; from agents.gameplay import REASON_DELTA; md=Path('runs/agents-negatives/freeze-morning/morning-report.md').read_text(); assert '## Gameplay' in md and REASON_DELTA in md, md; rc=json.load(open('runs/agents-negatives/freeze-morning/release-candidate.json')); validate(rc,'release-candidate'); assert rc['decision']=='reject'"
       - name: Trust beat (signing key absent from fixer + canary probe film)
         run: |
           python -m agents.trust --out runs/agents-trust
@@ -177,7 +177,7 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-          from nightshift.contracts import validate
+          from pixelproof.contracts import validate
           summary = json.loads(Path("runs/agents-loop/summary.json").read_text())
           validate(summary, "overnight-summary")
           assert summary["accepted"] == 10 and summary["runs"] == 10, summary
@@ -253,7 +253,7 @@ jobs:
           persist-credentials: false
       - name: Point the verifier at the held-out set
         if: env.HELDOUT_TOKEN_SET == 'true'
-        run: echo "NIGHTSHIFT_HELDOUT_DIR=$GITHUB_WORKSPACE/heldout-set" >> "$GITHUB_ENV"
+        run: echo "PIXELPROOF_HELDOUT_DIR=$GITHUB_WORKSPACE/heldout-set" >> "$GITHUB_ENV"
       - name: Flake control — seed+fix replay identical twice
         run: >
           python -m harness.replay_check --route harness/routes/smoke.json --runs 2
@@ -265,9 +265,9 @@ jobs:
           python -m agents.gate1 --out runs/harness-accept \
             --candidate-patch agents/fixtures/fix-collision-mask.patch
           python -c "import json; d=json.load(open('runs/harness-accept/verify/verification.json')); assert d['decision']=='accept', d; kinds={c['kind']:c['result'] for c in d['checks']}; assert kinds.get('gameplay')=='pass', d"
-          python -c "import json, os; d=json.load(open('runs/harness-accept/verify/verification.json')); src=d['suite']['heldOut']['source']; print('held-out source:', src); assert (src=='harness') == bool(os.environ.get('NIGHTSHIFT_HELDOUT_DIR')), d['suite']"
+          python -c "import json, os; d=json.load(open('runs/harness-accept/verify/verification.json')); src=d['suite']['heldOut']['source']; print('held-out source:', src); assert (src=='harness') == bool(os.environ.get('PIXELPROOF_HELDOUT_DIR')), d['suite']"
           python -m agents.report --verification runs/harness-accept/verify/verification.json --candidate runs/harness-accept/fix/candidate.patch --gameplay-verdict runs/harness-accept/verify/verdict-gameplay.json --before agents/fixtures/frames/before-fall.png --after agents/fixtures/frames/after-fixed.png --out runs/harness-accept/morning
-          python -c "import json; from nightshift.contracts import validate; from pathlib import Path; md=Path('runs/harness-accept/morning/morning-report.md').read_text(); assert '## Gameplay' in md and '## Suite provenance' in md, md; rc=json.load(open('runs/harness-accept/morning/release-candidate.json')); validate(rc,'release-candidate'); assert rc['decision']=='accept'; assert rc.get('requestSha256')"
+          python -c "import json; from pixelproof.contracts import validate; from pathlib import Path; md=Path('runs/harness-accept/morning/morning-report.md').read_text(); assert '## Gameplay' in md and '## Suite provenance' in md, md; rc=json.load(open('runs/harness-accept/morning/release-candidate.json')); validate(rc,'release-candidate'); assert rc['decision']=='accept'; assert rc.get('requestSha256')"
       - name: Harness-backed freeze-player must reject
         run: |
           python -m agents.orchestrator \
@@ -285,14 +285,14 @@ jobs:
             --out runs/harness-negatives/freeze-verify
           status=$?
           set -e
-          python -c "import json; from nightshift.contracts import validate; d=json.load(open('runs/harness-negatives/freeze-verify/verification.json')); assert d['decision']=='reject', d; kinds={c['kind']:c['result'] for c in d['checks']}; assert kinds.get('gameplay')=='fail', d; g=json.load(open('runs/harness-negatives/freeze-verify/verdict-gameplay.json')); validate(g,'gameplay-verdict'); assert g['source']=='harness-trace'; g; print(d['decision'], d['reasons'])"
+          python -c "import json; from pixelproof.contracts import validate; d=json.load(open('runs/harness-negatives/freeze-verify/verification.json')); assert d['decision']=='reject', d; kinds={c['kind']:c['result'] for c in d['checks']}; assert kinds.get('gameplay')=='fail', d; g=json.load(open('runs/harness-negatives/freeze-verify/verdict-gameplay.json')); validate(g,'gameplay-verdict'); assert g['source']=='harness-trace'; g; print(d['decision'], d['reasons'])"
           test "$status" -ne 0
           set +e
           python -m agents.report --verification runs/harness-negatives/freeze-verify/verification.json --candidate runs/harness-negatives/freeze/candidate.patch --gameplay-verdict runs/harness-negatives/freeze-verify/verdict-gameplay.json --before agents/fixtures/frames/before-fall.png --after agents/fixtures/frames/after-fixed.png --out runs/harness-negatives/freeze-morning
           report_status=$?
           set -e
           test "$report_status" -eq 1
-          python -c "from pathlib import Path; import json; from nightshift.contracts import validate; from agents.gameplay import REASON_DELTA; md=Path('runs/harness-negatives/freeze-morning/morning-report.md').read_text(); assert '## Gameplay' in md and REASON_DELTA in md and 'harness-trace' in md, md; rc=json.load(open('runs/harness-negatives/freeze-morning/release-candidate.json')); validate(rc,'release-candidate'); assert rc['decision']=='reject'"
+          python -c "from pathlib import Path; import json; from pixelproof.contracts import validate; from agents.gameplay import REASON_DELTA; md=Path('runs/harness-negatives/freeze-morning/morning-report.md').read_text(); assert '## Gameplay' in md and REASON_DELTA in md and 'harness-trace' in md, md; rc=json.load(open('runs/harness-negatives/freeze-morning/release-candidate.json')); validate(rc,'release-candidate'); assert rc['decision']=='reject'"
       - name: Seed-only fall-through fails regression on harness trace
         run: |
           python -m harness.run --route harness/routes/smoke.json \
@@ -301,8 +301,8 @@ jobs:
           import json
           from pathlib import Path
           from agents.observations import from_trace
-          from nightshift.contracts import load
-          from nightshift.evaluator import evaluate
+          from pixelproof.contracts import load
+          from pixelproof.evaluator import evaluate
           trace = json.loads(Path("runs/harness-seed/trace.json").read_text())
           obs = from_trace(trace)
           spec = load("agents/specs/player-stays-above-ground.json", "test-spec")
@@ -385,7 +385,7 @@ jobs:
           path: runs/agents-sandbox-trust/
           retention-days: 14
 
-  # Offline Gate 2 scaffold: Nightshift arm + empty Muse-screenshots slot (no Meta spend).
+  # Offline Gate 2 scaffold: Pixel Proof arm + empty Muse-screenshots slot (no Meta spend).
   agents-bench-compare:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -400,7 +400,7 @@ jobs:
       - name: Bench compare scaffold
         run: |
           python -m agents.bench_compare --out runs/bench-compare
-          python -c "import json; d=json.load(open('runs/bench-compare/bench-compare.json')); assert d['nightshiftOk'] and d['museOk'] is None, d"
+          python -c "import json; d=json.load(open('runs/bench-compare/bench-compare.json')); assert d['pixelproofOk'] and d['museOk'] is None, d"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
@@ -459,7 +459,7 @@ jobs:
           path: heldout-set
           persist-credentials: false
       - name: Point the verifier at the held-out set
-        run: echo "NIGHTSHIFT_HELDOUT_DIR=$GITHUB_WORKSPACE/heldout-set" >> "$GITHUB_ENV"
+        run: echo "PIXELPROOF_HELDOUT_DIR=$GITHUB_WORKSPACE/heldout-set" >> "$GITHUB_ENV"
       - name: Install Muse Code CLI
         run: |
           # Meta's installer uses `set -o pipefail` (bash); `sh` on Ubuntu is dash.
@@ -471,7 +471,7 @@ jobs:
           MODEL_API_KEY: ${{ secrets.META_API_KEY }}
         run: |
           test -n "$META_API_KEY"
-          test -d "$NIGHTSHIFT_HELDOUT_DIR"
+          test -d "$PIXELPROOF_HELDOUT_DIR"
           command -v muse
           command -v bwrap
           python -m agents.film_oct29 --out runs/oct29-film
@@ -494,7 +494,8 @@ jobs:
           assert rc.get("algorithm") == "ed25519" and rc.get("publicKey"), rc
           trust = json.loads(Path("runs/oct29-film/trust/trust.json").read_text())
           assert trust["ok"], trust
-          privates = list(Path("runs/oct29-film").rglob(".nightshift-signing-key"))
+          privates = [p for name in (".pixelproof-signing-key", ".nightshift-signing-key")
+                      for p in Path("runs/oct29-film").rglob(name)]
           assert privates == [], privates
           PY
       - name: Keep Oct29 film artifacts
@@ -504,6 +505,7 @@ jobs:
           name: agents-oct29-film
           path: |
             runs/oct29-film/
+            !runs/oct29-film/**/.pixelproof-signing-key
             !runs/oct29-film/**/.nightshift-signing-key
           retention-days: 30
 

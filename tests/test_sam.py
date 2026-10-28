@@ -20,8 +20,8 @@ from agents.sam_observations import (
 )
 from agents.sam_probe import boundary_gap, markdown, probe_run, tolerance_hint
 from harness.run import REPO
-from nightshift.contracts import load, validate
-from nightshift.evaluator import evaluate
+from pixelproof.contracts import load, validate
+from pixelproof.evaluator import evaluate
 
 SPEC = load(REPO / "specs" / "player-stays-above-ground.json", "test-spec")
 W, H = 160, 96
@@ -325,7 +325,7 @@ class FromReplayTest(unittest.TestCase):
     def test_reaches_rechecks_every_frame_when_the_sample_misses_the_moment(self):
         coin = lambda i: box_token(0, (62, 40, 70, 50), 0.8) if i == 57 else box_token(0, (140, 10, 150, 20), 0.8)
         scene = Scene(self.root, extra={"gold coin": coin})
-        spec = {"format": "nightshift.test-spec/v0", "id": "reach-coin", "instruction": "x",
+        spec = {"format": "pixelproof.test-spec/v0", "id": "reach-coin", "instruction": "x",
                 "objects": {"player": {"prompt": "small robot character"}, "coin": {"prompt": "gold coin"}},
                 "assertion": {"type": "reaches", "object": "player", "goal": "coin", "distancePx": 0}}
         doc, stats = self.run_scene(scene, every=10, spec=spec)
@@ -344,7 +344,7 @@ class FromReplayTest(unittest.TestCase):
     def test_reaches_that_needs_review_on_the_sample_is_rechecked(self):
         coin = lambda i: box_token(0, (62, 40, 70, 50), 0.8) if i == 6 else box_token(0, (140, 10, 150, 20), 0.8)
         scene = Scene(self.root, extra={"gold coin": coin}, missing={4})
-        spec = {"format": "nightshift.test-spec/v0", "id": "reach-coin", "instruction": "x",
+        spec = {"format": "pixelproof.test-spec/v0", "id": "reach-coin", "instruction": "x",
                 "objects": {"player": {"prompt": "small robot character"}, "coin": {"prompt": "gold coin"}},
                 "assertion": {"type": "reaches", "object": "player", "goal": "coin", "distancePx": 0}}
         doc, _ = self.run_scene(scene, every=4, spec=spec)
@@ -358,7 +358,7 @@ class FromReplayTest(unittest.TestCase):
         with self.assertRaises(SamError) as cm:
             from_replay(frames_dir=scene.dir, spec=SPEC, client=MetaSamClient(transport=broken), cache=Cache(None))
         self.assertIn("AttributeError", str(cm.exception))
-        with mock.patch.dict(os.environ, {"NIGHTSHIFT_SAM_EVERY": "four"}), self.assertRaises(SamError):
+        with mock.patch.dict(os.environ, {"PIXELPROOF_SAM_EVERY": "four"}), self.assertRaises(SamError):
             from_replay(frames_dir=scene.dir, spec=SPEC, client=scene.client(), cache=Cache(None))
 
     def test_the_cache_is_best_effort_and_checks_what_it_reads(self):
@@ -387,7 +387,7 @@ class FromReplayTest(unittest.TestCase):
         scene = Scene(self.root, bottom=player_bottom_falling)
         real = sam.MetaSamClient
         with mock.patch.object(sam, "MetaSamClient", side_effect=lambda: real(transport=scene.transport)), \
-                mock.patch.dict(os.environ, {"NIGHTSHIFT_SAM_CACHE": "off", "NIGHTSHIFT_SAM_EVERY": "10"}):
+                mock.patch.dict(os.environ, {"PIXELPROOF_SAM_CACHE": "off", "PIXELPROOF_SAM_EVERY": "10"}):
             doc = from_trace({"rows": []}, replay_sha256="b" * 64, provider="sam", frames_dir=str(scene.dir), spec=SPEC)
         self.assertEqual(doc["model"]["name"], "sam-3.1")
         self.assertEqual(doc["replay"]["sha256"], "b" * 64)
@@ -482,7 +482,7 @@ class VerifierTest(unittest.TestCase):
         with mock.patch.dict(os.environ, {}, clear=False), \
                 mock.patch("agents.verifier.harness_run", side_effect=harness), \
                 mock.patch("agents.verifier.from_trace", side_effect=observations):
-            os.environ.pop("NIGHTSHIFT_HELDOUT_DIR", None)
+            os.environ.pop("PIXELPROOF_HELDOUT_DIR", None)
             out = Path(tmp.name)
             doc = verify(_request(), REPO / "agents" / "fixtures" / "fix-collision-mask.patch", out)
         validate(doc, "verification")

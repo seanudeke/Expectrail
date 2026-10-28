@@ -13,7 +13,7 @@
   ],
   "properties": {
     "format": {
-      "const": "nightshift.verdict/v0"
+      "enum": ["pixelproof.verdict/v0", "nightshift.verdict/v0"]
     },
     "spec": {
       "type": "object",

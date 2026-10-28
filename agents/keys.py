@@ -11,14 +11,15 @@ from pathlib import Path
 from typing import Mapping, TypedDict
 
 from harness.run import REPO
+from pixelproof.legacy import ENV_PREFIX, LEGACY_ENV_PREFIX
 
 # Keys we will adopt from a local `.env` (setdefault only).
 DOTENV_KEYS = frozenset({
     "META_API_KEY",
     "MODEL_API_KEY",
     "META_API_BASE",
-    "NIGHTSHIFT_MODEL_API_BASE",
-    "NIGHTSHIFT_SPEC_MODEL",
+    "PIXELPROOF_MODEL_API_BASE",
+    "PIXELPROOF_SPEC_MODEL",
 })
 
 # Muse Code subprocess: model key + runtime/TLS/temp/proxy hygiene — not a sandbox.
@@ -91,6 +92,11 @@ def load_dotenv(path: Path | None = None) -> dict[str, str]:
         value = value.strip()
         if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
             value = value[1:-1]
+        # A .env written before the October 28 rename: NIGHTSHIFT_X means PIXELPROOF_X.
+        if key.startswith(LEGACY_ENV_PREFIX):
+            renamed = ENV_PREFIX + key[len(LEGACY_ENV_PREFIX):]
+            if renamed in DOTENV_KEYS:
+                key = renamed
         if key not in DOTENV_KEYS:
             continue
         if value == "":

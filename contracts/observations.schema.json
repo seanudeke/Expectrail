@@ -12,7 +12,7 @@
   ],
   "properties": {
     "format": {
-      "const": "nightshift.observations/v0"
+      "enum": ["pixelproof.observations/v0", "nightshift.observations/v0"]
     },
     "replay": {
       "type": "object",

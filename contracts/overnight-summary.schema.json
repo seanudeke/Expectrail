@@ -17,7 +17,7 @@
   ],
   "properties": {
     "format": {
-      "const": "nightshift.overnight-summary/v0"
+      "enum": ["pixelproof.overnight-summary/v0", "nightshift.overnight-summary/v0"]
     },
     "mode": {
       "type": "object",

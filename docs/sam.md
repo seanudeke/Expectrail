@@ -1,4 +1,4 @@
-# SAM 3.1 in Nightshift
+# SAM 3.1 in Pixel Proof
 
 SAM 3.1 turns captured frames into observations: for each object a test spec names, where it is in
 each frame and how sure the model is. The evaluator then decides the spec over those boxes with
@@ -63,13 +63,13 @@ python3 -m agents.sam_observations --run runs/seeded/physics-fall-through_v1 \
   --spec specs/player-stays-above-ground.json
 ```
 
-**The whole loop:** set `NIGHTSHIFT_OBS_PROVIDER=sam`. The verifier then sends the candidate,
+**The whole loop:** set `PIXELPROOF_OBS_PROVIDER=sam`. The verifier then sends the candidate,
 clean and held-out replays' frames to SAM, with the regression spec's prompts and window.
 
 ## What to decide from the probe, in order
 
 Any change to a prompt, `minScore` or `tolerancePx` changes the spec, so it needs Sean's approval
-again (`python3 -m nightshift.spec_writer approve ...`).
+again (`python3 -m pixelproof.spec_writer approve ...`).
 
 1. **Is the player found on every clean frame?** The evaluator is strict: one clean frame without
    the player makes the clean check needs-review, and the verifier will not accept a fix. If the
@@ -95,7 +95,7 @@ again (`python3 -m nightshift.spec_writer approve ...`).
 
 ## How it looks at fewer frames
 
-- **Sample.** Every Nth frame of the spec's window, plus its last frame (`NIGHTSHIFT_SAM_EVERY`,
+- **Sample.** Every Nth frame of the spec's window, plus its last frame (`PIXELPROOF_SAM_EVERY`,
   default 4).
 - **Refine.** When the spec fails on a sampled frame, look at every frame between the last sample
   that passed on its own and the first failing one, so the first bad frame in the report is exact.
@@ -110,13 +110,13 @@ again (`python3 -m nightshift.spec_writer approve ...`).
   before deciding.
 
 Limits, plainly: a glitch shorter than the gap between samples can be missed (use
-`NIGHTSHIFT_SAM_EVERY=1` for a run that must not miss one). Every verdict says how many frames it
+`PIXELPROOF_SAM_EVERY=1` for a run that must not miss one). Every verdict says how many frames it
 judged, and the observations document records `framesAnalyzed` against `framesCaptured`.
 
-**The cache is verifier state.** It lives outside the repo (`~/.cache/nightshift/sam`, or
-`NIGHTSHIFT_SAM_CACHE`), so it is never in the fixer's worktree, and under bubblewrap the fixer gets
+**The cache is verifier state.** It lives outside the repo (`~/.cache/pixelproof/sam`, or
+`PIXELPROOF_SAM_CACHE`), so it is never in the fixer's worktree, and under bubblewrap the fixer gets
 an empty home directory and cannot reach it. With no OS sandbox nothing stops a process on the same
-machine from writing there, so set `NIGHTSHIFT_SAM_CACHE=off` for the recorded demo and any run
+machine from writing there, so set `PIXELPROOF_SAM_CACHE=off` for the recorded demo and any run
 whose verdict has to be beyond question.
 
 ## When SAM fails

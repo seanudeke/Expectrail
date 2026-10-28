@@ -1,5 +1,5 @@
 {
-  "format": "nightshift.overnight-summary/v0",
+  "format": "pixelproof.overnight-summary/v0",
   "mode": {
     "mode": "offline",
     "offline_triage": true,

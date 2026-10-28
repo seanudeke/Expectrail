@@ -14,7 +14,7 @@
   ],
   "properties": {
     "format": {
-      "const": "nightshift.verification/v0"
+      "enum": ["pixelproof.verification/v0", "nightshift.verification/v0"]
     },
     "candidate": {
       "type": "object",

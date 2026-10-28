@@ -1,5 +1,5 @@
 {
-  "format": "nightshift.test-spec/v0",
+  "format": "pixelproof.test-spec/v0",
   "id": "coins-are-visible",
   "instruction": "Coins are drawn on screen while the player runs the route.",
   "objects": {

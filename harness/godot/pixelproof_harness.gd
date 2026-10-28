@@ -1,11 +1,13 @@
 extends Node
-## Nightshift harness. The runner adds this script to a copy of the game as an autoload; the game
+## Pixel Proof harness. The runner adds this script to a copy of the game as an autoload; the game
 ## itself is never edited. It presses input actions on exact physics ticks, as a route file says,
 ## and records where the player is after every tick, then quits.
 ##
 ## User arguments (after `--`): --route=<path> --trace=<path> [--seed=<int>] [--player=<node name>]
 
-const TRACE_FORMAT := "nightshift.trace/v0"
+const TRACE_FORMAT := "pixelproof.trace/v0"
+# Route files written before the October 28 rename (Nightshift -> Pixel Proof) are still accepted.
+const ROUTE_FORMATS := ["pixelproof.route/v0", "nightshift.route/v0"]
 
 var _events: Dictionary = {}   # tick -> Array of {action, pressed}
 var _ticks: int = 0
@@ -27,8 +29,8 @@ func _ready() -> void:
 	_trace_path = args.get("trace", "")
 	_player_name = args.get("player", "Player")
 	var route = JSON.parse_string(FileAccess.get_file_as_string(args["route"]))
-	if typeof(route) != TYPE_DICTIONARY or route.get("format", "") != "nightshift.route/v0":
-		push_error("nightshift: not a nightshift.route/v0 file: %s" % args["route"])
+	if typeof(route) != TYPE_DICTIONARY or not (route.get("format", "") in ROUTE_FORMATS):
+		push_error("pixelproof: not a pixelproof.route/v0 file: %s" % args["route"])
 		get_tree().quit(2)
 		return
 	_ticks = int(route["ticks"])
@@ -39,7 +41,7 @@ func _ready() -> void:
 		_events[tick].append({"action": String(event["action"]), "pressed": bool(event["pressed"])})
 	# A second node records positions after every game node has moved in the same tick.
 	_recorder = Node.new()
-	_recorder.name = "NightshiftRecorder"
+	_recorder.name = "PixelProofRecorder"
 	_recorder.process_physics_priority = 1000
 	_recorder.set_physics_process(true)
 	_recorder.set_script(_RecorderScript)
@@ -93,4 +95,4 @@ static func _parse_args(args: PackedStringArray) -> Dictionary:
 	return out
 
 
-const _RecorderScript := preload("res://nightshift_recorder.gd")
+const _RecorderScript := preload("res://pixelproof_recorder.gd")

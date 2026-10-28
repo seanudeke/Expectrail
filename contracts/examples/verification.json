@@ -1,5 +1,5 @@
 {
-  "format": "nightshift.verification/v0",
+  "format": "pixelproof.verification/v0",
   "candidate": {
     "patchSha256": "2222222222222222222222222222222222222222222222222222222222222222",
     "baseTree": "6a273587d64e10a74c0160256cfdc4964f16ed3e93fe7ab178e1bedc5071b280",
@@ -8,7 +8,7 @@
     "requestSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
   },
   "evaluator": {
-    "name": "nightshift.evaluator",
+    "name": "pixelproof.evaluator",
     "version": "0.1.0"
   },
   "checks": [

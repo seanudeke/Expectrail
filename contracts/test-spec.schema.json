@@ -14,7 +14,7 @@
   "additionalProperties": false,
   "properties": {
     "format": {
-      "const": "nightshift.test-spec/v0"
+      "enum": ["pixelproof.test-spec/v0", "nightshift.test-spec/v0"]
     },
     "id": {
       "type": "string",

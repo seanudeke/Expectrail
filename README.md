@@ -1,11 +1,12 @@
-# Nightshift
+# Pixel Proof
 
 **An overnight crew of Meta models that plays a game build, sees what is broken, fixes it, and keeps
 a fix only if checks the fixer cannot touch accept it.** Built for the Meta Global AI Developer
-Hackathon (Indie track), October 26 to November 4, 2026.
+Hackathon (Indie track), October 26 to November 4, 2026. Called Nightshift until October 28; old
+names are still accepted on input (see [docs/contracts.md](docs/contracts.md#names-from-before-the-rename)).
 
 Coding agents can make tests pass while the game is visibly broken, because most build pipelines
-never check what players see. Nightshift checks:
+never check what players see. Pixel Proof checks:
 
 1. **Play.** A harness replays a fixed route through the game and captures every frame, the same
    way every time.
@@ -44,7 +45,7 @@ python3 -m harness.run --route harness/routes/smoke.json --out runs/fall \
   --patch bugs/physics-fall-through/v1.patch                 # the same route with a seeded bug
 python3 -m harness.replay_check --route harness/routes/smoke.json --runs 10
 
-python3 -m nightshift.evaluator --spec contracts/examples/test-spec.json \
+python3 -m pixelproof.evaluator --spec contracts/examples/test-spec.json \
   --observations contracts/examples/observations.json       # decide a check
 
 python3 -m agents.gate1 --out runs/gate1 --skip-harness \
@@ -54,8 +55,8 @@ python3 -m agents.loop --out runs/loop --mode offline --runs 10
 python3 -m agents.trust --out runs/trust                    # signing key stays off the fixer
 
 # Local Meta keys: copy .env.example → .env (gitignored) and set META_API_KEY / MODEL_API_KEY
-python3 -m nightshift.spec_writer draft "The player never falls through the ground" --out /tmp/spec.json
-python3 -m nightshift.spec_writer approve /tmp/spec.json --by <you>   # Muse Spark drafts; a person approves
+python3 -m pixelproof.spec_writer draft "The player never falls through the ground" --out /tmp/spec.json
+python3 -m pixelproof.spec_writer approve /tmp/spec.json --by <you>   # Muse Spark drafts; a person approves
 # Live Muse film (clean prompt): python3 -m agents.prove_live --out runs/prove
 # Live overnight path: python3 -m agents.loop --mode live
 ```
@@ -68,7 +69,7 @@ See [agents/README.md](agents/README.md) for Muse API / Muse Code setup (`.env`,
 | --- | --- | --- |
 | [`contracts/`](contracts) | Schemas and examples for everything passed between lanes ([docs](docs/contracts.md)) | everyone |
 | [`harness/`](harness) | Route player, Movie Maker capture under Xvfb, replay check ([docs](docs/harness.md)) | Timo |
-| [`nightshift/`](nightshift) | Contract helpers, the reference evaluator, and the Muse Spark spec writer | Zayyad, Sean |
+| [`pixelproof/`](pixelproof) | Contract helpers, the reference evaluator, and the Muse Spark spec writer | Zayyad, Sean |
 | [`specs/`](specs) | Test specs for the bug families; a person approves each one | Sean |
 | [`bugs/`](bugs) | Seeded bugs as patches against the clean game ([evaluation plan](docs/evaluation.md)) | Sean, Timo |
 | [`game/`](game) | Godot's 2D platformer demo, unmodified (MIT) | prior work |

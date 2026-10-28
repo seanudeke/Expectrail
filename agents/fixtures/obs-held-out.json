@@ -1,10 +1,10 @@
 {
-  "format": "nightshift.observations/v0",
+  "format": "pixelproof.observations/v0",
   "replay": {
     "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
   },
   "model": {
-    "name": "nightshift.held-out-interim",
+    "name": "pixelproof.held-out-interim",
     "prompts": {
       "player": "small robot character",
       "ground": "grass-topped ground"

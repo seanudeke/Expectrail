@@ -13,7 +13,7 @@
   ],
   "properties": {
     "format": {
-      "const": "nightshift.replay/v0"
+      "enum": ["pixelproof.replay/v0", "nightshift.replay/v0"]
     },
     "route": {
       "type": "object",

@@ -1,5 +1,11 @@
 # Bench stubs (agents lane)
 
+Everything in this folder was recorded before the project was renamed from Nightshift to Pixel
+Proof on October 28, 2026, and is kept exactly as recorded: it still says `nightshift` in format
+IDs, paths and logs. The code reads the old format IDs the same as the new ones
+([docs/contracts.md](../docs/contracts.md#names-from-before-the-rename)). Regenerate a file to
+get the new names.
+
 `overnight-offline.json` is regenerated from an overnight `summary.json` by:
 
 ```sh

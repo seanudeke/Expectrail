@@ -5,10 +5,10 @@
 
 Applies base seed + candidate, replays the route (unless --skip-harness with
 pre-built observations), runs regression + gameplay + clean + held-out checks,
-and emits nightshift.verification/v0 via nightshift.evaluator.decide.
+and emits pixelproof.verification/v0 via pixelproof.evaluator.decide.
 
 Clean uses a distinct observation source (never the candidate obs object).
-Held-out: when NIGHTSHIFT_HELDOUT_DIR points at a checkout of the private held-out set,
+Held-out: when PIXELPROOF_HELDOUT_DIR points at a checkout of the private held-out set,
 the verifier replays seed + candidate on each private route the fixer never sees and
 requires both the visual spec and the gameplay check to pass there. Without it (offline,
 fixture runs, forks) it falls back to the interim fixture, labeled interim-fixture.
@@ -35,8 +35,8 @@ from agents.isolation import arm
 from agents.observations import from_trace
 from agents.patchutil import assert_editable, sha256_file
 from harness.run import REPO, run as harness_run, tree_digest
-from nightshift.contracts import digest, load, validate
-from nightshift.evaluator import decide, evaluate
+from pixelproof.contracts import digest, load, validate
+from pixelproof.evaluator import decide, evaluate
 
 REGRESSION_SPEC = REPO / "agents" / "specs" / "player-stays-above-ground.json"
 # Opaque check id for verification / filmable rows. Judged by agents.gameplay from
@@ -55,11 +55,11 @@ _NOT_RUN = arm(source="not-run", detail="suite checks skipped (early reject)")
 
 # Checkout of the private held-out repository (manifest.json, routes/, bugs/). Set only on
 # the verifier's machine; never on the fixer's.
-HELDOUT_ENV = "NIGHTSHIFT_HELDOUT_DIR"
+HELDOUT_ENV = "PIXELPROOF_HELDOUT_DIR"
 
 
 def held_out_set() -> tuple[Path | None, dict | None, str | None]:
-    """Return (root, manifest, problem). All None when NIGHTSHIFT_HELDOUT_DIR is unset.
+    """Return (root, manifest, problem). All None when PIXELPROOF_HELDOUT_DIR is unset.
 
     A set directory that is missing or malformed returns a problem string so the
     held-out check fails closed (needs-review) instead of falling back to a fixture.
@@ -314,7 +314,7 @@ def verify(
     metrics = dict(gameplay.get("metrics") or {})
     metrics.setdefault("minDeltaX", float(min_dx))
     gameplay_doc = {
-        "format": "nightshift.gameplay-verdict/v0",
+        "format": "pixelproof.gameplay-verdict/v0",
         "spec": GAMEPLAY_SPEC_ID,
         "result": gameplay["result"],
         "reason": gameplay["reason"],
@@ -469,10 +469,10 @@ def verify(
 def _write_verification(
     out, request, candidate, attempt, checks, decision, reasons, *, suite: dict | None = None,
 ) -> dict:
-    from nightshift import __version__ as eval_version
+    from pixelproof import __version__ as eval_version
 
     doc = {
-        "format": "nightshift.verification/v0",
+        "format": "pixelproof.verification/v0",
         "candidate": {
             "patchSha256": sha256_file(candidate),
             "baseTree": request["base"]["tree"],
@@ -480,7 +480,7 @@ def _write_verification(
             "request": request["id"],
             "requestSha256": digest(request),
         },
-        "evaluator": {"name": "nightshift.evaluator", "version": eval_version},
+        "evaluator": {"name": "pixelproof.evaluator", "version": eval_version},
         "checks": checks,
         "decision": decision,
         "reasons": reasons,

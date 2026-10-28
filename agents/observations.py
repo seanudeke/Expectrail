@@ -1,7 +1,7 @@
 """Observations providers: trace stand-in by default; SAM 3.1 when asked.
 
-Default provider ``trace`` builds nightshift.observations/v0 from harness
-trace.json world positions (y-down boxes). Set ``NIGHTSHIFT_OBS_PROVIDER=sam``
+Default provider ``trace`` builds pixelproof.observations/v0 from harness
+trace.json world positions (y-down boxes). Set ``PIXELPROOF_OBS_PROVIDER=sam``
 (or pass provider=\"sam\") to use SAM 3.1 through the Meta Model API
 (``agents.sam_observations``, docs/sam.md). Verifier and loop call ``from_trace``
 through this module only.
@@ -15,7 +15,7 @@ import importlib
 import os
 from typing import Callable
 
-from nightshift.contracts import digest
+from pixelproof.contracts import digest
 
 PLAYER_HALF_W = 20.0
 PLAYER_H = 60.0
@@ -23,7 +23,7 @@ GROUND_DEPTH = 400.0
 # never-crosses tolerance is in the same units as these boxes (world px).
 FLOOR_TOLERANCE_PAD = 12.0
 
-PROVIDER_ENV = "NIGHTSHIFT_OBS_PROVIDER"
+PROVIDER_ENV = "PIXELPROOF_OBS_PROVIDER"
 DEFAULT_PROVIDER = "trace"
 
 
@@ -67,7 +67,7 @@ def from_trace_synthetic(
     fps: int = 60,
     physics_tps: int | None = None,
 ) -> dict:
-    """Build nightshift.observations/v0 from a harness trace (position-log stand-in).
+    """Build pixelproof.observations/v0 from a harness trace (position-log stand-in).
 
     Physics is 120 Hz and capture is 60 fps, so frame n ≈ after tick 2n (every other tick).
     """
@@ -101,10 +101,10 @@ def from_trace_synthetic(
         frames.append({"frame": frame_n, "objects": objects})
 
     return {
-        "format": "nightshift.observations/v0",
+        "format": "pixelproof.observations/v0",
         "replay": {"sha256": replay_sha256},
         "model": {
-            "name": "nightshift.trace-synthetic",
+            "name": "pixelproof.trace-synthetic",
             "prompts": {
                 "player": "small robot character",
                 "ground": "grass-topped ground",

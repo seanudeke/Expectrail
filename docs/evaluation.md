@@ -5,7 +5,7 @@ Owner: Sean. Status: draft for the team to review by noon on Tuesday, October 27
 
 ## The question the benchmark answers
 
-Does Nightshift catch and fix visual regressions that a coding agent given screenshots would miss
+Does Pixel Proof catch and fix visual regressions that a coding agent given screenshots would miss
 or fix wrongly? Each case runs under three conditions with the same repair budget, and every
 candidate fix is judged by the same independent verifier:
 
@@ -13,7 +13,7 @@ candidate fix is judged by the same independent verifier:
 | --- | --- |
 | Existing checks | The game's own build passing; it has no tests, so every seeded bug passes this condition. This row shows the gap. |
 | Muse Code with screenshots | The failing frames, the route, the logs and the instruction in plain English. No structured checks. |
-| Nightshift | The same, plus structured test specs, SAM 3.1 observations and the evaluator's verdict. |
+| Pixel Proof | The same, plus structured test specs, SAM 3.1 observations and the evaluator's verdict. |
 
 ## Bug families (first wave)
 
@@ -35,12 +35,12 @@ overflow, softlock and motion jitter wait until after Gate 2.
 and never in this one:
 
 - **Held-out variants** (v3 and v4 of each family) are a generalization set. We build and tune
-  Nightshift on v1 and v2 only; v3 and v4 run once, in the benchmark, and their results are
+  Pixel Proof on v1 and v2 only; v3 and v4 run once, in the benchmark, and their results are
   reported separately. They never appear in a repair request or on the fixer's machine before then.
 - **Held-out routes** guard each candidate fix. The verifier replays the seeded bug plus the
   candidate on routes the fixer has never seen, and requires the visual spec and the gameplay
   check to pass there too. A fix tuned to the smoke route (for example one that only works on its
-  exact timing) fails here. The verifier reads the set from `NIGHTSHIFT_HELDOUT_DIR`; CI fetches it
+  exact timing) fails here. The verifier reads the set from `PIXELPROOF_HELDOUT_DIR`; CI fetches it
   with the `HELDOUT_TOKEN` secret and never uploads held-out frames or traces as artifacts. Without
   the set (offline runs, forks) the check falls back to an interim fixture, labeled
   `interim-fixture` in the verification's suite provenance.
