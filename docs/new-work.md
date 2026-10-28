@@ -11,8 +11,9 @@ something; keep prior work out of it.
 - Godot 4.7.2, Mesa and Xvfb, and the Meta models (SAM 3.1, Muse Spark, Muse Code) through their
   public interfaces.
 - [OBAAF](https://github.com/Obaaf/OBAAF) (Apache-2.0): prior open-source work by a team member (Sean),
-  published before the event. It runs underneath Nightshift as a dependency; nothing in Nightshift
-  itself predates the event. The organizers said on the October 27 call that prior open-source work
+  published before the event. It will run underneath Nightshift as a dependency (recording and
+  signing the release candidate) and is not wired in yet; nothing in Nightshift itself predates the
+  event. The organizers said on the October 27 call that prior open-source work
   may be used if it is disclosed; we have asked for that in writing.
 
 ## Log
