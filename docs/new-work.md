@@ -42,3 +42,4 @@ something; keep prior work out of it.
 | Oct 27 | Film honesty: needs-review rollup, RC verify, RR triage provenance, Gate1 morning | `agents/report.py`, `agents/gate1.py`, `agents/triage.py` |
 | Oct 27 | Automate live Muse accept + trust canary denial film (`prove_live`, canary probe, dispatch CI) | `agents/prove_live.py`, `agents/trust.py`, `.github/workflows/ci.yml` |
 | Oct 27 | Future work: known limits and next steps | `docs/future-work.md` |
+| Oct 27 | Fall-through spec approved by Sean (coins and player-visible held until their bugs and SAM numbers exist) | `specs/player-stays-above-ground.json` |
