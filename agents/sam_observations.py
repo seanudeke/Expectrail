@@ -241,6 +241,7 @@ class MetaSamClient:
         self._transport = transport or self._http
         self.retries, self.timeout, self._sleep = retries, timeout, sleep
         self.calls = 0
+        self.seconds = 0.0  # time spent waiting on the service, summed over calls
         self._lock = threading.Lock()
 
     def _http(self, body: dict) -> tuple[bytes, str]:
@@ -265,6 +266,7 @@ class MetaSamClient:
         for attempt in range(self.retries + 1):
             with self._lock:
                 self.calls += 1
+            started = time.monotonic()
             try:
                 return self._transport(body)
             except SamError:
@@ -281,6 +283,9 @@ class MetaSamClient:
                 if attempt == self.retries:
                     raise SamError(f"sam-3.1 unreachable after {attempt + 1} tries: "
                                    f"{type(err).__name__}: {err}") from err
+            finally:
+                with self._lock:
+                    self.seconds += time.monotonic() - started
             self._sleep(delay)
             delay *= 2
         raise SamError("unreachable")  # pragma: no cover
