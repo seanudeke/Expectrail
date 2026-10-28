@@ -37,7 +37,9 @@ class HarnessTest(unittest.TestCase):
             self.assertEqual(digest1, digest2)
 
     def test_get_cache_dir_default_and_env(self):
-        self.assertEqual(get_cache_dir(), DEFAULT_CACHE_DIR)
+        with mock.patch.dict(os.environ):
+            os.environ.pop("NIGHTSHIFT_GODOT_CACHE", None)  # a developer may have it set
+            self.assertEqual(get_cache_dir(), DEFAULT_CACHE_DIR)
         with mock.patch.dict(os.environ, {"NIGHTSHIFT_GODOT_CACHE": "/custom/path"}):
             self.assertEqual(get_cache_dir(), Path("/custom/path/.godot"))
         with mock.patch.dict(os.environ, {"NIGHTSHIFT_GODOT_CACHE": "/custom/path/.godot"}):
