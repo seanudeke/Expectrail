@@ -37,3 +37,4 @@ something; keep prior work out of it.
 | Oct 27 | Trace-native gameplay gate (min Δx / end-on-floor / below-ground) | `agents/gameplay.py`, `agents/verifier.py`, `agents/fixtures/trace-*.json` |
 | Oct 27 | Gameplay-verdict contract + filmable morning Gameplay section | `contracts/gameplay-verdict.schema.json`, `agents/report.py` |
 | Oct 27 | Honest motion check id, filmable overnight gameplay rollup, RC contract | `agents/verifier.py`, `agents/report.py`, `contracts/release-candidate.schema.json` |
+| Oct 27 | Overnight summary contract, wall-clock/cost stubs, RR→RC bind, demo package | `contracts/overnight-summary.schema.json`, `agents/loop.py`, `agents/bench.py`, `bench/` |

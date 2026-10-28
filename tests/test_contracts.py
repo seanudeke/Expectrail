@@ -49,6 +49,22 @@ class ContractsTest(unittest.TestCase):
         del rc["verificationSha256"]
         with self.assertRaises(ContractError):
             validate(rc, "release-candidate")
+        overnight = json.loads((EXAMPLES / "overnight-summary.json").read_text())
+        del overnight["results"]
+        with self.assertRaises(ContractError):
+            validate(overnight, "overnight-summary")
+        overnight = json.loads((EXAMPLES / "overnight-summary.json").read_text())
+        overnight["format"] = "nightshift.overnight-summary/v1"
+        with self.assertRaises(ContractError):
+            validate(overnight, "overnight-summary")
+        overnight = json.loads((EXAMPLES / "overnight-summary.json").read_text())
+        del overnight["cost"]
+        with self.assertRaises(ContractError):
+            validate(overnight, "overnight-summary")
+        overnight = json.loads((EXAMPLES / "overnight-summary.json").read_text())
+        overnight["extra"] = True
+        with self.assertRaises(ContractError):
+            validate(overnight, "overnight-summary")
 
     def test_digest_ignores_key_order(self):
         self.assertEqual(digest({"a": 1, "b": [1, 2]}), digest({"b": [1, 2], "a": 1}))

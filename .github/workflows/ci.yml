@@ -127,11 +127,39 @@ jobs:
           (out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
           md = write_loop_rollup(out, summary=summary).read_text()
           assert "## Gameplay" in md and REASON_DELTA in md, md
+          assert "## Unresolved" in md, md
           assert "fixture-trace:trace-freeze.json" in md, md
           print("mixed rollup ok")
           PY
       - name: Demo-path loop 10 accepts (offline mode)
-        run: python -m agents.loop --out runs/agents-loop --runs 10 --mode offline
+        run: |
+          python -m agents.loop --out runs/agents-loop --runs 10 --mode offline
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from nightshift.contracts import validate
+          summary = json.loads(Path("runs/agents-loop/summary.json").read_text())
+          validate(summary, "overnight-summary")
+          assert summary["accepted"] == 10 and summary["runs"] == 10, summary
+          assert summary["cost"]["costProvenance"] == "unmetered-offline"
+          assert summary["timing"]["wallClockMs"] >= 0
+          md = Path("runs/agents-loop/morning-report.md").read_text()
+          assert "10 of 10" in md, md
+          assert "Wall-clock ms:" in md and "unmetered-offline" in md, md
+          assert "## Trust" in md and "trust=`PASS`" in md, md
+          morning = Path("runs/agents-loop/run-00/morning/morning-report.md").read_text()
+          assert "## Suite provenance" in morning, morning
+          rc = json.loads(Path("runs/agents-loop/run-00/morning/release-candidate.json").read_text())
+          validate(rc, "release-candidate")
+          assert rc["decision"] == "accept"
+          assert rc.get("requestId")
+          assert rc.get("requestSha256")
+          trust = Path("runs/agents-loop/run-00/trust/trust-evidence.md").read_text()
+          assert "player-motion-on-smoke.json" in trust
+          assert "player-reaches-end-of-route.json" in trust
+          print("demo-path film ok")
+          PY
+          python -m agents.bench --summary runs/agents-loop/summary.json --out bench/overnight-offline.json
       - name: Keep agent artifacts
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -146,9 +174,11 @@ jobs:
             runs/agents-loop/morning-report.md
             runs/agents-loop/frames/
             runs/agents-loop/run-00/morning/
+            runs/agents-loop/run-00/trust/
             runs/agents-loop-mixed/summary.json
             runs/agents-loop-mixed/morning-report.md
             runs/agents-negatives/freeze-morning/
+            bench/overnight-offline.json
           retention-days: 7
 
   agents-harness-verify:

@@ -66,11 +66,12 @@ def _check(kind: str, spec_id: str, route_name: str, verdict: dict) -> dict:
     }
 
 
-def _early_suite() -> dict:
+def _early_suite(*, gate: str, detail: str) -> dict:
     return {
         "candidate": dict(_NOT_RUN),
         "clean": dict(_NOT_RUN),
         "heldOut": dict(_NOT_RUN),
+        "earlyReject": {"gate": gate, "detail": detail},
     }
 
 
@@ -123,22 +124,26 @@ def verify(
     patch_text = candidate.read_text(encoding="utf-8")
     bad = assert_editable(patch_text, request["editable"])
     if bad:
-        decision, reasons = "reject", [f"candidate touches paths outside editable: {bad}"]
+        detail = f"candidate touches paths outside editable: {bad}"
+        decision, reasons = "reject", [detail]
         checks = [{
             "spec": "editable-globs", "kind": "regression", "route": "n/a", "result": "fail",
         }]
         return _write_verification(
-            out, request, candidate, attempt, checks, decision, reasons, suite=_early_suite(),
+            out, request, candidate, attempt, checks, decision, reasons,
+            suite=_early_suite(gate="editable-globs", detail=detail),
         )
 
     game = REPO / "game" / "platformer"
     if request["base"]["tree"] != tree_digest(game):
-        decision, reasons = "reject", ["base.tree does not match game/platformer"]
+        detail = "base.tree does not match game/platformer"
+        decision, reasons = "reject", [detail]
         checks = [{
             "spec": "base-tree", "kind": "regression", "route": "n/a", "result": "fail",
         }]
         return _write_verification(
-            out, request, candidate, attempt, checks, decision, reasons, suite=_early_suite(),
+            out, request, candidate, attempt, checks, decision, reasons,
+            suite=_early_suite(gate="base-tree", detail=detail),
         )
 
     failing = request["failing"][0]
@@ -318,6 +323,7 @@ def _write_verification(
             "baseTree": request["base"]["tree"],
             "attempt": attempt,
             "request": request["id"],
+            "requestSha256": digest(request),
         },
         "evaluator": {"name": "nightshift.evaluator", "version": eval_version},
         "checks": checks,
