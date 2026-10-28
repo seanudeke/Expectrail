@@ -18,14 +18,17 @@ candidate fix is judged by the same independent verifier:
 ## Bug families (first wave)
 
 Three families, four variants each, matched with clean runs. A variant is a patch in `bugs/`
-(seeded by Timo); the clean run is the same route with no patch. Mechanisms marked "to verify" are
-candidates until a run shows the symptom.
+(seeded by Timo); the clean run is the same route with no patch.
 
-| Family | Test spec | Variants (v1 to v4) | Held out |
+| Family | Test specs | Development variants (in `bugs/`) | Held out |
 | --- | --- | --- | --- |
-| physics-fall-through | `specs/player-stays-above-ground.json` (never-crosses) | v1 player collision mask drops the ground layer (done); v2 the ground tiles lose their collision layer (to verify); v3 the ground's collision layer moves to a layer the player ignores (to verify); v4 the player's collision shape shrinks to nothing (to verify) | v3, v4 |
-| missing-texture | `specs/coins-are-visible.json` (visible, 90% of frames) | v1 the coin's texture path points to a missing file; v2 the coin texture is cleared; v3 the coin sprite's frame grid is wrong so it draws an empty cell; v4 the coin is fully transparent (all to verify) | v3, v4 |
-| layering | `specs/player-is-visible.json` (visible, every frame) | v1 the player's z index drops below the level art; v2 the player stops using relative z and sits below the background; v3 the background moves in front of the player; v4 the tile layer moves in front of the player (all to verify) | v3, v4 |
+| physics-fall-through | `specs/player-stays-above-ground.json` (never-crosses, judged on the engine's position log) and `specs/player-always-visible.json` (SAM) | v1 the player's collision mask drops the ground layer; v2 the ground tiles lose their collision layer | v3, v4 |
+| missing-texture | `specs/coins-visible.json` (visible in every frame, SAM) | v1 the coin texture points to a missing file and has lost its UID; v2 the coin texture is cleared | v3, v4 |
+| layering | `specs/player-always-visible.json` (visible in every frame, SAM) | v1 the player's z index drops behind the level art; v2 the player's sprite gets a negative z index | v3, v4 |
+
+The held-out variants and routes are described only in the private repository; their mechanisms
+are not written down here. SAM 3.1 does not see the ground in this game's art, which is why the
+ground spec is judged on the engine's position log (docs/sam.md).
 
 The playbook's original layering bug (the HUD drawn behind the background) does not fit this game:
 its only HUD, the coin counter, is inside the pause menu and is not on screen during play. Text

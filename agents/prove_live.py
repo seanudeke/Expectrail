@@ -317,6 +317,9 @@ def main(argv: list[str] | None = None) -> int:
     muse_gate = None
     muse_trust = None
 
+    if not args.trust_only or args.muse_trust_probe:
+        from agents.keys import require_separate_sam_key
+        require_separate_sam_key()
     if not args.trust_only:
         muse_gate = _run_muse_gate(out, skip_harness=not args.harness)
         if muse_gate.get("skipped"):

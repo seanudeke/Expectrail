@@ -210,6 +210,33 @@ class ClientTest(unittest.TestCase):
     def test_the_fixer_never_gets_the_sam_key(self):
         self.assertNotIn("MODEL_API_KEY", MUSE_ENV_ALLOWLIST)
 
+    def test_sam_and_the_fixer_must_not_share_a_key(self):
+        from agents.keys import require_separate_sam_key
+        cases = [({"NIGHTSHIFT_OBS_PROVIDER": "sam", "MODEL_API_KEY": "LLM_a", "META_API_KEY": "LLM_a"}, True),
+                 ({"NIGHTSHIFT_OBS_PROVIDER": "sam", "MODEL_API_KEY": "", "META_API_KEY": "LLM_a"}, True),
+                 ({"NIGHTSHIFT_OBS_PROVIDER": "sam", "MODEL_API_KEY": "LLM_b", "META_API_KEY": "LLM_a"}, False),
+                 ({"NIGHTSHIFT_OBS_PROVIDER": "trace", "MODEL_API_KEY": "LLM_a", "META_API_KEY": "LLM_a"}, False)]
+        for env, refused in cases:
+            with self.subTest(env=env), mock.patch.dict(os.environ, env):
+                if refused:
+                    with self.assertRaises(SystemExit) as cm:
+                        require_separate_sam_key()
+                    self.assertNotIn("LLM_a", str(cm.exception))
+                else:
+                    require_separate_sam_key()
+
+    def test_the_loop_will_not_run_muse_with_a_shared_sam_key(self):
+        from agents import loop
+        env = {"NIGHTSHIFT_OBS_PROVIDER": "sam", "MODEL_API_KEY": "LLM_a", "META_API_KEY": "LLM_a"}
+        muse = {"mode": "live", "offline_triage": True, "use_muse": True}
+        with mock.patch.dict(os.environ, env), mock.patch.object(loop, "one_run") as one_run, \
+                mock.patch.object(loop, "resolve_mode", return_value=muse), \
+                mock.patch.object(loop, "seal_mode_flags", return_value=muse):
+            with self.assertRaises(SystemExit) as cm:
+                loop.main(["--out", str(Path(self.tmp.name) / "loop"), "--mode", "live"])
+        self.assertIn("same key as META_API_KEY", str(cm.exception))
+        one_run.assert_not_called()
+
     def test_dropped_connections_are_retried_then_reported(self):
         import http.client
 
@@ -266,10 +293,10 @@ class FromReplayTest(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def run_scene(self, scene, every, spec=SPEC, cache=None, refine=True):
+    def run_scene(self, scene, every, spec=SPEC, cache=None, refine=True, confirm=False):
         stats = {}
-        doc = from_replay(frames_dir=scene.dir, spec=spec, every=every, refine=refine, client=scene.client(),
-                          cache=cache or Cache(None), workers=3, stats=stats)
+        doc = from_replay(frames_dir=scene.dir, spec=spec, every=every, refine=refine, confirm=confirm,
+                          client=scene.client(), cache=cache or Cache(None), workers=3, stats=stats)
         validate(doc, "observations")
         return doc, stats
 
@@ -314,6 +341,35 @@ class FromReplayTest(unittest.TestCase):
         other["objects"]["player"]["prompt"] = "robot"
         from_replay(frames_dir=scene.dir, spec=other, every=10, client=scene.client(), cache=cache, workers=2)
         self.assertGreater(len(scene.bodies), sent)
+
+    def test_a_sampled_pass_is_confirmed_on_every_frame(self):
+        scene = Scene(self.root)
+        doc, stats = self.run_scene(scene, every=4, confirm=True)
+        self.assertEqual(evaluate(SPEC, doc)["result"], "pass")
+        self.assertEqual(stats["framesAnalyzed"], 120)
+        self.assertEqual(doc["analysis"]["confirmed"], 120 - 31)
+        self.assertEqual(len(scene.bodies), 120 * 2)  # sampled frames are not sent twice
+
+    def test_confirmation_catches_a_flicker_between_samples(self):
+        # The robot sinks for frames 41-43 only: every 4th frame misses it, every frame does not.
+        bottom = lambda i: GROUND_TOP + 30 if 41 <= i <= 43 else GROUND_TOP
+        scene = Scene(self.root, bottom=bottom)
+        sampled, _ = self.run_scene(scene, every=4)
+        confirmed, _ = self.run_scene(scene, every=4, confirm=True)
+        self.assertEqual(evaluate(SPEC, sampled)["result"], "pass")
+        self.assertEqual(evaluate(SPEC, confirmed)["result"], "fail")
+        self.assertEqual(evaluate(SPEC, confirmed)["firstFrame"], 41)
+
+    def test_a_failure_is_not_confirmed_and_confirm_is_on_by_default(self):
+        scene = Scene(self.root, bottom=player_bottom_falling)
+        _, stats = self.run_scene(scene, every=10, confirm=True)
+        self.assertEqual(stats["confirmed"], 0)
+        self.assertEqual(stats["framesAnalyzed"], 22)
+        clean = Scene(self.root / "c")
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("NIGHTSHIFT_SAM_CONFIRM", None)
+            doc = from_replay(frames_dir=clean.dir, spec=SPEC, every=10, client=clean.client(), cache=Cache(None))
+        self.assertEqual(doc["analysis"]["framesAnalyzed"], 120)
 
     def test_window_is_respected(self):
         scene = Scene(self.root, frames=60)

@@ -70,9 +70,10 @@ Hugging Face access are needed.
 `MODEL_API_KEY` is not on Muse Code's environment allowlist (`agents.keys.MUSE_ENV_ALLOWLIST`),
 and a test keeps it that way. That only protects the variable, not the value: if `MODEL_API_KEY`
 and `META_API_KEY` hold the same key, the fixer holds the verifier's key too. **Use a separate
-key for SAM** (a second key from dev.meta.ai, stored as the `MODEL_API_KEY` secret). The adapter
-prints a warning when the two are the same. The CI jobs that set `MODEL_API_KEY` from the
-`META_API_KEY` secret do not run SAM today; switch them to their own secret before they do.
+key for SAM** (a second key from dev.meta.ai, stored as the `MODEL_API_KEY` secret and in your
+`.env`). The overnight loop and `agents.prove_live` refuse to run Muse Code with SAM on when
+`MODEL_API_KEY` is missing or is the same key as `META_API_KEY`; the adapter also warns. The SAM
+probe workflow runs no fixer, so it may fall back to `META_API_KEY`.
 
 Check the pricing and rate limits page on dev.meta.ai before a big run. The probe's `--dry-run`
 prints how many requests it would send.
@@ -129,10 +130,8 @@ Both are inputs on the SAM probe workflow, together with `runs` to probe only so
    `never-crosses` and catches a robot that sinks but stays visible.
 3. **Score margin.** The lowest clean scores were 0.64 (player) and 0.69 (coins) against the 0.5
    threshold. Watch it when the art or the camera changes.
-4. **Sample rate.** Every 4th frame cost 31 requests a run, at about one second each with four in
-   flight. A fail found on a sample is exact, but an accept rests on every 4th frame: a player who
-   flickers out for two or three frames could be missed. For the recorded demo, consider
-   `NIGHTSHIFT_SAM_EVERY=1` on the verifier (120 requests a replay per spec).
+4. **Cost of confirming.** A passing replay now costs 120 requests per spec instead of 31; the
+   clean replay is identical across attempts, so after the first night it comes from the cache.
 
 ## How it looks at fewer frames
 
@@ -143,6 +142,9 @@ Both are inputs on the SAM probe workflow, together with `runs` to probe only so
   A sample where the object was missing or the check did not apply does not count as passing, so
   the stretch reaches back past it. In the offline test, a fall that starts between samples is
   found at the same frame as looking at every frame, from 22 of 120 frames.
+- **Confirm.** A pass on the sample is never the last word: before passing, SAM looks at every
+  remaining frame of the window, so a pass, and any accept built on it, rests on every frame. A
+  fail found on the sample stays cheap. `NIGHTSHIFT_SAM_CONFIRM=0` turns this off, for probing only.
 - **Cache.** Results are kept by frame SHA-256, prompt, model and request settings, so a frame
   that was already judged is never sent again. Replays are bit-identical, so an unchanged route
   costs nothing the second time.
@@ -150,9 +152,12 @@ Both are inputs on the SAM probe workflow, together with `runs` to probe only so
   frame. `reaches` samples, and unless a sample already reaches the goal it looks at every frame
   before deciding.
 
-Limits, plainly: a glitch shorter than the gap between samples can be missed (use
-`NIGHTSHIFT_SAM_EVERY=1` for a run that must not miss one). Every verdict says how many frames it
-judged, and the observations document records `framesAnalyzed` against `framesCaptured`.
+What sampling still saves: rejects. A candidate that fails is caught on the sample and its first
+failing frame is pinned down; the remaining frames are never sent. What it no longer risks: a
+glitch between samples slipping through a pass. In the offline test, a robot that dips into the
+ground for three frames between samples passes on the sample and fails, at the exact frame, once
+confirmed. Every verdict says how many frames it judged, and the observations document records
+`framesAnalyzed`, `refined` and `confirmed` against `framesCaptured`.
 
 **The cache is verifier state.** It lives outside the repo (`~/.cache/nightshift/sam`, or
 `NIGHTSHIFT_SAM_CACHE`), so it is never in the fixer's worktree, and under bubblewrap the fixer gets
