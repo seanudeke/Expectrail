@@ -118,7 +118,7 @@ jobs:
         with:
           name: sam-probe
           path: probe
-      - name: Push probe.json, probe.md and the contact sheets to sam-probe-results
+      - name: Add probe.json, probe.md and the contact sheets to sam-probe-results/<run id>
         env:
           TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
@@ -126,12 +126,23 @@ jobs:
           REF: ${{ github.ref_name }}
           INPUTS: ${{ toJSON(inputs) }}
         run: |
-          cd probe
-          find . -type f -name 'f0*.png' -delete
-          printf '%s\n' "$INPUTS" > inputs.json
-          printf 'run %s on %s\n' "$RUN_ID" "$REF" > RUN.txt
-          git init -q -b sam-probe-results
-          git add -A
-          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
-            commit -q -m "SAM probe run $RUN_ID on $REF"
-          git push -q -f "https://x-access-token:${TOKEN}@github.com/${REPO}.git" sam-probe-results
+          find probe -type f -name 'f0*.png' -delete
+          printf '%s\n' "$INPUTS" > probe/inputs.json
+          printf 'run %s on %s\n' "$RUN_ID" "$REF" > probe/RUN.txt
+          url="https://x-access-token:${TOKEN}@github.com/${REPO}.git"
+          git init -q results && cd results
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Each run gets its own folder; concurrent runs retry on top of each other.
+          for attempt in 1 2 3 4 5; do
+            if git fetch -q --depth 1 "$url" sam-probe-results 2>/dev/null; then
+              git checkout -q -B sam-probe-results FETCH_HEAD
+            else
+              git checkout -q --orphan sam-probe-results
+            fi
+            rm -rf "$RUN_ID" && cp -r ../probe "$RUN_ID"
+            git add -A "$RUN_ID" && git commit -q -m "SAM probe run $RUN_ID on $REF"
+            if git push -q "$url" HEAD:sam-probe-results; then exit 0; fi
+            sleep $((attempt * 3))
+          done
+          exit 1
