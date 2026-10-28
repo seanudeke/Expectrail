@@ -451,6 +451,28 @@ class ProbeTest(unittest.TestCase):
         self.assertIn("seconds per call 0.50", lines[2])
         self.assertIn("physics-fall-through_v1:", lines[2])
 
+    def test_sweep_tries_each_prompt_and_reuses_the_other_objects(self):
+        from agents.sam_probe import _pairs, sweep, sweep_annotations, with_prompts
+        floor = lambda i: box_token(0, (0, GROUND_TOP, W, H), 0.7)
+        run = self.root / "clean"
+        scene = Scene(run, extra={"floor": floor, "dirt": lambda i: ""})
+        rows = [{"tick": t, "player": [0.0, 0.0], "onFloor": True} for t in range(240)]
+        (run / "trace.json").write_text(json.dumps({"physicsTicksPerSecond": 120, "rows": rows}))
+        client = scene.client()
+        results = sweep([run], SPEC, "ground", ["floor", "dirt"], None, 10, client, Cache(self.root / "c"), 2,
+                        None, {"clean"})
+        self.assertEqual([r["runs"][0]["verdict"]["result"] for r in results], ["pass", "needs-review"])
+        self.assertEqual(results[0]["runs"][0]["objects"]["ground"]["framesFound"], 13)
+        self.assertEqual(client.calls, 13 * 3)  # player once, then from the cache; ground once per prompt
+        lines = sweep_annotations(results)
+        self.assertTrue(lines[0].startswith("::notice title=SAM sweep ground=floor::clean pass ground 13/13"))
+        self.assertEqual(_pairs(["ground=dirt ground"], "--set"), {"ground": "dirt ground"})
+        with self.assertRaises(SystemExit):
+            _pairs(["ground"], "--set")
+        with self.assertRaises(SystemExit):
+            with_prompts(SPEC, {"coin": "gold coin"})
+        self.assertEqual(SPEC["objects"]["ground"]["prompt"], "grass-topped ground")
+
     @unittest.skipUnless(__import__("importlib").util.find_spec("PIL"), "Pillow not installed")
     def test_overlays_and_contact_sheet(self):
         run, scene = self.make_run("clean", lambda i: GROUND_TOP)

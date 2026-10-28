@@ -267,11 +267,80 @@ def annotations(report: dict) -> list[str]:
     return lines
 
 
+def with_prompts(spec: dict, overrides: dict[str, str]) -> dict:
+    """A copy of the spec with some object prompts replaced (for probing only, never saved)."""
+    doc = json.loads(json.dumps(spec))
+    for name, prompt in overrides.items():
+        if name not in doc["objects"]:
+            raise SystemExit(f"--set/--sweep names an object the spec does not have: {name!r}")
+        doc["objects"][name]["prompt"] = prompt
+    return doc
+
+
+def _slug(text: str) -> str:
+    return "".join(c if c.isalnum() else "-" for c in text.lower()).strip("-") or "prompt"
+
+
+def sweep(runs: list[Path], spec: dict, name: str, candidates: list[str], picked, every: int, client, cache,
+          workers: int, out: Path | None, clean_names: set[str]) -> list[dict]:
+    """Probe each candidate prompt for one object over the same runs and frames.
+
+    Other objects keep their prompts, so their answers come from the cache after the first
+    candidate. Contact sheets are drawn for the clean runs only.
+    """
+    results = []
+    for prompt in candidates:
+        variant = with_prompts(spec, {name: prompt})
+        per_run = []
+        for run in runs:
+            images = out / "sweep" / _slug(prompt) if out is not None and run.name in clean_names else None
+            per_run.append(probe_run(run, variant, picked, every, client, cache, workers, images))
+        results.append({"object": name, "prompt": prompt, "runs": per_run,
+                        "tolerance": tolerance_hint(variant, per_run, clean_names)})
+        print(f"sweep {name}={prompt!r}: " + ", ".join(f"{r['run']} {r['verdict']['result']}" for r in per_run),
+              flush=True)
+    return results
+
+
+def sweep_annotations(results: list[dict]) -> list[str]:
+    lines = []
+    for item in results[:9]:
+        name, parts = item["object"], []
+        for run in item["runs"]:
+            m = run["objects"][name]
+            s, mp = m["bestScore"], m["matchesPerFrame"]
+            parts.append(f"{run['run']} {run['verdict']['result']} {name} {m['framesFound']}/{m['framesProbed']}"
+                         + (f" med {s['median']:.2f} matches {mp['min']}-{mp['max']}"
+                            f" box {_num((m['boxWidth'] or {}).get('median'))}x"
+                            f"{_num((m['boxHeight'] or {}).get('median'))}" if s else ""))
+            if run.get("gaps"):
+                parts.append("gaps " + " ".join(f"{g['frame']}:{_num(g['gap'])}" for g in run["gaps"]))
+        hint = item.get("tolerance")
+        if hint:
+            parts.append(f"clean worst gap {_num(hint['cleanWorstGap'])}")
+        lines.append(f"::notice title=SAM sweep {name}={item['prompt']}::{_escape('; '.join(parts))}")
+    return lines
+
+
+def _pairs(values: list[str], flag: str) -> dict[str, str]:
+    out = {}
+    for value in values or []:
+        name, sep, prompt = value.partition("=")
+        if not sep or not name.strip() or not prompt.strip():
+            raise SystemExit(f"{flag} expects NAME=PROMPT, got {value!r}")
+        out[name.strip()] = prompt.strip()
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     from agents.keys import load_dotenv
     from nightshift.contracts import load
 
     p = argparse.ArgumentParser(description="Probe SAM 3.1 on a few frames of each run before trusting it.")
+    p.add_argument("--set", action="append", default=[], metavar="NAME=PROMPT",
+                   help="probe with a different prompt for one object (the spec file is not changed)")
+    p.add_argument("--sweep", metavar="NAME=P1|P2|...",
+                   help="try several prompts for one object over the same runs and frames")
     p.add_argument("--runs", type=Path, nargs="+", required=True, help="run dirs with frames/ (and trace.json)")
     p.add_argument("--spec", type=Path, required=True)
     p.add_argument("--every", type=int, default=10, help="probe every Nth frame of the window (default 10)")
@@ -284,7 +353,12 @@ def main(argv: list[str] | None = None) -> int:
     args = p.parse_args(argv)
     load_dotenv()
 
-    spec = load(args.spec, "test-spec")
+    spec = with_prompts(load(args.spec, "test-spec"), _pairs(args.set, "--set"))
+    sweep_name, candidates = None, []
+    if args.sweep:
+        sweep_name, prompts = next(iter(_pairs([args.sweep], "--sweep").items()))
+        candidates = [c.strip() for c in prompts.split("|") if c.strip()]
+        with_prompts(spec, {sweep_name: candidates[0]})  # fails early on an unknown object
     picked = [int(x) for x in args.frames.split(",")] if args.frames else None
     runs = [r for r in args.runs if (r / "frames").is_dir()]
     if not runs:
@@ -295,7 +369,7 @@ def main(argv: list[str] | None = None) -> int:
         for run in runs:
             frames = frame_files(run / "frames")
             chosen = [i for i in (picked or sample(window(list(frames), spec), args.every)) if i in frames]
-            total += len(chosen) * len(spec["objects"])
+            total += len(chosen) * (len(spec["objects"]) + max(0, len(candidates) - 1))
             print(f"{run.name}: frames {chosen}")
         print(f"{total} requests at most (cached frames are not sent)")
         return 0
@@ -303,25 +377,47 @@ def main(argv: list[str] | None = None) -> int:
     client = MetaSamClient()
     cache = Cache(None if args.no_cache else default_cache_dir())
     args.out.mkdir(parents=True, exist_ok=True)
-    results = []
+    clean_names = set(args.clean.split(","))
+    on_github = os.environ.get("GITHUB_ACTIONS") == "true"
+    results, swept = [], []
     try:
-        for run in runs:
-            results.append(probe_run(run, spec, picked, args.every, client, cache, args.workers, args.out))
-            print(f"{run.name}: {results[-1]['verdict']['result']}", flush=True)
+        if sweep_name:
+            swept = sweep(runs, spec, sweep_name, candidates, picked, args.every, client, cache, args.workers,
+                          args.out, clean_names)
+        else:
+            for run in runs:
+                results.append(probe_run(run, spec, picked, args.every, client, cache, args.workers, args.out))
+                print(f"{run.name}: {results[-1]['verdict']['result']}", flush=True)
     except SamError as exc:
         print(f"SAM failed: {exc}", file=sys.stderr)
-        if os.environ.get("GITHUB_ACTIONS") == "true":
+        if on_github:
             print(f"::error title=SAM probe failed::{_escape(str(exc)[:500])} (after {client.calls} calls)")
         return 2
     stats = {"calls": client.calls, "cacheHits": cache.hits, "seconds": round(client.seconds, 2)}
-    hint = tolerance_hint(spec, results, set(args.clean.split(",")))
-    report = {"spec": spec["id"], "model": client.model, "stats": stats, "runs": results, "tolerance": hint}
+    hint = tolerance_hint(spec, results, clean_names) if results else None
+    report = {"spec": spec["id"], "model": client.model, "prompts": {n: o["prompt"] for n, o in spec["objects"].items()},
+              "stats": stats, "runs": results, "tolerance": hint, "sweep": swept}
     (args.out / "probe.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
-    (args.out / "probe.md").write_text(markdown(spec, results, hint, client.model, stats), encoding="utf-8")
+    if results:
+        (args.out / "probe.md").write_text(markdown(spec, results, hint, client.model, stats), encoding="utf-8")
+    else:
+        lines = [f"# SAM prompt sweep: {sweep_name}", "", f"Calls {stats['calls']}, cache hits {stats['cacheHits']}.", "",
+                 "| Prompt | " + " | ".join(r["run"] for r in swept[0]["runs"]) + " | Clean worst gap |",
+                 "| --- | " + " | ".join("---" for _ in swept[0]["runs"]) + " | --- |"]
+        for item in swept:
+            cells = [f"{r['verdict']['result']}, found {r['objects'][sweep_name]['framesFound']}/"
+                     f"{r['objects'][sweep_name]['framesProbed']}" for r in item["runs"]]
+            worst = (item.get("tolerance") or {}).get("cleanWorstGap")
+            lines.append(f"| {item['prompt']} | " + " | ".join(cells) + f" | {_num(worst)} |")
+        (args.out / "probe.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"wrote {args.out / 'probe.md'}")
-    if os.environ.get("GITHUB_ACTIONS") == "true":
-        for line in annotations(report):
+    if on_github:
+        for line in (annotations(report) if results else sweep_annotations(swept)):
             print(line)
+        if swept:
+            summary = (f"model {client.model}; calls {stats['calls']}; cache hits {stats['cacheHits']}; seconds per call "
+                       f"{stats['seconds'] / stats['calls']:.2f}" if stats["calls"] else "no calls")
+            print(f"::notice title=SAM probe summary::{_escape(summary)}")
     return 0
 
 

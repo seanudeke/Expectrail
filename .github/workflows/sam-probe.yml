@@ -1,6 +1,7 @@
 # Run by hand: renders the clean game and every seeded bug, then asks SAM 3.1 (Meta Model API) what
-# it sees on a sample of frames. Results land in the run summary and the sam-probe artifact
-# (probe.md, probe.json, overlays, one contact sheet per run). See docs/sam.md.
+# it sees on a sample of frames. Results land in the run summary, in annotations (readable through
+# the checks API), in the sam-probe artifact, and on the sam-probe-results branch (probe.json,
+# probe.md and contact sheets; per-frame overlays stay in the artifact). See docs/sam.md.
 #
 # Uses the MODEL_API_KEY repo secret, or META_API_KEY when that is the only one set. Never runs on
 # pull requests, so the key is never exposed to forks. The private held-out set is not fetched here.
@@ -18,6 +19,15 @@ on:
       spec:
         description: Test spec to probe with
         default: specs/player-stays-above-ground.json
+      prompts:
+        description: Probe with other prompts, e.g. ground=floor;player=robot (the spec file is not changed)
+        default: ''
+      sweep:
+        description: Try several prompts for one object, e.g. ground=ground|floor|dirt (up to 9)
+        default: ''
+      runs:
+        description: Only these runs, e.g. clean,physics-fall-through_v1 (default all)
+        default: ''
 
 permissions:
   contents: read
@@ -50,16 +60,37 @@ jobs:
       - name: Ask SAM 3.1 what it sees
         env:
           MODEL_API_KEY: ${{ secrets.MODEL_API_KEY || secrets.META_API_KEY }}
-          NIGHTSHIFT_SAM_CACHE: 'off'
           EVERY: ${{ inputs.every }}
           FRAMES: ${{ inputs.frames }}
           SPEC: ${{ inputs.spec }}
+          PROMPTS: ${{ inputs.prompts }}
+          SWEEP: ${{ inputs.sweep }}
+          RUNS: ${{ inputs.runs }}
         run: |
+          word="[A-Za-z0-9 -]+"
+          name="[a-z][a-z0-9_-]*"
           [[ "$EVERY" =~ ^[0-9]+$ ]] || { echo "::error::every must be a number"; exit 1; }
           [[ -z "$FRAMES" || "$FRAMES" =~ ^[0-9]+(,[0-9]+)*$ ]] || { echo "::error::frames must be numbers and commas"; exit 1; }
           [[ "$SPEC" =~ ^specs/[A-Za-z0-9._-]+\.json$ && -f "$SPEC" ]] || { echo "::error::spec must be a file under specs/"; exit 1; }
-          args=(--runs runs/seeded/*/ --spec "$SPEC" --every "$EVERY" --out runs/sam-probe)
+          [[ -z "$PROMPTS" || "$PROMPTS" =~ ^$name=$word(\;$name=$word)*$ ]] || { echo "::error::prompts must look like ground=floor;player=robot"; exit 1; }
+          [[ -z "$SWEEP" || "$SWEEP" =~ ^$name=$word(\|$word)*$ ]] || { echo "::error::sweep must look like ground=ground|floor|dirt"; exit 1; }
+          [[ -z "$RUNS" || "$RUNS" =~ ^[A-Za-z0-9_.-]+(,[A-Za-z0-9_.-]+)*$ ]] || { echo "::error::runs must be run names and commas"; exit 1; }
+          args=(--spec "$SPEC" --every "$EVERY" --out runs/sam-probe --runs)
+          if [[ -n "$RUNS" ]]; then
+            IFS=',' read -ra wanted <<< "$RUNS"
+            for r in "${wanted[@]}"; do
+              [[ -d "runs/seeded/$r/frames" ]] || { echo "::error::no run named $r"; exit 1; }
+              args+=("runs/seeded/$r/")
+            done
+          else
+            args+=(runs/seeded/*/)
+          fi
           [[ -n "$FRAMES" ]] && args+=(--frames "$FRAMES")
+          if [[ -n "$PROMPTS" ]]; then
+            IFS=';' read -ra pairs <<< "$PROMPTS"
+            for pair in "${pairs[@]}"; do args+=(--set "$pair"); done
+          fi
+          [[ -n "$SWEEP" ]] && args+=(--sweep "$SWEEP")
           python -m agents.sam_probe "${args[@]}"
       - name: Show the probe in the run summary
         if: always()
@@ -72,3 +103,35 @@ jobs:
           name: sam-probe
           path: runs/sam-probe/
           retention-days: 14
+
+  # A separate job pushes the results: it gets write access but no API key, and runs no
+  # third-party Python. The probe job keeps read-only access.
+  publish:
+    needs: sam-probe
+    if: ${{ always() && needs.sam-probe.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: sam-probe
+          path: probe
+      - name: Push probe.json, probe.md and the contact sheets to sam-probe-results
+        env:
+          TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          REF: ${{ github.ref_name }}
+          INPUTS: ${{ toJSON(inputs) }}
+        run: |
+          cd probe
+          find . -type f -name 'f0*.png' -delete
+          printf '%s\n' "$INPUTS" > inputs.json
+          printf 'run %s on %s\n' "$RUN_ID" "$REF" > RUN.txt
+          git init -q -b sam-probe-results
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "SAM probe run $RUN_ID on $REF"
+          git push -q -f "https://x-access-token:${TOKEN}@github.com/${REPO}.git" sam-probe-results
