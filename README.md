@@ -23,8 +23,9 @@ never check what players see. Nightshift checks:
    candidate signed outside the fixer's reach, for a human to approve.
 
 Status: Agents offline Gate-2 film path is in-repo (orchestrator → fixer → verifier → morning/RC
-→ overnight rollup/trust). SAM observations (Zayyad) and real held-out variants (Sean) still
-come next for the evaluation matrix. See [docs/new-work.md](docs/new-work.md) and
+→ overnight rollup/trust). SAM 3.1 observations go through the Meta Model API
+([docs/sam.md](docs/sam.md)); the first live run and calibration on our frames (Zayyad) and real
+held-out variants (Sean) still come next for the evaluation matrix. See [docs/new-work.md](docs/new-work.md) and
 [agents/demo-path.md](agents/demo-path.md).
 
 Known limits and what we would build next: [docs/future-work.md](docs/future-work.md).
