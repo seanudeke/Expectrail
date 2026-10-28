@@ -80,7 +80,13 @@ def _bwrap_cmd(work: Path, argv: list[str], *, network: bool) -> list[str]:
     ]
     if not network:
         cmd.append("--unshare-net")
-    for ro in ("/usr", "/bin", "/lib", "/lib64", "/etc/ssl", "/etc/ca-certificates"):
+    for ro in (
+        "/usr", "/bin", "/lib", "/lib64",
+        "/etc/ssl", "/etc/ca-certificates",
+        # DNS + name service (without these Muse cannot reach api.meta.ai).
+        "/etc/resolv.conf", "/etc/hosts", "/etc/nsswitch.conf",
+        "/etc/protocols", "/etc/services",
+    ):
         if Path(ro).exists():
             cmd.extend(["--ro-bind", ro, ro])
     # Host muse binary (Linux ELF) when present. Give Muse a writable tmpfs $HOME so
