@@ -25,6 +25,8 @@ Status: Agents offline Gate-2 film path is in-repo (orchestrator → fixer → v
 come next for the evaluation matrix. See [docs/new-work.md](docs/new-work.md) and
 [agents/demo-path.md](agents/demo-path.md).
 
+Known limits and what we would build next: [docs/future-work.md](docs/future-work.md).
+
 ## Try it
 
 Requires Python 3.10+, and for capture, Linux with `xvfb-run` and Mesa (no GPU needed).
