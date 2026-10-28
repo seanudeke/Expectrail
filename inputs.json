@@ -1,0 +1,6 @@
+{
+  "every": "10",
+  "spec": "specs/coins-visible.json",
+  "sweep": "coin=coin|gold coin|spinning coin|yellow coin|gold coins|token|money",
+  "runs": "clean,missing-texture_v1,missing-texture_v2"
+}
