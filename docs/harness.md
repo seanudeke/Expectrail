@@ -11,19 +11,24 @@ python3 -m harness.run --route harness/routes/smoke.json --out runs/fixed \
   --patch bugs/physics-fall-through/v1.patch \
   --patch agents/fixtures/fix-collision-mask.patch     # seed then candidate (repeatable --patch)
 python3 -m harness.replay_check --route harness/routes/smoke.json --runs 10
+
+# Or run fully containerized (Docker / Linux container):
+./harness/docker_run.sh                                  # 10-run replay check inside container
+./harness/docker_run.sh python3 -m harness.run --route harness/routes/smoke.json --out runs/container-smoke
 ```
 
 How it works:
 
 1. It copies `game/platformer` to `<out>/work`, applies one or more patches in order (seed, then
    candidate), and adds `nightshift_harness.gd` to the copy as an autoload. The game in the
-   repository never changes.
-2. It imports the project headless, then runs it under a virtual display (`xvfb-run`) with the
-   Compatibility renderer on software OpenGL (Mesa llvmpipe). `--headless` cannot be used for
-   capture: it does not render.
-3. Godot's Movie Maker mode (`--write-movie`, `--fixed-fps 60`) writes every frame to a PNG. It runs
-   in non-real time, so a slow machine produces the same frames, more slowly, instead of dropping
-   them.
+   repository never changes. Base asset imports are cached (`tools/godot_cache/.godot`), so runs
+   skip redundant full-project re-imports and finish in a fraction of the time.
+2. It imports any newly patched assets incrementally, then runs it under a virtual display
+   (`xvfb-run`) with the Compatibility renderer on software OpenGL (Mesa llvmpipe). `--headless`
+   cannot be used for capture: it does not render.
+3. Godot's Movie Maker mode (`--write-movie`, `--fixed-fps 60`, `--disable-vsync`) writes every
+   frame to a PNG. It runs in non-real time, so a slow machine produces the same frames, more
+   slowly, instead of dropping them.
 4. The autoload presses and releases input actions on the exact physics ticks the route names, before
    any game node runs that tick, and a second node records the player's position after every node
    has moved. It writes `trace.json` and quits when the route ends.

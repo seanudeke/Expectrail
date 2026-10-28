@@ -1,0 +1,46 @@
+FROM --platform=linux/amd64 ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+ENV LIBGL_ALWAYS_SOFTWARE=1
+
+# Install system dependencies: Python 3, pip, Xvfb, Mesa software OpenGL, X11 libs, curl, unzip, patch
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    xvfb \
+    libgl1-mesa-dri \
+    libglx-mesa0 \
+    libfontconfig1 \
+    libxcursor1 \
+    libxinerama1 \
+    libxrandr2 \
+    libxi6 \
+    libxrender1 \
+    libxext6 \
+    libx11-6 \
+    curl \
+    unzip \
+    patch \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+
+# Install python dependencies
+COPY requirements-dev.txt .
+RUN pip3 install --no-cache-dir --break-system-packages -r requirements-dev.txt
+
+# Download pinned Godot 4.7.2 for Linux and verify SHA-512
+COPY harness/get_godot.sh ./harness/
+RUN chmod +x ./harness/get_godot.sh && ./harness/get_godot.sh
+
+# Copy project source
+COPY . .
+
+# Pre-warm Godot import cache inside the image
+RUN python3 -m harness.run --warm-cache
+
+# Default: 10-run replay check on the smoke route
+CMD ["python3", "-m", "harness.replay_check", "--route", "harness/routes/smoke.json", "--runs", "10"]
+

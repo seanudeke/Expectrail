@@ -53,3 +53,6 @@ something; keep prior work out of it.
 | Oct 27 | CI contract: never put `secrets.*` in job-level `if` (workflow start failure) | `tests/test_agents.py`, `.github/workflows/ci.yml` |
 | Oct 27 | First live Muse Spark spec draft (reviewed, not approved: object prompts too generic for SAM) | `bench/spec-writer-live/` |
 | Oct 27 | Per-run Ed25519 RC signing (public half in morning); Oct29 Muse+bwrap+Godot film job; bench-compare scaffold; SAM observations provider seam | `agents/signing.py`, `agents/film_oct29.py`, `agents/bench_compare.py`, `agents/observations.py` |
+| Oct 27 | Harness performance: cached `.godot/` asset import, --disable-vsync, warm-cache CLI, unit tests | `harness/run.py`, `docs/harness.md`, `tests/test_harness.py` |
+| Oct 28 | First wave seeded bugs: physics fall-through v2, missing-texture v1 & v2, layering v1 & v2 | `bugs/`, `tests/test_harness.py`, `bugs/README.md` |
+| Oct 28 | Containerized harness: Dockerfile.harness, .dockerignore, docker_run.sh, pre-warmed cache | `Dockerfile.harness`, `.dockerignore`, `harness/docker_run.sh`, `docs/harness.md` |
