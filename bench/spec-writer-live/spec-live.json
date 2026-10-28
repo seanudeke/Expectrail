@@ -1,0 +1,23 @@
+{
+  "assertion": {
+    "boundary": {
+      "edge": "top",
+      "relativeTo": "ground",
+      "side": "above",
+      "tolerancePx": 8
+    },
+    "object": "player",
+    "type": "never-crosses"
+  },
+  "format": "nightshift.test-spec/v0",
+  "id": "player-stays-above-ground-live",
+  "instruction": "The player never falls through the ground",
+  "objects": {
+    "ground": {
+      "prompt": "ground"
+    },
+    "player": {
+      "prompt": "player character"
+    }
+  }
+}
