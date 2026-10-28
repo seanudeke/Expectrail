@@ -1,0 +1,10 @@
+{
+  "request": "rr-gate1",
+  "attempt": 1,
+  "source": "muse",
+  "patchSha256": "ceda817fc43cb1249404a110b2517adc10e22b5d39ec7c29f0ed322862e38c09",
+  "baseTree": "6a273587d64e10a74c0160256cfdc4964f16ed3e93fe7ab178e1bedc5071b280",
+  "patch": "candidate.patch",
+  "promptPolicy": "clean-v1",
+  "promptSha256": "0e6e437292c0f2ccc2a521d9e3c9d2b930ab24b378c64a150bdeb6fd213d9114"
+}
