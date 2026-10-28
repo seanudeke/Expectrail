@@ -1801,5 +1801,95 @@ class GameplayMotionTest(unittest.TestCase):
         self.assertEqual(decision, "reject")
 
 
+
+def _walk_trace(*, frozen: bool = False) -> dict:
+    """A clean-looking walk on the floor, or a player that never moves."""
+    rows = []
+    for tick in range(0, 241, 2):
+        x = 90.0 if frozen else 90.0 + 2.0 * tick
+        rows.append({"tick": tick, "frame": tick // 2, "player": [x, 640.0], "onFloor": True})
+    return {"format": "nightshift.trace/v0", "ticks": 240, "physicsTicksPerSecond": 120, "rows": rows}
+
+
+def _held_out_dir(tmp: Path) -> Path:
+    root = tmp / "heldout"
+    (root / "routes").mkdir(parents=True)
+    route = json.loads((REPO / "harness" / "routes" / "smoke.json").read_text())
+    route["name"] = "held-out-test"
+    (root / "routes" / "held-out-test.json").write_text(json.dumps(route))
+    (root / "manifest.json").write_text(json.dumps({
+        "format": "nightshift.held-out-set/v0",
+        "routes": [{"name": "held-out-test", "file": "routes/held-out-test.json", "minDeltaX": 300}],
+    }))
+    return root
+
+
+class PrivateHeldOutTest(unittest.TestCase):
+    """Held-out routes from NIGHTSHIFT_HELDOUT_DIR replace the interim fixture."""
+
+    def _verify(self, tmp: Path, *, held_out_frozen: bool, env: dict) -> dict:
+        def fake_harness(_route, harness_out, patches=None, **_kw):
+            harness_out.mkdir(parents=True, exist_ok=True)
+            frozen = held_out_frozen and "held-out" in harness_out.parts
+            (harness_out / "trace.json").write_text(json.dumps(_walk_trace(frozen=frozen)))
+            (harness_out / "replay.json").write_text("{}\n")
+
+        with mock.patch.dict(os.environ, env):
+            with mock.patch("agents.verifier.harness_run", side_effect=fake_harness):
+                return verify(
+                    _request(),
+                    REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
+                    tmp / "verify",
+                    skip_harness=False,
+                )
+
+    def test_private_route_pass_accepts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            doc = self._verify(tmp, held_out_frozen=False, env={"NIGHTSHIFT_HELDOUT_DIR": str(_held_out_dir(tmp))})
+            held = next(c for c in doc["checks"] if c["kind"] == "held-out")
+            self.assertEqual(held["route"], "held-out-routes")
+            self.assertEqual(held["result"], "pass")
+            self.assertEqual(doc["suite"]["heldOut"]["source"], "harness")
+            self.assertEqual(doc["decision"], "accept")
+            verdict = json.loads((tmp / "verify" / "verdict-held-out.json").read_text())
+            self.assertEqual(verdict["routes"][0]["route"], "held-out-test")
+            validate(doc, "verification")
+
+    def test_candidate_that_freezes_on_the_private_route_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            doc = self._verify(tmp, held_out_frozen=True, env={"NIGHTSHIFT_HELDOUT_DIR": str(_held_out_dir(tmp))})
+            held = next(c for c in doc["checks"] if c["kind"] == "held-out")
+            self.assertEqual(held["result"], "fail")
+            self.assertEqual(doc["decision"], "reject")
+            verdict = json.loads((tmp / "verify" / "verdict-held-out.json").read_text())
+            self.assertEqual(verdict["routes"][0]["gameplay"], "fail")
+
+    def test_unusable_held_out_set_fails_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            empty = tmp / "not-a-held-out-set"
+            empty.mkdir()
+            doc = self._verify(tmp, held_out_frozen=False, env={"NIGHTSHIFT_HELDOUT_DIR": str(empty)})
+            held = next(c for c in doc["checks"] if c["kind"] == "held-out")
+            self.assertEqual(held["result"], "needs-review")
+            self.assertEqual(doc["suite"]["heldOut"]["source"], "unavailable")
+            self.assertNotEqual(doc["decision"], "accept")
+
+    def test_offline_runs_keep_the_labeled_interim_fixture(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            with mock.patch.dict(os.environ, {"NIGHTSHIFT_HELDOUT_DIR": str(_held_out_dir(tmp))}):
+                doc = verify(
+                    _request(),
+                    REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
+                    tmp / "verify",
+                    observations_path=REPO / "agents" / "fixtures" / "obs-fixed.json",
+                    skip_harness=True,
+                )
+            self.assertEqual(doc["suite"]["heldOut"]["source"], "interim-fixture")
+
+
 if __name__ == "__main__":
     unittest.main()

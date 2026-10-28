@@ -42,3 +42,4 @@ something; keep prior work out of it.
 | Oct 27 | Film honesty: needs-review rollup, RC verify, RR triage provenance, Gate1 morning | `agents/report.py`, `agents/gate1.py`, `agents/triage.py` |
 | Oct 27 | Automate live Muse accept + trust canary denial film (`prove_live`, canary probe, dispatch CI) | `agents/prove_live.py`, `agents/trust.py`, `.github/workflows/ci.yml` |
 | Oct 27 | Future work: known limits and next steps | `docs/future-work.md` |
+| Oct 27 | Real held-out check: verifier replays candidates on private held-out routes (`NIGHTSHIFT_HELDOUT_DIR`), CI fetch via secret, held-out variants v3/v4 in the private repo | `agents/verifier.py`, `.github/workflows/ci.yml`, `docs/evaluation.md` |

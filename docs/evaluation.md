@@ -31,8 +31,19 @@ The playbook's original layering bug (the HUD drawn behind the background) does 
 its only HUD, the coin counter, is inside the pause menu and is not on screen during play. Text
 overflow, softlock and motion jitter wait until after Gate 2.
 
-**Held-out variants** (v3 and v4) are never in the repository, in a repair request, or on the
-fixer's machine during the event. They are run only by the verifier. Development uses v1 and v2.
+**Held out** means two things, both kept in the private repository `seanudeke/Nightshift-heldout`
+and never in this one:
+
+- **Held-out variants** (v3 and v4 of each family) are a generalization set. We build and tune
+  Nightshift on v1 and v2 only; v3 and v4 run once, in the benchmark, and their results are
+  reported separately. They never appear in a repair request or on the fixer's machine before then.
+- **Held-out routes** guard each candidate fix. The verifier replays the seeded bug plus the
+  candidate on routes the fixer has never seen, and requires the visual spec and the gameplay
+  check to pass there too. A fix tuned to the smoke route (for example one that only works on its
+  exact timing) fails here. The verifier reads the set from `NIGHTSHIFT_HELDOUT_DIR`; CI fetches it
+  with the `HELDOUT_TOKEN` secret and never uploads held-out frames or traces as artifacts. Without
+  the set (offline runs, forks) the check falls back to an interim fixture, labeled
+  `interim-fixture` in the verification's suite provenance.
 
 **Clean controls:** each family's spec must pass on the clean route. A spec that fails a clean run
 is a false alarm and counts against us, not a bug.

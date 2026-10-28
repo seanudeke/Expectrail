@@ -25,9 +25,12 @@ fixer deny-list forever; `player-motion-on-smoke.json` is deny-listed too so nei
 mount into fixer-work. Overnight rollup films latest gameplay-reject reason/source/Δx.
 Clean uses a no-patch harness replay when available; if Godot
 aborts on that second import (seen on CI), it falls back to `agents/fixtures/obs-clean.json`
-and still decides (`suite.clean.source=fixture-fallback`). Held-out uses
-`agents/fixtures/obs-held-out.json` as an interim `evaluate()` control until Sean lands real
-held-out variants — never a rubber-stamp pass row. Optional `suite` on `verification.json`
+and still decides (`suite.clean.source=fixture-fallback`). Held-out replays the
+seed + candidate on the private held-out routes when `NIGHTSHIFT_HELDOUT_DIR` points at a checkout
+of `seanudeke/Nightshift-heldout` (suite source `harness`; visual spec and gameplay must both pass;
+an unusable set is `needs-review`, never a pass). Offline and fixture runs keep
+`agents/fixtures/obs-held-out.json` as a labeled `interim-fixture` control. Keep the held-out
+checkout off any machine where Muse Code runs. Optional `suite` on `verification.json`
 records candidate/clean/held-out provenance.
 
 Trust (`agents.trust`) proves deny-by-absence under fixer-work for the signing key **and** suite

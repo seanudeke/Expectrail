@@ -194,6 +194,9 @@ jobs:
   agents-harness-verify:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      # The private held-out set is fetched only when this secret exists (not on forks).
+      HELDOUT_TOKEN_SET: ${{ secrets.HELDOUT_TOKEN != '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -206,6 +209,17 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri libglx-mesa0 patch
       - name: Download Godot 4.7.2 and check its SHA-512
         run: ./harness/get_godot.sh
+      - name: Fetch the private held-out set (verifier side only)
+        if: env.HELDOUT_TOKEN_SET == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: seanudeke/Nightshift-heldout
+          token: ${{ secrets.HELDOUT_TOKEN }}
+          path: heldout-set
+          persist-credentials: false
+      - name: Point the verifier at the held-out set
+        if: env.HELDOUT_TOKEN_SET == 'true'
+        run: echo "NIGHTSHIFT_HELDOUT_DIR=$GITHUB_WORKSPACE/heldout-set" >> "$GITHUB_ENV"
       - name: Flake control — seed+fix replay identical twice
         run: >
           python -m harness.replay_check --route harness/routes/smoke.json --runs 2
@@ -217,6 +231,7 @@ jobs:
           python -m agents.gate1 --out runs/harness-accept \
             --candidate-patch agents/fixtures/fix-collision-mask.patch
           python -c "import json; d=json.load(open('runs/harness-accept/verify/verification.json')); assert d['decision']=='accept', d; kinds={c['kind']:c['result'] for c in d['checks']}; assert kinds.get('gameplay')=='pass', d"
+          python -c "import json, os; d=json.load(open('runs/harness-accept/verify/verification.json')); src=d['suite']['heldOut']['source']; print('held-out source:', src); assert (src=='harness') == bool(os.environ.get('NIGHTSHIFT_HELDOUT_DIR')), d['suite']"
           python -m agents.report --verification runs/harness-accept/verify/verification.json --candidate runs/harness-accept/fix/candidate.patch --gameplay-verdict runs/harness-accept/verify/verdict-gameplay.json --before agents/fixtures/frames/before-fall.png --after agents/fixtures/frames/after-fixed.png --out runs/harness-accept/morning
           python -c "import json; from nightshift.contracts import validate; from pathlib import Path; md=Path('runs/harness-accept/morning/morning-report.md').read_text(); assert '## Gameplay' in md and '## Suite provenance' in md, md; rc=json.load(open('runs/harness-accept/morning/release-candidate.json')); validate(rc,'release-candidate'); assert rc['decision']=='accept'; assert rc.get('requestSha256')"
       - name: Harness-backed freeze-player must reject
@@ -271,6 +286,7 @@ jobs:
             runs/harness-accept/morning/
             runs/harness-negatives/
             runs/harness-negatives/freeze-morning/
+            !runs/**/held-out/**
             runs/harness-seed/replay.json
             runs/harness-seed/trace.json
             runs/harness-seed/godot.log

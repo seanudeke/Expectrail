@@ -8,8 +8,10 @@ pre-built observations), runs regression + gameplay + clean + held-out checks,
 and emits nightshift.verification/v0 via nightshift.evaluator.decide.
 
 Clean uses a distinct observation source (never the candidate obs object).
-Held-out evaluates interim verifier-side observations until Sean lands real
-held-out variants; both go through evaluate(), never a rubber-stamp pass row.
+Held-out: when NIGHTSHIFT_HELDOUT_DIR points at a checkout of the private held-out set,
+the verifier replays seed + candidate on each private route the fixer never sees and
+requires both the visual spec and the gameplay check to pass there. Without it (offline,
+fixture runs, forks) it falls back to the interim fixture, labeled interim-fixture.
 
 Optional `suite` on the verification document records candidate/clean/held-out
 provenance (harness vs fixture vs fixture-fallback vs unavailable).
@@ -18,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 import traceback
@@ -49,6 +52,87 @@ TRACE_FIXTURES = {
 }
 
 _NOT_RUN = arm(source="not-run", detail="suite checks skipped (early reject)")
+
+# Checkout of the private held-out repository (manifest.json, routes/, bugs/). Set only on
+# the verifier's machine; never on the fixer's.
+HELDOUT_ENV = "NIGHTSHIFT_HELDOUT_DIR"
+
+
+def held_out_set() -> tuple[Path | None, dict | None, str | None]:
+    """Return (root, manifest, problem). All None when NIGHTSHIFT_HELDOUT_DIR is unset.
+
+    A set directory that is missing or malformed returns a problem string so the
+    held-out check fails closed (needs-review) instead of falling back to a fixture.
+    """
+    raw = os.environ.get(HELDOUT_ENV, "").strip()
+    if not raw:
+        return None, None, None
+    root = Path(raw)
+    try:
+        manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+        routes = manifest["routes"]
+        if not routes:
+            raise ValueError("manifest lists no held-out routes")
+        for entry in routes:
+            if not (root / entry["file"]).is_file():
+                raise ValueError(f"held-out route file missing: {entry['file']}")
+            if float(entry["minDeltaX"]) <= 0:
+                raise ValueError(f"held-out route {entry['file']} needs a positive minDeltaX")
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        return root, None, f"{type(exc).__name__}: {exc}"
+    return root, manifest, None
+
+
+def _run_held_out_routes(
+    root: Path, manifest: dict, spec: dict, patches: list[Path], out: Path,
+) -> tuple[dict, dict]:
+    """Replay seed + candidate on each private route; return (verdict, suite arm).
+
+    A route passes only if the visual spec and the gameplay check both pass on it.
+    A harness failure on any route makes the whole check needs-review, never pass.
+    """
+    rows = []
+    for entry in manifest["routes"]:
+        name = str(entry.get("name") or Path(entry["file"]).stem)
+        run_dir = out / "held-out" / name
+        row: dict = {"route": name, "minDeltaX": float(entry["minDeltaX"])}
+        try:
+            # Godot has aborted on back-to-back imports in CI; one retry, and it is recorded.
+            try:
+                harness_run(root / entry["file"], run_dir, patches=patches)
+            except (subprocess.CalledProcessError, OSError, TimeoutError):
+                row["harnessRetried"] = True
+                harness_run(root / entry["file"], run_dir, patches=patches)
+            trace = json.loads((run_dir / "trace.json").read_text(encoding="utf-8"))
+            obs = from_trace(trace, replay_sha256=sha256_file(run_dir / "replay.json"))
+            visual = evaluate(spec, obs)
+            play = judge_trace(trace, min_delta_x=float(entry["minDeltaX"]))
+            parts = (visual["result"], play["result"])
+            row.update(
+                visual=visual["result"],
+                gameplay=play["result"],
+                gameplayReason=play["reason"],
+                observationsSha256=digest(obs),
+                result=("pass" if parts == ("pass", "pass")
+                        else "fail" if "fail" in parts else "needs-review"),
+            )
+        except (subprocess.CalledProcessError, SystemExit, OSError, TimeoutError, ValueError) as exc:
+            run_dir.mkdir(parents=True, exist_ok=True)
+            (run_dir / "harness-error.txt").write_text(
+                f"{type(exc).__name__}: {exc}\n\n{traceback.format_exc()}", encoding="utf-8",
+            )
+            row.update(result="needs-review", error=f"{type(exc).__name__}: held-out harness run failed")
+        rows.append(row)
+    results = [r["result"] for r in rows]
+    overall = "fail" if "fail" in results else "needs-review" if "needs-review" in results else "pass"
+    verdict = {"spec": spec["id"], "result": overall, "routes": rows}
+    held_arm = arm(
+        source="harness",
+        path=str(out / "held-out"),
+        observations_sha256=digest(verdict),
+        detail=f"{len(rows)} private held-out route(s) via {HELDOUT_ENV}",
+    )
+    return verdict, held_arm
 
 
 def _resolve(repo_relative: str | Path) -> Path:
@@ -280,9 +364,29 @@ def verify(
     (out / "verdict-clean.json").write_text(json.dumps(clean_verdict, indent=2) + "\n", encoding="utf-8")
     checks.append(_check("clean", clean_spec["id"], clean_route, clean_verdict))
 
-    # Held-out: evaluate verifier-side observations (interim fixture until Sean's variants).
+    # Held-out: private routes when the held-out set is mounted on this (verifier) machine
+    # and we are replaying for real; otherwise the labeled interim fixture.
+    held_spec = load(REGRESSION_SPEC, "test-spec")
+    held_root, held_manifest, held_problem = held_out_set()
+    use_private = (
+        held_root is not None and not skip_harness and observations_path is None
+        and held_out_observations_path is None
+    )
     held_path = held_out_observations_path or HELD_OUT_OBS
-    if held_path.is_file():
+    if use_private and held_problem is not None:
+        checks.append({
+            "spec": held_spec["id"],
+            "kind": "held-out",
+            "route": "held-out-routes",
+            "result": "needs-review",
+            "verdictSha256": "0" * 64,
+        })
+        held_arm = arm(source="unavailable", detail=f"held-out set unusable: {held_problem}")
+    elif use_private:
+        held_verdict, held_arm = _run_held_out_routes(held_root, held_manifest, held_spec, patches, out)
+        (out / "verdict-held-out.json").write_text(json.dumps(held_verdict, indent=2) + "\n", encoding="utf-8")
+        checks.append(_check("held-out", held_spec["id"], "held-out-routes", held_verdict))
+    elif held_path.is_file():
         held_obs = load(held_path, "observations")
         held_spec = load(REGRESSION_SPEC, "test-spec")
         held_verdict = evaluate(held_spec, held_obs)
