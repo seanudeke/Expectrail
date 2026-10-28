@@ -26,7 +26,9 @@ from __future__ import annotations
 import argparse
 import base64
 import hashlib
+import http.client
 import json
+import math
 import os
 import re
 import struct
@@ -36,7 +38,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import FIRST_EXCEPTION, ThreadPoolExecutor, wait
 from pathlib import Path
 from typing import Callable
 
@@ -96,30 +98,41 @@ def parse_output(text: str, frame_size: tuple[int, int] | None = None) -> list[d
     """
     records = []
     frame = None
+    leftover = TOKEN_RE.sub("", text).replace(",", "")
+    if leftover.strip():
+        # Refusals, prose or a format change must not read as "nothing found".
+        raise SamError(f"unrecognised sam-3.1 output: {leftover.strip()[:120]!r}")
     for m in TOKEN_RE.finditer(text):
         if m.group(1) is not None:
             frame = int(m.group(1))
             continue
         if m.group(3) is None:
             continue  # a mask token; boxes are all the evaluator needs today
+        if frame is None:
+            raise SamError(f"box record before any frame marker: {m.group(0)[:120]}")
         f = _fields(m.group(3))
         try:
-            x1, y1, x2, y2 = (float(f[k]) for k in ("x1", "y1", "x2", "y2"))
+            x1, y1, x2, y2 = (_finite(f[k]) for k in ("x1", "y1", "x2", "y2"))
+            size = (_finite(f["w"]), _finite(f["h"])) if "w" in f and "h" in f else None
+            score = _finite(f["c"]) if "c" in f else None
         except (KeyError, ValueError) as exc:
             raise SamError(f"unreadable box token: {m.group(0)[:120]}") from exc
+        if score is not None and not 0.0 <= score <= 1.0:
+            raise SamError(f"confidence outside 0..1: {m.group(0)[:120]}")
         box = [x1, y1, x2 + 1, y2 + 1]
-        if frame_size and "w" in f and "h" in f:
-            w, h = float(f["w"]), float(f["h"])
-            if w > 0 and h > 0 and (w, h) != (float(frame_size[0]), float(frame_size[1])):
-                sx, sy = frame_size[0] / w, frame_size[1] / h
-                box = [box[0] * sx, box[1] * sy, box[2] * sx, box[3] * sy]
-        try:
-            score = float(f["c"]) if "c" in f else None
-        except ValueError as exc:
-            raise SamError(f"unreadable confidence in: {m.group(0)[:120]}") from exc
+        if frame_size and size and size[0] > 0 and size[1] > 0 and size != (float(frame_size[0]), float(frame_size[1])):
+            sx, sy = frame_size[0] / size[0], frame_size[1] / size[1]
+            box = [box[0] * sx, box[1] * sy, box[2] * sx, box[3] * sy]
         records.append({"frame": frame, "id": int(m.group(2)), "box": [round(v, 3) for v in box],
                         "score": score})
     return records
+
+
+def _finite(value: str) -> float:
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError(f"not a finite number: {value!r}")
+    return number
 
 
 def _from_sse(text: str) -> str:
@@ -134,6 +147,8 @@ def _from_sse(text: str) -> str:
             event = json.loads(data)
         except json.JSONDecodeError as exc:
             raise SamError(f"unreadable stream event: {data[:120]}") from exc
+        if not isinstance(event, dict):
+            raise SamError(f"unreadable stream event: {data[:120]}")
         kind = event.get("type", "")
         if kind == "response.output_text.delta":
             parts.append(event.get("delta") or "")
@@ -146,7 +161,11 @@ def _from_sse(text: str) -> str:
     return "".join(parts)
 
 
-def _from_response(doc: dict) -> str:
+def _from_response(doc) -> str:
+    if not isinstance(doc, dict):
+        raise SamError(f"sam-3.1 reply is not a JSON object: {json.dumps(doc)[:120]}")
+    if "output_text" not in doc and "output" not in doc and not doc.get("error"):
+        raise SamError(f"sam-3.1 reply has no output: {json.dumps(doc)[:200]}")
     if doc.get("error"):
         raise SamError(f"sam-3.1 error: {json.dumps(doc['error'])[:300]}")
     status = doc.get("status")
@@ -155,10 +174,14 @@ def _from_response(doc: dict) -> str:
     if isinstance(doc.get("output_text"), str):
         return doc["output_text"]
     parts = []
-    for item in doc.get("output") or []:
-        for block in item.get("content") or []:
-            if block.get("type") == "output_text":
-                parts.append(block.get("text") or "")
+    output = doc.get("output") or []
+    if not isinstance(output, list):
+        raise SamError("sam-3.1 reply has an unreadable output list")
+    for item in output:
+        content = item.get("content") if isinstance(item, dict) else None
+        for block in content if isinstance(content, list) else []:
+            if isinstance(block, dict) and block.get("type") == "output_text":
+                parts.append(str(block.get("text") or ""))
     return "".join(parts)
 
 
@@ -225,6 +248,11 @@ class MetaSamClient:
         if not key:
             raise SamError(f"set {KEY_ENV} to a Meta Model API key in your shell or the gitignored .env "
                            "(never commit it, never paste it into chat)")
+        if key == os.environ.get("META_API_KEY", "").strip() and not _warned_shared_key.is_set():
+            _warned_shared_key.set()
+            print(f"warning: {KEY_ENV} is the same key as META_API_KEY, which Muse Code (the fixer) "
+                  "receives; use a separate key for SAM so the fixer never holds the verifier's key",
+                  file=sys.stderr)
         req = urllib.request.Request(
             f"{self.base}/responses", data=json.dumps(body).encode(), method="POST",
             headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json",
@@ -239,13 +267,20 @@ class MetaSamClient:
                 self.calls += 1
             try:
                 return self._transport(body)
+            except SamError:
+                raise
             except urllib.error.HTTPError as err:
-                detail = err.read().decode(errors="replace")[:300]
+                try:
+                    detail = err.read().decode(errors="replace")[:300]
+                except (OSError, http.client.HTTPException):
+                    detail = ""
                 if err.code not in RETRY_STATUS or attempt == self.retries:
                     raise SamError(f"sam-3.1 HTTP {err.code}: {detail}") from err
-            except (urllib.error.URLError, TimeoutError, ConnectionError) as err:
+            except (OSError, http.client.HTTPException) as err:
+                # URLError, timeouts, resets and truncated reads (IncompleteRead) all land here.
                 if attempt == self.retries:
-                    raise SamError(f"sam-3.1 unreachable after {attempt + 1} tries: {err}") from err
+                    raise SamError(f"sam-3.1 unreachable after {attempt + 1} tries: "
+                                   f"{type(err).__name__}: {err}") from err
             self._sleep(delay)
             delay *= 2
         raise SamError("unreachable")  # pragma: no cover
@@ -259,8 +294,11 @@ class MetaSamClient:
             if record["score"] is None:
                 raise SamError("sam-3.1 returned a box without a confidence although the request asks "
                                "for one (metadata.include_confidence); a missing score is never guessed")
-            detections.append({"box": record["box"], "score": max(0.0, min(1.0, record["score"]))})
+            detections.append({"box": record["box"], "score": record["score"]})
         return sorted(detections, key=lambda d: (-d["score"], d["box"]))
+
+
+_warned_shared_key = threading.Event()
 
 
 # ---------------------------------------------------------------------------------------------
@@ -284,11 +322,13 @@ class Cache:
     def __init__(self, root: Path | None):
         self.root = Path(root) if root else None
         self.hits = 0
+        self._warned = False
         self._lock = threading.Lock()
 
     @staticmethod
-    def key(frame_sha: str, prompt: str, model: str) -> str:
-        parts = [REQUEST_VERSION, model, prompt, frame_sha, METADATA]
+    def key(frame_sha: str, prompt: str, model: str, base: str = "") -> str:
+        """Which frame, what was asked, of which model at which endpoint, with which settings."""
+        parts = [REQUEST_VERSION, base, model, prompt, frame_sha, METADATA]
         return hashlib.sha256(json.dumps(parts, sort_keys=True).encode()).hexdigest()
 
     def _path(self, key: str) -> Path:
@@ -300,6 +340,8 @@ class Cache:
         try:
             doc = json.loads(self._path(key).read_text(encoding="utf-8"))
             detections = doc["detections"]
+            if not isinstance(detections, list) or not all(_valid_detection(d) for d in detections):
+                return None
         except (OSError, ValueError, KeyError, TypeError):
             return None
         with self._lock:
@@ -307,14 +349,30 @@ class Cache:
         return detections
 
     def put(self, key: str, detections: list[dict], meta: dict) -> None:
+        """Best effort: a cache that cannot be written only costs a repeat request later."""
         if self.root is None:
             return
         path = self._path(key)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".tmp-")
-        with os.fdopen(fd, "w", encoding="utf-8") as fh:
-            json.dump({"detections": detections, **meta}, fh)
-        os.replace(tmp, path)
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".tmp-")
+            with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                json.dump({"detections": detections, **meta}, fh, allow_nan=False)
+            os.replace(tmp, path)
+        except (OSError, ValueError) as exc:
+            with self._lock:
+                first, self._warned = not self._warned, True
+            if first:
+                print(f"warning: sam cache not written, continuing without it ({type(exc).__name__}: {exc})",
+                      file=sys.stderr)
+
+
+def _valid_detection(d) -> bool:
+    if not isinstance(d, dict) or not isinstance(d.get("box"), list) or len(d["box"]) != 4:
+        return False
+    values = [*d["box"], d.get("score")]
+    return (all(isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) for v in values)
+            and 0.0 <= d["score"] <= 1.0)
 
 
 # ---------------------------------------------------------------------------------------------
@@ -367,16 +425,34 @@ def sampling_plan(spec: dict | None, every: int) -> int:
     return 1
 
 
-def refine_targets(indices: list[int], looked: set[int], verdict: dict) -> list[int]:
-    """Frames to add after a failing sampled verdict so the first failing frame is exact."""
-    if verdict.get("result") != "fail":
+def refine_targets(indices: list[int], looked: set[int], verdict: dict, passed: set[int],
+                   kind: str | None = None) -> list[int]:
+    """Frames to add after a sampled verdict.
+
+    A fail with a first failing frame: every unseen frame between the last sample that passed on
+    its own (``passed``) and that frame, so the first failing frame is exact over that stretch. A
+    sample where the object was missing or the check did not apply is not a pass, so the stretch
+    reaches back past it. ``reaches`` that has not passed, or a fail without a first frame: every
+    unseen frame, since the moment may sit between two samples.
+    """
+    result = verdict.get("result")
+    unseen = [i for i in indices if i not in looked]
+    if kind == "reaches":
+        return unseen if result != "pass" else []
+    if result != "fail":
         return []
     first = verdict.get("firstFrame")
-    if first is None:  # e.g. "reaches": the moment may sit between two samples
-        return [i for i in indices if i not in looked]
-    before = [i for i in looked if i < first]
+    if first is None:
+        return unseen
+    before = [i for i in passed if i < first]
     previous = max(before) if before else indices[0] - 1
-    return [i for i in indices if previous < i < first and i not in looked]
+    return [i for i in unseen if previous < i < first]
+
+
+def passing_frames(spec: dict, doc: dict) -> set[int]:
+    """Frames whose own observations pass the spec: judged, and nothing wrong."""
+    return {frame["frame"] for frame in doc["frames"]
+            if evaluate(spec, dict(doc, frames=[frame]))["result"] == "pass"}
 
 
 # ---------------------------------------------------------------------------------------------
@@ -397,15 +473,23 @@ def observe(frames: dict[int, Path], indices: list[int], prompts: dict[str, str]
 
     def run(job):
         i, name = job
-        key = Cache.key(shas[i], prompts[name], client.model)
+        key = Cache.key(shas[i], prompts[name], client.model, client.base)
         detections = cache.get(key)
         if detections is None:
             detections = client.segment(frames[i], prompts[name])
-            cache.put(key, detections, {"frameSha256": shas[i], "prompt": prompts[name], "model": client.model})
+            cache.put(key, detections, {"frameSha256": shas[i], "prompt": prompts[name], "model": client.model,
+                                        "base": client.base})
         return i, name, detections
 
     with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
-        results = list(pool.map(run, jobs))
+        futures = [pool.submit(run, job) for job in jobs]
+        done, pending = wait(futures, return_when=FIRST_EXCEPTION)
+        failed = [f for f in futures if f in done and f.exception() is not None]
+        if failed:
+            for f in pending:
+                f.cancel()  # stop spending requests once one has failed
+            raise failed[0].exception()
+        results = [f.result() for f in futures]
     observed: dict[int, dict] = {i: {} for i in indices}
     for i, name, detections in results:
         observed[i][name] = detections
@@ -448,7 +532,20 @@ def from_replay(
     ``trace``, ``fps`` and ``physics_tps`` are accepted for the seam and unused: SAM looks at
     pixels only. ``spec`` supplies the prompts, the frame window and the assertion that decides
     whether sampling is safe and where to refine.
+
+    Every failure comes out as SamError, so the verifier can turn it into needs-review instead of
+    crashing; nothing here can fail into a pass.
     """
+    try:
+        return _from_replay(frames_dir, replay_sha256, spec=spec, prompts=prompts, every=every, refine=refine,
+                            client=client, cache=cache, workers=workers, stats=stats)
+    except SamError:
+        raise
+    except Exception as exc:  # noqa: BLE001 - any surprise is needs-review, never a crash or a pass
+        raise SamError(f"unexpected {type(exc).__name__}: {exc}") from exc
+
+
+def _from_replay(frames_dir, replay_sha256, *, spec, prompts, every, refine, client, cache, workers, stats) -> dict:
     if frames_dir is None or not Path(frames_dir).is_dir():
         raise SamError("the sam provider needs the replay's captured frames (frames_dir)")
     frames = frame_files(Path(frames_dir))
@@ -468,7 +565,8 @@ def from_replay(
     refined: list[int] = []
     if refine and spec and rate > 1:
         doc = _document(observed, names, client.model, replay_sha256, len(frames), len(indices), rate, [])
-        refined = refine_targets(indices, set(observed), evaluate(spec, doc))
+        kind = spec.get("assertion", {}).get("type")
+        refined = refine_targets(indices, set(observed), evaluate(spec, doc), passing_frames(spec, doc), kind)
         if refined:
             observed.update(observe(frames, refined, names, client, cache, workers))
     if stats is not None:

@@ -360,20 +360,6 @@ def verify(
             harness_run(route, out / "clean-replay", patches=[])
             clean_trace = json.loads((out / "clean-replay" / "trace.json").read_text(encoding="utf-8"))
             clean_replay_sha = sha256_file(out / "clean-replay" / "replay.json")
-            clean_frames = out / "clean-replay" / "frames"
-            clean_obs = from_trace(
-                clean_trace, replay_sha256=clean_replay_sha,
-                frames_dir=str(clean_frames) if clean_frames.is_dir() else None, spec=clean_spec,
-            )
-            (out / "observations-clean.json").write_text(
-                json.dumps(clean_obs, indent=2) + "\n", encoding="utf-8"
-            )
-            clean_route = "clean-control"
-            clean_arm = arm(
-                source="harness",
-                path=str(out / "observations-clean.json"),
-                observations_sha256=digest(clean_obs),
-            )
         except (subprocess.CalledProcessError, SystemExit, OSError, TimeoutError) as exc:
             (out / "clean-harness-error.txt").write_text(
                 f"{type(exc).__name__}: {exc}\n\n{traceback.format_exc()}",
@@ -392,9 +378,42 @@ def verify(
                 observations_sha256=digest(clean_obs),
                 detail=f"clean harness failed; see {out / 'clean-harness-error.txt'}",
             )
-    clean_verdict = evaluate(clean_spec, clean_obs)
-    (out / "verdict-clean.json").write_text(json.dumps(clean_verdict, indent=2) + "\n", encoding="utf-8")
-    checks.append(_check("clean", clean_spec["id"], clean_route, clean_verdict))
+        else:
+            # The harness rendered the clean game. If the observations provider (SAM) cannot
+            # judge it, that is needs-review: falling back to the fixture here would pass the
+            # clean check on data SAM never saw.
+            clean_route = "clean-control"
+            clean_frames = out / "clean-replay" / "frames"
+            try:
+                clean_obs = from_trace(
+                    clean_trace, replay_sha256=clean_replay_sha,
+                    frames_dir=str(clean_frames) if clean_frames.is_dir() else None, spec=clean_spec,
+                )
+            except SystemExit as exc:
+                clean_obs = None
+                (out / "observations-clean-error.txt").write_text(f"{exc}\n", encoding="utf-8")
+                clean_arm = arm(source="unavailable", detail=f"clean observations unavailable: {exc}")
+            else:
+                (out / "observations-clean.json").write_text(
+                    json.dumps(clean_obs, indent=2) + "\n", encoding="utf-8"
+                )
+                clean_arm = arm(
+                    source="harness",
+                    path=str(out / "observations-clean.json"),
+                    observations_sha256=digest(clean_obs),
+                )
+    if clean_obs is None:
+        checks.append({
+            "spec": clean_spec["id"],
+            "kind": "clean",
+            "route": clean_route,
+            "result": "needs-review",
+            "verdictSha256": "0" * 64,
+        })
+    else:
+        clean_verdict = evaluate(clean_spec, clean_obs)
+        (out / "verdict-clean.json").write_text(json.dumps(clean_verdict, indent=2) + "\n", encoding="utf-8")
+        checks.append(_check("clean", clean_spec["id"], clean_route, clean_verdict))
 
     # Held-out: private routes when the held-out set is mounted on this (verifier) machine
     # and we are replaying for real; otherwise the labeled interim fixture.

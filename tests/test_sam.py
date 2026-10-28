@@ -54,7 +54,7 @@ def player_bottom_falling(i: int) -> int:
 class Scene:
     """Frames on disk plus a fake sam-3.1 that answers from a script keyed by frame and prompt."""
 
-    def __init__(self, root: Path, frames: int = 120, bottom=lambda i: GROUND_TOP, extra=None):
+    def __init__(self, root: Path, frames: int = 120, bottom=lambda i: GROUND_TOP, extra=None, missing=()):
         self.dir = root / "frames"
         self.dir.mkdir(parents=True)
         self.index = {}
@@ -64,10 +64,13 @@ class Scene:
             self.index[base64.b64encode(data).decode()] = i
         self.bottom = bottom
         self.extra = extra or {}
+        self.missing = set(missing)
         self.bodies = []
 
     def answer(self, i: int, prompt: str) -> str:
         if prompt == SPEC["objects"]["player"]["prompt"]:
+            if i in self.missing:
+                return ""
             b = self.bottom(i)
             return box_token(0, (60, b - 20, 80, b), 0.91)
         if prompt == SPEC["objects"]["ground"]["prompt"]:
@@ -112,6 +115,23 @@ class WireFormatTest(unittest.TestCase):
         self.assertIsNone(parse_output("<0f>" + box_token(0, (1, 1, 5, 5)))[0]["score"])
         with self.assertRaises(SamError):
             parse_output("<0f>0<|box;x1=1;y1=oops;x2=3;y2=4;w=9;h=9|>")
+
+    def test_non_finite_numbers_and_out_of_range_confidences_are_errors(self):
+        for token in ("0<|box;x1=1;y1=1;x2=5;y2=nan;w=9;h=9;c=0.9|>", "0<|box;x1=1;y1=1;x2=5;y2=5;w=9;h=9;c=nan|>",
+                      "0<|box;x1=1;y1=1;x2=5;y2=5;w=;h=9;c=0.9|>", "0<|box;x1=1;y1=1;x2=5;y2=5;w=9;h=9;c=1.5|>",
+                      "0<|box;x1=inf;y1=1;x2=5;y2=5;w=9;h=9;c=0.5|>"):
+            with self.subTest(token=token), self.assertRaises(SamError):
+                parse_output("<0f>" + token, frame_size=(9, 9))
+
+    def test_unrecognised_output_is_an_error_not_nothing_found(self):
+        for text in ("I can't help with that.", "0<|box;x1=1;y1=1;x2=5;y2=5;w=9;h=9;c=0.9|>",
+                     "<0f>" + box_token(0, (1, 1, 5, 5), 0.8) + " trailing words"):
+            with self.subTest(text=text), self.assertRaises(SamError):
+                parse_output(text)
+        for reply in (b"[1, 2]", b'"text"', b'{"id": "resp_1"}', b'{"output": "nope"}'):
+            with self.subTest(reply=reply), self.assertRaises(SamError):
+                output_text(reply, "application/json")
+        self.assertEqual(output_text(b'{"status": "completed", "output": []}'), "")
 
     def test_json_and_streamed_replies(self):
         text = "<0f>" + box_token(0, (1, 1, 5, 5), 0.8)
@@ -190,6 +210,28 @@ class ClientTest(unittest.TestCase):
     def test_the_fixer_never_gets_the_sam_key(self):
         self.assertNotIn("MODEL_API_KEY", MUSE_ENV_ALLOWLIST)
 
+    def test_dropped_connections_are_retried_then_reported(self):
+        import http.client
+
+        def transport(body):
+            raise http.client.IncompleteRead(b"<0f>0<|bo", 500)
+        client = MetaSamClient(transport=transport, sleep=lambda s: None)
+        with self.assertRaises(SamError) as cm:
+            client.segment(self.png, "x")
+        self.assertIn("IncompleteRead", str(cm.exception))
+        self.assertEqual(client.calls, 4)
+
+    def test_sharing_the_fixers_key_is_warned_about(self):
+        sam._warned_shared_key.clear()
+        err = io.StringIO()
+        with mock.patch.dict(os.environ, {"MODEL_API_KEY": "LLM_same", "META_API_KEY": "LLM_same"}), \
+                mock.patch("urllib.request.urlopen", side_effect=urllib.error.URLError("offline")), \
+                mock.patch("sys.stderr", err):
+            with self.assertRaises(SamError):
+                MetaSamClient(retries=0).segment(self.png, "x")
+        self.assertIn("same key as META_API_KEY", err.getvalue())
+        self.assertNotIn("LLM_same", err.getvalue())
+
 
 class SamplingTest(unittest.TestCase):
     def test_every_nth_frame_plus_the_last(self):
@@ -204,12 +246,16 @@ class SamplingTest(unittest.TestCase):
         self.assertEqual(sampling_plan({"assertion": {"type": "visible", "object": "coin"}}, 4), 4)
         self.assertEqual(sampling_plan(SPEC, 4), 4)
 
-    def test_refine_fills_the_gap_before_the_first_failing_sample(self):
+    def test_refine_fills_the_gap_back_to_the_last_passing_sample(self):
         looked = {0, 10, 20, 30, 40}
-        self.assertEqual(refine_targets(list(range(50)), looked, {"result": "fail", "firstFrame": 40}),
-                         list(range(31, 40)))
-        self.assertEqual(refine_targets(list(range(50)), looked, {"result": "pass"}), [])
-        self.assertEqual(len(refine_targets(list(range(50)), looked, {"result": "fail", "firstFrame": None})), 45)
+        fail40 = {"result": "fail", "firstFrame": 40}
+        self.assertEqual(refine_targets(list(range(50)), looked, fail40, {0, 10, 20, 30}), list(range(31, 40)))
+        # Sample 30 had no player: it is not a pass, so the stretch reaches back to 20.
+        self.assertEqual(refine_targets(list(range(50)), looked, fail40, {0, 10, 20}),
+                         [i for i in range(21, 40) if i != 30])
+        self.assertEqual(refine_targets(list(range(50)), looked, {"result": "pass"}, looked), [])
+        self.assertEqual(len(refine_targets(list(range(50)), looked, {"result": "fail", "firstFrame": None}, set())), 45)
+        self.assertEqual(len(refine_targets(list(range(50)), looked, {"result": "needs-review"}, set(), "reaches")), 45)
 
 
 class FromReplayTest(unittest.TestCase):
@@ -286,6 +332,51 @@ class FromReplayTest(unittest.TestCase):
         self.assertEqual(evaluate(spec, doc)["result"], "pass")
         self.assertEqual(stats["framesAnalyzed"], 120)
 
+    def test_a_sample_without_the_player_does_not_anchor_refinement(self):
+        # Fails on frames 6-12, player undetected at sample 8: the first failing frame is still 6.
+        bottom = lambda i: GROUND_TOP + 20 if 6 <= i <= 12 else GROUND_TOP
+        scene = Scene(self.root, bottom=bottom, missing={8})
+        full, _ = self.run_scene(scene, every=1)
+        sampled, _ = self.run_scene(scene, every=4)
+        self.assertEqual(evaluate(SPEC, full)["firstFrame"], 6)
+        self.assertEqual(evaluate(SPEC, sampled)["firstFrame"], 6)
+
+    def test_reaches_that_needs_review_on_the_sample_is_rechecked(self):
+        coin = lambda i: box_token(0, (62, 40, 70, 50), 0.8) if i == 6 else box_token(0, (140, 10, 150, 20), 0.8)
+        scene = Scene(self.root, extra={"gold coin": coin}, missing={4})
+        spec = {"format": "nightshift.test-spec/v0", "id": "reach-coin", "instruction": "x",
+                "objects": {"player": {"prompt": "small robot character"}, "coin": {"prompt": "gold coin"}},
+                "assertion": {"type": "reaches", "object": "player", "goal": "coin", "distancePx": 0}}
+        doc, _ = self.run_scene(scene, every=4, spec=spec)
+        self.assertEqual(evaluate(spec, doc)["result"], "pass")
+
+    def test_unexpected_errors_become_sam_errors(self):
+        scene = Scene(self.root)
+
+        def broken(body):
+            raise AttributeError("'list' object has no attribute 'get'")
+        with self.assertRaises(SamError) as cm:
+            from_replay(frames_dir=scene.dir, spec=SPEC, client=MetaSamClient(transport=broken), cache=Cache(None))
+        self.assertIn("AttributeError", str(cm.exception))
+        with mock.patch.dict(os.environ, {"NIGHTSHIFT_SAM_EVERY": "four"}), self.assertRaises(SamError):
+            from_replay(frames_dir=scene.dir, spec=SPEC, client=scene.client(), cache=Cache(None))
+
+    def test_the_cache_is_best_effort_and_checks_what_it_reads(self):
+        scene = Scene(self.root)
+        blocked = self.root / "not-a-dir"
+        blocked.write_text("x")
+        doc, stats = self.run_scene(scene, every=10, cache=Cache(blocked))
+        self.assertEqual(evaluate(SPEC, doc)["result"], "pass")
+        self.assertNotEqual(Cache.key("a" * 64, "p", "sam-3.1", "https://api.meta.ai/v1"),
+                            Cache.key("a" * 64, "p", "sam-3.1", "http://localhost:9"))
+        cache = Cache(self.root / "cache")
+        key = Cache.key("a" * 64, "p", "sam-3.1")
+        for bad in ([{"box": [1, 2, 3, float("nan")], "score": 0.9}], [{"box": [1, 2, 3, 4], "score": 7}], "x"):
+            path = cache._path(key)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps({"detections": bad}))
+            self.assertIsNone(cache.get(key))
+
     def test_missing_frames_fail_closed_through_the_seam(self):
         with self.assertRaises(SamError):
             from_replay(frames_dir=None, spec=SPEC, client=MetaSamClient(transport=lambda b: (b"", "")))
@@ -354,7 +445,7 @@ class ProbeTest(unittest.TestCase):
 
 
 class VerifierTest(unittest.TestCase):
-    def test_sam_failure_on_the_candidate_is_needs_review_not_a_crash(self):
+    def verify_with(self, outcomes):
         from agents.verifier import verify
         from tests.test_agents import _request
 
@@ -364,28 +455,40 @@ class VerifierTest(unittest.TestCase):
                 (REPO / "agents" / "fixtures" / "trace-fixed.json").read_text())
             (harness_out / "replay.json").write_text("{}\n")
 
-        clean = load(REPO / "agents" / "fixtures" / "obs-clean.json", "observations")
-        outcomes = [SystemExit("sam observations unavailable: HTTP 503"), clean]
-
         def observations(*_a, **_kw):
             item = outcomes.pop(0)
             if isinstance(item, BaseException):
                 raise item
             return item
 
-        with tempfile.TemporaryDirectory() as tmp, \
-                mock.patch.dict(os.environ, {}, clear=False), \
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        with mock.patch.dict(os.environ, {}, clear=False), \
                 mock.patch("agents.verifier.harness_run", side_effect=harness), \
                 mock.patch("agents.verifier.from_trace", side_effect=observations):
             os.environ.pop("NIGHTSHIFT_HELDOUT_DIR", None)
-            out = Path(tmp)
+            out = Path(tmp.name)
             doc = verify(_request(), REPO / "agents" / "fixtures" / "fix-collision-mask.patch", out)
-            regression = next(c for c in doc["checks"] if c["kind"] == "regression")
-            self.assertEqual(regression["result"], "needs-review")
-            self.assertEqual(doc["suite"]["candidate"]["source"], "unavailable")
-            self.assertNotEqual(doc["decision"], "accept")
-            self.assertIn("HTTP 503", (out / "observations-error.txt").read_text())
-            validate(doc, "verification")
+        validate(doc, "verification")
+        return doc, out
+
+    def test_sam_failure_on_the_candidate_is_needs_review_not_a_crash(self):
+        clean = load(REPO / "agents" / "fixtures" / "obs-clean.json", "observations")
+        doc, out = self.verify_with([SystemExit("sam observations unavailable: HTTP 503"), clean])
+        regression = next(c for c in doc["checks"] if c["kind"] == "regression")
+        self.assertEqual(regression["result"], "needs-review")
+        self.assertEqual(doc["suite"]["candidate"]["source"], "unavailable")
+        self.assertNotEqual(doc["decision"], "accept")
+        self.assertIn("HTTP 503", (out / "observations-error.txt").read_text())
+
+    def test_sam_failure_on_the_clean_replay_is_needs_review_not_a_fixture_pass(self):
+        fixed = load(REPO / "agents" / "fixtures" / "obs-fixed.json", "observations")
+        doc, out = self.verify_with([fixed, SystemExit("sam observations unavailable: HTTP 429")])
+        clean = next(c for c in doc["checks"] if c["kind"] == "clean")
+        self.assertEqual(clean["result"], "needs-review")
+        self.assertEqual(doc["suite"]["clean"]["source"], "unavailable")
+        self.assertNotEqual(doc["decision"], "accept")
+        self.assertIn("HTTP 429", (out / "observations-clean-error.txt").read_text())
 
 
 if __name__ == "__main__":

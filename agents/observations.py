@@ -156,7 +156,7 @@ def from_trace(
 
     ``provider=trace`` (default): synthetic boxes from the position log; ``spec`` is ignored.
     ``provider=sam``: ``agents.sam_observations`` (SAM 3.1 over the captured frames). A SAM
-    failure surfaces as SystemExit, which the verifier already turns into needs-review for the
+    failure surfaces as SystemExit, which the verifier turns into needs-review for the candidate,
     clean and held-out checks; it is never a pass.
     """
     kind = resolve_provider(provider)

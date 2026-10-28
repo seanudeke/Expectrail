@@ -26,8 +26,12 @@ Hugging Face access are needed.
 | One request | one concept prompt (a short noun phrase) and one frame as a base64 PNG |
 | Asked for | `include_confidence` (the evaluator thresholds on it), masks in the small one-bit encoding |
 
-The fixer never sees this key: `MODEL_API_KEY` is not on Muse Code's environment allowlist
-(`agents.keys.MUSE_ENV_ALLOWLIST`), and a test keeps it that way.
+`MODEL_API_KEY` is not on Muse Code's environment allowlist (`agents.keys.MUSE_ENV_ALLOWLIST`),
+and a test keeps it that way. That only protects the variable, not the value: if `MODEL_API_KEY`
+and `META_API_KEY` hold the same key, the fixer holds the verifier's key too. **Use a separate
+key for SAM** (a second key from dev.meta.ai, stored as the `MODEL_API_KEY` secret). The adapter
+prints a warning when the two are the same. The CI jobs that set `MODEL_API_KEY` from the
+`META_API_KEY` secret do not run SAM today; switch them to their own secret before they do.
 
 Check the pricing and rate limits page on dev.meta.ai before a big run. The probe's `--dry-run`
 prints how many requests it would send.
@@ -93,15 +97,17 @@ again (`python3 -m nightshift.spec_writer approve ...`).
 
 - **Sample.** Every Nth frame of the spec's window, plus its last frame (`NIGHTSHIFT_SAM_EVERY`,
   default 4).
-- **Refine.** When the spec fails on a sampled frame, look at every frame between the last passing
-  sample and the first failing one, so the first bad frame in the report is exact. In the offline
-  test, a fall that starts between samples is found at the same frame as looking at every frame,
-  from 22 of 120 frames.
+- **Refine.** When the spec fails on a sampled frame, look at every frame between the last sample
+  that passed on its own and the first failing one, so the first bad frame in the report is exact.
+  A sample where the object was missing or the check did not apply does not count as passing, so
+  the stretch reaches back past it. In the offline test, a fall that starts between samples is
+  found at the same frame as looking at every frame, from 22 of 120 frames.
 - **Cache.** Results are kept by frame SHA-256, prompt, model and request settings, so a frame
   that was already judged is never sent again. Replays are bit-identical, so an unchanged route
   costs nothing the second time.
 - **Counting assertions are not sampled.** `visible` with a `minFraction` below 1 looks at every
-  frame. `reaches` samples, and on a fail looks at every frame before deciding.
+  frame. `reaches` samples, and unless a sample already reaches the goal it looks at every frame
+  before deciding.
 
 Limits, plainly: a glitch shorter than the gap between samples can be missed (use
 `NIGHTSHIFT_SAM_EVERY=1` for a run that must not miss one). Every verdict says how many frames it
@@ -115,16 +121,19 @@ whose verdict has to be beyond question.
 
 ## When SAM fails
 
-A failed or partial request, a reply without confidences, or missing frames never counts as SAM
-saying yes:
+Any failure makes the check needs-review, never a pass and never a crash. That covers a failed,
+partial or unrecognised reply, a box without a confidence, a number that is not finite, missing
+frames, and anything unexpected:
 
-- candidate replay: the regression check is needs-review, and the error is in
-  `observations-error.txt`;
-- clean replay: the verifier falls back to the clean fixture, as it already does when the harness
-  fails there, and the suite provenance says `fixture-fallback` with the error;
+- candidate replay: the regression check is needs-review, error in `observations-error.txt`;
+- clean replay: the clean check is needs-review, error in `observations-clean-error.txt` (the
+  clean fixture is only used when the harness itself fails, as before);
 - held-out routes: needs-review.
 
-Rate limits and server errors are retried three times with backoff; bad requests are not retried.
+Rate limits, server errors and dropped connections are retried three times with backoff; bad
+requests are not retried. After the first failure, queued requests for that replay are cancelled.
+The parser is strict: text it does not recognise is an error, not "nothing found", so a refusal or
+a format change can never be cached as a frame with no player in it.
 
 ## Not built yet
 
