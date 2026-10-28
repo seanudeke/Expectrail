@@ -1,15 +1,17 @@
-"""Gate 2 scaffold: Muse Code (screenshot judge) vs Nightshift verifier.
+"""Gate 2: Muse Code (screenshot judge) vs Nightshift verifier.
 
-Builds a comparison contract and runner shell. Does **not** invent Muse wins —
-live Muse screenshot judging stays behind ``--live-muse`` and META_API_KEY.
-
-    # Offline scaffold (CI-safe): Nightshift side only + empty Muse slot
+    # Offline (CI-safe): Nightshift arm + Muse skipped
     python3 -m agents.bench_compare --out runs/bench-compare
 
-    # Later (Sean + Taofeek): fill Muse arm when the screenshot-judge prompt lands
+    # Live Muse screenshot judge (spends Meta credit)
     python3 -m agents.bench_compare --out runs/bench-compare --live-muse
 
-Exit 0 when the comparison document validates and the Nightshift arm completes.
+    # Replay a canned muse.log (tests / filmed offline)
+    python3 -m agents.bench_compare --out runs/bench-compare \\
+        --fixture-muse path/to/muse.log
+
+Exit 0 when Nightshift passes; with --live-muse / --fixture-muse also requires a
+parseable Muse decision (never invents accept).
 """
 from __future__ import annotations
 
@@ -20,11 +22,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from agents.gate1 import main as gate1_main
-from agents.keys import load_dotenv, muse_code_ready
+from agents.keys import load_dotenv
+from agents.muse_judge import DEFAULT_INSTRUCTION, PROMPT_POLICY, run_muse_judge
 from harness.run import REPO
 from nightshift.contracts import validate
 
 FORMAT = "nightshift.bench-compare/v0"
+DEFAULT_BEFORE = REPO / "agents" / "fixtures" / "frames" / "before-fall.png"
+DEFAULT_AFTER = REPO / "agents" / "fixtures" / "frames" / "after-fixed.png"
 
 
 def _nightshift_arm(out: Path, *, skip_harness: bool) -> dict:
@@ -68,12 +73,16 @@ def _nightshift_arm(out: Path, *, skip_harness: bool) -> dict:
     }
 
 
-def _muse_screenshots_arm(out: Path, *, live: bool) -> dict:
-    """Placeholder for Muse Code judging its own screenshots.
-
-    Live path is intentionally incomplete until Sean's prompt/runner lands —
-    we refuse to invent a pass.
-    """
+def _muse_screenshots_arm(
+    out: Path,
+    *,
+    live: bool,
+    fixture_log: Path | None,
+    before: Path,
+    after: Path,
+    instruction: str,
+) -> dict:
+    """Muse Code judges the same before/after frames from screenshots alone."""
     slot = out / "muse-screenshots"
     slot.mkdir(parents=True, exist_ok=True)
     note = slot / "README.md"
@@ -81,40 +90,64 @@ def _muse_screenshots_arm(out: Path, *, live: bool) -> dict:
         "\n".join([
             "# Muse Code screenshot-judge arm",
             "",
-            "Gate 2 comparison slot. Fill with Sean's Muse-screenshots baseline:",
-            "- same bug / frames as the Nightshift arm",
-            "- Muse asked to accept/reject from screenshots alone",
-            "- record muse.log + decision; never forge accept offline",
+            f"- Prompt policy: `{PROMPT_POLICY}`",
+            "- Same before/after frames as the Nightshift film",
+            "- Muse sees images + plain English only (no Nightshift specs)",
+            "- Record `muse.log` + `judge.json`; never forge accept without a log",
             "",
         ]) + "\n",
         encoding="utf-8",
     )
-    if not live:
+    if not live and fixture_log is None:
         return {
             "name": "muse-screenshots",
             "ok": None,
             "skipped": True,
-            "detail": "offline scaffold only — pass --live-muse when the judge prompt is ready",
+            "decision": None,
+            "detail": "offline — pass --live-muse or --fixture-muse to run the screenshot judge",
             "slot": str(slot),
+            "promptPolicy": PROMPT_POLICY,
         }
-    if not muse_code_ready():
+
+    judge = run_muse_judge(
+        slot,
+        before=before,
+        after=after,
+        instruction=instruction,
+        fixture_log=fixture_log,
+    )
+    if judge.get("skipped"):
         return {
             "name": "muse-screenshots",
             "ok": False,
             "skipped": True,
-            "detail": "META_API_KEY + muse required for --live-muse screenshot judge",
+            "decision": None,
+            "detail": judge.get("detail"),
             "slot": str(slot),
+            "promptPolicy": PROMPT_POLICY,
         }
     return {
         "name": "muse-screenshots",
-        "ok": False,
+        "ok": bool(judge.get("ok")),
         "skipped": False,
-        "detail": (
-            "live Muse screenshot judge not wired yet (Sean + Taofeek); "
-            "refusing to invent a verdict"
-        ),
+        "decision": judge.get("decision"),
+        "source": judge.get("source"),
+        "promptPolicy": judge.get("promptPolicy"),
+        "promptSha256": judge.get("promptSha256"),
+        "museLog": judge.get("museLog"),
+        "detail": judge.get("detail"),
         "slot": str(slot),
     }
+
+
+def _agreement(nightshift: dict, muse: dict) -> str | None:
+    if muse.get("skipped") or muse.get("decision") is None:
+        return None
+    nd = nightshift.get("decision")
+    md = muse.get("decision")
+    if nd is None or md is None:
+        return None
+    return "agree" if nd == md else "disagree"
 
 
 def build_compare(
@@ -122,18 +155,41 @@ def build_compare(
     *,
     skip_harness: bool = True,
     live_muse: bool = False,
+    fixture_muse: Path | None = None,
+    before: Path | None = None,
+    after: Path | None = None,
+    instruction: str = DEFAULT_INSTRUCTION,
 ) -> dict:
     out.mkdir(parents=True, exist_ok=True)
+    before = before or DEFAULT_BEFORE
+    after = after or DEFAULT_AFTER
     nightshift = _nightshift_arm(out, skip_harness=skip_harness)
-    muse = _muse_screenshots_arm(out, live=live_muse)
+    muse = _muse_screenshots_arm(
+        out,
+        live=live_muse,
+        fixture_log=fixture_muse,
+        before=before,
+        after=after,
+        instruction=instruction,
+    )
+    agreement = _agreement(nightshift, muse)
     doc = {
         "format": FORMAT,
         "generatedAt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "case": {
+            "family": "physics-fall-through",
+            "before": str(before),
+            "after": str(after),
+            "instruction": instruction,
+        },
         "arms": [nightshift, muse],
         "nightshiftOk": bool(nightshift.get("ok")),
         "museOk": muse.get("ok"),
+        "agreement": agreement,
         "detail": (
-            "Nightshift arm filmed; Muse screenshot arm is a scaffold until the judge lands"
+            f"Nightshift vs Muse screenshots ({PROMPT_POLICY}); agreement={agreement}"
+            if agreement
+            else "Nightshift arm filmed; Muse screenshot arm skipped or incomplete"
         ),
     }
     (out / "bench-compare.json").write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
@@ -141,12 +197,20 @@ def build_compare(
         "# Bench compare — Muse screenshots vs Nightshift",
         "",
         f"- Generated: `{doc['generatedAt']}`",
+        f"- Case: `{doc['case']['family']}`",
         f"- Nightshift: {'PASS' if nightshift.get('ok') else 'FAIL'} — {nightshift.get('detail')}",
     ]
     if nightshift.get("publicKey"):
         lines.append(f"- Nightshift RC public key: `{nightshift['publicKey']}`")
-    muse_label = "SKIPPED" if muse.get("skipped") else ("PASS" if muse.get("ok") else "FAIL")
+    if muse.get("skipped"):
+        muse_label = "SKIPPED"
+    elif muse.get("ok"):
+        muse_label = f"PASS ({muse.get('decision')})"
+    else:
+        muse_label = "FAIL"
     lines.append(f"- Muse screenshots: {muse_label} — {muse.get('detail')}")
+    if agreement:
+        lines.append(f"- Agreement: `{agreement}` (Nightshift `{nightshift.get('decision')}` vs Muse `{muse.get('decision')}`)")
     lines.append("")
     (out / "bench-compare.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     return doc
@@ -158,15 +222,30 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--out", type=Path, default=Path("runs/bench-compare"))
     p.add_argument("--harness", action="store_true", help="Godot replay for Nightshift arm")
     p.add_argument("--live-muse", action="store_true",
-                   help="attempt Muse screenshot judge (fails closed until wired)")
+                   help="run Muse screenshot judge (requires META_API_KEY + muse)")
+    p.add_argument("--fixture-muse", type=Path,
+                   help="canned muse.log for the screenshot judge (tests / offline replay)")
+    p.add_argument("--before", type=Path, default=DEFAULT_BEFORE)
+    p.add_argument("--after", type=Path, default=DEFAULT_AFTER)
+    p.add_argument("--instruction", default=DEFAULT_INSTRUCTION)
     args = p.parse_args(argv)
-    doc = build_compare(args.out, skip_harness=not args.harness, live_muse=args.live_muse)
+    if args.live_muse and args.fixture_muse:
+        print("pass only one of --live-muse / --fixture-muse", file=sys.stderr)
+        return 1
+    doc = build_compare(
+        args.out,
+        skip_harness=not args.harness,
+        live_muse=args.live_muse,
+        fixture_muse=args.fixture_muse,
+        before=args.before,
+        after=args.after,
+        instruction=args.instruction,
+    )
     print((args.out / "bench-compare.md").read_text(encoding="utf-8"))
     if not doc.get("nightshiftOk"):
         return 1
-    if args.live_muse:
+    if args.live_muse or args.fixture_muse:
         muse = next(a for a in doc["arms"] if a["name"] == "muse-screenshots")
-        # Refuse a green exit while the Muse arm is unwired or failed.
         if muse.get("ok") is not True:
             return 1
     return 0

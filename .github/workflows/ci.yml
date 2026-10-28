@@ -460,7 +460,7 @@ jobs:
           path: runs/agents-sandbox-trust/
           retention-days: 14
 
-  # Offline Gate 2 scaffold: Nightshift arm + empty Muse-screenshots slot (no Meta spend).
+  # Gate 2 bench compare: Nightshift arm + Muse screenshot judge (fixture log offline).
   agents-bench-compare:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -472,15 +472,62 @@ jobs:
         with:
           python-version: '3.13'
       - run: python -m pip install -r requirements-dev.txt
-      - name: Bench compare scaffold
+      - name: Bench compare offline (Muse skipped)
         run: |
           python -m agents.bench_compare --out runs/bench-compare
           python -c "import json; d=json.load(open('runs/bench-compare/bench-compare.json')); assert d['nightshiftOk'] and d['museOk'] is None, d"
+      - name: Bench compare with fixture Muse log (no Meta spend)
+        run: |
+          python -m agents.bench_compare --out runs/bench-compare-fixture \
+            --fixture-muse agents/fixtures/muse-judge-accept.log
+          python -c "import json; d=json.load(open('runs/bench-compare-fixture/bench-compare.json')); assert d['nightshiftOk'] and d['museOk'] and d['agreement']=='agree', d"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: agents-bench-compare
-          path: runs/bench-compare/
+          path: |
+            runs/bench-compare/
+            runs/bench-compare-fixture/
+          retention-days: 14
+
+  # Live Muse screenshot judge vs Nightshift (Gate 2). Manual — spends Meta credit.
+  agents-bench-compare-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    env:
+      META_API_KEY_SET: ${{ secrets.META_API_KEY != '' }}
+    steps:
+      - name: Require the META_API_KEY repo secret
+        if: env.META_API_KEY_SET != 'true'
+        run: |
+          echo "::error::Set the META_API_KEY repository secret before running the live bench-compare job."
+          exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Install Muse Code CLI
+        run: |
+          curl -fsSL https://dev.meta.ai/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Live Muse screenshot judge vs Nightshift
+        env:
+          META_API_KEY: ${{ secrets.META_API_KEY }}
+          MODEL_API_KEY: ${{ secrets.META_API_KEY }}
+        run: |
+          test -n "$META_API_KEY"
+          command -v muse
+          python -m agents.bench_compare --out runs/bench-compare-live --live-muse
+          python -c "import json; d=json.load(open('runs/bench-compare-live/bench-compare.json')); assert d['nightshiftOk'] and d['museOk'], d; assert d['arms'][1]['source']=='muse', d"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: agents-bench-compare-live
+          path: runs/bench-compare-live/
           retention-days: 14
 
   # Oct 29 Fix+Trust film: Muse in bubblewrap + poison + Godot replay + held-out + Ed25519.

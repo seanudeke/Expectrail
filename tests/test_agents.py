@@ -2162,6 +2162,9 @@ class CleanPromptEnvHonestyTest(unittest.TestCase):
         self.assertIn("bubblewrap", yml)
         self.assertIn("agents-bench-compare", yml)
         self.assertIn("agents.bench_compare", yml)
+        self.assertIn("agents-bench-compare-live", yml)
+        self.assertIn("--fixture-muse", yml)
+        self.assertIn("--live-muse", yml)
         self.assertIn("agents-oct29-film", yml)
         self.assertIn("agents.film_oct29", yml)
         self.assertIn("HELDOUT_TOKEN_SET:", yml)
@@ -2339,6 +2342,48 @@ class ObservationsProviderTest(unittest.TestCase):
             from_trace({"rows": []}, provider="sam")
 
 
+class MuseJudgeTest(unittest.TestCase):
+    def test_parse_decision_last_wins(self):
+        from agents.muse_judge import parse_decision
+        text = "DECISION: reject\nscratch\nDECISION: accept\n"
+        self.assertEqual(parse_decision(text), "accept")
+        self.assertIsNone(parse_decision("no decision here"))
+        self.assertIsNone(parse_decision("DECISION: maybe"))
+
+    def test_fixture_log_accept(self):
+        from agents.muse_judge import PROMPT_POLICY, run_muse_judge
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "judge"
+            result = run_muse_judge(
+                out,
+                before=BEFORE_FRAME,
+                after=AFTER_FRAME,
+                fixture_log=REPO / "agents" / "fixtures" / "muse-judge-accept.log",
+            )
+            self.assertTrue(result["ok"])
+            self.assertFalse(result.get("skipped"))
+            self.assertEqual(result["decision"], "accept")
+            self.assertEqual(result["source"], "fixture-log")
+            self.assertEqual(result["promptPolicy"], PROMPT_POLICY)
+            self.assertTrue((out / "muse.log").is_file())
+            self.assertTrue((out / "judge.json").is_file())
+
+    def test_live_without_keys_skips(self):
+        from agents.muse_judge import run_muse_judge
+        with tempfile.TemporaryDirectory() as tmp:
+            env = {k: v for k, v in os.environ.items() if k != "META_API_KEY"}
+            with mock.patch.dict(os.environ, env, clear=True):
+                with mock.patch("agents.muse_judge.muse_code_ready", return_value=False):
+                    result = run_muse_judge(
+                        Path(tmp) / "judge",
+                        before=BEFORE_FRAME,
+                        after=AFTER_FRAME,
+                    )
+            self.assertTrue(result["skipped"])
+            self.assertFalse(result["ok"])
+            self.assertIsNone(result["decision"])
+
+
 class BenchCompareTest(unittest.TestCase):
     def test_offline_scaffold_nightshift_arm(self):
         from agents.bench_compare import build_compare
@@ -2347,10 +2392,46 @@ class BenchCompareTest(unittest.TestCase):
             doc = build_compare(out, skip_harness=True, live_muse=False)
             self.assertTrue(doc["nightshiftOk"])
             self.assertIsNone(doc["museOk"])
+            self.assertIsNone(doc["agreement"])
             self.assertTrue((out / "bench-compare.md").is_file())
             arms = {a["name"]: a for a in doc["arms"]}
             self.assertTrue(arms["muse-screenshots"]["skipped"])
             self.assertTrue(arms["nightshift"]["publicKey"])
+
+    def test_fixture_muse_agreement_accept(self):
+        from agents.bench_compare import build_compare, main as bench_main
+        fixture = REPO / "agents" / "fixtures" / "muse-judge-accept.log"
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "bench"
+            doc = build_compare(out, skip_harness=True, fixture_muse=fixture)
+            self.assertTrue(doc["nightshiftOk"])
+            self.assertTrue(doc["museOk"])
+            self.assertEqual(doc["agreement"], "agree")
+            arms = {a["name"]: a for a in doc["arms"]}
+            self.assertEqual(arms["muse-screenshots"]["decision"], "accept")
+            self.assertFalse(arms["muse-screenshots"]["skipped"])
+            code = bench_main(["--out", str(out), "--fixture-muse", str(fixture)])
+            self.assertEqual(code, 0)
+
+    def test_fixture_muse_disagree_still_ok_exit(self):
+        """Muse reject vs Nightshift accept is a filmed disagreement, not a process failure."""
+        from agents.bench_compare import build_compare, main as bench_main
+        fixture = REPO / "agents" / "fixtures" / "muse-judge-reject.log"
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "bench"
+            doc = build_compare(out, skip_harness=True, fixture_muse=fixture)
+            self.assertTrue(doc["nightshiftOk"])
+            self.assertTrue(doc["museOk"])
+            self.assertEqual(doc["agreement"], "disagree")
+            code = bench_main(["--out", str(out), "--fixture-muse", str(fixture)])
+            self.assertEqual(code, 0)
+
+    def test_live_muse_without_keys_exits_1(self):
+        from agents.bench_compare import main as bench_main
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch("agents.muse_judge.muse_code_ready", return_value=False):
+                code = bench_main(["--out", str(Path(tmp) / "bench"), "--live-muse"])
+            self.assertEqual(code, 1)
 
 
 class FilmOct29Test(unittest.TestCase):
