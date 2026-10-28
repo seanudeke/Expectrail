@@ -23,9 +23,31 @@ from agents.keys import muse_subprocess_env
 SANDBOX_KINDS = frozenset({"bwrap", "docker", "none"})
 
 
+def _bwrap_usable() -> bool:
+    """True when bwrap can create a namespace (GHA often blocks uid_map until sysctl)."""
+    if not shutil.which("bwrap"):
+        return False
+    cmd = [
+        "bwrap",
+        "--die-with-parent",
+        "--unshare-pid",
+        "--dev", "/dev",
+        "--tmpfs", "/tmp",
+    ]
+    for ro in ("/usr", "/bin", "/lib", "/lib64"):
+        if Path(ro).exists():
+            cmd.extend(["--ro-bind", ro, ro])
+    cmd.extend(["--", "true"])
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return proc.returncode == 0
+
+
 def detect_sandbox() -> str:
     """Return bwrap | docker | none (first usable tool)."""
-    if shutil.which("bwrap"):
+    if _bwrap_usable():
         return "bwrap"
     if shutil.which("docker"):
         # Probe that docker daemon answers (cheap version check).

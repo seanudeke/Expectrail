@@ -340,6 +340,14 @@ jobs:
       - run: python -m pip install -r requirements-dev.txt
       - name: Install bubblewrap
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends bubblewrap
+      - name: Allow unprivileged user namespaces for bubblewrap
+        run: |
+          if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
+          fi
+          if [ -f /proc/sys/kernel/unprivileged_userns_clone ]; then
+            echo 1 | sudo tee /proc/sys/kernel/unprivileged_userns_clone
+          fi
       - name: Trust with required OS sandbox (blocked canary read)
         run: |
           python -m agents.trust --out runs/agents-sandbox-trust --require-sandbox
@@ -403,6 +411,18 @@ jobs:
       - run: python -m pip install -r requirements-dev.txt
       - name: Install bubblewrap, xvfb, software OpenGL
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends bubblewrap xvfb libgl1-mesa-dri libglx-mesa0
+      - name: Allow unprivileged user namespaces for bubblewrap
+        run: |
+          # Ubuntu 24.04 runners often deny bwrap uid_map writes ("Permission denied").
+          if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
+          fi
+          if [ -f /proc/sys/kernel/unprivileged_userns_clone ]; then
+            echo 1 | sudo tee /proc/sys/kernel/unprivileged_userns_clone
+          fi
+          bwrap --die-with-parent --unshare-pid --dev /dev --tmpfs /tmp \
+            --ro-bind /usr /usr --ro-bind /bin /bin --ro-bind /lib /lib \
+            --ro-bind /lib64 /lib64 -- true
       - name: Download Godot
         run: ./harness/get_godot.sh
       - name: Fetch the private held-out set (verifier side only)
