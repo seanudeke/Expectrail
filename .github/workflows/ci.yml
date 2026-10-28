@@ -7,6 +7,9 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    # Daily offline E2E film (UTC morning) — no Meta spend.
+    - cron: '0 7 * * *'
 
 permissions:
   contents: read
@@ -101,6 +104,10 @@ jobs:
         run: |
           python -m agents.prove_live --out runs/agents-prove-trust --trust-only
           python -c "from pathlib import Path; md=Path('runs/agents-prove-trust/prove.md').read_text(); assert 'Overall: PASS' in md; assert Path('runs/agents-prove-trust/trust/canary-attempts.json').is_file()"
+      - name: Daily offline E2E (no Meta spend)
+        run: |
+          python -m agents.daily --out runs/agents-daily --mode offline
+          python -c "import json; from pathlib import Path; d=json.load(open('runs/agents-daily/daily.json')); assert d['status']=='pass', d; assert d['effectiveMode']=='offline'; assert Path('runs/agents-daily/loop/morning-report.md').is_file()"
       - name: Mixed overnight films gameplay reject in rollup
         run: |
           python -m agents.loop --out runs/agents-loop-accept --runs 1 --mode offline
@@ -180,6 +187,7 @@ jobs:
             runs/agents-trust/trust-evidence.md
             runs/agents-trust/canary-attempts.json
             runs/agents-prove-trust/
+            runs/agents-daily/
             runs/agents-loop/summary.json
             runs/agents-loop/morning-report.md
             runs/agents-loop/frames/
@@ -276,6 +284,56 @@ jobs:
             runs/harness-seed/godot.log
             runs/harness-flake/summary.json
           retention-days: 7
+
+  # Offline daily film on schedule + PRs (no Meta keys). Live Muse stays dispatch-only.
+  agents-daily-offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' || github.event_name == 'push' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Daily offline E2E
+        run: |
+          python -m agents.daily --out runs/daily-ci --mode offline
+          test -f runs/daily-ci/daily.md
+          python -c "import json; d=json.load(open('runs/daily-ci/daily.json')); assert d['status']=='pass' and d['effectiveMode']=='offline', d"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: agents-daily-offline
+          path: runs/daily-ci/
+          retention-days: 14
+
+  # OS sandbox trust film (bubblewrap). Does not invent Meta spend.
+  agents-sandbox:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Install bubblewrap
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends bubblewrap
+      - name: Trust with required OS sandbox (blocked canary read)
+        run: |
+          python -m agents.trust --out runs/agents-sandbox-trust --require-sandbox
+          python -c "import json; from pathlib import Path; d=json.load(open('runs/agents-sandbox-trust/trust.json')); assert d['ok'], d; s=d['sandbox']; assert s['enforced'] and s['blocked'] and not s['leakedKeyBytes'], s; md=Path('runs/agents-sandbox-trust/trust-evidence.md').read_text(); assert 'Blocked read' in md or 'blocked' in md.lower()"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: agents-sandbox-trust
+          path: runs/agents-sandbox-trust/
+          retention-days: 14
 
   # Playbook item 1: live Muse Code → verifier accept. Manual only so PRs never invent
   # Meta spend. Set repo secret META_API_KEY, then Actions → CI → Run workflow.

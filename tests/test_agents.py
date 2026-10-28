@@ -41,7 +41,9 @@ from agents.patchutil import assert_editable, paths_touched
 from agents.gate1 import main as gate1_main
 from agents.report import build_report, gameplay_film_stub, verify_release_candidate, write_loop_rollup
 from agents.triage import WONDER_MODEL, triage
+from agents.daily import EXIT_CODES, main as daily_main
 from agents.prove_live import main as prove_live_main
+from agents.sandbox import detect_sandbox, probe_blocked_canary_read
 from agents.trust import probe_canary_reads, run_trust_check
 from agents.verifier import GAMEPLAY_SPEC_ID, verify
 from harness.run import REPO, tree_digest
@@ -1900,16 +1902,10 @@ class CleanPromptEnvHonestyTest(unittest.TestCase):
             out = Path(tmp) / "fix"
             captured = {}
 
-            real_run = subprocess.run
-
-            def fake_run(cmd, **kwargs):
-                if not (cmd and cmd[0] == "muse"):
-                    return real_run(cmd, **kwargs)
-                captured["cmd"] = cmd
-                captured["env"] = kwargs.get("env")
-                captured["cwd"] = kwargs.get("cwd")
-                # Simulate Muse editing collision_mask without us putting the answer in the prompt.
-                work = Path(kwargs["cwd"])
+            def fake_muse(prompt, *, work, env=None, timeout=0, require_sandbox=False):
+                captured["cmd"] = ["muse", "exec", "--disable-approval", "--trust-workspace", prompt]
+                captured["env"] = dict(env or {})
+                captured["cwd"] = str(work)
                 tscn = work / "player" / "player.tscn"
                 tscn.write_text(
                     tscn.read_text(encoding="utf-8").replace(
@@ -1917,11 +1913,11 @@ class CleanPromptEnvHonestyTest(unittest.TestCase):
                     ),
                     encoding="utf-8",
                 )
-                return mock.Mock(returncode=0, stdout="ok", stderr="")
+                return mock.Mock(returncode=0, stdout="ok", stderr=""), {"kind": "none"}
 
             with mock.patch.dict(os.environ, {"META_API_KEY": "test-key", "AWS_SECRET_ACCESS_KEY": "x"}):
                 with mock.patch("agents.fixer.muse_code_ready", return_value=True):
-                    with mock.patch("agents.fixer.subprocess.run", side_effect=fake_run):
+                    with mock.patch("agents.fixer.run_muse_sandboxed", side_effect=fake_muse):
                         meta = run_fixer(_request(), out, candidate_patch=None)
             self.assertEqual(meta["source"], "muse")
             self.assertEqual(meta["promptPolicy"], PROMPT_POLICY)
@@ -1949,7 +1945,8 @@ class CleanPromptEnvHonestyTest(unittest.TestCase):
             lowered = evidence.lower()
             for phrase in banned:
                 self.assertNotIn(phrase.lower(), lowered)
-            self.assertIn("does **not** claim an OS", evidence)
+            self.assertIn("Deny-by-absence", evidence)
+            self.assertIn("sandbox-canary.json", evidence)
 
     def test_docs_isolation_honesty(self):
         agents_readme = (REPO / "agents" / "README.md").read_text()
@@ -1960,6 +1957,9 @@ class CleanPromptEnvHonestyTest(unittest.TestCase):
         contracts = (REPO / "docs" / "contracts.md").read_text()
         self.assertIn("deny-by-absence", contracts)
         self.assertNotIn("different machine or container", contracts)
+        future = (REPO / "docs" / "future-work.md").read_text()
+        self.assertNotIn("in its own container", future)
+        self.assertIn("deny-by-absence", future)
 
     def test_env_example_and_gitignore(self):
         example = (REPO / ".env.example").read_text()
@@ -1971,6 +1971,173 @@ class CleanPromptEnvHonestyTest(unittest.TestCase):
             ["git", "ls-files", ".env"], cwd=str(REPO), text=True
         ).strip()
         self.assertEqual(tracked, "")
+
+    def test_require_sandbox_fails_closed_when_none(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch("agents.trust.detect_sandbox", return_value="none"):
+                result = run_trust_check(Path(tmp) / "trust", require_sandbox=True)
+            self.assertFalse(result["ok"])
+            self.assertIn("require_sandbox", result["detail"])
+
+    def test_sandbox_probe_blocked_when_enforced(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fixer = root / "fixer"
+            canary = root / "outside" / ".nightshift-signing-key"
+            fixer.mkdir()
+            canary.parent.mkdir()
+            canary.write_text("DEMO-FAKE-SIGNING-KEY-NOT-REAL\n")
+            fake = {
+                "kind": "bwrap",
+                "enforced": True,
+                "blocked": True,
+                "exitCode": 1,
+                "leakedKeyBytes": False,
+                "stdout": "",
+                "stderr": "No such file",
+                "detail": "bwrap blocked canary read (exit 1)",
+            }
+            with mock.patch("agents.trust.detect_sandbox", return_value="bwrap"):
+                with mock.patch("agents.trust.probe_blocked_canary_read", return_value=fake):
+                    result = run_trust_check(
+                        root / "trust",
+                        fixer_work=fixer,
+                        verifier_host=canary.parent,
+                        require_sandbox=True,
+                    )
+            self.assertTrue(result["ok"])
+            self.assertTrue(result["sandbox"]["blocked"])
+            evidence = (root / "trust" / "trust-evidence.md").read_text()
+            self.assertIn("OS sandbox canary", evidence)
+
+    def test_sandbox_probe_none_honesty(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fixer = root / "f"
+            canary = root / "v" / ".nightshift-signing-key"
+            fixer.mkdir()
+            canary.parent.mkdir()
+            canary.write_text("DEMO-FAKE-SIGNING-KEY-NOT-REAL\n")
+            r = probe_blocked_canary_read(fixer, canary, kind="none")
+            self.assertFalse(r["enforced"])
+            self.assertTrue(r["leakedKeyBytes"])
+            self.assertIn(detect_sandbox(), ("bwrap", "docker", "none"))
+
+    def test_bounded_retries_reject_then_accept(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            calls = {"n": 0}
+
+            def fake_fixer(request, out, **kwargs):
+                calls["n"] += 1
+                attempt = kwargs.get("attempt", 1)
+                out.mkdir(parents=True, exist_ok=True)
+                work = out / "fixer-work"
+                from agents.fixer import prepare_fixer_workspace
+                from agents.patchutil import sha256_file
+                from harness.run import apply_patches
+                prepare_fixer_workspace(request, work)
+                patch = REPO / "agents" / "fixtures" / "fix-collision-mask.patch"
+                (out / "candidate.patch").write_text(patch.read_text(encoding="utf-8"), encoding="utf-8")
+                apply_patches(work, [out / "candidate.patch"])
+                meta = {
+                    "request": request["id"],
+                    "attempt": attempt,
+                    "source": "muse",
+                    "ok": True,
+                    "empty": False,
+                    "patchSha256": sha256_file(out / "candidate.patch"),
+                    "baseTree": request["base"]["tree"],
+                    "patch": "candidate.patch",
+                    "promptPolicy": "clean-v1",
+                }
+                (out / "candidate.json").write_text(json.dumps(meta) + "\n", encoding="utf-8")
+                (out / "muse.log").write_text(f"attempt {attempt}\n", encoding="utf-8")
+                return meta
+
+            real_verify = verify
+
+            def fake_verify(request, candidate, out, **kwargs):
+                n = calls["n"]
+                if n == 1:
+                    out.mkdir(parents=True, exist_ok=True)
+                    doc = {
+                        "format": "nightshift.verification/v0",
+                        "decision": "reject",
+                        "reasons": ["planted reject for retry test"],
+                        "candidate": {
+                            "request": request["id"],
+                            "attempt": 1,
+                            "patchSha256": "a" * 64,
+                            "baseTree": request["base"]["tree"],
+                        },
+                        "checks": [],
+                    }
+                    (out / "verification.json").write_text(json.dumps(doc) + "\n", encoding="utf-8")
+                    return doc
+                return real_verify(request, candidate, out, **kwargs)
+
+            with mock.patch("agents.loop.run_fixer", side_effect=fake_fixer):
+                with mock.patch("agents.loop.verify", side_effect=fake_verify):
+                    result = one_run(
+                        root / "run",
+                        use_muse=True,
+                        offline_triage=True,
+                        observations=REPO / "agents" / "fixtures" / "obs-fixed.json",
+                        candidate_patch=None,
+                        skip_harness=True,
+                        run_trust=True,
+                    )
+            self.assertEqual(result["decision"], "accept")
+            self.assertEqual(result["attemptsConsumed"], 2)
+            self.assertEqual(calls["n"], 2)
+            self.assertTrue((root / "run" / "fix" / "attempt-01" / "muse.log").is_file())
+            self.assertTrue((root / "run" / "fix" / "attempt-02" / "muse.log").is_file())
+
+    def test_fixture_path_single_attempt_despite_budget(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch("agents.loop.run_fixer", wraps=run_fixer) as wrapped:
+                result = one_run(
+                    Path(tmp) / "run",
+                    use_muse=False,
+                    offline_triage=True,
+                    observations=REPO / "agents" / "fixtures" / "obs-fixed.json",
+                    candidate_patch=REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
+                    skip_harness=True,
+                    run_trust=True,
+                )
+            self.assertEqual(result["decision"], "accept")
+            self.assertEqual(result["attemptsConsumed"], 1)
+            self.assertEqual(wrapped.call_count, 1)
+
+    def test_daily_offline_pass(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            code = daily_main(["--out", str(Path(tmp) / "daily"), "--mode", "offline"])
+            self.assertEqual(code, 0)
+            report = json.loads((Path(tmp) / "daily" / "daily.json").read_text())
+            self.assertEqual(report["status"], "pass")
+            self.assertEqual(report["effectiveMode"], "offline")
+            self.assertEqual(EXIT_CODES[0], "PASS")
+            self.assertTrue((Path(tmp) / "daily" / "loop" / "morning-report.md").is_file())
+
+    def test_daily_live_without_keys_exits_2(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch("agents.daily.muse_code_ready", return_value=False):
+                code = daily_main(["--out", str(Path(tmp) / "daily"), "--mode", "live"])
+            self.assertEqual(code, 2)
+            report = json.loads((Path(tmp) / "daily" / "daily.json").read_text())
+            self.assertEqual(report["status"], "skipped")
+
+    def test_ci_schedule_uses_offline_only(self):
+        yml = (REPO / ".github" / "workflows" / "ci.yml").read_text()
+        self.assertIn("agents-daily-offline", yml)
+        self.assertIn("cron:", yml)
+        self.assertIn("agents.daily --out runs/daily-ci --mode offline", yml)
+        # Live muse must stay dispatch-gated, not on schedule alone without secret.
+        self.assertIn("workflow_dispatch", yml)
+        self.assertIn("agents-live-muse", yml)
+        self.assertIn("agents-sandbox", yml)
+        self.assertIn("bubblewrap", yml)
 
 
 if __name__ == "__main__":

@@ -17,7 +17,6 @@ import argparse
 import hashlib
 import json
 import shutil
-import subprocess
 import sys
 from pathlib import Path
 
@@ -28,6 +27,7 @@ from agents.keys import (
     muse_subprocess_env,
 )
 from agents.patchutil import assert_editable, path_allowed, sha256_file
+from agents.sandbox import run_muse_sandboxed
 from harness.run import REPO, apply_patches, tree_digest
 from nightshift.contracts import load, validate
 
@@ -149,7 +149,16 @@ def run_fixer(
     candidate_patch: Path | None = None,
     game: Path | None = None,
     attempt: int = 1,
+    allow_empty: bool = False,
+    require_sandbox: bool = False,
+    prior_reject: dict | None = None,
 ) -> dict:
+    """Produce a candidate patch under ``out``.
+
+    When ``allow_empty`` is True, an empty Muse diff returns ``ok=False`` instead of
+    exiting — so the overnight loop can consume a budget attempt and retry.
+    Fixture patches always run once (caller should not retry fixtures).
+    """
     validate(request, "repair-request")
     out.mkdir(parents=True, exist_ok=True)
     work = out / "fixer-work"
@@ -161,20 +170,34 @@ def run_fixer(
 
     patch_path = out / "candidate.patch"
     prompt_meta: dict | None = None
+    sandbox_meta: dict | None = None
+    empty = False
     if candidate_patch is not None:
         text = candidate_patch.read_text(encoding="utf-8")
         patch_path.write_text(text, encoding="utf-8")
         apply_patches(work, [patch_path])
         source = "fixture"
     elif muse_code_ready():
-        # Copy RR into the worktree (ignored from candidate diff) so Muse can read it
-        # under --trust-workspace without leaving the fixer folder.
         rr_work = work / "repair-request.json"
-        rr_work.write_text(json.dumps(request, indent=2) + "\n", encoding="utf-8")
+        rr_doc = dict(request)
+        if prior_reject:
+            rr_doc = {
+                **request,
+                "notes": (
+                    f"{request.get('notes', '')}\n"
+                    f"Prior attempt rejected: {json.dumps(prior_reject, sort_keys=True)}"
+                ).strip(),
+            }
+        rr_work.write_text(json.dumps(rr_doc, indent=2) + "\n", encoding="utf-8")
         (out / "repair-request.json").write_text(
-            json.dumps(request, indent=2) + "\n", encoding="utf-8"
+            json.dumps(rr_doc, indent=2) + "\n", encoding="utf-8"
         )
         prompt = build_muse_prompt(request, rr_relpath="repair-request.json", attempt=attempt)
+        if prior_reject:
+            prompt += (
+                "\n\n## Prior verification (do not treat as a solution hint)\n"
+                f"{json.dumps(prior_reject, indent=2)}\n"
+            )
         prompt_meta = {
             "promptPolicy": PROMPT_POLICY,
             "promptSha256": prompt_sha256(prompt),
@@ -184,21 +207,27 @@ def run_fixer(
         (out / "muse-env-names.json").write_text(
             json.dumps(sorted(env.keys()), indent=2) + "\n", encoding="utf-8"
         )
-        proc = subprocess.run(
-            ["muse", "exec", "--disable-approval", "--trust-workspace", prompt],
-            cwd=str(work),
-            capture_output=True,
-            text=True,
+        timeout = int(request["budget"].get("minutesPerAttempt", 15) * 60)
+        proc, sandbox_meta = run_muse_sandboxed(
+            prompt,
+            work=work,
             env=env,
-            timeout=int(request["budget"].get("minutesPerAttempt", 15) * 60),
+            timeout=timeout,
+            require_sandbox=require_sandbox,
         )
         (out / "muse.log").write_text(proc.stdout + "\n" + proc.stderr, encoding="utf-8")
+        (out / "sandbox.json").write_text(json.dumps(sandbox_meta, indent=2) + "\n", encoding="utf-8")
         text = _diff_worktree(baseline, work, editable=request["editable"])
         if not text.strip():
-            raise SystemExit(
-                f"muse produced an empty game patch (exit {proc.returncode}); see {out / 'muse.log'}"
-            )
-        patch_path.write_text(text, encoding="utf-8")
+            empty = True
+            patch_path.write_text("", encoding="utf-8")
+            if not allow_empty:
+                raise SystemExit(
+                    f"muse produced an empty game patch (exit {proc.returncode}); "
+                    f"see {out / 'muse.log'}"
+                )
+        else:
+            patch_path.write_text(text, encoding="utf-8")
         source = "muse"
     else:
         raise SystemExit(
@@ -206,20 +235,25 @@ def run_fixer(
             "or pass --candidate-patch for offline/CI runs"
         )
 
-    bad = assert_editable(patch_path.read_text(encoding="utf-8"), request["editable"])
-    if bad:
-        raise SystemExit(f"candidate touches paths outside editable globs: {bad}")
+    if not empty:
+        bad = assert_editable(patch_path.read_text(encoding="utf-8"), request["editable"])
+        if bad:
+            raise SystemExit(f"candidate touches paths outside editable globs: {bad}")
 
     meta = {
         "request": request["id"],
         "attempt": attempt,
         "source": source,
-        "patchSha256": sha256_file(patch_path),
+        "ok": not empty,
+        "empty": empty,
+        "patchSha256": sha256_file(patch_path) if patch_path.is_file() and not empty else None,
         "baseTree": request["base"]["tree"],
         "patch": "candidate.patch",
     }
     if prompt_meta:
         meta.update(prompt_meta)
+    if sandbox_meta:
+        meta["sandbox"] = sandbox_meta
     (out / "candidate.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
     return meta
 
@@ -232,12 +266,20 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--candidate-patch", type=Path, help="offline/CI fixture instead of muse exec")
     p.add_argument("--attempt", type=int, default=1)
     p.add_argument("--game", type=Path)
+    p.add_argument("--require-sandbox", action="store_true",
+                   help="fail closed unless Muse runs under bubblewrap")
     args = p.parse_args(argv)
     request = load(args.request, "repair-request")
-    meta = run_fixer(request, args.out, candidate_patch=args.candidate_patch, game=args.game,
-                     attempt=args.attempt)
-    print(f"candidate {meta['patchSha256'][:12]}… from {meta['source']}: {args.out / 'candidate.patch'}")
-    return 0
+    meta = run_fixer(
+        request, args.out,
+        candidate_patch=args.candidate_patch,
+        game=args.game,
+        attempt=args.attempt,
+        require_sandbox=args.require_sandbox,
+    )
+    print(f"candidate {meta.get('patchSha256', '')[:12]}… from {meta['source']}: "
+          f"{args.out / 'candidate.patch'}")
+    return 0 if meta.get("ok", True) else 1
 
 
 if __name__ == "__main__":
