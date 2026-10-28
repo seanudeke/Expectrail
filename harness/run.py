@@ -18,6 +18,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -46,41 +47,65 @@ def get_cache_dir() -> Path:
     return DEFAULT_CACHE_DIR
 
 
-def ensure_import_cache(game: Path, godot: Path, env: dict) -> Path | None:
-    """Ensure a base .godot/ cache exists for the clean game, returning the cache directory."""
-    # 1. If clean game directory itself already has an imported cache, use it directly
-    if (game / ".godot" / "imported").is_dir():
-        return game / ".godot"
+def cache_key(game: Path, godot: Path) -> str:
+    """Identify what an import cache was built from: the Godot binary and the exact game files.
 
+    A cache built by another Godot build (another version, or the macOS editor) or from a game
+    tree that has since changed is stale and must not be reused for a run.
+    """
+    st = godot.resolve().stat()
+    h = hashlib.sha256()
+    h.update(f"{GODOT_VERSION}\0{godot.resolve()}\0{st.st_size}\0{st.st_mtime_ns}\0".encode())
+    h.update(tree_digest(game).encode())
+    return h.hexdigest()
+
+
+def _key_file(cache_dir: Path) -> Path:
+    # Kept beside the cache, not inside it, so the key never lands in a run's .godot/.
+    return cache_dir.with_name(cache_dir.name + ".key")
+
+
+def ensure_import_cache(game: Path, godot: Path, env: dict) -> Path | None:
+    """Return an import cache built from exactly this game and Godot binary, warming it if needed.
+
+    Only the external cache directory is used, and only when its key matches. An import folder
+    inside the clean game itself (left by the editor or a local play session) is never trusted.
+    Warming happens in a private staging folder and is swapped in at the end, so parallel runs
+    cannot see a half-built cache; any failure falls back to a normal full import (slower, same
+    frames).
+    """
     cache_dir = get_cache_dir()
-    # 2. If the external cache dir has .godot/imported, use it
-    if (cache_dir / "imported").is_dir():
+    key = cache_key(game, godot)
+    key_file = _key_file(cache_dir)
+    if (cache_dir / "imported").is_dir() and key_file.is_file() \
+            and key_file.read_text(encoding="utf-8").strip() == key:
         return cache_dir
 
-    # 3. Otherwise, warm the cache once by importing a clean staging copy
-    staging = cache_dir.parent / "staging"
+    staging = None
     try:
-        if staging.exists():
-            shutil.rmtree(staging)
-        shutil.copytree(game, staging, ignore=shutil.ignore_patterns(".godot"))
+        cache_dir.parent.mkdir(parents=True, exist_ok=True)
+        staging = Path(tempfile.mkdtemp(prefix="staging-", dir=cache_dir.parent))
+        copy = staging / "game"
+        shutil.copytree(game, copy, ignore=shutil.ignore_patterns(".godot"))
         subprocess.run(
-            [str(godot), "--headless", "--path", str(staging), "--import"],
+            [str(godot), "--headless", "--path", str(copy), "--import"],
             check=True, capture_output=True, text=True, env=env, timeout=600,
         )
-        if (staging / ".godot" / "imported").is_dir():
-            if cache_dir.exists():
-                shutil.rmtree(cache_dir)
-            cache_dir.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copytree(staging / ".godot", cache_dir)
-            return cache_dir
+        if not (copy / ".godot" / "imported").is_dir():
+            return None
+        if cache_dir.exists():
+            retired = staging / "retired"
+            cache_dir.rename(retired)
+        (copy / ".godot").rename(cache_dir)
+        key_file.write_text(key + "\n", encoding="utf-8")
+        return cache_dir
     except Exception as exc:
         print(f"harness: warning: cache warming failed ({exc}); falling back to direct import",
               file=sys.stderr)
         return None
     finally:
-        if staging.exists():
-            shutil.rmtree(staging)
-    return cache_dir if (cache_dir / "imported").is_dir() else None
+        if staging is not None:
+            shutil.rmtree(staging, ignore_errors=True)
 
 
 def tree_digest(root: Path) -> str:
