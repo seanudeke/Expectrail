@@ -191,7 +191,7 @@ def run_trust_check(
         if a["mountLocal"]:
             outcome = "DENIED (absent from fixer mount)" if not a["exists"] else "LEAK"
         elif a["leakedKeyBytes"]:
-            outcome = "REACHABLE on shared host FS (expected without container; not a mount leak)"
+            outcome = "REACHABLE on shared host FS (not a mount leak; deny-by-absence only)"
         elif a["error"]:
             outcome = f"DENIED ({a['error']})"
         elif not a["exists"]:
@@ -229,10 +229,10 @@ def run_trust_check(
         f"- Deny-list: {sorted(FIXER_FORBIDDEN_BASENAMES)}",
         "",
         f"## Result: {'PASS' if ok else 'FAIL'}",
-        "The fixer is given jobs, not keys or suite controls. OBAAF may also demonstrate a",
-        "block; this check proves the non-OBAAF invariant: those secrets are simply not mounted.",
-        "Host-FS reachability of verifier-host from a sibling path is filmed for honesty and is",
-        "out of scope for deny-by-absence (use a container boundary for OS isolation).",
+        "The fixer is given jobs, not keys or suite controls. This check proves deny-by-absence:",
+        "those secrets are simply not mounted into fixer-work. It does **not** claim an OS",
+        "container or sandbox. Host-FS reachability of verifier-host from a sibling path is",
+        "filmed for honesty and is out of scope for the mount claim.",
         "",
     ])
     (out / "trust-evidence.md").write_text(evidence, encoding="utf-8")
