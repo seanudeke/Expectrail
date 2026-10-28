@@ -2165,6 +2165,9 @@ class CleanPromptEnvHonestyTest(unittest.TestCase):
         self.assertIn("agents-oct29-film", yml)
         self.assertIn("agents.film_oct29", yml)
         self.assertIn("HELDOUT_TOKEN_SET:", yml)
+        # Meta install.sh needs bash (`set -o pipefail`); dash `sh` fails on Ubuntu runners.
+        self.assertNotIn("install.sh | sh", yml)
+        self.assertIn("install.sh | bash", yml)
 
     def test_ci_job_if_never_uses_secrets_context(self):
         """GitHub rejects `secrets.*` in job-level `if:` and the whole workflow fails to start.

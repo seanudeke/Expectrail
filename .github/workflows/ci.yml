@@ -416,7 +416,8 @@ jobs:
         run: echo "NIGHTSHIFT_HELDOUT_DIR=$GITHUB_WORKSPACE/heldout-set" >> "$GITHUB_ENV"
       - name: Install Muse Code CLI
         run: |
-          curl -fsSL https://dev.meta.ai/install.sh | sh
+          # Meta's installer uses `set -o pipefail` (bash); `sh` on Ubuntu is dash.
+          curl -fsSL https://dev.meta.ai/install.sh | bash
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Oct29 Muse+bwrap+Godot+poison+trust film
         env:
@@ -484,7 +485,8 @@ jobs:
       - run: python -m pip install -r requirements-dev.txt
       - name: Install Muse Code CLI
         run: |
-          curl -fsSL https://dev.meta.ai/install.sh | sh
+          # Meta's installer uses `set -o pipefail` (bash); `sh` on Ubuntu is dash.
+          curl -fsSL https://dev.meta.ai/install.sh | bash
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Live Muse gate + trust canary film
         env:
