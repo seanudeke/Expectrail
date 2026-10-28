@@ -2,6 +2,8 @@
 .godot/
 /runs/
 /tools/
+# The private held-out set when checked out locally or in CI (never commit it)
+/heldout-set/
 # Python
 __pycache__/
 *.pyc
