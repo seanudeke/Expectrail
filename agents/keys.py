@@ -208,3 +208,25 @@ def seal_mode_flags(
         "verification_default": resolved.get("verification_default", "fixture"),
     }
     return out
+
+
+def require_separate_sam_key() -> None:
+    """With SAM on, refuse to run Muse Code (the fixer) unless SAM has its own key.
+
+    The verifier reads MODEL_API_KEY; Muse Code receives META_API_KEY (MUSE_ENV_ALLOWLIST). If
+    both hold the same key, the fixer holds the verifier's key, which breaks the promise that the
+    fixer never sees verifier secrets. Called by entry points that run Muse; a no-op when the
+    observations provider is not SAM.
+    """
+    from agents.observations import resolve_provider
+
+    if resolve_provider() != "sam":
+        return
+    sam_key = os.environ.get("MODEL_API_KEY", "").strip()
+    muse_key = os.environ.get("META_API_KEY", "").strip()
+    if not sam_key:
+        raise SystemExit("NIGHTSHIFT_OBS_PROVIDER=sam needs MODEL_API_KEY (a Meta Model API key for SAM)")
+    if muse_key and sam_key == muse_key:
+        raise SystemExit("MODEL_API_KEY is the same key as META_API_KEY, which Muse Code (the fixer) "
+                         "receives. Create a second key on dev.meta.ai for SAM and set it as "
+                         "MODEL_API_KEY, so the fixer never holds the verifier's key.")

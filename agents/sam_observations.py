@@ -10,6 +10,9 @@ Looking at fewer frames (docs/sam.md has the reasoning and the limits):
     default 4, the rate in docs/evaluation.md);
   - refine: when the spec fails on a sampled frame, look at every frame between the last passing
     sample and the first failing one, so the first bad frame in the report is exact;
+  - confirm: a sampled pass is never the last word. Before passing, look at every remaining
+    frame of the window, so a pass (and an accept built on it) rests on every frame; a fail
+    found on a sample stays cheap (NIGHTSHIFT_SAM_CONFIRM=0 turns this off, for probing only);
   - cache: results are kept by frame SHA-256, prompt, model and request settings, so a frame that
     was already judged is never sent again (NIGHTSHIFT_SAM_CACHE; "off" disables it).
 A frame that was not looked at is absent from the document, as the contract says.
@@ -48,6 +51,7 @@ API_BASE = os.environ.get("NIGHTSHIFT_MODEL_API_BASE", "https://api.meta.ai/v1")
 MODEL = os.environ.get("NIGHTSHIFT_SAM_MODEL", "sam-3.1")
 KEY_ENV = "MODEL_API_KEY"
 EVERY_ENV = "NIGHTSHIFT_SAM_EVERY"
+CONFIRM_ENV = "NIGHTSHIFT_SAM_CONFIRM"
 CACHE_ENV = "NIGHTSHIFT_SAM_CACHE"
 WORKERS_ENV = "NIGHTSHIFT_SAM_WORKERS"
 DEFAULT_EVERY = 4
@@ -501,7 +505,8 @@ def observe(frames: dict[int, Path], indices: list[int], prompts: dict[str, str]
     return observed
 
 
-def _document(observed, prompts, model, replay_sha256, captured, in_window, every, refined) -> dict:
+def _document(observed, prompts, model, replay_sha256, captured, in_window, every, refined,
+              confirmed: int = 0) -> dict:
     return {
         "format": "nightshift.observations/v0",
         "replay": {"sha256": replay_sha256},
@@ -512,7 +517,8 @@ def _document(observed, prompts, model, replay_sha256, captured, in_window, ever
         "analysis": {"framesCaptured": captured, "framesInWindow": in_window,
                      "framesAnalyzed": len(observed), "every": every,
                      "refined": ({"frames": len(refined), "from": min(refined), "to": max(refined)}
-                                 if refined else None)},
+                                 if refined else None),
+                     "confirmed": confirmed},
     }
 
 
@@ -527,6 +533,7 @@ def from_replay(
     prompts: dict[str, str] | None = None,
     every: int | None = None,
     refine: bool = True,
+    confirm: bool | None = None,
     client: MetaSamClient | None = None,
     cache: Cache | None = None,
     workers: int | None = None,
@@ -542,15 +549,18 @@ def from_replay(
     crashing; nothing here can fail into a pass.
     """
     try:
+        if confirm is None:
+            confirm = os.environ.get(CONFIRM_ENV, "1").strip().lower() not in ("0", "off", "false", "no")
         return _from_replay(frames_dir, replay_sha256, spec=spec, prompts=prompts, every=every, refine=refine,
-                            client=client, cache=cache, workers=workers, stats=stats)
+                            confirm=confirm, client=client, cache=cache, workers=workers, stats=stats)
     except SamError:
         raise
     except Exception as exc:  # noqa: BLE001 - any surprise is needs-review, never a crash or a pass
         raise SamError(f"unexpected {type(exc).__name__}: {exc}") from exc
 
 
-def _from_replay(frames_dir, replay_sha256, *, spec, prompts, every, refine, client, cache, workers, stats) -> dict:
+def _from_replay(frames_dir, replay_sha256, *, spec, prompts, every, refine, confirm, client, cache, workers,
+                 stats) -> dict:
     if frames_dir is None or not Path(frames_dir).is_dir():
         raise SamError("the sam provider needs the replay's captured frames (frames_dir)")
     frames = frame_files(Path(frames_dir))
@@ -574,10 +584,20 @@ def _from_replay(frames_dir, replay_sha256, *, spec, prompts, every, refine, cli
         refined = refine_targets(indices, set(observed), evaluate(spec, doc), passing_frames(spec, doc), kind)
         if refined:
             observed.update(observe(frames, refined, names, client, cache, workers))
+    confirmed: list[int] = []
+    # "reaches" passes on the frame that reaches the goal, so more frames cannot change its pass.
+    if confirm and spec and rate > 1 and spec.get("assertion", {}).get("type") != "reaches":
+        doc = _document(observed, names, client.model, replay_sha256, len(frames), len(indices), rate, refined)
+        if evaluate(spec, doc)["result"] == "pass":
+            # Sampling finds failures cheaply; a pass has to hold on every frame.
+            confirmed = [i for i in indices if i not in observed]
+            if confirmed:
+                observed.update(observe(frames, confirmed, names, client, cache, workers))
     if stats is not None:
         stats.update(calls=client.calls, cacheHits=cache.hits, framesAnalyzed=len(observed),
-                     framesCaptured=len(frames), every=rate, refined=len(refined))
-    return _document(observed, names, client.model, replay_sha256, len(frames), len(indices), rate, refined)
+                     framesCaptured=len(frames), every=rate, refined=len(refined), confirmed=len(confirmed))
+    return _document(observed, names, client.model, replay_sha256, len(frames), len(indices), rate, refined,
+                     len(confirmed))
 
 
 # ---------------------------------------------------------------------------------------------
@@ -593,6 +613,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--spec", type=Path, required=True)
     p.add_argument("--every", type=int, help=f"look at every Nth frame (default {DEFAULT_EVERY})")
     p.add_argument("--no-refine", action="store_true")
+    p.add_argument("--no-confirm", action="store_true", help="let a pass rest on the sample (probing only)")
     p.add_argument("--out", type=Path, help="default: <run>/observations-sam.json")
     args = p.parse_args(argv)
     load_dotenv()
@@ -604,6 +625,7 @@ def main(argv: list[str] | None = None) -> int:
         doc = from_replay(
             replay_sha256=sha256_bytes(replay) if replay.is_file() else "0" * 64,
             frames_dir=args.run / "frames", spec=spec, every=args.every, refine=not args.no_refine,
+            confirm=False if args.no_confirm else None,
             stats=stats)
     except SamError as exc:
         print(f"needs-review: {exc}", file=sys.stderr)
@@ -614,7 +636,8 @@ def main(argv: list[str] | None = None) -> int:
     verdict = evaluate(spec, doc)
     print(f"observations: {out} ({digest(doc)[:12]})")
     print(f"frames analyzed: {stats['framesAnalyzed']} of {stats['framesCaptured']} (every {stats['every']}, "
-          f"{stats['refined']} refined); API calls {stats['calls']}, cache hits {stats['cacheHits']}")
+          f"{stats['refined']} refined, {stats['confirmed']} confirmed); API calls {stats['calls']}, "
+          f"cache hits {stats['cacheHits']}")
     print(f"{verdict['result']}: {verdict['reason']}")
     return {"pass": 0, "fail": 1, "needs-review": 2}[verdict["result"]]
 

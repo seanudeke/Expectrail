@@ -285,6 +285,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     offline_triage = resolved["offline_triage"]
     use_muse = resolved["use_muse"]
+    if use_muse:
+        from agents.keys import require_separate_sam_key
+        require_separate_sam_key()
     skip_harness = False if args.no_skip_harness else args.skip_harness
     observations = None if args.no_skip_harness else args.observations
     provenance = "harness" if not skip_harness else "fixture"
