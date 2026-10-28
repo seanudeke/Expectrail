@@ -24,6 +24,7 @@ from nightshift.contracts import load, validate
 from nightshift.evaluator import evaluate
 
 SPEC = load(REPO / "specs" / "player-stays-above-ground.json", "test-spec")
+TOL = SPEC["assertion"]["boundary"]["tolerancePx"]
 W, H = 160, 96
 GROUND_TOP = 70
 
@@ -47,8 +48,11 @@ def box_token(oid, box, score=None, size=(W, H)):
 
 
 def player_bottom_falling(i: int) -> int:
-    """Stands on the ground until frame 33, then sinks 5 px a frame: first past 12 px at 36."""
+    """Stands on the ground until frame 33, then sinks 5 px a frame (first past TOL at FIRST_FALL)."""
     return GROUND_TOP + max(0, i - 33) * 5
+
+
+FIRST_FALL = 33 + int(TOL) // 5 + 1  # 38 with the approved 20 px tolerance
 
 
 class Scene:
@@ -308,9 +312,9 @@ class FromReplayTest(unittest.TestCase):
         sampled, stats = self.run_scene(scene, every=10)
         v_full, v_sampled = evaluate(SPEC, full), evaluate(SPEC, sampled)
         self.assertEqual(v_full["result"], "fail")
-        self.assertEqual(v_full["firstFrame"], 36)
+        self.assertEqual(v_full["firstFrame"], FIRST_FALL)
         self.assertEqual(v_sampled["result"], "fail")
-        self.assertEqual(v_sampled["firstFrame"], 36)
+        self.assertEqual(v_sampled["firstFrame"], FIRST_FALL)
         self.assertEqual(stats["framesAnalyzed"], 13 + 9)
         self.assertEqual(sampled["analysis"]["refined"], {"frames": 9, "from": 31, "to": 39})
         self.assertEqual(sampled["model"]["prompts"]["player"], "blue robot")
@@ -392,7 +396,7 @@ class FromReplayTest(unittest.TestCase):
 
     def test_a_sample_without_the_player_does_not_anchor_refinement(self):
         # Fails on frames 6-12, player undetected at sample 8: the first failing frame is still 6.
-        bottom = lambda i: GROUND_TOP + 20 if 6 <= i <= 12 else GROUND_TOP
+        bottom = lambda i: GROUND_TOP + TOL + 8 if 6 <= i <= 12 else GROUND_TOP
         scene = Scene(self.root, bottom=bottom, missing={8})
         full, _ = self.run_scene(scene, every=1)
         sampled, _ = self.run_scene(scene, every=4)
@@ -449,7 +453,7 @@ class FromReplayTest(unittest.TestCase):
             doc = from_trace({"rows": []}, replay_sha256="b" * 64, provider="sam", frames_dir=str(scene.dir), spec=SPEC)
         self.assertEqual(doc["model"]["name"], "sam-3.1")
         self.assertEqual(doc["replay"]["sha256"], "b" * 64)
-        self.assertEqual(evaluate(SPEC, doc)["firstFrame"], 36)
+        self.assertEqual(evaluate(SPEC, doc)["firstFrame"], FIRST_FALL)
 
 
 class ProbeTest(unittest.TestCase):
