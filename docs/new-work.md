@@ -40,4 +40,5 @@ something; keep prior work out of it.
 | Oct 27 | Overnight summary contract, wall-clock/cost stubs, RR→RC bind, demo package | `contracts/overnight-summary.schema.json`, `agents/loop.py`, `agents/bench.py`, `bench/` |
 | Oct 27 | Film/operability hardening: sources, trust film, harness morning, multi-gameplay fail-closed | `agents/report.py`, `agents/isolation.py`, `.github/workflows/ci.yml` |
 | Oct 27 | Film honesty: needs-review rollup, RC verify, RR triage provenance, Gate1 morning | `agents/report.py`, `agents/gate1.py`, `agents/triage.py` |
+| Oct 27 | Automate live Muse accept + trust canary denial film (`prove_live`, canary probe, dispatch CI) | `agents/prove_live.py`, `agents/trust.py`, `.github/workflows/ci.yml` |
 | Oct 27 | Future work: known limits and next steps | `docs/future-work.md` |

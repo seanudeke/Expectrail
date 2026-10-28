@@ -49,3 +49,18 @@ python3 -m agents.trust --out runs/trust-recheck \
   --fixer-work runs/demo-path/run-00/fix/fixer-work \
   --verifier-host runs/demo-path/run-00/verifier-host
 ```
+
+Trust canary denial film (scripted attempts, no Muse spend):
+
+```sh
+python3 -m agents.prove_live --out runs/prove --trust-only
+# → runs/prove/prove.md + trust/canary-attempts.json
+```
+
+Live Muse accept film (needs `META_API_KEY` + `muse`; or CI `workflow_dispatch` job
+`agents-live-muse` with the repo secret set):
+
+```sh
+export META_API_KEY=LLM_…
+python3 -m agents.prove_live --out runs/prove
+```

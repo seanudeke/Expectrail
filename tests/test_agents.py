@@ -31,7 +31,8 @@ from agents.patchutil import assert_editable, paths_touched
 from agents.gate1 import main as gate1_main
 from agents.report import build_report, gameplay_film_stub, verify_release_candidate, write_loop_rollup
 from agents.triage import WONDER_MODEL, triage
-from agents.trust import run_trust_check
+from agents.prove_live import main as prove_live_main
+from agents.trust import probe_canary_reads, run_trust_check
 from agents.verifier import GAMEPLAY_SPEC_ID, verify
 from harness.run import REPO, tree_digest
 from nightshift.contracts import load, validate
@@ -816,12 +817,22 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             self.assertEqual(result["signingKeyInFixer"], [])
             self.assertTrue(result["poisonPresentInFixer"])
             self.assertTrue(result["readDeniedByAbsence"])
+            self.assertTrue(result["mountLocalCanaryDenied"])
             self.assertTrue(result["suiteControlsAbsentFromFixer"])
             self.assertEqual(result["forbiddenPathsInFixer"], [])
             self.assertTrue((out / "trust-evidence.md").exists())
+            self.assertTrue((out / "canary-attempts.json").is_file())
+            attempts = json.loads((out / "canary-attempts.json").read_text())
+            self.assertTrue(any(a["mountLocal"] for a in attempts))
+            for a in attempts:
+                if a["mountLocal"]:
+                    self.assertFalse(a["exists"])
+                    self.assertFalse(a["leakedKeyBytes"])
             evidence = (out / "trust-evidence.md").read_text(encoding="utf-8")
             self.assertIn("PASS", evidence)
             self.assertIn("deny-by-absence", evidence)
+            self.assertIn("Canary probe", evidence)
+            self.assertIn("DENIED", evidence)
             self.assertIn("obs-clean.json", evidence)
             self.assertIn("player-motion-on-smoke.json", evidence)
             self.assertIn("player-reaches-end-of-route.json", evidence)
@@ -830,6 +841,49 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             self.assertIn(".nightshift-signing-key", poison)
             self.assertNotIn("DEMO-FAKE-SIGNING-KEY-NOT-REAL", poison)
             self.assertTrue((out / "verifier-host" / ".nightshift-signing-key").is_file())
+
+    def test_canary_probe_films_mount_denials(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fixer = root / "fixer"
+            verifier = root / "verifier-host"
+            fixer.mkdir()
+            (fixer / "player").mkdir()
+            verifier.mkdir()
+            (verifier / ".nightshift-signing-key").write_text("DEMO-FAKE-SIGNING-KEY-NOT-REAL\n")
+            attempts = probe_canary_reads(fixer, verifier)
+            mount = [a for a in attempts if a["mountLocal"]]
+            self.assertGreaterEqual(len(mount), 2)
+            self.assertTrue(all(not a["exists"] for a in mount))
+            # Sibling escape reaches the host key on a shared FS — filmed, not a mount leak.
+            escape = next(
+                a for a in attempts
+                if a["label"].startswith("relative-escape/../verifier-host")
+            )
+            self.assertTrue(escape["leakedKeyBytes"])
+
+    def test_prove_live_trust_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "prove"
+            code = prove_live_main(["--out", str(out), "--trust-only"])
+            self.assertEqual(code, 0)
+            self.assertTrue((out / "prove.md").is_file())
+            md = (out / "prove.md").read_text()
+            self.assertIn("Overall: PASS", md)
+            self.assertIn("Skipped (`--trust-only`)", md)
+            self.assertTrue((out / "trust" / "canary-attempts.json").is_file())
+
+    def test_prove_live_without_keys_exits_2(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "prove"
+            with mock.patch.dict(os.environ, {}, clear=True):
+                with mock.patch("agents.prove_live.muse_code_ready", return_value=False):
+                    code = prove_live_main(["--out", str(out)])
+            self.assertEqual(code, 2)
+            md = (out / "prove.md").read_text()
+            self.assertIn("SKIPPED", md)
+            self.assertIn("INCOMPLETE", md)
+            self.assertIn("PASS", (out / "trust" / "trust-evidence.md").read_text())
 
     def test_fixer_forbidden_basenames_locked(self):
         self.assertEqual(GAMEPLAY_SPEC_ID, "player-motion-on-smoke")
