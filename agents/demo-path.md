@@ -27,3 +27,10 @@ Regenerate the agents offline bench stub:
 ```sh
 python3 -m agents.bench --summary runs/demo-path/summary.json
 ```
+
+Harness morning film (Linux CI `agents-harness-verify`): after Godot verify, `agents.report`
+writes `runs/harness-accept/morning/` and `runs/harness-negatives/freeze-morning/` with
+schema-valid RCs and suite/gameplay sections.
+
+`--no-trust` is for local debugging only — the demo path keeps trust on so the rollup films
+`## Trust` PASS evidence.

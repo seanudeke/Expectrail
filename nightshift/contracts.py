@@ -55,6 +55,19 @@ def validate(doc, kind: str | None = None) -> str:
         first = errors[0]
         where = "/".join(str(p) for p in first.path) or "(root)"
         raise ContractError(f"{kind}: {where}: {first.message}")
+    if kind == "overnight-summary":
+        runs = doc["runs"]
+        accepted = doc["accepted"]
+        results = doc.get("results") or []
+        if accepted > runs:
+            raise ContractError(f"overnight-summary: accepted ({accepted}) > runs ({runs})")
+        if len(results) != runs:
+            raise ContractError(
+                f"overnight-summary: len(results) ({len(results)}) != runs ({runs})"
+            )
+        cost = doc.get("cost") or {}
+        if cost.get("costProvenance") == "metered" and cost.get("costUsd") is None:
+            raise ContractError("overnight-summary: metered cost requires costUsd")
     return kind
 
 

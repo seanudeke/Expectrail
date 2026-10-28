@@ -29,6 +29,9 @@ def build_repair_request(
     attempts: int = 3,
     notes: str | None = None,
 ) -> dict:
+    validate(spec, "test-spec")
+    validate(verdict, "verdict")
+    validate(route, "route")
     game = REPO / "game" / "platformer"
     doc = {
         "format": "nightshift.repair-request/v0",

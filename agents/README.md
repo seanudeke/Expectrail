@@ -31,8 +31,9 @@ held-out variants — never a rubber-stamp pass row. Optional `suite` on `verifi
 records candidate/clean/held-out provenance.
 
 Trust (`agents.trust`) proves deny-by-absence under fixer-work for the signing key **and** suite
-control basenames (`obs-clean.json`, `obs-held-out.json`, `evaluator.py`, suite specs) — mount
-absence only, not whole-repo read isolation.
+control basenames (`obs-clean.json`, `obs-held-out.json`, `evaluator.py`, suite specs,
+`verdict-gameplay.json`) — mount absence only, not whole-repo read isolation. Overnight rollup
+films `triage=` / `fixer=` sources and Trust PASS/FAIL when trust ran (`--no-trust` omits Trust).
 
 ## Gate 1
 
