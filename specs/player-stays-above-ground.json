@@ -4,7 +4,7 @@
   "instruction": "The player never falls through the ground.",
   "objects": {
     "player": {
-      "prompt": "small robot character"
+      "prompt": "blue robot"
     },
     "ground": {
       "prompt": "grass-topped ground"
@@ -23,9 +23,5 @@
   "window": {
     "fromFrame": 0,
     "toFrame": 119
-  },
-  "approval": {
-    "by": "Sean Keluo-Udeke",
-    "at": "2026-10-28T01:42:01Z"
   }
 }

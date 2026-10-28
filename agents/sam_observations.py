@@ -61,7 +61,7 @@ REQUEST_VERSION = "1"
 # Confidence is required: the evaluator thresholds on it, and a missing score is never guessed.
 # Masks are not used yet, so ask for the smaller encoding.
 METADATA = {"include_confidence": "true", "mask_encoding": "one_bit"}
-DEFAULT_PROMPTS = {"player": "small robot character", "ground": "grass-topped ground"}
+DEFAULT_PROMPTS = {"player": "blue robot", "ground": "grass-topped ground"}
 RETRY_STATUS = frozenset({429, 500, 502, 503, 504})
 # Kinds whose verdict fails as soon as one judged frame fails, so sampling can only miss a
 # failure, never invent one, and refinement can only move the first failing frame earlier.
@@ -468,10 +468,11 @@ def passing_frames(spec: dict, doc: dict) -> set[int]:
 # Observations
 # ---------------------------------------------------------------------------------------------
 
-def _prompts(spec: dict | None, prompts: dict | None) -> dict[str, str]:
+def _prompts(spec: dict | None, prompts: dict | None, engine_names: frozenset = frozenset()) -> dict[str, str]:
+    """What SAM is asked to find: the spec's objects minus those the engine supplies."""
     if spec and spec.get("objects"):
-        return {name: obj["prompt"] for name, obj in spec["objects"].items()}
-    return dict(prompts or DEFAULT_PROMPTS)
+        return {name: obj["prompt"] for name, obj in spec["objects"].items() if name not in engine_names}
+    return {k: v for k, v in (prompts or DEFAULT_PROMPTS).items() if k not in engine_names}
 
 
 def observe(frames: dict[int, Path], indices: list[int], prompts: dict[str, str], client: MetaSamClient,
@@ -506,12 +507,21 @@ def observe(frames: dict[int, Path], indices: list[int], prompts: dict[str, str]
 
 
 def _document(observed, prompts, model, replay_sha256, captured, in_window, every, refined,
-              confirmed: int = 0) -> dict:
+              confirmed: int = 0, engine_objects: dict | None = None) -> dict:
+    engine_objects = engine_objects or {}
+    engine_names = sorted({name for objs in engine_objects.values() for name in objs})
+    model_doc = {"name": model, "provider": "meta-model-api", "prompts": dict(prompts)}
+    if engine_names:
+        # These objects come from the game engine, not from SAM: the evaluator compares SAM's view
+        # of the prompted objects against them (e.g. the robot SAM sees against the level's ground).
+        model_doc["engineObjects"] = engine_names
     return {
         "format": "nightshift.observations/v0",
         "replay": {"sha256": replay_sha256},
-        "model": {"name": model, "provider": "meta-model-api", "prompts": dict(prompts)},
-        "frames": [{"frame": i, "objects": {name: observed[i][name] for name in prompts}}
+        "model": model_doc,
+        "frames": [{"frame": i, "objects": {**{name: observed[i][name] for name in prompts},
+                                            **{name: list(engine_objects.get(i, {}).get(name, []))
+                                               for name in engine_names}}}
                    for i in sorted(observed)],
         # Deterministic given the same detections, so the document digest is stable run to run.
         "analysis": {"framesCaptured": captured, "framesInWindow": in_window,
@@ -534,6 +544,7 @@ def from_replay(
     every: int | None = None,
     refine: bool = True,
     confirm: bool | None = None,
+    engine_objects: dict[int, dict] | None = None,
     client: MetaSamClient | None = None,
     cache: Cache | None = None,
     workers: int | None = None,
@@ -543,7 +554,9 @@ def from_replay(
 
     ``trace``, ``fps`` and ``physics_tps`` are accepted for the seam and unused: SAM looks at
     pixels only. ``spec`` supplies the prompts, the frame window and the assertion that decides
-    whether sampling is safe and where to refine.
+    whether sampling is safe and where to refine. ``engine_objects`` ({frame: {name: boxes}})
+    supplies objects SAM cannot see, such as the level's ground line in frame pixels; SAM is not
+    asked for those.
 
     Every failure comes out as SamError, so the verifier can turn it into needs-review instead of
     crashing; nothing here can fail into a pass.
@@ -552,15 +565,16 @@ def from_replay(
         if confirm is None:
             confirm = os.environ.get(CONFIRM_ENV, "1").strip().lower() not in ("0", "off", "false", "no")
         return _from_replay(frames_dir, replay_sha256, spec=spec, prompts=prompts, every=every, refine=refine,
-                            confirm=confirm, client=client, cache=cache, workers=workers, stats=stats)
+                            confirm=confirm, engine_objects=engine_objects, client=client, cache=cache,
+                            workers=workers, stats=stats)
     except SamError:
         raise
     except Exception as exc:  # noqa: BLE001 - any surprise is needs-review, never a crash or a pass
         raise SamError(f"unexpected {type(exc).__name__}: {exc}") from exc
 
 
-def _from_replay(frames_dir, replay_sha256, *, spec, prompts, every, refine, confirm, client, cache, workers,
-                 stats) -> dict:
+def _from_replay(frames_dir, replay_sha256, *, spec, prompts, every, refine, confirm, engine_objects, client,
+                 cache, workers, stats) -> dict:
     if frames_dir is None or not Path(frames_dir).is_dir():
         raise SamError("the sam provider needs the replay's captured frames (frames_dir)")
     frames = frame_files(Path(frames_dir))
@@ -571,15 +585,23 @@ def _from_replay(frames_dir, replay_sha256, *, spec, prompts, every, refine, con
     workers = workers or int(os.environ.get(WORKERS_ENV, DEFAULT_WORKERS))
     rate = every or int(os.environ.get(EVERY_ENV, DEFAULT_EVERY))
     rate = sampling_plan(spec, max(1, rate))
-    names = _prompts(spec, prompts)
+    engine_objects = engine_objects or {}
+    names = _prompts(spec, prompts, frozenset(n for objs in engine_objects.values() for n in objs))
+    if not names:
+        raise SamError("nothing for SAM to look for: every object of the spec comes from the engine")
 
     indices = window(list(frames), spec)
     if not indices:
         raise SamError("no captured frame falls inside the spec's window")
     observed = observe(frames, sample(indices, rate), names, client, cache, workers)
+
+    def doc_of(refined_frames, confirmed_count=0):
+        return _document(observed, names, client.model, replay_sha256, len(frames), len(indices), rate,
+                         refined_frames, confirmed_count, engine_objects)
+
     refined: list[int] = []
     if refine and spec and rate > 1:
-        doc = _document(observed, names, client.model, replay_sha256, len(frames), len(indices), rate, [])
+        doc = doc_of([])
         kind = spec.get("assertion", {}).get("type")
         refined = refine_targets(indices, set(observed), evaluate(spec, doc), passing_frames(spec, doc), kind)
         if refined:
@@ -587,7 +609,7 @@ def _from_replay(frames_dir, replay_sha256, *, spec, prompts, every, refine, con
     confirmed: list[int] = []
     # "reaches" passes on the frame that reaches the goal, so more frames cannot change its pass.
     if confirm and spec and rate > 1 and spec.get("assertion", {}).get("type") != "reaches":
-        doc = _document(observed, names, client.model, replay_sha256, len(frames), len(indices), rate, refined)
+        doc = doc_of(refined)
         if evaluate(spec, doc)["result"] == "pass":
             # Sampling finds failures cheaply; a pass has to hold on every frame.
             confirmed = [i for i in indices if i not in observed]
@@ -596,8 +618,7 @@ def _from_replay(frames_dir, replay_sha256, *, spec, prompts, every, refine, con
     if stats is not None:
         stats.update(calls=client.calls, cacheHits=cache.hits, framesAnalyzed=len(observed),
                      framesCaptured=len(frames), every=rate, refined=len(refined), confirmed=len(confirmed))
-    return _document(observed, names, client.model, replay_sha256, len(frames), len(indices), rate, refined,
-                     len(confirmed))
+    return doc_of(refined, len(confirmed))
 
 
 # ---------------------------------------------------------------------------------------------

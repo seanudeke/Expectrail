@@ -24,8 +24,9 @@ import statistics
 import sys
 from pathlib import Path
 
+from agents.observations import engine_ground_by_frame, has_engine_ground
 from agents.sam_observations import (
-    Cache, MetaSamClient, SamError, _document, default_cache_dir, frame_files, observe, sample,
+    Cache, MetaSamClient, SamError, _document, default_cache_dir, frame_files, observe, png_size, sample,
     sha256_bytes, window,
 )
 from nightshift.evaluator import DEFAULT_MIN_SCORE, EDGE, SIDE, _overlap, evaluate
@@ -153,18 +154,33 @@ def draw(run_name: str, frames: dict[int, Path], observed: dict[int, dict], spec
     return written
 
 
+def engine_objects_for(run: Path, name: str, frames: dict, chosen: list[int]) -> dict[int, dict]:
+    """{frame: {name: [ground box]}} from the run's harness trace, or {} if it has no ground line."""
+    try:
+        trace = json.loads((run / "trace.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    if not has_engine_ground(trace) or not chosen:
+        return {}
+    by_frame = engine_ground_by_frame(trace, png_size(frames[chosen[0]]), chosen)
+    return {i: {name: by_frame.get(i, {}).get("ground", [])} for i in chosen}
+
+
 def probe_run(run: Path, spec: dict, picked: list[int] | None, every: int, client, cache, workers: int,
-              out: Path | None) -> dict:
+              out: Path | None, engine_ground: str | None = None) -> dict:
     frames = frame_files(run / "frames")
     if not frames:
         raise SamError(f"no frames in {run / 'frames'}")
     indices = window(list(frames), spec)
     chosen = [i for i in (picked or sample(indices, every)) if i in frames]
-    prompts = {name: obj["prompt"] for name, obj in spec["objects"].items()}
+    engine = engine_objects_for(run, engine_ground, frames, chosen) if engine_ground else {}
+    prompts = {name: obj["prompt"] for name, obj in spec["objects"].items() if not (engine and name == engine_ground)}
     observed = observe(frames, chosen, prompts, client, cache, workers)
+    for i, objs in engine.items():
+        observed[i].update(objs)
     replay = run / "replay.json"
     doc = _document(observed, prompts, client.model, sha256_bytes(replay) if replay.is_file() else "0" * 64,
-                    len(frames), len(indices), every, [])
+                    len(frames), len(indices), every, [], 0, engine)
     verdict = evaluate(spec, doc)
     result = {"run": run.name, "framesProbed": chosen, "verdict": {k: verdict[k] for k in ("result", "reason")},
               "objects": object_metrics(spec, observed), "observations": doc}
@@ -341,6 +357,8 @@ def main(argv: list[str] | None = None) -> int:
                    help="probe with a different prompt for one object (the spec file is not changed)")
     p.add_argument("--sweep", metavar="NAME=P1|P2|...",
                    help="try several prompts for one object over the same runs and frames")
+    p.add_argument("--engine-ground", metavar="NAME",
+                   help="take this object (e.g. ground) from the harness's ground line instead of asking SAM")
     p.add_argument("--runs", type=Path, nargs="+", required=True, help="run dirs with frames/ (and trace.json)")
     p.add_argument("--spec", type=Path, required=True)
     p.add_argument("--every", type=int, default=10, help="probe every Nth frame of the window (default 10)")
@@ -386,7 +404,8 @@ def main(argv: list[str] | None = None) -> int:
                           args.out, clean_names)
         else:
             for run in runs:
-                results.append(probe_run(run, spec, picked, args.every, client, cache, args.workers, args.out))
+                results.append(probe_run(run, spec, picked, args.every, client, cache, args.workers, args.out,
+                                         args.engine_ground))
                 print(f"{run.name}: {results[-1]['verdict']['result']}", flush=True)
     except SamError as exc:
         print(f"SAM failed: {exc}", file=sys.stderr)

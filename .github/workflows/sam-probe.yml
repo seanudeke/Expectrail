@@ -33,6 +33,9 @@ on:
       runs:
         description: Only these runs, e.g. clean,physics-fall-through_v1 (default all)
         default: ''
+      engine_ground:
+        description: probe mode, take this object (e.g. ground) from the engine's ground line instead of SAM
+        default: ''
       candidate:
         description: verify mode only, the candidate patch to verify
         default: agents/fixtures/fix-collision-mask.patch
@@ -75,6 +78,7 @@ jobs:
           PROMPTS: ${{ inputs.prompts }}
           SWEEP: ${{ inputs.sweep }}
           RUNS: ${{ inputs.runs }}
+          ENGINE_GROUND: ${{ inputs.engine_ground }}
         run: |
           word="[A-Za-z0-9 -]+"
           name="[a-z][a-z0-9_-]*"
@@ -100,6 +104,10 @@ jobs:
             for pair in "${pairs[@]}"; do args+=(--set "$pair"); done
           fi
           [[ -n "$SWEEP" ]] && args+=(--sweep "$SWEEP")
+          if [[ -n "$ENGINE_GROUND" ]]; then
+            [[ "$ENGINE_GROUND" =~ ^$name$ ]] || { echo "::error::engine_ground must be an object name"; exit 1; }
+            args+=(--engine-ground "$ENGINE_GROUND")
+          fi
           python -m agents.sam_probe "${args[@]}"
       - name: Show the probe in the run summary
         if: always()

@@ -36,12 +36,33 @@ That led to two specs Sean approved on October 28:
 | `player-always-visible` | blue robot | pass, 120/120 | fall-through v1, v2: fail (robot seen in 6/31); layering v1, v2: fail (17/31); missing-texture: pass |
 | `coins-visible` | gold coin | pass, 120/120 | missing-texture v1, v2: fail (0/13) |
 
-Together they fail all six seeded bugs with no false alarm on the clean run. The ground spec stays
-judged on the engine's position log, labeled that way; combining the engine's ground line with
-SAM's robot box is the next step after Gate 2.
+Together they fail all six seeded bugs with no false alarm on the clean run.
 
-One honest limit: "always visible" cannot see a robot that sinks partway into the ground but stays
-on screen. The ground spec on the position log still covers that.
+### The ground, from the level (October 28)
+
+SAM cannot see the ground, so the harness now records it: each tick, the solid tile surface under
+the robot (from the tiles' authored collision polygons, never from the robot's own shape) and the
+camera transform from world to frame pixels. The ground spec then has two judges, both in
+captured-frame pixels so `tolerancePx` means the same for each:
+
+- **Engine** (always): the robot's feet from the position log (origin plus a constant measured on
+  the clean game) against the ground line. Before this, the floor came from the robot's own
+  resting height, so a robot resting too low looked fine.
+- **Hybrid** (with SAM on): SAM's box for the robot against the same ground line. This one also
+  sees a robot that is only *drawn* in the wrong place.
+
+Live probe (run 40706769342), worst gap between the robot's drawn feet and the ground line:
+
+| Run | Worst gap (frame px) | Hybrid ground check |
+| --- | --- | --- |
+| clean | +7 (every one of 120 frames checked: never above +7) | pass |
+| sinking v1: collision shape 26 px too high | +59 | fail (the engine check fails it too) |
+| sinking v2: sprite drawn 26 px too low | +59 | fail (the engine check cannot see it) |
+| fall-through v1, v2 | +72, then the robot leaves the screen | fail |
+
+Measured afterwards, never tuned on: held-out fall-through v4 (a robot that walks buried to the
+waist) passed the old position-log check and passed gameplay. The engine check with the ground
+line now fails it from frame 4.
 
 **End to end with SAM on (October 28, live API, harness replays, private held-out route):**
 
@@ -125,9 +146,9 @@ Both are inputs on the SAM probe workflow, together with `runs` to probe only so
 1. **Held-out routes under SAM.** Run the verifier with `NIGHTSHIFT_OBS_PROVIDER=sam` on the
    verifier machine and read `verdict-held-out.json`: each route lists `visuals` per spec. Coins
    in particular may be off screen on some private route.
-2. **The ground, properly.** Log the camera each frame in the harness, project the level's ground
-   line into frame pixels, and compare it with SAM's robot box. That restores a vision-checked
-   `never-crosses` and catches a robot that sinks but stays visible.
+2. **Ground spec tolerance.** Clean never goes above +7 frame px and the sinking bugs sit at +47
+   or more. The spec says 12; 20 would leave more room on both sides. Sean decides, and the spec
+   needs his re-approval anyway (its player prompt is now "blue robot").
 3. **Score margin.** The lowest clean scores were 0.64 (player) and 0.69 (coins) against the 0.5
    threshold. Watch it when the art or the camera changes.
 4. **Cost of confirming.** A passing replay now costs 120 requests per spec instead of 31; the

@@ -68,6 +68,8 @@ class Scene:
         self.bodies = []
 
     def answer(self, i: int, prompt: str) -> str:
+        if prompt in self.extra:
+            return self.extra[prompt](i)
         if prompt == SPEC["objects"]["player"]["prompt"]:
             if i in self.missing:
                 return ""
@@ -311,7 +313,7 @@ class FromReplayTest(unittest.TestCase):
         self.assertEqual(v_sampled["firstFrame"], 36)
         self.assertEqual(stats["framesAnalyzed"], 13 + 9)
         self.assertEqual(sampled["analysis"]["refined"], {"frames": 9, "from": 31, "to": 39})
-        self.assertEqual(sampled["model"]["prompts"]["player"], "small robot character")
+        self.assertEqual(sampled["model"]["prompts"]["player"], "blue robot")
 
     def test_without_refinement_the_first_frame_is_only_as_exact_as_the_sample(self):
         scene = Scene(self.root, bottom=player_bottom_falling)
@@ -382,7 +384,7 @@ class FromReplayTest(unittest.TestCase):
         coin = lambda i: box_token(0, (62, 40, 70, 50), 0.8) if i == 57 else box_token(0, (140, 10, 150, 20), 0.8)
         scene = Scene(self.root, extra={"gold coin": coin})
         spec = {"format": "nightshift.test-spec/v0", "id": "reach-coin", "instruction": "x",
-                "objects": {"player": {"prompt": "small robot character"}, "coin": {"prompt": "gold coin"}},
+                "objects": {"player": {"prompt": "blue robot"}, "coin": {"prompt": "gold coin"}},
                 "assertion": {"type": "reaches", "object": "player", "goal": "coin", "distancePx": 0}}
         doc, stats = self.run_scene(scene, every=10, spec=spec)
         self.assertEqual(evaluate(spec, doc)["result"], "pass")
@@ -401,7 +403,7 @@ class FromReplayTest(unittest.TestCase):
         coin = lambda i: box_token(0, (62, 40, 70, 50), 0.8) if i == 6 else box_token(0, (140, 10, 150, 20), 0.8)
         scene = Scene(self.root, extra={"gold coin": coin}, missing={4})
         spec = {"format": "nightshift.test-spec/v0", "id": "reach-coin", "instruction": "x",
-                "objects": {"player": {"prompt": "small robot character"}, "coin": {"prompt": "gold coin"}},
+                "objects": {"player": {"prompt": "blue robot"}, "coin": {"prompt": "gold coin"}},
                 "assertion": {"type": "reaches", "object": "player", "goal": "coin", "distancePx": 0}}
         doc, _ = self.run_scene(scene, every=4, spec=spec)
         self.assertEqual(evaluate(spec, doc)["result"], "pass")
@@ -738,6 +740,96 @@ class VerifierWithSamTest(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 verify(_request(), REPO / "agents" / "fixtures" / "fix-collision-mask.patch", self.root / "v")
         harness.assert_not_called()
+
+
+def ground_trace(sink: float = 0.0, ticks: int = 240, ground: float = 650.0, view=(2.0, 0.0, 0.0, 2.0, 600.0, -520.0)):
+    """A harness-shaped trace with the engine's ground line and camera: the player stands on the
+    ground (origin 13.25 above it, as in the clean game), sunk by ``sink`` world px."""
+    rows = []
+    for tick in range(ticks):
+        v = [2.0, 0.0, 0.0, 2.0, 0.0, 0.0] if tick < 2 else list(view)  # camera settles after the first draw
+        rows.append({"tick": tick, "frame": tick // 2, "player": [90.0 + tick, ground - 13.25 + sink],
+                     "onFloor": True, "ground": ground, "view": v})
+    return {"format": "nightshift.trace/v0", "ticks": ticks, "physicsTicksPerSecond": 120, "rows": rows}
+
+
+class EngineGroundTest(unittest.TestCase):
+    def test_ground_line_lands_in_frame_pixels_with_the_settled_camera(self):
+        from agents.observations import engine_ground_by_frame, has_engine_ground
+        trace = ground_trace()
+        self.assertTrue(has_engine_ground(trace))
+        by_frame = engine_ground_by_frame(trace, (1600, 960), [0, 1, 59])
+        self.assertEqual({n: by_frame[n]["ground"][0]["box"][1] for n in (0, 1, 59)}, {0: 780.0, 1: 780.0, 59: 780.0})
+        self.assertEqual(by_frame[0]["ground"][0]["source"], "engine")
+        self.assertFalse(has_engine_ground({"rows": [{"tick": 0, "player": [0, 0]}]}))
+
+    def test_the_position_log_now_sees_a_player_resting_too_low(self):
+        from agents.observations import from_trace_synthetic
+        ground_spec = load(REPO / "agents" / "specs" / "player-stays-above-ground.json", "test-spec")
+        self.assertEqual(evaluate(ground_spec, from_trace_synthetic(ground_trace()))["result"], "pass")
+        self.assertEqual(evaluate(ground_spec, from_trace_synthetic(ground_trace(sink=26)))["result"], "fail")
+        # Without the ground line (older traces) the floor comes from the player itself and a uniform
+        # sink is invisible: that is the gap the ground line closes.
+        old = ground_trace(sink=26)
+        for row in old["rows"]:
+            row.pop("ground")
+        self.assertEqual(evaluate(ground_spec, from_trace_synthetic(old))["result"], "pass")
+
+    def test_hybrid_asks_sam_for_the_robot_only_and_judges_it_against_the_engine_line(self):
+        from agents.observations import engine_ground_by_frame
+        ground_spec = load(REPO / "agents" / "specs" / "player-stays-above-ground.json", "test-spec")
+        root = Path(self.tmp.name)
+        # In these 160x96 test frames the engine line sits at y 70; the robot's drawn feet at 72 or 100.
+        line = {n: {"ground": [{"box": [0.0, 70.0, 160.0, 96.0], "score": 1.0, "source": "engine"}]}
+                for n in range(120)}
+        for name, feet, expected in (("ok", 72, "pass"), ("sunk", 100, "fail")):
+            scene = Scene(root / name, extra={"blue robot": lambda i, f=feet: box_token(0, (60, f - 30, 80, f), 0.9)})
+            doc = from_replay(frames_dir=scene.dir, spec=ground_spec, every=10, client=scene.client(),
+                              cache=Cache(None), engine_objects=line)
+            validate(doc, "observations")
+            self.assertEqual(evaluate(ground_spec, doc)["result"], expected, name)
+            self.assertEqual(doc["model"]["engineObjects"], ["ground"])
+            self.assertEqual(set(doc["model"]["prompts"]), {"player"})
+            self.assertTrue(all(b["input"][0]["content"][0]["text"] == "blue robot" for b in scene.bodies))
+        self.assertTrue(engine_ground_by_frame(ground_trace(), (160, 96), [0]))
+
+    def test_the_verifier_uses_the_hybrid_only_with_sam_and_a_ground_line(self):
+        from agents.verifier import _ground_observations
+        ground_spec = load(REPO / "agents" / "specs" / "player-stays-above-ground.json", "test-spec")
+        scene = Scene(Path(self.tmp.name) / "v", extra={"blue robot": lambda i: box_token(0, (60, 40, 80, 70), 0.9)})
+        real = sam.MetaSamClient
+        with mock.patch.dict(os.environ, {"NIGHTSHIFT_SAM_CACHE": "off"}), \
+                mock.patch.object(sam, "MetaSamClient", side_effect=lambda: real(transport=scene.transport, retries=0)):
+            _, source = _ground_observations(ground_spec, ground_trace(), "0" * 64, scene.dir, use_sam=True)
+            self.assertEqual(source, "hybrid")
+            _, source = _ground_observations(ground_spec, ground_trace(), "0" * 64, scene.dir, use_sam=False)
+            self.assertEqual(source, "engine")
+            old = ground_trace()
+            for row in old["rows"]:
+                row.pop("ground")
+            _, source = _ground_observations(ground_spec, old, "0" * 64, scene.dir, use_sam=True)
+            self.assertEqual(source, "engine")
+
+    def test_the_sink_the_player_fixture_is_a_valid_candidate(self):
+        from agents.patchutil import assert_editable, paths_touched
+        text = (REPO / "agents" / "fixtures" / "fix-but-sink-player.patch").read_text()
+        self.assertEqual(paths_touched(text), ["player/player.tscn"])
+        self.assertEqual(assert_editable(text, ["player/**", "level/**"]), [])
+        self.assertIn("+collision_mask = 30", text)          # the real fix
+        self.assertIn("+position = Vector2(0, 12)", text)    # and the robot drawn 26 px into the ground
+
+    def test_the_sinking_bugs_are_valid_patches_on_the_player(self):
+        from agents.patchutil import paths_touched
+        for v, line in (("v1", "+position = Vector2(0, -40)"), ("v2", "+position = Vector2(0, 12)")):
+            text = (REPO / "bugs" / "sinking" / f"{v}.patch").read_text()
+            self.assertEqual(paths_touched(text), ["player/player.tscn"], v)
+            self.assertIn(line, text)
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+
+    def tearDown(self):
+        self.tmp.cleanup()
 
 
 if __name__ == "__main__":

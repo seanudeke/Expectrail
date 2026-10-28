@@ -13,6 +13,8 @@ out from development and from the fixer.
 | missing-texture | v2 | The coin's texture assignment in `level/coin.tscn` is cleared | visible |
 | layering | v1 | The player's `z_index` in `game_singleplayer.tscn` drops behind the level art (3 to -3) | visible |
 | layering | v2 | The player's sprite in `player/player.tscn` gets `z_index = -6`, so it draws behind the level art (same symptom as v1, different file and node) | visible |
+| sinking | v1 | The player's collision shape in `player/player.tscn` sits 26 px too high, so the robot rests 26 px inside the ground and still walks normally | never-crosses (position log and SAM hybrid) |
+| sinking | v2 | The player's sprite in `player/player.tscn` is drawn 26 px too low; physics is unchanged, so only a visual check can see the robot inside the ground | never-crosses (SAM hybrid only) |
 
 Every variant here must change what the player sees: `python3 -m harness.check_seeded` replays each one and fails if its frames match the clean game (CI job `seeded-bugs`).
 

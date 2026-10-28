@@ -37,7 +37,7 @@ from agents.gameplay import (
     judge_trace,
 )
 from agents.isolation import arm
-from agents.observations import from_trace, resolve_provider
+from agents.observations import engine_ground_by_frame, from_trace, has_engine_ground, resolve_provider
 from agents.patchutil import assert_editable, sha256_file
 from harness.run import REPO, run as harness_run, tree_digest
 from nightshift.contracts import digest, load, validate
@@ -122,6 +122,34 @@ def _sam_verdicts(specs: list[dict], trace: dict | None, replay_sha: str, frames
     return results
 
 
+def _ground_observations(spec: dict, trace: dict, replay_sha: str, frames_dir: Path | None,
+                         use_sam: bool) -> tuple[dict, str]:
+    """Observations for the ground spec, and how they were made.
+
+    With SAM on and a trace that carries the engine's ground line and camera: "hybrid", SAM's box
+    for the robot compared with the level's ground line projected into frame pixels, which catches
+    a robot drawn inside the ground even when its physics looks fine. Otherwise "engine", the
+    position log against the same ground line (or, on older traces, against the robot's own
+    on-floor height). A SAM failure raises SystemExit, which callers turn into needs-review.
+    """
+    if use_sam and has_engine_ground(trace) and frames_dir is not None and Path(frames_dir).is_dir():
+        from agents.sam_observations import frame_files, png_size
+
+        frames = frame_files(Path(frames_dir))
+        if frames:
+            engine = engine_ground_by_frame(trace, png_size(next(iter(frames.values()))), list(frames))
+            obs = from_trace(trace, replay_sha256=replay_sha, frames_dir=str(frames_dir), spec=spec, provider="sam",
+                             engine_objects=engine)
+            return obs, "hybrid"
+    return from_trace(trace, replay_sha256=replay_sha, spec=spec, provider="trace"), "engine"
+
+
+GROUND_SOURCES = {
+    "hybrid": "ground spec judged on SAM's robot box against the engine's ground line",
+    "engine": "ground spec judged on the engine's position log",
+}
+
+
 def _sam_checks(specs: list[dict], kind: str, route_name: str, trace: dict | None, replay_sha: str,
                 frames_dir: Path | None, out: Path, prefix: str = "") -> list[dict]:
     checks = []
@@ -183,8 +211,12 @@ def _run_held_out_routes(
                 harness_run(root / entry["file"], run_dir, patches=patches)
             trace = json.loads((run_dir / "trace.json").read_text(encoding="utf-8"))
             replay_sha = sha256_file(run_dir / "replay.json")
-            obs = from_trace(trace, replay_sha256=replay_sha, spec=spec, provider="trace")
-            visuals = {spec["id"]: evaluate(spec, obs)["result"]}
+            try:
+                obs, ground_source = _ground_observations(spec, trace, replay_sha, run_dir / "frames", use_sam)
+            except SystemExit as exc:
+                (run_dir / f"observations-{spec['id']}-error.txt").write_text(f"{exc}\n", encoding="utf-8")
+                obs, ground_source = None, "unavailable"
+            visuals = {spec["id"]: evaluate(spec, obs)["result"] if obs is not None else "needs-review"}
             for sam_spec, verdict, _error in _sam_verdicts(sam_spec_docs, trace, replay_sha, run_dir / "frames",
                                                            run_dir):
                 visuals[sam_spec["id"]] = verdict["result"] if verdict else "needs-review"
@@ -194,11 +226,12 @@ def _run_held_out_routes(
             parts = (visual, play["result"])
             if use_sam:
                 row["visuals"] = visuals  # only with SAM on, so default-provider evidence is unchanged
+                row["groundSource"] = ground_source
             row.update(
                 visual=visual,
                 gameplay=play["result"],
                 gameplayReason=play["reason"],
-                observationsSha256=digest(obs),
+                observationsSha256=digest(obs) if obs is not None else "0" * 64,
                 result=("pass" if parts == ("pass", "pass")
                         else "fail" if "fail" in parts else "needs-review"),
             )
@@ -217,7 +250,9 @@ def _run_held_out_routes(
         path=str(out / "held-out"),
         observations_sha256=digest(verdict),
         detail=(f"{len(rows)} private held-out route(s) via {HELDOUT_ENV}"
-                + ("; ground spec on the engine's position log, SAM specs on SAM's view" if use_sam else "")),
+                + (f"; ground spec from {', '.join(sorted({r['groundSource'] for r in rows if r.get('groundSource')})) or 'none'}"
+                   " (hybrid: SAM's robot box against the engine's ground line), SAM specs on SAM's view"
+                   if use_sam else "")),
     )
     return verdict, held_arm
 
@@ -358,7 +393,7 @@ def verify(
         replay_sha = sha256_file(out / "replay" / "replay.json")
         frames_dir = out / "replay" / "frames"
         try:
-            observations = from_trace(trace, replay_sha256=replay_sha, spec=reg_spec, provider="trace")
+            observations, ground_source = _ground_observations(reg_spec, trace, replay_sha, frames_dir, use_sam)
         except SystemExit as exc:
             # The engine observations could not be built: the regression check is needs-review,
             # never a pass, and the other checks still run.
@@ -371,7 +406,7 @@ def verify(
                 source="harness",
                 path=str(out / "observations.json"),
                 observations_sha256=digest(observations),
-                detail=f"ground spec judged on the engine's position log{sam_note}" if use_sam else None,
+                detail=f"{GROUND_SOURCES[ground_source]}{sam_note}" if use_sam else None,
             )
 
     route_name = route_doc.get("name", route.stem)
@@ -473,7 +508,8 @@ def verify(
             clean_route = "clean-control"
             clean_frames = out / "clean-replay" / "frames"
             try:
-                clean_obs = from_trace(clean_trace, replay_sha256=clean_replay_sha, spec=clean_spec, provider="trace")
+                clean_obs, clean_ground_source = _ground_observations(clean_spec, clean_trace, clean_replay_sha,
+                                                                      clean_frames, use_sam)
             except SystemExit as exc:
                 clean_obs = None
                 (out / "observations-clean-error.txt").write_text(f"{exc}\n", encoding="utf-8")
@@ -486,7 +522,7 @@ def verify(
                     source="harness",
                     path=str(out / "observations-clean.json"),
                     observations_sha256=digest(clean_obs),
-                    detail=f"ground spec judged on the engine's position log{sam_note}" if use_sam else None,
+                    detail=f"{GROUND_SOURCES[clean_ground_source]}{sam_note}" if use_sam else None,
                 )
     if clean_obs is None:
         checks.append({

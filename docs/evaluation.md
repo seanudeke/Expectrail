@@ -22,13 +22,14 @@ Three families, four variants each, matched with clean runs. A variant is a patc
 
 | Family | Test specs | Development variants (in `bugs/`) | Held out |
 | --- | --- | --- | --- |
-| physics-fall-through | `specs/player-stays-above-ground.json` (never-crosses, judged on the engine's position log) and `specs/player-always-visible.json` (SAM) | v1 the player's collision mask drops the ground layer; v2 the ground tiles lose their collision layer | v3, v4 |
+| physics-fall-through | `specs/player-stays-above-ground.json` (never-crosses against the level's ground line: position log, plus SAM's robot box when SAM is on) and `specs/player-always-visible.json` (SAM) | v1 the player's collision mask drops the ground layer; v2 the ground tiles lose their collision layer | v3, v4 |
+| sinking (added Oct 28) | `specs/player-stays-above-ground.json` | v1 the player's collision shape sits too high, so it rests inside the ground; v2 the sprite is drawn too low (only the SAM hybrid sees it) | none yet |
 | missing-texture | `specs/coins-visible.json` (visible in every frame, SAM) | v1 the coin texture points to a missing file and has lost its UID; v2 the coin texture is cleared | v3, v4 |
 | layering | `specs/player-always-visible.json` (visible in every frame, SAM) | v1 the player's z index drops behind the level art; v2 the player's sprite gets a negative z index | v3, v4 |
 
 The held-out variants and routes are described only in the private repository; their mechanisms
 are not written down here. SAM 3.1 does not see the ground in this game's art, which is why the
-ground spec is judged on the engine's position log (docs/sam.md).
+ground line comes from the level itself (docs/sam.md).
 
 The playbook's original layering bug (the HUD drawn behind the background) does not fit this game:
 its only HUD, the coin counter, is inside the pause menu and is not on screen during play. Text
