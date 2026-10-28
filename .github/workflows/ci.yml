@@ -340,8 +340,16 @@ jobs:
   agents-live-muse:
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    if: ${{ github.event_name == 'workflow_dispatch' && secrets.META_API_KEY != '' }}
+    # secrets is not allowed in a job-level if; check it in the first step instead.
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    env:
+      META_API_KEY_SET: ${{ secrets.META_API_KEY != '' }}
     steps:
+      - name: Require the META_API_KEY repo secret
+        if: env.META_API_KEY_SET != 'true'
+        run: |
+          echo "::error::Set the META_API_KEY repository secret before running the live Muse job."
+          exit 1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -350,12 +358,13 @@ jobs:
           python-version: '3.13'
       - run: python -m pip install -r requirements-dev.txt
       - name: Install Muse Code CLI
-        run: curl -fsSL https://dev.meta.ai/install.sh | sh
+        run: |
+          curl -fsSL https://dev.meta.ai/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Live Muse gate + trust canary film
         env:
           META_API_KEY: ${{ secrets.META_API_KEY }}
           MODEL_API_KEY: ${{ secrets.META_API_KEY }}
-          PATH: ${{ env.PATH }}:/home/runner/.local/bin
         run: |
           test -n "$META_API_KEY"
           command -v muse
