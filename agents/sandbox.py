@@ -73,6 +73,11 @@ def _bwrap_cmd(work: Path, argv: list[str], *, network: bool) -> list[str]:
         "--die-with-parent",
         "--unshare-pid",
         "--bind", str(work), "/fixer",
+    ]
+    if (work / ".muse").is_dir():
+        # Muse Code project config and the fixer guard: readable, never writable by the agent.
+        cmd.extend(["--ro-bind", str(work / ".muse"), "/fixer/.muse"])
+    cmd += [
         "--chdir", "/fixer",
         "--dev", "/dev",
         "--proc", "/proc",

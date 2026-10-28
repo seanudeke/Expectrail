@@ -4,7 +4,9 @@
 agents.guard copies this file into fixer-work/.muse/hooks/ next to a policy file and registers it
 in .muse/hooks.json. Muse Code runs it before every tool call with the call as JSON on stdin.
 It answers with a deny decision or {} (no opinion; never a bare allow), and appends one line per
-call to .muse/fixer-guard.jsonl, which is how the run proves the hook loaded at all.
+call to .fixer-guard-log/fixer-guard.jsonl, which is how the run shows the hook loaded at all.
+Under bubblewrap the fixer mounts .muse/ read-only, so the agent cannot rewrite the policy or this
+script; the log has to stay writable, so it is the hook's own report, not proof.
 
 Standard library only, no repo imports: it runs inside the fixer sandbox. Fails closed: a write
 it cannot check is denied. Shell commands are logged, not parsed; the OS sandbox and the
@@ -22,10 +24,16 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 MUSE_DIR = os.path.dirname(HERE)
 ROOT = os.path.dirname(MUSE_DIR)
 POLICY = os.path.join(MUSE_DIR, "fixer-guard.json")
-LOG = os.path.join(MUSE_DIR, "fixer-guard.jsonl")
+LOG_DIR = os.path.join(ROOT, ".fixer-guard-log")
+LOG = os.path.join(LOG_DIR, "fixer-guard.jsonl")
 WRITE_TOOLS = {"write_file", "edit_file"}
 READ_TOOLS = {"read_file", "search"}
+KNOWN_TOOLS = WRITE_TOOLS | READ_TOOLS | {"bash", "bash_input", "monitor", "web_fetch", "web_search"}
 DEFAULT_DENY_TOOLS = {"web_fetch", "web_search"}
+PROTECTED = (".muse", ".fixer-guard-log")
+# Keys an unknown tool might use to name a file it writes.
+PATH_KEYS = ("path", "file_path", "filePath", "filename", "file", "target", "target_file", "destination",
+             "dest", "new_path", "old_path", "paths", "files")
 
 
 def path_allowed(rel: str, globs: list[str]) -> bool:
@@ -63,21 +71,32 @@ def decide(payload: dict, policy: dict | None) -> tuple[str, str, dict]:
         if "path" in tool_input:
             fields["path"] = str(tool_input.get("path"))[:300]
         return "pass", "read", fields
-    is_write = tool in WRITE_TOOLS or (tool not in READ_TOOLS and "path" in tool_input)
-    if not is_write:
+    if tool not in KNOWN_TOOLS and not tool.startswith("subagent_"):
+        fields["unknown"] = True
+    if tool in WRITE_TOOLS:
+        targets = [tool_input.get("path")]
+    else:
+        # Any other tool that names a file is judged as a write to it.
+        targets = []
+        for key in PATH_KEYS:
+            if key in tool_input:
+                value = tool_input[key]
+                targets.extend(value if isinstance(value, list) else [value])
+    if not targets:
         return "pass", "not a file write", fields
-    fields["path"] = str(tool_input.get("path"))[:300]
+    fields["path"] = " | ".join(str(t) for t in targets)[:300]
     if policy is None or not isinstance(policy.get("editable"), list) or not policy["editable"]:
         return "deny", "guard policy missing; writes are blocked", fields
-    rel, problem = workspace_rel(tool_input.get("path"), payload.get("cwd"))
-    if problem:
-        return "deny", problem, fields
-    fields["rel"] = rel
-    if rel == ".muse" or rel.startswith(".muse/"):
-        return "deny", "the guard's own files are read-only", fields
-    if not path_allowed(rel, policy["editable"]):
-        globs = ", ".join(policy["editable"])
-        return "deny", f"{rel} is outside the editable files ({globs})", fields
+    for target in targets:
+        rel, problem = workspace_rel(target, payload.get("cwd"))
+        if problem:
+            return "deny", problem[:300], fields
+        fields["rel"] = rel[:300]
+        if any(rel == p or rel.startswith(p + "/") for p in PROTECTED):
+            return "deny", "the guard's own files are off limits", fields
+        if not path_allowed(rel, policy["editable"]):
+            globs = ", ".join(policy["editable"])
+            return "deny", f"{rel[:200]} is outside the editable files ({globs})", fields
     return "pass", "inside editable globs", fields
 
 
@@ -92,6 +111,7 @@ def load_policy() -> dict | None:
 
 def log(entry: dict) -> None:
     try:
+        os.makedirs(LOG_DIR, exist_ok=True)
         with open(LOG, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry, sort_keys=True) + "\n")
     except OSError:

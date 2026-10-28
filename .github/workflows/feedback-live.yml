@@ -66,7 +66,8 @@ jobs:
           speakers = sorted({t["speaker"] for t in doc["turns"]})
           print(f"speakers={speakers} counts={doc['counts']} classifier={doc['classifier']}")
           if doc["classifier"]["provenance"] != "model":
-              print(f"::warning::Muse Spark classifier not used: {doc['classifier'].get('error')}")
+              why = " ".join(str(doc["classifier"].get("error")).split()).replace("::", ": :")[:200]
+              print(f"::warning::Muse Spark classifier not used: {why}")
           if len(speakers) < 2:
               print("::warning::fewer than two speakers came back; check the recording and DIARIZATION")
           md = Path("runs/feedback-live/loop/run-00/morning/morning-report.md").read_text()

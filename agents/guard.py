@@ -1,12 +1,19 @@
 """Install the fixer guard hook into fixer-work before Muse Code runs, and read its log after.
 
-The hook (agents/fixer_guard_hook.py) blocks writes outside the repair request's editable globs
-and the web tools, and logs every tool call to .muse/fixer-guard.jsonl. Muse Code only loads a
-project hook file with --trust-workspace (the fixer passes it) and silently skips a malformed
-one, so the log is the proof it ran: no log lines means "not confirmed", never "nothing blocked".
+The hook (agents/fixer_guard_hook.py) blocks file-tool writes outside the repair request's
+editable globs and the web tools, and logs every tool call to .fixer-guard-log/fixer-guard.jsonl.
+Muse Code only loads a project hook file with --trust-workspace (the fixer passes it) and silently
+skips a malformed one, so the log is how a run shows the hook ran: no log lines means "not
+confirmed", never "nothing blocked".
+
+Under bubblewrap, agents.sandbox mounts .muse/ read-only, so the agent's shell cannot rewrite the
+policy, the hook or hooks.json. The log has to stay writable for the hook, so the agent could
+also edit it: the counts are the hook's own report. Without bubblewrap, nothing but Muse Code's
+own rules protects .muse/.
 
 The guard is evidence and a first line. The hard gate stays where it was: the verifier rebuilds
-from the candidate patch, and the fixer refuses any patch outside the editable globs.
+from the candidate patch, and the fixer refuses any patch outside the editable globs. Shell
+commands are logged, not parsed.
 
 Set NIGHTSHIFT_FIXER_GUARD=0 to run Muse without it (for comparing runs).
 """
@@ -25,7 +32,8 @@ GUARD_ENV = "NIGHTSHIFT_FIXER_GUARD"
 MUSE_DIR = ".muse"
 HOOK_REL = f"{MUSE_DIR}/hooks/fixer_guard.py"
 POLICY_REL = f"{MUSE_DIR}/fixer-guard.json"
-LOG_REL = f"{MUSE_DIR}/fixer-guard.jsonl"
+LOG_DIR = ".fixer-guard-log"
+LOG_REL = f"{LOG_DIR}/fixer-guard.jsonl"
 DENY_TOOLS = ("web_fetch", "web_search")
 HOOK_TIMEOUT_S = 5
 
@@ -54,9 +62,11 @@ def install_guard(work: Path, editable: list[str], *, root_as_muse_sees_it: str)
     hook command does not depend on the directory Muse starts hooks in.
     """
     muse = work / MUSE_DIR
-    if muse.exists():
-        shutil.rmtree(muse)
+    for d in (muse, work / LOG_DIR):
+        if d.exists():
+            shutil.rmtree(d)
     (muse / "hooks").mkdir(parents=True)
+    (work / LOG_DIR).mkdir()
     hook = work / HOOK_REL
     shutil.copy2(HOOK_SOURCE, hook)
     policy = {"editable": list(editable), "denyTools": list(DENY_TOOLS)}
@@ -98,6 +108,8 @@ def summarize(entries: list[dict], installed: dict | None) -> dict:
         "tools": dict(sorted(Counter(str(e.get("tool") or "?") for e in entries).items())),
         "blocked": blocked,
         "commands": [e["command"] for e in entries if e.get("command")][:20],
+        "unknownTools": sorted({str(e.get("tool")) for e in entries if e.get("unknown")}),
+        "selfReported": True,
         "policy": (installed or {}).get("policy"),
         "hookSha256": (installed or {}).get("hookSha256"),
     }

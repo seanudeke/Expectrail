@@ -69,6 +69,14 @@ def validate(doc, kind: str | None = None) -> str:
         cost = doc.get("cost") or {}
         if cost.get("costProvenance") == "metered" and cost.get("costUsd") is None:
             raise ContractError("overnight-summary: metered cost requires costUsd")
+    if kind == "feedback-intake":
+        turns = doc["turns"]
+        for n, item in enumerate(doc["items"]):
+            if item["turn"] >= len(turns):
+                raise ContractError(f"feedback-intake: items/{n}: turn {item['turn']} is past the last turn")
+        counts = {c: sum(1 for i in doc["items"] if i["category"] == c) for c in doc["counts"]}
+        if counts != doc["counts"]:
+            raise ContractError(f"feedback-intake: counts {doc['counts']} do not match items {counts}")
     return kind
 
 

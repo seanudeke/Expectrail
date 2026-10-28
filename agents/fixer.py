@@ -101,6 +101,7 @@ def _diff_worktree(clean_seeded: Path, edited: Path, editable: list[str] | None 
         p.relative_to(edited).as_posix()
         for p in edited.rglob("*")
         if p.is_file() and ".godot" not in p.parts and ".muse" not in p.parts
+        and ".fixer-guard-log" not in p.parts
         and p.name not in IGNORE_DIFF_NAMES
     )
     for rel in files:

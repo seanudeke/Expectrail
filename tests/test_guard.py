@@ -89,7 +89,8 @@ class HookTest(unittest.TestCase):
             "../verifier-host/key": "outside the fixer workspace",
             "/etc/passwd": "outside the fixer workspace",
             "player/escape/x.gd": "outside the fixer workspace",
-            ".muse/fixer-guard.json": "read-only",
+            ".muse/fixer-guard.json": "off limits",
+            ".fixer-guard-log/fixer-guard.jsonl": "off limits",
             "player/../project.godot": "outside the editable files",
         }
         for path, why in cases.items():
@@ -104,11 +105,18 @@ class HookTest(unittest.TestCase):
         self.assertTrue(denied(call_hook(self.work, self.tool("web_search", query="answer"))[1]))
         self.assertEqual(call_hook(self.work, self.tool("read_file", path="specs/x.json"))[1], {})
         self.assertEqual(call_hook(self.work, self.tool("bash", command="cat player/player.tscn"))[1], {})
-        # an unknown tool that names a path is judged as a write
+        # an unknown tool that names a file under any common key is judged as a write
         self.assertTrue(denied(call_hook(self.work, self.tool("apply_patch", path="specs/x.json"))[1]))
+        self.assertTrue(denied(call_hook(self.work, self.tool("create_file", file_path="specs/x.json"))[1]))
+        self.assertTrue(denied(call_hook(self.work, self.tool("multi_write", paths=["player/a.gd", "x.cfg"]))[1]))
+        self.assertEqual(call_hook(self.work, self.tool("create_file", file_path="player/new.gd"))[1], {})
+        # an unknown tool with no file key passes, and the report names it
+        self.assertEqual(call_hook(self.work, self.tool("apply_diff", input="*** patch"))[1], {})
         entries = guard.read_log(self.work / guard.LOG_REL)
-        self.assertEqual(len(entries), 5)
+        self.assertEqual(len(entries), 9)
         self.assertEqual(entries[3]["command"], "cat player/player.tscn")
+        summary = guard.summarize(entries, self.installed)
+        self.assertEqual(summary["unknownTools"], ["apply_diff", "apply_patch", "create_file", "multi_write"])
 
     def test_fails_closed(self):
         code, answer, _ = call_hook(self.work, "not json")
@@ -133,6 +141,52 @@ class HookTest(unittest.TestCase):
         empty = Path(self.tmp.name) / "empty"
         (empty / ".muse").mkdir(parents=True)
         self.assertFalse(guard.collect_guard(empty, out, self.installed)["loaded"])
+
+
+class BwrapGuardTest(unittest.TestCase):
+    """Under bubblewrap the agent's shell cannot rewrite the guard. Runs where bwrap works (CI's
+    agents-sandbox job sets NIGHTSHIFT_REQUIRE_BWRAP=1 so a skip there is a failure)."""
+
+    def test_bwrap_mounts_muse_read_only(self):
+        from agents.sandbox import _bwrap_cmd
+
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp) / "fixer-work"
+            (work / "player").mkdir(parents=True)
+            guard.install_guard(work, EDITABLE, root_as_muse_sees_it="/fixer")
+            cmd = _bwrap_cmd(work, ["true"], network=False)
+            i = cmd.index("--ro-bind")
+            self.assertEqual(cmd[i:i + 3], ["--ro-bind", str((work / ".muse").resolve()), "/fixer/.muse"])
+            self.assertLess(cmd.index("--bind"), i)  # the read-only mount lands on top of the workspace
+
+    def test_shell_cannot_rewrite_guard_under_bwrap(self):
+        from agents.sandbox import _bwrap_cmd, _bwrap_usable
+
+        if not _bwrap_usable():
+            if os.environ.get("NIGHTSHIFT_REQUIRE_BWRAP") == "1":
+                self.fail("bubblewrap is required here but not usable")
+            self.skipTest("bubblewrap not usable here")
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp) / "fixer-work"
+            (work / "player").mkdir(parents=True)
+            guard.install_guard(work, EDITABLE, root_as_muse_sees_it="/fixer")
+            policy_before = (work / guard.POLICY_REL).read_text()
+            payload = json.dumps({"tool_name": "write_file", "tool_input": {"path": "specs/x.json"},
+                                  "cwd": "/fixer"})
+            script = (
+                "echo '{\"editable\": [\"*\"]}' > .muse/fixer-guard.json; echo policy=$?; "
+                "rm -rf .muse 2>/dev/null; echo rm=$?; mv .muse moved 2>/dev/null; echo mv=$?; "
+                f"echo '{payload}' | python3 /fixer/{guard.HOOK_REL}"
+            )
+            proc = subprocess.run(_bwrap_cmd(work, ["sh", "-c", script], network=False), capture_output=True,
+                                  text=True, timeout=60, env={"PATH": "/usr/bin:/bin"})
+            self.assertIn("policy=", proc.stdout, proc.stdout + proc.stderr)
+            self.assertNotIn("policy=0", proc.stdout, proc.stdout + proc.stderr)  # dash says 2, bash 1
+            self.assertNotIn("rm=0", proc.stdout)
+            self.assertNotIn("mv=0", proc.stdout)
+            self.assertIn('"permissionDecision": "deny"', proc.stdout)
+            self.assertEqual((work / guard.POLICY_REL).read_text(), policy_before)
+            self.assertEqual(len(guard.read_log(work / guard.LOG_REL)), 1)
 
 
 class HookSourceTest(unittest.TestCase):

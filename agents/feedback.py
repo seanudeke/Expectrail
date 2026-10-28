@@ -1,6 +1,7 @@
 """Turn recorded playtester feedback into draft test specs, without letting it touch the fixer.
 
-    # live: a mono 16-bit WAV (24 or 16 kHz), everyone on it agreed to be recorded
+    # live (needs --consent: the people quoted agreed to their words going to Meta's API)
+    # a mono 16-bit WAV (24 or 16 kHz)
     export MODEL_API_KEY=...        # Meta Model API key; never commit it
     python3 -m agents.feedback --audio playtest.wav --consent --out runs/feedback
 
@@ -12,8 +13,11 @@
 Muse Voice Transcribe (file endpoint, DIARIZATION mode) says who said what and when. Each
 remark is then sorted into one of four kinds:
 
-- bug: something a player saw go wrong. Muse Spark writes a draft test spec through
-  `nightshift.spec_writer`; it stays a draft until a person approves it.
+- bug: something a player saw go wrong. When Muse Spark sorted the remark and wrote a one-line
+  check for it, the check becomes a draft test spec through `nightshift.spec_writer`, which stays
+  a draft until a person approves it. Without a model-written check (rules only, a model error,
+  a check that itself asks to weaken one), it goes to a person instead. Raw speech is never a
+  spec instruction.
 - weaken-check: a request to skip, loosen, delete or override a check ("just turn the floor
   check off"). It goes to a person and is never drafted, whoever or whatever asked.
 - request: a feature or design wish. It goes to a person.
@@ -63,12 +67,19 @@ WEAKEN_RULES = (
                re.I),
     re.compile(r"\b" + _CHECK_NOUN + r"\b[\w\s,'-]{0,30}?\b(off|out|disabled|removed|deleted|skipped|"
                r"loosened|relaxed|optional)\b", re.I),
-    re.compile(r"\b(raise|lower|bump|increase|widen|double)\b[\w\s,'-]{0,30}?\b(threshold|tolerance|"
-               r"margins?)\b", re.I),
+    re.compile(r"\b(raise|lower|bump|increase|widen|double|set|change|adjust|tweak)\b[\w\s,'-]{0,30}?"
+               r"\b(thresholds?|tolerances?|margins?)\b", re.I),
     re.compile(r"\bmark\b[\w\s,'-]{0,30}?\b(pass|passing|passed|green|accepted|fixed)\b", re.I),
+    re.compile(r"\b(make|force|let)\b[\w\s,'-]{0,30}?\b(pass|passes|succeed|succeeds|go green|be green)\b", re.I),
+    re.compile(r"\balways (pass|passes|succeed|succeeds|return true)\b", re.I),
+    re.compile(r"\b(don't|do not|dont|stop|never|no need to)\s+(run|running|execute|enforce|check|checking)\b"
+               r"[\w\s,'-]{0,30}?\b" + _CHECK_NOUN + r"\b", re.I),
+    re.compile(r"\b(regardless of|despite|ignoring|even if|whatever)\b[\w\s,'-]{0,30}?\b" + _CHECK_NOUN + r"\b",
+               re.I),
     re.compile(r"\b(just|go ahead and|force)\s+(ship|accept|approve|merge|release)\b", re.I),
-    re.compile(r"\b(ship|accept|approve|merge|release) it anyway\b", re.I),
+    re.compile(r"\b(ship|accept|approve|merge|release) (it|this|the build) (anyway|regardless)\b", re.I),
 )
+MAX_INSTRUCTION = 200  # a check is one short sentence; anything longer goes to a person
 BUG_RULES = (
     re.compile(r"\b(fell|falls|falling|fall) (straight |right )?(through|thru|into|out of)\b", re.I),
     re.compile(r"\b(disappear(s|ed)?|vanish(es|ed)?|invisible|missing|flicker(s|ed|ing)?|"
@@ -211,19 +222,32 @@ def transcribe(audio: Path, *, keywords: list[str], model: str = TRANSCRIBE_MODE
         raise FeedbackError(f"Voice Transcribe HTTP {err.code}: {detail} {hints.get(err.code, '')}".strip()) from err
 
 
-def turns_from_response(resp: dict) -> list[dict]:
-    """Voice Transcribe response -> [{speaker, startMs, text}] (empty turns dropped)."""
+def _ms(value) -> int:
+    try:
+        return max(0, int(float(value)))
+    except (TypeError, ValueError):
+        return 0
+
+
+def turns_from_response(resp) -> list[dict]:
+    """Voice Transcribe response -> [{speaker, startMs, text}]. Empty or malformed turns are dropped."""
+    if not isinstance(resp, dict):
+        raise FeedbackError("the transcript is not a JSON object")
     raw = resp.get("turns")
-    if not raw:
-        text = (resp.get("transcript") or "").strip()
+    if not isinstance(raw, list) or not raw:
+        text = resp.get("transcript")
+        text = text.strip() if isinstance(text, str) else ""
         return [{"speaker": "?", "startMs": 0, "text": text}] if text else []
     turns = []
     for t in raw:
-        text = (t.get("transcript") or t.get("text") or "").strip()
-        if not text:
+        if not isinstance(t, dict):
             continue
-        turns.append({"speaker": str(t.get("speaker") or "?"), "startMs": max(0, int(t.get("startMs") or 0)),
-                      "text": text})
+        text = t.get("transcript", t.get("text"))
+        if not isinstance(text, str) or not text.strip():
+            continue
+        speaker = t.get("speaker")
+        turns.append({"speaker": "?" if speaker is None or str(speaker) == "" else str(speaker),
+                      "startMs": _ms(t.get("startMs")), "text": text.strip()})
     return turns
 
 
@@ -288,7 +312,10 @@ def classify_model(turns: list[dict], transport: Transport, model: str = CLASSIF
             response = transport(classify_body(turns, model, structured=False))
         else:
             raise
-    doc = spec_writer._parse(response)
+    try:
+        doc = spec_writer._parse(response)
+    except Exception as err:  # noqa: BLE001 — any malformed answer means "no model answer"
+        raise FeedbackError(f"classifier answer unreadable: {type(err).__name__}: {err}") from err
     items = doc.get("items") if isinstance(doc, dict) else None
     if not isinstance(items, list):
         raise FeedbackError(f"classifier returned no items: {str(doc)[:200]}")
@@ -297,10 +324,13 @@ def classify_model(turns: list[dict], transport: Transport, model: str = CLASSIF
         if not isinstance(item, dict):
             continue
         turn, cat = item.get("turn"), item.get("category")
-        if isinstance(turn, int) and 0 <= turn < len(turns) and cat in CATEGORIES and turn not in out:
-            instr = item.get("instruction")
-            out[turn] = {"category": cat, "instruction": instr if isinstance(instr, str) and instr.strip() else None,
-                         "reason": str(item.get("reason") or "")[:200]}
+        if isinstance(turn, bool) or not (isinstance(turn, int) and 0 <= turn < len(turns) and cat in CATEGORIES):
+            continue
+        if turn in out and cat != "weaken-check":
+            continue  # first answer stands, except that a weaken-check always wins
+        instr = item.get("instruction")
+        out[turn] = {"category": cat, "instruction": instr if isinstance(instr, str) and instr.strip() else None,
+                     "reason": " ".join(str(item.get("reason") or "").split())[:200]}
     return out
 
 
@@ -308,15 +338,18 @@ def decide(turn_index: int, turn: dict, model_item: dict | None, model_label: st
     """Merge the fixed rules with the model. A weaken-check from either side wins."""
     rule = classify_rules(turn["text"])
     model_cat = (model_item or {}).get("category")
+    model_instr = (model_item or {}).get("instruction")
+    instr_weakens = bool(model_instr) and any(r.search(model_instr) for r in WEAKEN_RULES)
     decided: list[str] = []
-    if "weaken-check" in (rule, model_cat):
+    if "weaken-check" in (rule, model_cat) or instr_weakens:
         category = "weaken-check"
-        if rule == "weaken-check":
+        if rule == "weaken-check" or instr_weakens:
             decided.append("rule")
         if model_cat == "weaken-check":
             decided.append(model_label)
         reason = ("asks to weaken, remove or override a check; a person decides"
-                  + (f" ({model_item['reason']})" if model_cat == "weaken-check" and model_item.get("reason") else ""))
+                  + (f" ({model_item['reason']})" if model_cat == "weaken-check" and model_item.get("reason") else "")
+                  + ("; the model's own check text asked for it" if instr_weakens and rule != "weaken-check" else ""))
     elif model_cat:
         category = model_cat
         decided.append(model_label)
@@ -332,8 +365,17 @@ def decide(turn_index: int, turn: dict, model_item: dict | None, model_label: st
         decided.append("default")
         reason = "no rule matched and no model answer"
     instruction = None
+    route = ROUTES[category]
     if category == "bug":
-        instruction = (model_item or {}).get("instruction") or turn["text"]
+        # Only a check the model wrote is drafted. The raw words never become a spec instruction.
+        if model_cat != "bug" or not model_instr:
+            route = "human-queue"
+            reason += "; not drafted without a model-written check, so a person decides"
+        elif len(model_instr) > MAX_INSTRUCTION:
+            route = "human-queue"
+            reason += f"; the model's check ran past {MAX_INSTRUCTION} characters, so a person decides"
+        else:
+            instruction = " ".join(model_instr.split())
     return {
         "turn": turn_index,
         "speaker": turn["speaker"],
@@ -341,7 +383,7 @@ def decide(turn_index: int, turn: dict, model_item: dict | None, model_label: st
         "text": turn["text"],
         "category": category,
         "decidedBy": decided,
-        "route": ROUTES[category],
+        "route": route,
         "reason": reason,
         "instruction": instruction,
         "draft": None,
@@ -379,8 +421,8 @@ def intake(turns: list[dict], *, out: Path, intake_id: str, source: dict, transp
             model_items = classify_model(turns, transport, model)
             classifier = {"provenance": classifier_label, "model": model if classifier_label == "model" else None,
                           "error": None}
-        except (FeedbackError, spec_writer.SpecDraftError, OSError) as err:
-            classifier = {"provenance": "rules-only", "model": None, "error": str(err)[:300]}
+        except Exception as err:  # noqa: BLE001 — no usable model answer: rules only, said out loud
+            classifier = {"provenance": "rules-only", "model": None, "error": _one_line(err)}
     label = "model" if classifier["provenance"] == "model" else "fixture"
     items = [decide(i, t, model_items.get(i), label) for i, t in enumerate(turns)]
 
@@ -390,15 +432,15 @@ def intake(turns: list[dict], *, out: Path, intake_id: str, source: dict, transp
         if item["route"] != "draft-spec":
             continue
         n += 1
-        spec_id = spec_writer.slug(f"{intake_id}-{n}")
+        spec_id = f"{spec_writer.slug(intake_id)[:52].rstrip('-')}-{n}"
         if transport is None:
             item["draftProblems"] = ["no Muse Spark in rules-only mode; draft this check by hand"]
             continue
         try:
             spec, problems = spec_writer.draft(item["instruction"], spec_id=spec_id, model=model,
                                                transport=transport)
-        except (spec_writer.SpecDraftError, OSError) as err:
-            spec, problems = None, [str(err)[:300]]
+        except Exception as err:  # noqa: BLE001 — a bad draft is a problem to show, not a crash
+            spec, problems = None, [_one_line(err)]
         if spec is None:
             item["draftProblems"] = problems
             continue
@@ -421,6 +463,11 @@ def intake(turns: list[dict], *, out: Path, intake_id: str, source: dict, transp
     validate(doc, "feedback-intake")
     (out / "feedback-intake.json").write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
     return doc
+
+
+def _one_line(err: BaseException | str, limit: int = 300) -> str:
+    text = " ".join(str(err).split()).replace("::", ": :")
+    return text[:limit]
 
 
 def fmt_ms(ms: int) -> str:
@@ -454,9 +501,10 @@ def main(argv: list[str] | None = None) -> int:
         source_path = args.audio or args.transcript
         intake_id = args.id or spec_writer.slug(f"fb-{source_path.stem}")
         keywords = game_keywords(extra=args.keyword)
+        if not args.offline and not args.consent:
+            raise FeedbackError("pass --consent to confirm the people quoted agreed to their words being sent "
+                                "to Meta's API (or use --offline)")
         if args.audio:
-            if not args.consent:
-                raise FeedbackError("pass --consent to confirm everyone on the recording agreed to it")
             info = check_wav(args.audio)
             resp = transcribe(args.audio, keywords=keywords)
             args.out.mkdir(parents=True, exist_ok=True)
@@ -473,6 +521,8 @@ def main(argv: list[str] | None = None) -> int:
                                       "sessionId": resp.get("sessionId"), "keywords": keywords}}
             if args.consent:
                 source["consent"] = True
+        if not isinstance(resp, dict):
+            raise FeedbackError("the transcript is not a JSON object")
         turns = turns_from_response(resp)
         if args.offline:
             transport = fixture_transport(json.loads(args.fixture.read_text(encoding="utf-8"))) if args.fixture else None

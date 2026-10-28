@@ -10,7 +10,6 @@ import argparse
 import base64
 import hashlib
 import json
-import re
 import shutil
 import sys
 from pathlib import Path
@@ -160,15 +159,12 @@ def _resolve_gameplay_verdict(
     )
 
 
-_MD_SPECIAL = re.compile(r"([\\`*_{}\[\]<>()#+!|~])")
-
-
 def _md_text(text: str, limit: int = 140) -> str:
-    """Quote untrusted speech or tool input so it renders as text, never as links or images."""
-    flat = " ".join(str(text).split())
-    if len(flat) > limit:
-        flat = flat[: limit - 1] + "…"
-    return _MD_SPECIAL.sub(r"\\\1", flat)
+    """Untrusted speech, model output or tool input, shown as a code span.
+
+    Inside a code span GitHub renders no links, images, HTML, autolinked URLs or @mentions.
+    """
+    return f"`{_code(text, limit)}`"
 
 
 def _code(text: str, limit: int = 120) -> str:
@@ -224,7 +220,7 @@ def _feedback_lines(doc: dict) -> list[str]:
     for item in doc["items"]:
         if item["category"] == "weaken-check":
             continue  # listed under Refused or blocked
-        head = f"- {_md_text(item['speaker'], 8)} {_clock(item['startMs'])}: \u201c{_md_text(item['text'])}\u201d → **{item['category']}**"
+        head = f"- {_md_text(item['speaker'], 8)} {_clock(item['startMs'])} {_md_text(item['text'])} → **{item['category']}**"
         if item["route"] == "draft-spec":
             if item.get("draft"):
                 d = item["draft"]
@@ -250,14 +246,15 @@ def _refused_lines(feedback_doc: dict | None, guard_doc: dict | None) -> list[st
             continue
         by = " + ".join(item["decidedBy"])
         lines.append(
-            f"- feedback, {_md_text(item['speaker'], 8)} {_clock(item['startMs'])}: \u201c{_md_text(item['text'])}\u201d"
+            f"- feedback, {_md_text(item['speaker'], 8)} {_clock(item['startMs'])} {_md_text(item['text'])}"
             f" → refused, asks to weaken or override a check (caught by {by}); queued for a person"
         )
     if guard_doc is not None:
         for b in guard_doc.get("blocked") or []:
             target = b.get("rel") or b.get("path")
             where = f" on `{_code(target)}`" if target else ""
-            lines.append(f"- fixer guard: blocked `{_code(b.get('tool') or '?')}`{where}: {_md_text(b.get('reason') or '', 160)}")
+            lines.append(f"- fixer guard: blocked `{_code(b.get('tool') or '?')}`{where}: "
+                         f"{_md_text(b.get('reason') or '', 160)}")
         calls = int(guard_doc.get("calls") or 0)
         blocked = len(guard_doc.get("blocked") or [])
         if not guard_doc.get("installed"):
@@ -266,7 +263,11 @@ def _refused_lines(feedback_doc: dict | None, guard_doc: dict | None) -> list[st
             lines.append("- fixer guard: installed, but no tool calls were logged, so it is not confirmed that Muse "
                          "Code loaded it; the verifier's editable-file check still applied")
         else:
-            lines.append(f"- fixer guard: loaded, checked {calls} tool call(s), blocked {blocked}")
+            lines.append(f"- fixer guard: loaded; by its own log it checked {calls} tool call(s) and blocked "
+                         f"{blocked} (shell commands are logged, not checked)")
+        unknown = guard_doc.get("unknownTools") or []
+        if unknown:
+            lines.append(f"- fixer guard: saw tools it does not know: {_md_text(', '.join(unknown), 120)}")
     if not lines:
         lines.append("- none")
     return lines

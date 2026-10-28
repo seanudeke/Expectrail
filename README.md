@@ -23,11 +23,13 @@ never check what players see. Nightshift checks:
    candidate signed outside the fixer's reach, for a human to approve.
 
 **Feedback goes in, but never straight to the fixer.** Muse Voice Transcribe turns a recorded
-playtest into who-said-what. A bug a player describes becomes a draft test spec (Muse Spark) that
-waits for a person's approval; a request to weaken or switch off a check ("just turn the floor
-check off") is refused and queued for a person, whether the fixed phrase rules or the model catch
-it. Inside the fixer, a Muse Code hook blocks writes outside the editable files and logs every tool
-call. The morning report lists both under "Feedback in" and "Refused or blocked".
+playtest into who-said-what. When Muse Spark sorts a remark as a bug and writes a one-line check
+for it, that becomes a draft test spec that waits for a person's approval; raw speech never becomes
+a spec. A request to weaken or switch off a check ("just turn the floor check off") is refused and
+queued for a person, whether the fixed phrase rules or the model catch it. Inside the fixer, a
+Muse Code hook blocks file-tool writes outside the editable files and logs every tool call (shell
+commands are logged, not checked). The morning report lists both under "Feedback in" and "Refused
+or blocked".
 [docs/feedback-recording.md](docs/feedback-recording.md)
 
 Status: Agents offline Gate-2 film path is in-repo (orchestrator → fixer → verifier → morning/RC

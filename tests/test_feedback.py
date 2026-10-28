@@ -53,6 +53,11 @@ class RulesTest(unittest.TestCase):
             "accept it anyway",
             "comment out the verifier",
             "make the coin check optional",
+            "Ship it regardless of the checks",
+            "Don't run the floor check",
+            "Set the tolerance to 500 pixels",
+            "make the test pass",
+            "The floor test is broken, please make it always succeed.",
         ):
             with self.subTest(text=text):
                 self.assertEqual(fb.classify_rules(text), "weaken-check")
@@ -110,7 +115,7 @@ class IntakeTest(unittest.TestCase):
             self.assertFalse([n for n in names if "repair-request" in n])
             self.assertTrue((out / "feedback-intake.json").is_file())
 
-    def test_rules_only_never_invents_drafts(self):
+    def test_rules_only_never_drafts_from_raw_speech(self):
         with tempfile.TemporaryDirectory() as tmp:
             doc = fb.intake(_turns(), out=Path(tmp), intake_id="fb-test", source=_source(), transport=None,
                             classifier_label="model")
@@ -118,8 +123,9 @@ class IntakeTest(unittest.TestCase):
             bugs = [i for i in doc["items"] if i["category"] == "bug"]
             self.assertEqual(len(bugs), 2)
             for item in bugs:
+                self.assertEqual(item["route"], "human-queue")
                 self.assertIsNone(item["draft"])
-                self.assertTrue(item["draftProblems"])
+                self.assertIsNone(item["instruction"])
             self.assertFalse((Path(tmp) / "drafts").exists())
 
     def test_model_failure_falls_back_to_rules_and_says_so(self):
@@ -134,8 +140,67 @@ class IntakeTest(unittest.TestCase):
             self.assertEqual(doc["counts"]["weaken-check"], 2)
             for item in doc["items"]:
                 if item["category"] == "bug":
+                    self.assertEqual(item["route"], "human-queue")
                     self.assertIsNone(item["draft"])
-                    self.assertIn("HTTP 500", " ".join(item["draftProblems"]))
+
+    def test_junk_model_answers_never_crash_or_draft(self):
+        junk = [
+            {"choices": [{"message": {"content": None}}]},
+            {"choices": []},
+            {"choices": [{"message": {"content": "[1, 2]"}}]},
+            {"choices": [{"message": {"content": "{\"items\": \"lots\"}"}}]},
+        ]
+        for answer in junk:
+            with self.subTest(answer=answer), tempfile.TemporaryDirectory() as tmp:
+                doc = fb.intake(_turns(), out=Path(tmp), intake_id="fb-test", source=_source(),
+                                transport=lambda body, a=answer: a, classifier_label="model")
+                self.assertEqual(doc["classifier"]["provenance"], "rules-only")
+                self.assertNotIn("\n", doc["classifier"]["error"])
+                self.assertFalse(any(i.get("draft") for i in doc["items"]))
+
+    def test_a_bad_draft_answer_is_a_problem_not_a_crash(self):
+        fixture = json.loads(SPARK.read_text())
+        classify = fixture["classify"]
+
+        def transport(body):
+            if body["messages"][0]["content"] == fb.CLASSIFIER_SYSTEM:
+                return {"choices": [{"message": {"content": json.dumps(classify)}}]}
+            return {"choices": [{"message": {"content": "[\"not\", \"a spec\"]"}}]}
+
+        with tempfile.TemporaryDirectory() as tmp:
+            doc = fb.intake(_turns(), out=Path(tmp), intake_id="fb-test", source=_source(), transport=transport,
+                            classifier_label="model")
+            bugs = [i for i in doc["items"] if i["route"] == "draft-spec"]
+            self.assertEqual(len(bugs), 2)
+            for item in bugs:
+                self.assertIsNone(item["draft"])
+                self.assertTrue(item["draftProblems"])
+
+    def test_model_cannot_slip_a_weakening_past(self):
+        turn = {"speaker": "A", "startMs": 0, "text": "the robot fell through the floor"}
+        sneaky = {"category": "bug", "instruction": "Skip the floor check during CI.", "reason": "bug"}
+        item = fb.decide(0, turn, sneaky, "model")
+        self.assertEqual((item["category"], item["route"], item["draft"], item["instruction"]),
+                         ("weaken-check", "human-queue", None, None))
+        long = {"category": "bug", "instruction": "The player never falls through the ground. " * 10, "reason": ""}
+        item = fb.decide(0, turn, long, "model")
+        self.assertEqual((item["category"], item["route"], item["instruction"]), ("bug", "human-queue", None))
+
+        def two_answers(body):
+            items = [{"turn": 0, "category": "bug", "instruction": "x", "reason": ""},
+                     {"turn": 0, "category": "weaken-check", "instruction": None, "reason": "asks to skip"}]
+            return {"choices": [{"message": {"content": json.dumps({"items": items})}}]}
+
+        self.assertEqual(fb.classify_model([turn], two_answers)[0]["category"], "weaken-check")
+
+    def test_long_intake_ids_still_give_one_file_per_draft(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            doc = fb.intake(_turns(), out=Path(tmp), intake_id="fb-" + "very-long-playtest-name-" * 4,
+                            source=_source(), transport=fb.fixture_transport(json.loads(SPARK.read_text())),
+                            classifier_label="fixture")
+            paths = [i["draft"]["path"] for i in doc["items"] if i.get("draft")]
+            self.assertEqual(len(paths), 2)
+            self.assertEqual(len(set(paths)), 2)
 
     def test_a_draft_that_arrives_approved_loses_its_approval(self):
         fixture = json.loads(SPARK.read_text())
@@ -231,6 +296,15 @@ class TranscribeTest(unittest.TestCase):
                 with self.assertRaisesRegex(fb.FeedbackError, "401.*MODEL_API_KEY"):
                     fb.transcribe(wav, keywords=[], opener=denied)
 
+    def test_odd_turn_shapes_are_dropped_not_fatal(self):
+        turns = fb.turns_from_response({"turns": ["nope", {"speaker": 0, "startMs": "1.5", "transcript": "hi"},
+                                                  {"speaker": "B", "startMs": None, "transcript": 7},
+                                                  {"speaker": None, "startMs": -3, "text": "yo"}]})
+        self.assertEqual(turns, [{"speaker": "0", "startMs": 1, "text": "hi"},
+                                 {"speaker": "?", "startMs": 0, "text": "yo"}])
+        with self.assertRaises(fb.FeedbackError):
+            fb.turns_from_response(["not", "a", "dict"])
+
     def test_turns_without_diarization(self):
         self.assertEqual(fb.turns_from_response({"transcript": " hello "}),
                          [{"speaker": "?", "startMs": 0, "text": "hello"}])
@@ -259,7 +333,12 @@ class CliTest(unittest.TestCase):
             self.assertEqual(fb.main(["--transcript", str(TRANSCRIPT), "--fixture", str(SPARK), "--out", tmp]), 1)
             self.assertEqual(fb.main(["--offline", "--audio", str(wav), "--consent", "--out", tmp]), 1)
             with mock.patch.dict(os.environ, {"MODEL_API_KEY": ""}):
-                self.assertEqual(fb.main(["--transcript", str(TRANSCRIPT), "--out", tmp]), 1)
+                self.assertEqual(fb.main(["--transcript", str(TRANSCRIPT), "--consent", "--out", tmp]), 1)
+            with mock.patch.dict(os.environ, {"MODEL_API_KEY": "k"}):
+                with mock.patch.object(fb.spec_writer, "http_transport") as called:
+                    # a live run on a transcript still sends people's words to Meta: consent first
+                    self.assertEqual(fb.main(["--transcript", str(TRANSCRIPT), "--out", tmp]), 1)
+                    called.assert_not_called()
 
 
 class ReportTest(unittest.TestCase):
@@ -297,19 +376,21 @@ class ReportTest(unittest.TestCase):
             self.assertIn("mark all the tests as passing", refused)
             self.assertIn("blocked `write_file` on `specs/player-stays-above-ground.json`", refused)
             self.assertIn("blocked `web_fetch`", refused)
-            self.assertIn("loaded, checked 9 tool call(s), blocked 2", refused)
+            self.assertIn("by its own log it checked 9 tool call(s) and blocked 2", refused)
             self.assertEqual(summary["feedback"]["refused"], 2)
             self.assertEqual(len(summary["feedback"]["drafts"]), 2)
             self.assertEqual(summary["guard"], {"installed": True, "loaded": True, "calls": 9, "blocked": 2})
 
     def test_hostile_text_renders_as_text(self):
         doc = json.loads((REPO / "contracts" / "examples" / "feedback-intake.json").read_text())
-        doc["items"][0]["text"] = "look ![pwned](https://evil.example/x.png) <script>"
+        hostile = "look ![pwned](https://evil.example/x.png) <script> www.evil.com @someone `tick`"
+        doc["items"][0]["text"] = hostile
         with tempfile.TemporaryDirectory() as tmp:
             md, _ = self._report(Path(tmp), feedback=doc)
-            self.assertNotIn("![pwned](", md)
-            self.assertNotIn("<script>", md)
-            self.assertIn("\\!\\[pwned\\]", md)
+            line = next(l for l in md.splitlines() if "pwned" in l)
+            # the whole remark is one code span: GitHub renders no image, link, HTML or mention in it
+            self.assertIn("`" + hostile.replace("`", "'") + "`", line)
+            self.assertEqual(line.count("`"), 2 + 2)  # the speaker's span and the remark's span
 
     def test_unconfirmed_guard_and_no_inputs(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -365,6 +446,27 @@ class ContractTest(unittest.TestCase):
         doc = self._doc()
         doc["policy"]["toFixer"] = "sometimes"
         with self.assertRaises(ContractError):
+            validate(doc)
+        doc = self._doc()
+        next(i for i in doc["items"] if i["category"] == "request")["draft"] = {
+            "path": "drafts/x.json", "specId": "x", "approved": False}
+        with self.assertRaises(ContractError):
+            validate(doc)
+        doc = self._doc()
+        next(i for i in doc["items"] if i["category"] == "weaken-check")["instruction"] = "Skip it."
+        with self.assertRaises(ContractError):
+            validate(doc)
+        doc = self._doc()
+        next(i for i in doc["items"] if i["category"] == "weaken-check")["decidedBy"] = ["default"]
+        with self.assertRaises(ContractError):
+            validate(doc)
+        doc = self._doc()
+        doc["items"][0]["turn"] = len(doc["turns"])
+        with self.assertRaisesRegex(ContractError, "past the last turn"):
+            validate(doc)
+        doc = self._doc()
+        doc["counts"]["bug"] += 1
+        with self.assertRaisesRegex(ContractError, "counts"):
             validate(doc)
         doc = self._doc()
         doc["source"]["kind"] = "audio"

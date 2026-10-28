@@ -5,7 +5,7 @@ what, then sorts each remark:
 
 | Remark | Where it goes |
 | --- | --- |
-| A bug a player saw ("the robot fell through the floor") | a draft test spec from Muse Spark, unapproved, in `runs/feedback/drafts/` |
+| A bug a player saw ("the robot fell through the floor") | if Muse Spark wrote a one-line check for it: a draft test spec, unapproved, in `runs/feedback/drafts/`; otherwise a person |
 | A request to weaken, skip or override a check ("just turn the floor check off") | refused, queued for a person; never drafted |
 | A feature wish ("double jump would be nice") | queued for a person |
 | Anything else | logged |
@@ -17,7 +17,8 @@ draft spec does nothing until a person approves it with `python3 -m nightshift.s
 
 - Everyone on the recording agrees to it being sent to Meta's Model API for transcription, and, if
   it runs in CI, kept in this public repo's workflow artifacts for 14 days. Only record team
-  members, or playtesters who said yes to exactly that.
+  members, or playtesters who said yes to exactly that. Every live run, audio or a saved
+  transcript, needs `--consent`, because people's words go to Meta's API either way.
 - The intake uses the standard (not `-contributor`) model tier, so Meta does not train on it.
 
 ## Script (about 30 seconds, two speakers)
@@ -43,7 +44,9 @@ so diarization has two voices to separate.
 What the run should show: two draft specs (the fall and the coin), the double-jump wish queued for a
 person, and both of B's check-weakening lines under "Refused or blocked". The last of those is there
 on purpose: it is phrased so a model might call it chatter, and the fixed phrase rules catch it
-anyway.
+anyway (the offline fixture has the model miss it, to show that). If Muse Spark is down, the run
+still finishes: the rules sort what they can, bug reports go to a person instead of becoming
+drafts, and the report says the model was not used.
 
 The same script, as a saved transcript, is the offline fixture
 (`agents/fixtures/feedback/playtest-transcript.json`), so the live run and CI can be compared line
@@ -82,13 +85,23 @@ python3 -m agents.feedback --offline --transcript agents/fixtures/feedback/playt
 ## The fixer guard
 
 When Muse Code runs as the fixer, `agents.fixer` installs a PreToolUse hook in the fixer workspace
-(`.muse/hooks.json`, loaded because the fixer passes `--trust-workspace`). It denies writes outside
-the repair request's editable globs, writes to its own files, and the web tools, and it logs every
-tool call to `.muse/fixer-guard.jsonl`. The fixer copies that log to `guard.json` next to the
-candidate, and the morning report lists what it blocked.
+(`.muse/hooks.json`, loaded because the fixer passes `--trust-workspace`). It denies file-tool
+writes outside the repair request's editable globs (after resolving `..` and symlinks), writes to
+its own files, and the web tools. Any other tool that names a file is judged the same way. It logs
+every tool call to `.fixer-guard-log/fixer-guard.jsonl`; the fixer summarizes that in `guard.json`
+next to the candidate, and the morning report lists what it blocked.
 
-Muse Code silently skips a malformed project hook file, so the report only says the guard
-"loaded" when its log has entries; otherwise it says the guard is not confirmed. The guard is a
-first line and evidence for the film. The hard gate is unchanged: the fixer refuses a patch outside
-the editable globs, and the verifier rebuilds from the patch alone. Shell commands are logged, not
-parsed. Set `NIGHTSHIFT_FIXER_GUARD=0` to run without it.
+What it does not do, so we don't claim it:
+
+- Shell commands are logged, not checked. Under bubblewrap, `.muse/` is mounted read-only, so the
+  agent's shell cannot rewrite the policy or the hook; without bubblewrap only Muse Code's own
+  rules protect it.
+- The log has to stay writable for the hook, so the agent could edit it too. The report calls the
+  counts the guard's own log, not proof.
+- Muse Code silently skips a malformed project hook file, so the report only says the guard
+  "loaded" when its log has entries; otherwise it says the guard is not confirmed. If the hook
+  cannot start at all (no `python3`, or the 5-second timeout), Muse Code most likely runs the tool
+  anyway.
+
+The hard gate is unchanged: the fixer refuses a patch outside the editable globs, and the verifier
+rebuilds from the patch alone. Set `NIGHTSHIFT_FIXER_GUARD=0` to run without the guard.
