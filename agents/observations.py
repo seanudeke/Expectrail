@@ -71,12 +71,14 @@ def _frame_tick(n: int, step: int) -> int:
 
 
 def _view_at(rows: list[dict], tick: int) -> list | None:
-    """World-to-frame transform at a tick; the very first draw takes the camera from the next tick,
-    since the camera only settles once the first frame is drawn."""
-    view = rows[tick].get("view")
-    if view and view[4] == 0 and view[5] == 0 and tick + 1 < len(rows):
-        view = rows[tick + 1].get("view") or view
-    return view
+    """The camera a frame was drawn with, for the frame that shows tick ``tick``.
+
+    The harness reads the camera inside the physics tick, so a row holds the camera of the frame
+    drawn before it: the frame showing tick t was drawn with the camera logged on tick t + 1
+    (measured against the image scroll). The last frame has no later row and keeps its own.
+    """
+    later = rows[min(tick + 1, len(rows) - 1)].get("view")
+    return later or rows[tick].get("view")
 
 
 def _to_frame(view: list, x: float, y: float) -> tuple[float, float]:
@@ -271,3 +273,56 @@ def engine_ground_by_frame(trace: dict, frame_size: tuple[int, int], frames: lis
 
 def has_engine_ground(trace: dict) -> bool:
     return any(r.get("ground") is not None and r.get("view") for r in trace.get("rows") or [])
+
+
+# The ground search, the same as the harness's (_ground_under in nightshift_harness.gd), but over
+# the level surfaces of a game the verifier trusts: the clean game, not the candidate.
+SINK_WINDOW = 64.0
+BODY_HALF_WIDTH = 20.0
+
+
+def _polygon_top(points: list, x: float) -> float | None:
+    top = None
+    n = len(points)
+    for i in range(n):
+        (ax, ay), (bx, by) = points[i], points[(i + 1) % n]
+        if x < min(ax, bx) or x > max(ax, bx):
+            continue
+        y = min(ay, by) if ax == bx else ay + (by - ay) * (x - ax) / (bx - ax)
+        if top is None or y < top:
+            top = y
+    return top
+
+
+def surface_under(surfaces: list, x: float, y: float) -> float | None:
+    """World y of the highest solid surface under a body at (x, y), at most SINK_WINDOW above it."""
+    best = None
+    floor_limit = y - SINK_WINDOW
+    for dx in (-BODY_HALF_WIDTH, 0.0, BODY_HALF_WIDTH):
+        for points in surfaces:
+            top = _polygon_top(points, x + dx)
+            if top is not None and top >= floor_limit and (best is None or top < best):
+                best = top
+    return best
+
+
+def with_reference_ground(trace: dict, surfaces: list) -> dict:
+    """The trace with every row's ground line recomputed from trusted level surfaces.
+
+    A candidate may edit the level, so the ground it logs is the ground it shipped. Judging it
+    against the clean game's surfaces means a fix cannot move the yardstick it is measured by.
+    """
+    out = dict(trace)
+    rows = []
+    for row in trace.get("rows") or []:
+        row = dict(row)
+        player = row.get("player")
+        ground = surface_under(surfaces, float(player[0]), float(player[1])) if player is not None else None
+        if ground is None:
+            row.pop("ground", None)
+        else:
+            row["ground"] = round(ground, 3)
+        rows.append(row)
+    out["rows"] = rows
+    out["groundReference"] = "clean level"
+    return out

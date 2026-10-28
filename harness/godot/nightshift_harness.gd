@@ -10,6 +10,10 @@ extends Node
 ##           level's tile geometry, never from the player's own collision shape;
 ##   view:   the transform from world coordinates to captured-frame pixels, [xx, xy, yx, yy, ox, oy],
 ##           so a world point (x, y) lands at (xx*x + yx*y + ox, xy*x + yy*y + oy) in the frame.
+##           It is read in the physics tick, so it is the camera of the frame drawn before it.
+## and the trace header carries levelSurfaces: every solid tile collision polygon in world
+## coordinates, so the verifier can measure a candidate against the clean game's ground instead of
+## the ground the candidate itself shipped.
 
 const TRACE_FORMAT := "nightshift.trace/v0"
 
@@ -101,6 +105,9 @@ func _finish() -> void:
 	if _trace_path != "":
 		var out := {"format": TRACE_FORMAT, "ticks": _ticks,
 			"physicsTicksPerSecond": Engine.physics_ticks_per_second, "rows": _trace}
+		var surfaces := _level_surfaces()
+		if not surfaces.is_empty():
+			out["levelSurfaces"] = surfaces
 		var file := FileAccess.open(_trace_path, FileAccess.WRITE)
 		file.store_string(JSON.stringify(out, "", false))
 		file.close()
@@ -125,6 +132,28 @@ func _ground_under(origin: Vector2) -> Variant:
 			if surface != null and (best == null or surface < best):
 				best = surface
 	return best
+
+
+func _level_surfaces() -> Array:
+	"""Every solid tile collision polygon of the level, in world coordinates."""
+	var polygons := []
+	for node in _layers:
+		var layer := node as TileMapLayer
+		if layer == null or layer.tile_set == null:
+			continue
+		for cell in layer.get_used_cells():
+			var data: TileData = layer.get_cell_tile_data(cell)
+			if data == null:
+				continue
+			var centre: Vector2 = layer.map_to_local(cell)
+			for physics_layer in layer.tile_set.get_physics_layers_count():
+				for i in data.get_collision_polygons_count(physics_layer):
+					var points := []
+					for point in data.get_collision_polygon_points(physics_layer, i):
+						var world: Vector2 = layer.to_global(centre + point)
+						points.append([snappedf(world.x, 0.01), snappedf(world.y, 0.01)])
+					polygons.append(points)
+	return polygons
 
 
 func _surface_in_column(layer: TileMapLayer, world_x: float, min_y: float) -> Variant:

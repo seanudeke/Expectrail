@@ -42,7 +42,13 @@ Together they fail all six seeded bugs with no false alarm on the clean run.
 
 SAM cannot see the ground, so the harness now records it: each tick, the solid tile surface under
 the robot (from the tiles' authored collision polygons, never from the robot's own shape) and the
-camera transform from world to frame pixels. The ground spec then has two judges, both in
+camera transform from world to frame pixels, and once per run every solid tile polygon of the
+level. **The verifier never takes the ground from the candidate's own level**: a candidate may edit
+`level/**`, so a "fix" could bury the robot and lower the floor polygons by the same amount (an
+independent review did exactly that, `agents/fixtures/fix-and-lower-the-floor.patch`, and it was
+accepted). The verifier instead replays the unpatched game for two ticks, reads its level
+surfaces, and recomputes every replay's ground line from them. That attack is now rejected on the
+candidate and on the held-out routes. The ground spec then has two judges, both in
 captured-frame pixels so `tolerancePx` means the same for each:
 
 - **Engine** (always): the robot's feet from the position log (origin plus a constant measured on

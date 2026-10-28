@@ -24,7 +24,7 @@ import statistics
 import sys
 from pathlib import Path
 
-from agents.observations import engine_ground_by_frame, has_engine_ground
+from agents.observations import engine_ground_by_frame, has_engine_ground, with_reference_ground
 from agents.sam_observations import (
     Cache, MetaSamClient, SamError, _document, default_cache_dir, frame_files, observe, png_size, sample,
     sha256_bytes, window,
@@ -154,12 +154,19 @@ def draw(run_name: str, frames: dict[int, Path], observed: dict[int, dict], spec
     return written
 
 
-def engine_objects_for(run: Path, name: str, frames: dict, chosen: list[int]) -> dict[int, dict]:
-    """{frame: {name: [ground box]}} from the run's harness trace, or {} if it has no ground line."""
+def engine_objects_for(run: Path, name: str, frames: dict, chosen: list[int],
+                       reference: list | None = None) -> dict[int, dict]:
+    """{frame: {name: [ground box]}} from the run's harness trace, or {} if it has no ground line.
+
+    With ``reference`` (the clean run's level surfaces), the ground line is recomputed from the
+    clean level, as the verifier does, rather than taken from the variant's own level.
+    """
     try:
         trace = json.loads((run / "trace.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return {}
+    if reference:
+        trace = with_reference_ground(trace, reference)
     if not has_engine_ground(trace) or not chosen:
         return {}
     by_frame = engine_ground_by_frame(trace, png_size(frames[chosen[0]]), chosen)
@@ -167,13 +174,13 @@ def engine_objects_for(run: Path, name: str, frames: dict, chosen: list[int]) ->
 
 
 def probe_run(run: Path, spec: dict, picked: list[int] | None, every: int, client, cache, workers: int,
-              out: Path | None, engine_ground: str | None = None) -> dict:
+              out: Path | None, engine_ground: str | None = None, reference: list | None = None) -> dict:
     frames = frame_files(run / "frames")
     if not frames:
         raise SamError(f"no frames in {run / 'frames'}")
     indices = window(list(frames), spec)
     chosen = [i for i in (picked or sample(indices, every)) if i in frames]
-    engine = engine_objects_for(run, engine_ground, frames, chosen) if engine_ground else {}
+    engine = engine_objects_for(run, engine_ground, frames, chosen, reference) if engine_ground else {}
     prompts = {name: obj["prompt"] for name, obj in spec["objects"].items() if not (engine and name == engine_ground)}
     observed = observe(frames, chosen, prompts, client, cache, workers)
     for i, objs in engine.items():
@@ -397,6 +404,11 @@ def main(argv: list[str] | None = None) -> int:
     args.out.mkdir(parents=True, exist_ok=True)
     clean_names = set(args.clean.split(","))
     on_github = os.environ.get("GITHUB_ACTIONS") == "true"
+    reference = None
+    for run in runs:  # the clean run's level is the yardstick for every run, as in the verifier
+        if run.name in clean_names and (run / "trace.json").is_file():
+            reference = json.loads((run / "trace.json").read_text(encoding="utf-8")).get("levelSurfaces")
+            break
     results, swept = [], []
     try:
         if sweep_name:
@@ -405,7 +417,7 @@ def main(argv: list[str] | None = None) -> int:
         else:
             for run in runs:
                 results.append(probe_run(run, spec, picked, args.every, client, cache, args.workers, args.out,
-                                         args.engine_ground))
+                                         args.engine_ground, reference))
                 print(f"{run.name}: {results[-1]['verdict']['result']}", flush=True)
     except SamError as exc:
         print(f"SAM failed: {exc}", file=sys.stderr)
