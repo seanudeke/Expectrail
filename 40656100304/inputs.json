@@ -1,0 +1,5 @@
+{
+  "every": "1",
+  "spec": "specs/coins-visible.json",
+  "runs": "clean"
+}
