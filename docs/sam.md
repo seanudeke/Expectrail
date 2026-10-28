@@ -119,7 +119,9 @@ Both are inputs on the SAM probe workflow, together with `runs` to probe only so
 3. **Score margin.** The lowest clean scores were 0.64 (player) and 0.69 (coins) against the 0.5
    threshold. Watch it when the art or the camera changes.
 4. **Sample rate.** Every 4th frame cost 31 requests a run, at about one second each with four in
-   flight. Keep it unless cost says otherwise.
+   flight. A fail found on a sample is exact, but an accept rests on every 4th frame: a player who
+   flickers out for two or three frames could be missed. For the recorded demo, consider
+   `NIGHTSHIFT_SAM_EVERY=1` on the verifier (120 requests a replay per spec).
 
 ## How it looks at fewer frames
 
@@ -151,12 +153,16 @@ whose verdict has to be beyond question.
 
 Any failure makes the check needs-review, never a pass and never a crash. That covers a failed,
 partial or unrecognised reply, a box without a confidence, a number that is not finite, missing
-frames, and anything unexpected:
+frames, and anything unexpected. With SAM on in the verifier, each SAM spec is its own check:
 
-- candidate replay: the regression check is needs-review, error in `observations-error.txt`;
-- clean replay: the clean check is needs-review, error in `observations-clean-error.txt` (the
-  clean fixture is only used when the harness itself fails, as before);
-- held-out routes: needs-review.
+- candidate and clean replays: that spec's check is needs-review, with the error in
+  `observations-<spec>-error.txt` or `observations-clean-<spec>-error.txt`; the ground check is
+  still judged on the engine's position log;
+- held-out routes: the route is needs-review for that spec (see `visuals` in
+  `verdict-held-out.json`);
+- no frames to look at (offline fixtures, a failed clean harness run, the interim held-out fixture
+  or no private set mounted): the SAM checks are needs-review, so a SAM-on accept always means SAM
+  looked at the candidate, the clean game and every private route.
 
 Rate limits, server errors and dropped connections are retried three times with backoff; bad
 requests are not retried. After the first failure, queued requests for that replay are cancelled.

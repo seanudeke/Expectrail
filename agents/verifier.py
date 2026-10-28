@@ -75,14 +75,24 @@ def sam_on() -> bool:
     return resolve_provider() == "sam"
 
 
-def sam_specs() -> list[dict]:
+# Ids a SAM spec may not take: its evidence files and held-out results would collide with these.
+RESERVED_SPEC_IDS = frozenset({"clean", "held-out", "gameplay", GAMEPLAY_SPEC_ID})
+
+
+def sam_specs(ground_id: str | None = None) -> list[dict]:
     raw = os.environ.get(SAM_SPECS_ENV, "")
     paths = [p.strip() for p in raw.split(",") if p.strip()] or list(SAM_SPECS)
-    return [load(REPO / p, "test-spec") for p in paths]
+    specs = [load(REPO / p, "test-spec") for p in paths]
+    ids = [s["id"] for s in specs]
+    clash = sorted({i for i in ids if i in RESERVED_SPEC_IDS or i == ground_id or ids.count(i) > 1})
+    if clash:
+        raise SystemExit(f"{SAM_SPECS_ENV}: spec id(s) {clash} repeat or clash with the ground spec or the "
+                         "verifier's own evidence files; give each SAM spec its own id")
+    return specs
 
 
-def _sam_verdicts(trace: dict | None, replay_sha: str, frames_dir: Path | None, out_dir: Path,
-                  prefix: str = "") -> list[tuple[dict, dict | None, str | None]]:
+def _sam_verdicts(specs: list[dict], trace: dict | None, replay_sha: str, frames_dir: Path | None,
+                  out_dir: Path, prefix: str = "") -> list[tuple[dict, dict | None, str | None]]:
     """SAM's verdict on one replay for each SAM spec: (spec, verdict, None) or (spec, None, error).
 
     Observations and verdicts are written next to the replay's other evidence. A replay without
@@ -91,7 +101,7 @@ def _sam_verdicts(trace: dict | None, replay_sha: str, frames_dir: Path | None, 
     """
     results: list[tuple[dict, dict | None, str | None]] = []
     out_dir.mkdir(parents=True, exist_ok=True)
-    for spec in sam_specs():
+    for spec in specs:
         name = f"{prefix}{spec['id']}"
         if frames_dir is None or not Path(frames_dir).is_dir():
             error = "no captured frames for this replay (offline fixtures or a failed harness run)"
@@ -112,10 +122,10 @@ def _sam_verdicts(trace: dict | None, replay_sha: str, frames_dir: Path | None, 
     return results
 
 
-def _sam_checks(kind: str, route_name: str, trace: dict | None, replay_sha: str, frames_dir: Path | None,
-                out: Path, prefix: str = "") -> list[dict]:
+def _sam_checks(specs: list[dict], kind: str, route_name: str, trace: dict | None, replay_sha: str,
+                frames_dir: Path | None, out: Path, prefix: str = "") -> list[dict]:
     checks = []
-    for spec, verdict, _error in _sam_verdicts(trace, replay_sha, frames_dir, out, prefix):
+    for spec, verdict, _error in _sam_verdicts(specs, trace, replay_sha, frames_dir, out, prefix):
         if verdict is None:
             checks.append({"spec": spec["id"], "kind": kind, "route": route_name, "result": "needs-review",
                            "verdictSha256": "0" * 64})
@@ -158,6 +168,7 @@ def _run_held_out_routes(
     spec on the engine's position log, plus the SAM specs on SAM's view when ``use_sam``.
     A harness failure on any route makes the whole check needs-review, never pass.
     """
+    sam_spec_docs = sam_specs(spec["id"]) if use_sam else []
     rows = []
     for entry in manifest["routes"]:
         name = str(entry.get("name") or Path(entry["file"]).stem)
@@ -174,16 +185,17 @@ def _run_held_out_routes(
             replay_sha = sha256_file(run_dir / "replay.json")
             obs = from_trace(trace, replay_sha256=replay_sha, spec=spec, provider="trace")
             visuals = {spec["id"]: evaluate(spec, obs)["result"]}
-            if use_sam:
-                for sam_spec, verdict, _error in _sam_verdicts(trace, replay_sha, run_dir / "frames", run_dir):
-                    visuals[sam_spec["id"]] = verdict["result"] if verdict else "needs-review"
+            for sam_spec, verdict, _error in _sam_verdicts(sam_spec_docs, trace, replay_sha, run_dir / "frames",
+                                                           run_dir):
+                visuals[sam_spec["id"]] = verdict["result"] if verdict else "needs-review"
             visual = ("fail" if "fail" in visuals.values()
                       else "pass" if all(v == "pass" for v in visuals.values()) else "needs-review")
             play = judge_trace(trace, min_delta_x=float(entry["minDeltaX"]))
             parts = (visual, play["result"])
+            if use_sam:
+                row["visuals"] = visuals  # only with SAM on, so default-provider evidence is unchanged
             row.update(
                 visual=visual,
-                visuals=visuals,
                 gameplay=play["result"],
                 gameplayReason=play["reason"],
                 observationsSha256=digest(obs),
@@ -326,7 +338,8 @@ def verify(
     if failing.get("spec", {}).get("id") == reg_spec["id"]:
         reg_spec = failing["spec"]
     use_sam = sam_on()
-    sam_note = (f"; SAM 3.1 judges {', '.join(s['id'] for s in sam_specs())} on its own observations"
+    sam_spec_docs = sam_specs(reg_spec["id"]) if use_sam else []
+    sam_note = (f"; SAM 3.1 judges {', '.join(s['id'] for s in sam_spec_docs)} on its own observations"
                 if use_sam else "")
     trace, replay_sha, frames_dir = None, "0" * 64, None
 
@@ -378,7 +391,7 @@ def verify(
         )
         checks.append(_check("regression", reg_spec["id"], route_name, reg_verdict))
     if use_sam:
-        checks += _sam_checks("regression", route_name, trace, replay_sha, frames_dir, out)
+        checks += _sam_checks(sam_spec_docs, "regression", route_name, trace, replay_sha, frames_dir, out)
 
     # Gameplay: same agents.gameplay predicate for harness trace and offline fixtures.
     gameplay_trace, gameplay_source, min_dx = _resolve_gameplay_trace(
@@ -489,7 +502,8 @@ def verify(
         checks.append(_check("clean", clean_spec["id"], clean_route, clean_verdict))
     if use_sam:
         # A fixture clean run has no frames, so SAM's clean checks are needs-review there.
-        checks += _sam_checks("clean", clean_route, clean_trace, clean_replay_sha, clean_frames, out, "clean-")
+        checks += _sam_checks(sam_spec_docs, "clean", clean_route, clean_trace, clean_replay_sha, clean_frames, out,
+                              "clean-")
 
     # Held-out: private routes when the held-out set is mounted on this (verifier) machine
     # and we are replaying for real; otherwise the labeled interim fixture.
@@ -535,6 +549,13 @@ def verify(
             "verdictSha256": "0" * 64,
         })
         held_arm = arm(source="unavailable", detail="held-out observations path missing")
+
+    if use_sam and not use_private:
+        # SAM never looked at a held-out replay here (interim fixture, an override, or no
+        # private set mounted): its held-out checks are needs-review, never silently skipped.
+        route = "held-out-interim" if held_path.is_file() else "held-out-unavailable"
+        checks += [{"spec": s["id"], "kind": "held-out", "route": route, "result": "needs-review",
+                    "verdictSha256": "0" * 64} for s in sam_spec_docs]
 
     suite = {"candidate": candidate_arm, "clean": clean_arm, "heldOut": held_arm}
     decision, reasons = decide(checks)

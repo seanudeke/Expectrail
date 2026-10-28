@@ -579,6 +579,14 @@ class VerifierWithSamTest(unittest.TestCase):
                          "nightshift.trace-synthetic")
         self.assertIn("engine's position log", doc["suite"]["candidate"]["detail"])
         self.assertIn("player-always-visible", doc["suite"]["clean"]["detail"])
+        # No private held-out set here: SAM never saw a held-out route, so no accept.
+        self.assertEqual({c["spec"]: c["result"] for c in doc["checks"]
+                          if c["kind"] == "held-out" and c["route"] == "held-out-interim"},
+                         {"player-stays-above-ground": "pass", "player-always-visible": "needs-review",
+                          "coins-visible": "needs-review"})
+        self.assertNotEqual(doc["decision"], "accept")
+        # The only failing check is gameplay: the fixture trace is short of the harness threshold.
+        self.assertEqual([c["kind"] for c in doc["checks"] if c["result"] == "fail"], ["gameplay"])
 
     def test_a_sam_failure_is_needs_review_and_the_ground_check_still_runs(self):
         def down(body):
@@ -624,6 +632,39 @@ class VerifierWithSamTest(unittest.TestCase):
                                                    "coins-visible"})
             self.assertEqual(row["visual"], expected)
             self.assertIn("SAM specs", arm_doc["detail"])
+
+    def test_without_sam_held_out_evidence_is_unchanged(self):
+        from agents.verifier import _run_held_out_routes
+        root = self.root / "held"
+        root.mkdir()
+        (root / "route.json").write_text((REPO / "harness" / "routes" / "smoke.json").read_text())
+        manifest = {"routes": [{"name": "a", "file": "route.json", "minDeltaX": 0}]}
+        ground = load(REPO / "agents" / "specs" / "player-stays-above-ground.json", "test-spec")
+        with mock.patch("agents.verifier.harness_run", side_effect=self.harness):
+            verdict, arm_doc = _run_held_out_routes(root, manifest, ground, [], self.root / "out")
+        self.assertNotIn("visuals", verdict["routes"][0])
+        self.assertNotIn("SAM", arm_doc["detail"])
+
+    def test_sam_spec_ids_cannot_shadow_the_ground_spec(self):
+        from agents.verifier import sam_specs
+        with mock.patch.dict(os.environ, {"NIGHTSHIFT_SAM_SPECS": "specs/player-stays-above-ground.json"}):
+            with self.assertRaises(SystemExit):
+                sam_specs("player-stays-above-ground")
+        with mock.patch.dict(os.environ, {"NIGHTSHIFT_SAM_SPECS":
+                                          "specs/coins-visible.json,specs/coins-visible.json"}):
+            with self.assertRaises(SystemExit):
+                sam_specs("player-stays-above-ground")
+        with mock.patch.dict(os.environ, {"NIGHTSHIFT_SAM_SPECS": ""}):
+            self.assertEqual([s["id"] for s in sam_specs("player-stays-above-ground")],
+                             ["player-always-visible", "coins-visible"])
+
+    def test_the_loop_rejects_a_mistyped_provider_before_the_fixer_runs(self):
+        from agents import loop
+        with mock.patch.dict(os.environ, {"NIGHTSHIFT_OBS_PROVIDER": "sma"}), \
+                mock.patch.object(loop, "one_run") as one_run:
+            with self.assertRaises(SystemExit):
+                loop.main(["--out", str(self.root / "loop")])
+        one_run.assert_not_called()
 
     def test_an_unknown_provider_stops_verify_before_any_work(self):
         from agents.verifier import verify
