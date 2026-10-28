@@ -17,6 +17,7 @@ KINDS = (
     "gameplay-verdict",
     "release-candidate",
     "overnight-summary",
+    "feedback-intake",
 )
 
 

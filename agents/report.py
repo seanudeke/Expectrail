@@ -10,6 +10,7 @@ import argparse
 import base64
 import hashlib
 import json
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -159,6 +160,118 @@ def _resolve_gameplay_verdict(
     )
 
 
+_MD_SPECIAL = re.compile(r"([\\`*_{}\[\]<>()#+!|~])")
+
+
+def _md_text(text: str, limit: int = 140) -> str:
+    """Quote untrusted speech or tool input so it renders as text, never as links or images."""
+    flat = " ".join(str(text).split())
+    if len(flat) > limit:
+        flat = flat[: limit - 1] + "…"
+    return _MD_SPECIAL.sub(r"\\\1", flat)
+
+
+def _code(text: str, limit: int = 120) -> str:
+    flat = " ".join(str(text).split()).replace("`", "'")
+    return flat if len(flat) <= limit else flat[: limit - 1] + "…"
+
+
+def _clock(ms: int) -> str:
+    s = int(ms or 0) // 1000
+    return f"{s // 60}:{s % 60:02d}"
+
+
+def _load_feedback(feedback: dict | Path | None) -> dict | None:
+    if feedback is None:
+        return None
+    doc = load(Path(feedback), "feedback-intake") if isinstance(feedback, (str, Path)) else feedback
+    validate(doc, "feedback-intake")
+    return doc
+
+
+def _load_guard(guard: dict | Path | None) -> dict | None:
+    if guard is None:
+        return None
+    if isinstance(guard, (str, Path)):
+        return json.loads(Path(guard).read_text(encoding="utf-8"))
+    return guard
+
+
+def _feedback_lines(doc: dict) -> list[str]:
+    src = doc["source"]
+    speakers = sorted({t["speaker"] for t in doc["turns"]})
+    tx = src["transcriber"]
+    dur = f"{_clock(src['durationMs'])}, " if src.get("durationMs") else ""
+    what = "audio" if src["kind"] == "audio" else "saved transcript"
+    if tx["provenance"] == "live":
+        how = f"Muse Voice Transcribe `{_code(tx.get('model') or '')}`, {_code(tx.get('mode') or '').lower()}"
+    else:
+        how = "saved Voice Transcribe response, no live call"
+    lines = [
+        f"- source: {what} `{_code(src['file'])}` ({dur}{len(speakers)} speaker(s), {how}, "
+        f"sha256 `{src['sha256'][:16]}…`)",
+    ]
+    cl = doc["classifier"]
+    if cl["provenance"] == "model":
+        sorter = f"Muse Spark `{_code(cl.get('model') or '')}` plus fixed phrase rules"
+    elif cl["provenance"] == "fixture":
+        sorter = "canned model answers (fixture) plus fixed phrase rules"
+    else:
+        sorter = "fixed phrase rules only"
+        if cl.get("error"):
+            sorter += f" (model not used: {_md_text(cl['error'], 100)})"
+    lines.append(f"- sorted by: {sorter}")
+    for item in doc["items"]:
+        if item["category"] == "weaken-check":
+            continue  # listed under Refused or blocked
+        head = f"- {_md_text(item['speaker'], 8)} {_clock(item['startMs'])}: \u201c{_md_text(item['text'])}\u201d → **{item['category']}**"
+        if item["route"] == "draft-spec":
+            if item.get("draft"):
+                d = item["draft"]
+                head += f" → draft spec `{_code(d['specId'])}` (`{_code(d['path'])}`), not used until a person approves it"
+            else:
+                problems = "; ".join(item.get("draftProblems") or ["no draft"])
+                head += f" → no draft ({_md_text(problems, 120)}); for a person"
+        elif item["route"] == "human-queue":
+            head += " → for a person"
+        else:
+            head += " → logged"
+        lines.append(head)
+    if not doc["items"]:
+        lines.append("- no remarks")
+    lines.append("- nothing from feedback goes to the fixer; repair requests come only from failing checks")
+    return lines
+
+
+def _refused_lines(feedback_doc: dict | None, guard_doc: dict | None) -> list[str]:
+    lines: list[str] = []
+    for item in (feedback_doc or {}).get("items", []):
+        if item["category"] != "weaken-check":
+            continue
+        by = " + ".join(item["decidedBy"])
+        lines.append(
+            f"- feedback, {_md_text(item['speaker'], 8)} {_clock(item['startMs'])}: \u201c{_md_text(item['text'])}\u201d"
+            f" → refused, asks to weaken or override a check (caught by {by}); queued for a person"
+        )
+    if guard_doc is not None:
+        for b in guard_doc.get("blocked") or []:
+            target = b.get("rel") or b.get("path")
+            where = f" on `{_code(target)}`" if target else ""
+            lines.append(f"- fixer guard: blocked `{_code(b.get('tool') or '?')}`{where}: {_md_text(b.get('reason') or '', 160)}")
+        calls = int(guard_doc.get("calls") or 0)
+        blocked = len(guard_doc.get("blocked") or [])
+        if not guard_doc.get("installed"):
+            lines.append("- fixer guard: not installed for this run")
+        elif not guard_doc.get("loaded"):
+            lines.append("- fixer guard: installed, but no tool calls were logged, so it is not confirmed that Muse "
+                         "Code loaded it; the verifier's editable-file check still applied")
+        else:
+            lines.append(f"- fixer guard: loaded, checked {calls} tool call(s), blocked {blocked}")
+    if not lines:
+        lines.append("- none")
+    return lines
+
+
 def build_report(
     *,
     verification: dict,
@@ -170,9 +283,13 @@ def build_report(
     signing_key_path: Path | None = None,
     gameplay_verdict: dict | Path | None = None,
     verification_path: Path | None = None,
+    feedback: dict | Path | None = None,
+    guard: dict | Path | None = None,
 ) -> dict:
     out.mkdir(parents=True, exist_ok=True)
     decision = verification["decision"]
+    feedback_doc = _load_feedback(feedback)
+    guard_doc = _load_guard(guard)
     before = list(before or [])
     after = list(after or [])
     frame_meta: list[dict] = []
@@ -263,6 +380,11 @@ def build_report(
     if candidate and candidate.exists():
         lines.extend(["", "## Candidate diff (head)", "```diff", *candidate.read_text(encoding="utf-8").splitlines()[:80], "```"])
 
+    if feedback_doc is not None:
+        lines.extend(["", "## Feedback in", *_feedback_lines(feedback_doc)])
+    if feedback_doc is not None or guard_doc is not None:
+        lines.extend(["", "## Refused or blocked", *_refused_lines(feedback_doc, guard_doc)])
+
     unresolved = unresolved or ([] if decision == "accept" else list(verification.get("reasons", [])))
     lines.extend(["", "## Unresolved for a human"])
     if unresolved:
@@ -341,6 +463,21 @@ def build_report(
         "signature": signature,
         "gameplay": gameplay,
     }
+    if feedback_doc is not None:
+        summary["feedback"] = {
+            "id": feedback_doc["id"],
+            "counts": feedback_doc["counts"],
+            "drafts": [i["draft"]["path"] for i in feedback_doc["items"] if i.get("draft")],
+            "refused": sum(1 for i in feedback_doc["items"] if i["category"] == "weaken-check"),
+            "toFixer": feedback_doc["policy"]["toFixer"],
+        }
+    if guard_doc is not None:
+        summary["guard"] = {
+            "installed": bool(guard_doc.get("installed")),
+            "loaded": bool(guard_doc.get("loaded")),
+            "calls": int(guard_doc.get("calls") or 0),
+            "blocked": len(guard_doc.get("blocked") or []),
+        }
     (out / "morning-summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     return summary
 
@@ -481,8 +618,15 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--signing-key", type=Path, help="verifier-host key only; never in fixer workspace")
     p.add_argument("--gameplay-verdict", type=Path,
                    help="trace-native gameplay verdict (default: sibling verdict-gameplay.json)")
+    p.add_argument("--feedback", type=Path,
+                   help="feedback-intake.json from agents.feedback (adds 'Feedback in')")
+    p.add_argument("--guard", type=Path,
+                   help="fixer guard.json (default: guard.json next to --candidate, when present)")
     p.add_argument("--out", type=Path, required=True)
     args = p.parse_args(argv)
+    guard = args.guard
+    if guard is None and args.candidate is not None and (args.candidate.parent / "guard.json").is_file():
+        guard = args.candidate.parent / "guard.json"
     summary = build_report(
         verification=load(args.verification, "verification"),
         candidate=args.candidate,
@@ -492,6 +636,8 @@ def main(argv: list[str] | None = None) -> int:
         signing_key_path=args.signing_key,
         gameplay_verdict=args.gameplay_verdict,
         verification_path=args.verification,
+        feedback=args.feedback,
+        guard=guard,
     )
     print(f"{summary['decision']}: {args.out / 'morning-report.md'}")
     return 0 if summary["decision"] == "accept" else 1

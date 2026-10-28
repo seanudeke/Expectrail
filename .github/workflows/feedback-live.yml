@@ -1,0 +1,80 @@
+# Live voice feedback intake: Muse Voice Transcribe (diarized) + Muse Spark, then a morning report
+# with "Feedback in" and "Refused or blocked". Manual only, its own workflow so dispatching CI never
+# spends on it. Needs the META_API_KEY secret and a recording everyone on it agreed to.
+name: Feedback (live)
+
+on:
+  workflow_dispatch:
+    inputs:
+      audio:
+        description: Repo path to a mono 16-bit WAV, 24 or 16 kHz, at most 10 minutes
+        required: true
+        default: bench/feedback/playtest-1.wav
+      consent:
+        description: Everyone on the recording agreed to it being transcribed by Meta's API and kept in CI artifacts
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  feedback-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # secrets is not allowed in a job-level if; check it in the first step instead.
+    env:
+      META_API_KEY_SET: ${{ secrets.META_API_KEY != '' }}
+      CONSENT: ${{ inputs.consent }}
+      AUDIO: ${{ inputs.audio }}
+    steps:
+      - name: Require consent and the META_API_KEY secret
+        run: |
+          if [ "$CONSENT" != "true" ]; then
+            echo "::error::Tick 'consent' only when everyone on the recording agreed to it."
+            exit 1
+          fi
+          if [ "$META_API_KEY_SET" != "true" ]; then
+            echo "::error::Set the META_API_KEY repository secret before running the live feedback job."
+            exit 1
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Transcribe, sort, draft
+        env:
+          MODEL_API_KEY: ${{ secrets.META_API_KEY }}
+        run: |
+          if [ ! -f "$AUDIO" ]; then
+            echo "::error::$AUDIO is not in the repo. Commit the recording (see docs/feedback-recording.md) or run agents.feedback locally."
+            exit 1
+          fi
+          python -m agents.feedback --audio "$AUDIO" --consent --out runs/feedback-live/feedback
+          python -m agents.loop --mode offline --runs 1 \
+            --feedback runs/feedback-live/feedback/feedback-intake.json --out runs/feedback-live/loop
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          doc = json.load(open("runs/feedback-live/feedback/feedback-intake.json"))
+          assert doc["source"]["transcriber"]["provenance"] == "live", doc["source"]
+          assert doc["policy"]["toFixer"] == "never", doc["policy"]
+          speakers = sorted({t["speaker"] for t in doc["turns"]})
+          print(f"speakers={speakers} counts={doc['counts']} classifier={doc['classifier']}")
+          if doc["classifier"]["provenance"] != "model":
+              print(f"::warning::Muse Spark classifier not used: {doc['classifier'].get('error')}")
+          if len(speakers) < 2:
+              print("::warning::fewer than two speakers came back; check the recording and DIARIZATION")
+          md = Path("runs/feedback-live/loop/run-00/morning/morning-report.md").read_text()
+          assert "## Feedback in" in md and "## Refused or blocked" in md, md
+          PY
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: feedback-live
+          path: runs/feedback-live/
+          retention-days: 14

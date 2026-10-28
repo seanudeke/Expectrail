@@ -1924,7 +1924,7 @@ class CleanPromptEnvHonestyTest(unittest.TestCase):
             out = Path(tmp) / "fix"
             captured = {}
 
-            def fake_muse(prompt, *, work, env=None, timeout=0, require_sandbox=False):
+            def fake_muse(prompt, *, work, env=None, timeout=0, require_sandbox=False, detected=None):
                 captured["cmd"] = ["muse", "exec", "--disable-approval", "--trust-workspace", prompt]
                 captured["env"] = dict(env or {})
                 captured["cwd"] = str(work)

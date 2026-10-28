@@ -1,7 +1,8 @@
 # Lane contracts
 
-Ten JSON documents carry everything between the four lanes (seven lane hand-offs plus the
-agents adjuncts `gameplay-verdict`, `release-candidate`, and `overnight-summary`). Each has a
+Eleven JSON documents carry everything between the four lanes (seven lane hand-offs plus the
+agents adjuncts `gameplay-verdict`, `release-candidate`, `overnight-summary` and
+`feedback-intake`). Each has a
 schema in [`contracts/`](../contracts) and a worked example in
 [`contracts/examples/`](../contracts/examples).
 Agree changes in the team channel first, then change the schema, the example and the code in one
@@ -27,6 +28,7 @@ verification ◄── verifier (rebuild, replay, all checks) ◄── candidat
 | `gameplay-verdict` | verifier (`agents.gameplay` / `agents.verifier`) | morning report | Taofeek |
 | `release-candidate` | morning report (`agents.report`) | demo / human sign-off | Taofeek |
 | `overnight-summary` | overnight loop (`agents.loop`) | rollup / bench stub | Taofeek |
+| `feedback-intake` | voice feedback intake (`agents.feedback`) | morning report, a person | Sean |
 
 ## Rules the contracts encode
 
@@ -48,6 +50,11 @@ verification ◄── verifier (rebuild, replay, all checks) ◄── candidat
   and every key live on the verifier's side and are not mounted into fixer-work (deny-by-absence).
   Muse Code's vendor write confine stops writes outside its workspace; it does not claim OS read
   isolation on a shared host filesystem.
+- **Feedback never reaches the fixer.** `feedback-intake` records what playtesters said and where
+  each remark went. Its `policy` is fixed in the schema: nothing goes to the fixer, a bug report
+  becomes a draft test spec with no approval, and a request to weaken a check goes to a person
+  (`category: weaken-check` must have `route: human-queue` and no draft). Audio sources must
+  record `consent: true`.
 - **Accept only if every check passes.** `verification.decision` is `accept` only when every
   regression, gameplay, held-out and clean check passes; any failure rejects; anything unclear
   needs review. An incomplete check set (missing a required kind) is `needs-review`, never
