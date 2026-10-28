@@ -65,6 +65,29 @@ def _player_box(x: float, y: float) -> list[float]:
     return [x - PLAYER_HALF_W, y - PLAYER_H, x + PLAYER_HALF_W, y]
 
 
+def _frame_tick(n: int, step: int) -> int:
+    """The physics tick whose state a captured frame shows: the last one before it was drawn."""
+    return n * step + step - 1
+
+
+def _view_at(rows: list[dict], tick: int) -> list | None:
+    """World-to-frame transform at a tick; the very first draw takes the camera from the next tick,
+    since the camera only settles once the first frame is drawn."""
+    view = rows[tick].get("view")
+    if view and view[4] == 0 and view[5] == 0 and tick + 1 < len(rows):
+        view = rows[tick + 1].get("view") or view
+    return view
+
+
+def _to_frame(view: list, x: float, y: float) -> tuple[float, float]:
+    return view[0] * x + view[2] * y + view[4], view[1] * x + view[3] * y + view[5]
+
+
+def _frame_box(view: list, box: list[float]) -> list[float]:
+    (ax, ay), (bx, by) = _to_frame(view, box[0], box[1]), _to_frame(view, box[2], box[3])
+    return [round(min(ax, bx), 3), round(min(ay, by), 3), round(max(ax, bx), 3), round(max(ay, by), 3)]
+
+
 def from_trace_synthetic(
     trace: dict,
     replay_sha256: str = "0" * 64,
@@ -73,46 +96,53 @@ def from_trace_synthetic(
 ) -> dict:
     """Build nightshift.observations/v0 from a harness trace (position-log stand-in).
 
-    Physics is 120 Hz and capture is 60 fps, so frame n ≈ after tick 2n (every other tick).
+    Physics is 120 Hz and capture is 60 fps, so a frame shows the state after every other tick.
 
-    When the harness logged the level's ground line (``ground`` on each row), the ground box sits
-    on it and the player's box ends at its feet (origin + FEET_OFFSET). Older traces without it
-    fall back to taking the floor from the player's own on-floor positions, which cannot see a
-    player that rests too low.
+    Traces from the current harness carry the level's ground line (``ground``) and the camera
+    (``view``): the ground box then sits on that line, the player's box ends at its feet
+    (origin + FEET_OFFSET), and both are in captured-frame pixels like SAM's boxes, so a spec's
+    tolerancePx means the same thing for either provider. Older traces fall back to world pixels
+    and a floor taken from the player's own on-floor positions, which cannot see a player that
+    rests too low.
     """
     rows = list(trace.get("rows") or [])
     tps = physics_tps or int(trace.get("physicsTicksPerSecond") or 120)
     step = max(tps // fps, 1)
     floor = _floor_y(rows)
     start_x = _start_x(rows)
-    ground = [start_x - 200.0, floor, start_x + 2000.0, floor + GROUND_DEPTH]
-    level_ground = any(r.get("ground") is not None for r in rows)
+    in_frame = any(r.get("ground") is not None for r in rows) and any(r.get("view") for r in rows)
 
     frames = []
-    for row in rows:
-        tick = int(row["tick"])
-        if tick % step != 0:
-            continue
-        frame_n = tick // step
-        player = row.get("player")
-        if level_ground:
-            g = row.get("ground")
-            x0 = float(player[0]) if player is not None else start_x
-            objects: dict = {"ground": [] if g is None else [
-                {"box": [x0 - 2000.0, float(g), x0 + 2000.0, float(g) + GROUND_DEPTH], "score": 0.95, "track": 2}]}
-        else:
+    if in_frame:
+        for n in range(len(rows) // step):
+            tick = _frame_tick(n, step)
+            row, view = rows[tick], _view_at(rows, tick)
+            player, g = row.get("player"), row.get("ground")
+            objects: dict = {"ground": [], "player": []}
+            if player is not None and view:
+                x, y = float(player[0]), float(player[1])
+                if g is not None:
+                    gx, gy = _to_frame(view, x, float(g))
+                    objects["ground"] = [{"box": [round(gx - 4000.0, 3), round(gy, 3), round(gx + 4000.0, 3),
+                                                  round(gy + 2 * GROUND_DEPTH, 3)], "score": 0.95, "track": 2}]
+                if y <= floor + 800:  # far below the level: off screen, so not seen
+                    objects["player"] = [{"box": _frame_box(view, _player_box(x, y + FEET_OFFSET)),
+                                          "score": 0.94, "track": 1}]
+            frames.append({"frame": n, "objects": objects})
+    else:
+        ground = [start_x - 200.0, floor, start_x + 2000.0, floor + GROUND_DEPTH]
+        for row in rows:
+            tick = int(row["tick"])
+            if tick % step != 0:
+                continue
+            player = row.get("player")
             objects = {"ground": [{"box": list(ground), "score": 0.95, "track": 2}]}
-        if player is None:
-            objects["player"] = []
-        else:
-            x, y = float(player[0]), float(player[1])
-            box = _player_box(x, y + FEET_OFFSET) if level_ground else _player_box(x, y)
-            # Far below the camera / level → treat as missing (off-screen).
-            if y > floor + 800:
+            if player is None or float(player[1]) > floor + 800:
                 objects["player"] = []
             else:
-                objects["player"] = [{"box": box, "score": 0.94, "track": 1}]
-        frames.append({"frame": frame_n, "objects": objects})
+                objects["player"] = [{"box": _player_box(float(player[0]), float(player[1])), "score": 0.94,
+                                      "track": 1}]
+            frames.append({"frame": tick // step, "objects": objects})
 
     return {
         "format": "nightshift.observations/v0",
@@ -123,7 +153,8 @@ def from_trace_synthetic(
                 "player": "blue robot",
                 "ground": "grass-topped ground",
             },
-            "ground": "level tile geometry (harness)" if level_ground else "player's own on-floor positions",
+            "ground": "level tile geometry (harness)" if in_frame else "player's own on-floor positions",
+            "units": "captured-frame pixels" if in_frame else "world pixels",
         },
         "frames": frames,
     }
@@ -215,29 +246,24 @@ def engine_ground_by_frame(trace: dict, frame_size: tuple[int, int], frames: lis
                            fps: int = 60) -> dict[int, dict]:
     """The level's ground line for each captured frame, in that frame's pixels.
 
-    Built from the harness's ``ground`` (world y of the tile surface under the player) and
-    ``view`` (world to frame pixels) on the last physics tick before the frame was drawn; the very
-    first frame takes the camera from the next tick, since the camera only settles on frame 0.
-    Returns {frame: {"ground": [box]}}, with an empty list when the engine logged no ground then.
+    From the harness's ``ground`` (world y of the tile surface under the player) and ``view`` on
+    the last physics tick before the frame was drawn (see _frame_tick and _view_at). Returns
+    {frame: {"ground": [box]}}, with an empty list when the engine logged no ground then.
     """
     rows = list(trace.get("rows") or [])
-    tps = int(trace.get("physicsTicksPerSecond") or 120)
-    step = max(tps // fps, 1)
+    step = max(int(trace.get("physicsTicksPerSecond") or 120) // fps, 1)
     width, height = frame_size
     out: dict[int, dict] = {}
     for n in frames:
-        tick = n * step + step - 1
+        tick = _frame_tick(n, step)
         if tick >= len(rows):
             continue
-        row = rows[tick]
-        view = row.get("view")
-        if view and view[4] == 0 and view[5] == 0 and tick + 1 < len(rows):
-            view = rows[tick + 1].get("view") or view  # camera not placed yet on the first draw
-        g = row.get("ground")
-        if g is None or not view:
+        row, view = rows[tick], _view_at(rows, tick)
+        g, player = row.get("ground"), row.get("player")
+        if g is None or not view or player is None:
             out[n] = {"ground": []}
             continue
-        y = view[3] * float(g) + view[1] * float(row["player"][0] if row.get("player") else 0.0) + view[5]
+        _, y = _to_frame(view, float(player[0]), float(g))
         out[n] = {"ground": [{"box": [0.0, round(y, 3), float(width), float(max(height, y + 1))],
                               "score": 1.0, "source": "engine"}]}
     return out
