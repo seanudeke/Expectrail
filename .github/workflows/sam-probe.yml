@@ -4,19 +4,20 @@
 # probe.md and contact sheets; per-frame overlays stay in the artifact). See docs/sam.md.
 #
 # Uses the MODEL_API_KEY repo secret, or META_API_KEY when that is the only one set. Never runs on
-# pull requests, so the key is never exposed to forks. The private held-out set is not fetched here.
+# pull requests, so the key is never exposed to forks. Probe mode never fetches the private held-out
+# set; verify and heldout-bench modes do, and publish only verdicts (see those jobs).
 name: SAM probe
 
 on:
   workflow_dispatch:
     inputs:
       mode:
-        description: probe (look at frames) or verify (Gate 1 accept path with SAM on, incl. private held-out routes)
+        description: probe (look at frames), verify (Gate 1 accept path with SAM on, incl. private held-out routes) or heldout-bench (would the verifier catch each private bug variant)
         type: choice
-        options: [probe, verify]
+        options: [probe, verify, heldout-bench]
         default: probe
       every:
-        description: Probe every Nth frame of each run (10 means 13 frames a run)
+        description: Probe every Nth frame of each run (10 means 13 frames a run; heldout-bench ignores it and samples as the verifier does)
         default: '10'
       frames:
         description: Or an explicit comma-separated list of frame numbers (overrides every)
@@ -45,7 +46,7 @@ permissions:
 
 jobs:
   sam-probe:
-    if: ${{ inputs.mode != 'verify' }}
+    if: ${{ inputs.mode == 'probe' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -238,3 +239,97 @@ jobs:
           for name in sorted(p.name for p in out.glob("observations-*-error.txt")):
               print(f"::warning title=SAM verify error::{name}: {(out / name).read_text().strip()[:300]}")
           PY
+
+  # mode=heldout-bench: for each private bug variant (and the clean game as a false-alarm control),
+  # render the game with the variant and no fix on the smoke route and every private route, and
+  # judge it with the verifier's checks (agents/heldout_bench.py). The private set's descriptions,
+  # patches, frames and traces never leave the runner: no artifacts, the harness output goes to a
+  # file that is never printed, and the only output is one annotation per variant with its id,
+  # counts and verdicts.
+  heldout-list:
+    if: ${{ inputs.mode == 'heldout-bench' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      HELDOUT_TOKEN_SET: ${{ secrets.HELDOUT_TOKEN != '' }}
+    outputs:
+      variants: ${{ steps.list.outputs.variants }}
+    steps:
+      - name: Require the held-out token
+        if: env.HELDOUT_TOKEN_SET != 'true'
+        run: |
+          echo "::error::Set the HELDOUT_TOKEN repository secret so the benchmark can read the private held-out set."
+          exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: seanudeke/Nightshift-heldout
+          token: ${{ secrets.HELDOUT_TOKEN }}
+          path: heldout-set
+          persist-credentials: false
+      - name: List the active variants (ids only)
+        id: list
+        env:
+          NIGHTSHIFT_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
+        run: |
+          variants=$(python -m agents.heldout_bench --list)
+          [[ "$variants" =~ ^\[(\"[a-z0-9/_-]+\"(,\ )?)+\]$ ]] || { echo "::error::unexpected variant list"; exit 1; }
+          echo "variants=$variants" >> "$GITHUB_OUTPUT"
+          echo "variants: $variants"
+
+  heldout-bench:
+    needs: heldout-list
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        variant: ${{ fromJSON(needs.heldout-list.outputs.variants) }}
+    env:
+      SAM_KEY_SET: ${{ secrets.MODEL_API_KEY != '' || secrets.META_API_KEY != '' }}
+    steps:
+      - name: Require a Meta Model API key secret
+        if: env.SAM_KEY_SET != 'true'
+        run: |
+          echo "::error::Set the MODEL_API_KEY (or META_API_KEY) repository secret first."
+          exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Install a virtual display and software OpenGL
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri libglx-mesa0 patch
+      - name: Download Godot 4.7.2 and check its SHA-512
+        run: ./harness/get_godot.sh
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: seanudeke/Nightshift-heldout
+          token: ${{ secrets.HELDOUT_TOKEN }}
+          path: heldout-set
+          persist-credentials: false
+      - name: Render and judge the variant (output kept on the runner)
+        env:
+          MODEL_API_KEY: ${{ secrets.MODEL_API_KEY || secrets.META_API_KEY }}
+          NIGHTSHIFT_OBS_PROVIDER: sam
+          NIGHTSHIFT_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
+          VARIANT: ${{ matrix.variant }}
+        run: |
+          [[ "$VARIANT" =~ ^[a-z0-9_-]+(/[a-z0-9_-]+)?$ ]] || { echo "::error::unexpected variant id"; exit 1; }
+          start=$(date +%s)
+          if python -m agents.heldout_bench --variant "$VARIANT" --out runs/bench > bench.log 2>&1; then
+            python -m agents.heldout_bench --annotate "runs/bench/${VARIANT//\//_}/bench.json"
+            echo "::notice title=Held-out bench time ${VARIANT}::$(( $(date +%s) - start )) s"
+          else
+            echo "::error title=Held-out bench ${VARIANT}::the benchmark run failed (exit $?); its log stays on the runner"
+            exit 1
+          fi

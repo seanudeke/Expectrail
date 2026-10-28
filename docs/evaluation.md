@@ -17,18 +17,20 @@ candidate fix is judged by the same independent verifier:
 
 ## Bug families (first wave)
 
-Three families, four variants each, matched with clean runs. A variant is a patch in `bugs/`
+Four families, matched with clean runs. A variant is a patch in `bugs/`
 (seeded by Timo); the clean run is the same route with no patch.
 
 | Family | Test specs | Development variants (in `bugs/`) | Held out |
 | --- | --- | --- | --- |
-| physics-fall-through | `specs/player-stays-above-ground.json` (never-crosses against the level's ground line: position log, plus SAM's robot box when SAM is on) and `specs/player-always-visible.json` (SAM) | v1 the player's collision mask drops the ground layer; v2 the ground tiles lose their collision layer | v3, v4 |
-| sinking (added Oct 28) | `specs/player-stays-above-ground.json` | v1 the player's collision shape sits too high, so it rests inside the ground; v2 the sprite is drawn too low (only the SAM hybrid sees it) | none yet |
-| missing-texture | `specs/coins-visible.json` (visible in every frame, SAM) | v1 the coin texture points to a missing file and has lost its UID; v2 the coin texture is cleared | v3, v4 |
-| layering | `specs/player-always-visible.json` (visible in every frame, SAM) | v1 the player's z index drops behind the level art; v2 the player's sprite gets a negative z index | v3, v4 |
+| physics-fall-through | `specs/player-stays-above-ground.json` (never-crosses against the level's ground line: position log, plus SAM's robot box when SAM is on) and `specs/player-always-visible.json` (SAM) | v1 the player's collision mask drops the ground layer; v2 the ground tiles lose their collision layer | v5, v6 |
+| sinking (added Oct 28) | `specs/player-stays-above-ground.json` | v1 the player's collision shape sits too high, so it rests inside the ground; v2 the sprite is drawn too low (only the SAM hybrid sees it) | v3, v4 |
+| missing-texture | `specs/coins-visible.json` (visible in every frame, SAM) | v1 the coin texture points to a missing file and has lost its UID; v2 the coin texture is cleared | v5, v6 |
+| layering | `specs/player-always-visible.json` (visible in every frame, SAM) | v1 the player's z index drops behind the level art; v2 the player's sprite gets a negative z index | v5, v6 |
 
 The held-out variants and routes are described only in the private repository; their mechanisms
-are not written down here. SAM 3.1 does not see the ground in this game's art, which is why the
+are not written down here. The first held-out variants of the three original families (v3 and v4)
+were described in this file from Oct 26 to Oct 28, so they stay in git history; they are retired
+from the benchmark and replaced by v5 and v6, written fresh on Oct 28 and never described here. SAM 3.1 does not see the ground in this game's art, which is why the
 ground line comes from the level itself (docs/sam.md).
 
 The playbook's original layering bug (the HUD drawn behind the background) does not fit this game:
@@ -38,9 +40,12 @@ overflow, softlock and motion jitter wait until after Gate 2.
 **Held out** means two things, both kept in the private repository `seanudeke/Nightshift-heldout`
 and never in this one:
 
-- **Held-out variants** (v3 and v4 of each family) are a generalization set. We build and tune
-  Nightshift on v1 and v2 only; v3 and v4 run once, in the benchmark, and their results are
-  reported separately. They never appear in a repair request or on the fixer's machine before then.
+- **Held-out variants** (the two active variants of each family in the table) are a
+  generalization set. We build and tune Nightshift on v1 and v2 only; the held-out variants run
+  once, in the benchmark, and their results are reported separately. They never appear in a repair
+  request or on the fixer's machine before then. Detection on them (would the verifier reject a
+  candidate that leaves the bug in place) is measured by the `heldout-bench` mode of the SAM probe
+  workflow (`agents/heldout_bench.py`), which publishes only each variant's id and verdicts.
 - **Held-out routes** guard each candidate fix. The verifier replays the seeded bug plus the
   candidate on routes the fixer has never seen, and requires the visual spec and the gameplay
   check to pass there too. A fix tuned to the smoke route (for example one that only works on its
@@ -96,6 +101,6 @@ screen comes from `bench/` and reruns with one command.
 
 ## Budget
 
-Twelve variants and three clean runs, three conditions, up to three repair attempts each. Each run
+Sixteen variants (eight development, eight held out, across four families) and their clean runs, three conditions, up to three repair attempts each. Each run
 renders 120 frames; SAM 3.1 sees a sample (for example every fourth frame, plus frames where the
 picture changes), not every frame. Decide the sample rate after Zayyad's first measurements.

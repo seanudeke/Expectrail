@@ -66,8 +66,8 @@ Live probe (run 40706769342), worst gap between the robot's drawn feet and the g
 | sinking v2: sprite drawn 26 px too low | +59 | fail (the engine check cannot see it) |
 | fall-through v1, v2 | +72, then the robot leaves the screen | fail |
 
-Measured afterwards, never tuned on: held-out fall-through v4 (a robot that walks buried to the
-waist) passed the old position-log check and passed gameplay. The engine check with the ground
+Measured afterwards, never tuned on: held-out fall-through v4 (since retired, see
+docs/evaluation.md; a robot that walks buried to the waist) passed the old position-log check and passed gameplay. The engine check with the ground
 line now fails it from frame 4.
 
 **End to end with SAM on (October 28, live API, harness replays, private held-out route):**
@@ -80,6 +80,14 @@ line now fails it from frame 4.
 The second row is the reason vision is in the loop: the position log says the robot is exactly
 where it should be, and only the picture shows it can't be seen. To repeat either run: Actions,
 **SAM probe**, mode `verify`, and the candidate's path under `agents/fixtures/`.
+
+**Held-out detection (mode `heldout-bench`):** for each active held-out variant, and the clean game
+as a false-alarm control, the workflow renders the game with the variant and no fix on the smoke
+route and every private route, then judges it with the engine ground check, the hybrid ground check,
+both SAM specs and the gameplay check (`agents/heldout_bench.py`). A variant counts as caught when a
+check fails on at least one route. Each variant gets one annotation with its id, per-check counts
+and verdicts; nothing else from the private set leaves the runner (no artifacts, and the harness
+output goes to a file that is never printed).
 
 ## Where SAM runs
 
