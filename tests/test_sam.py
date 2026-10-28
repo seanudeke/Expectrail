@@ -810,6 +810,14 @@ class EngineGroundTest(unittest.TestCase):
             _, source = _ground_observations(ground_spec, old, "0" * 64, scene.dir, use_sam=True)
             self.assertEqual(source, "engine")
 
+    def test_the_sink_the_player_fixture_is_a_valid_candidate(self):
+        from agents.patchutil import assert_editable, paths_touched
+        text = (REPO / "agents" / "fixtures" / "fix-but-sink-player.patch").read_text()
+        self.assertEqual(paths_touched(text), ["player/player.tscn"])
+        self.assertEqual(assert_editable(text, ["player/**", "level/**"]), [])
+        self.assertIn("+collision_mask = 30", text)          # the real fix
+        self.assertIn("+position = Vector2(0, 12)", text)    # and the robot drawn 26 px into the ground
+
     def test_the_sinking_bugs_are_valid_patches_on_the_player(self):
         from agents.patchutil import paths_touched
         for v, line in (("v1", "+position = Vector2(0, -40)"), ("v2", "+position = Vector2(0, 12)")):
