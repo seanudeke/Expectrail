@@ -32,7 +32,7 @@ on:
         description: Try several prompts for one object, e.g. ground=ground|floor|dirt (up to 9)
         default: ''
       runs:
-        description: Only these runs, e.g. clean,physics-fall-through_v1 (default all)
+        description: Only these runs, e.g. clean,physics-fall-through_v1 (default all); in heldout-bench mode, variant ids, e.g. clean,layering/v5
         default: ''
       engine_ground:
         description: probe mode, take this object (e.g. ground) from the engine's ground line instead of SAM
@@ -277,8 +277,10 @@ jobs:
         id: list
         env:
           NIGHTSHIFT_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
+          RUNS: ${{ inputs.runs }}
         run: |
-          variants=$(python -m agents.heldout_bench --list)
+          [[ -z "$RUNS" || "$RUNS" =~ ^[a-z0-9/_-]+(,[a-z0-9/_-]+)*$ ]] || { echo "::error::runs must be variant ids and commas"; exit 1; }
+          variants=$(python -m agents.heldout_bench --list --only "$RUNS")
           [[ "$variants" =~ ^\[(\"[a-z0-9/_-]+\"(,\ )?)+\]$ ]] || { echo "::error::unexpected variant list"; exit 1; }
           echo "variants=$variants" >> "$GITHUB_OUTPUT"
           echo "variants: $variants"

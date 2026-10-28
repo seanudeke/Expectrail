@@ -64,6 +64,14 @@ class HeldOutBenchTest(unittest.TestCase):
             hb.main(["--list"])
         self.assertEqual(json.loads(out.getvalue()), ["clean", "fam/v1"])
 
+    def test_list_only_keeps_the_named_ids_and_refuses_unknown_ones(self):
+        out = io.StringIO()
+        with redirect_stdout(out):
+            hb.main(["--list", "--only", "fam/v1"])
+        self.assertEqual(json.loads(out.getvalue()), ["fam/v1"])
+        with self.assertRaises(SystemExit):
+            hb.main(["--list", "--only", "fam/v0"])  # retired
+
     def test_variant_runs_on_smoke_and_every_private_route_with_its_patch(self):
         row = {"engine": "pass", "gameplay": "pass", "hybrid": "pass", "player-always-visible": "pass",
                "coins-visible": "pass"}
@@ -124,6 +132,21 @@ class HeldOutBenchTest(unittest.TestCase):
     def test_missing_set_is_refused(self):
         with mock.patch.dict(os.environ, {"NIGHTSHIFT_HELDOUT_DIR": ""}), self.assertRaises(SystemExit):
             hb.main(["--list"])
+
+
+class PublicErrorTest(unittest.TestCase):
+    def test_directories_are_stripped_and_the_line_is_short(self):
+        msg = "HTTP 401 for /home/runner/work/x/runs/bench/fam_v1/private-route-one/frames/f0001.png\nmore"
+        got = hb.public_error(msg)
+        self.assertEqual(got, "HTTP 401 for f0001.png more")
+        self.assertLessEqual(len(hb.public_error("x" * 500)), 200)
+
+    def test_errors_reach_the_annotation_without_route_names(self):
+        doc = {"variant": "fam/v1", "routes": 1, "sam": True, "caughtWithSamOn": "needs-review",
+               "caughtWithSamOff": "no", "checks": {"hybrid": {"fail": 0, "needs-review": 1, "pass": 0}},
+               "errors": ["hybrid: sam observations unavailable: HTTP 401"]}
+        lines = hb.annotation(doc).splitlines()
+        self.assertEqual(lines[1], "::warning title=Held-out bench fam/v1 error::hybrid: sam observations unavailable: HTTP 401")
 
 
 class JudgeRouteTest(unittest.TestCase):

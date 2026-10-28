@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -46,6 +47,12 @@ RESULTS = ("fail", "needs-review", "pass")
 # Which checks decide the verifier's verdict in each mode.
 SAM_ON_CHECKS = ("hybrid", "gameplay")  # plus every SAM spec
 SAM_OFF_CHECKS = ("engine", "gameplay")
+ERRORS_FILE = "bench-errors.json"
+
+
+def public_error(message: str) -> str:
+    """An error message fit to print: directories stripped (they name private routes), one line, short."""
+    return re.sub(r"(?<![\w:/.])(?:/[^\s/:'\"]+)+/", "", " ".join(str(message).split()))[:200]
 
 
 def variant_key(entry: dict) -> str:
@@ -86,20 +93,29 @@ def judge_route(route: Path, min_dx: float, patches: list[Path], run_dir: Path, 
         return {n: "needs-review" for n in names}
     frames = run_dir / "frames"
     results: dict[str, str] = {}
+    errors: list[str] = []
     try:
         obs, _source = _ground_observations(ground_spec, trace, replay_sha, frames, False, reference)
         results["engine"] = evaluate(ground_spec, obs)["result"]
-    except SystemExit:
+    except SystemExit as exc:
         results["engine"] = "needs-review"
+        errors.append(f"engine: {exc}")
     results["gameplay"] = judge_trace(trace, min_delta_x=min_dx)["result"]
     if use_sam:
         try:
             obs, source = _ground_observations(ground_spec, trace, replay_sha, frames, True, reference)
             results["hybrid"] = evaluate(ground_spec, obs)["result"] if source == "hybrid" else "needs-review"
-        except SystemExit:
+            if source != "hybrid":
+                errors.append("hybrid: the replay has no engine ground line or no frames")
+        except SystemExit as exc:
             results["hybrid"] = "needs-review"
-        for spec, verdict, _error in _sam_verdicts(sam_spec_docs, trace, replay_sha, frames, run_dir):
+            errors.append(f"hybrid: {exc}")
+        for spec, verdict, error in _sam_verdicts(sam_spec_docs, trace, replay_sha, frames, run_dir):
             results[spec["id"]] = verdict["result"] if verdict else "needs-review"
+            if error:
+                errors.append(f"{spec['id']}: {error}")
+    if errors:
+        (run_dir / ERRORS_FILE).write_text(json.dumps(errors, indent=2) + "\n", encoding="utf-8")
     return results
 
 
@@ -137,6 +153,13 @@ def bench(key: str, out: Path) -> dict:
     for name, route, min_dx in _routes(root, manifest):
         per_route.append({"route": name, "checks": judge_route(route, min_dx, patches, work / name, ground_spec,
                                                                sam_spec_docs, reference, use_sam)})
+    errors: list[str] = []
+    for row in per_route:
+        path = work / row["route"] / ERRORS_FILE
+        if path.is_file():
+            for message in json.loads(path.read_text(encoding="utf-8")):
+                if public_error(message) not in errors:
+                    errors.append(public_error(message))
     check_names = list(per_route[0]["checks"])
     per_check = {c: {r: sum(row["checks"].get(c) == r for row in per_route) for r in RESULTS} for c in check_names}
     sam_on_checks = list(SAM_ON_CHECKS) + [s["id"] for s in sam_spec_docs]
@@ -149,6 +172,7 @@ def bench(key: str, out: Path) -> dict:
         "checks": per_check,
         "caughtWithSamOn": caught(per_check, sam_on_checks) if use_sam else None,
         "caughtWithSamOff": caught(per_check, list(SAM_OFF_CHECKS)),
+        "errors": errors[:5],  # distinct, directories stripped: why a check could not decide
         "perRoute": per_route,  # route names: private, never printed
     }
     (work / "bench.json").write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
@@ -166,7 +190,9 @@ def annotation(doc: dict) -> str:
     head = f"{label} with SAM on: {doc['caughtWithSamOn']}; " if doc["sam"] else ""
     head += f"{label} with SAM off: {doc['caughtWithSamOff']}"
     title = f"Held-out bench {doc['variant']}"
-    return f"::notice title={title}::{head}; over {n} routes: " + "; ".join(parts)
+    lines = [f"::notice title={title}::{head}; over {n} routes: " + "; ".join(parts)]
+    lines += [f"::warning title={title} error::{public_error(e)}" for e in doc.get("errors") or []]
+    return "\n".join(lines)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -176,6 +202,7 @@ def main(argv: list[str] | None = None) -> int:
     g.add_argument("--variant", help="family/id of one held-out variant")
     g.add_argument("--clean", action="store_true", help="the unpatched game (false-alarm control)")
     g.add_argument("--annotate", type=Path, help="print the public annotation for a bench.json")
+    p.add_argument("--only", default="", help="with --list: keep only these comma-separated ids (all must exist)")
     p.add_argument("--out", type=Path, default=REPO / "runs" / "held-out-bench")
     args = p.parse_args(argv)
     if args.annotate:
@@ -185,7 +212,12 @@ def main(argv: list[str] | None = None) -> int:
         _root, manifest, problem = held_out_set()
         if manifest is None:
             raise SystemExit(f"held-out set unavailable: {problem or 'NIGHTSHIFT_HELDOUT_DIR is not set'}")
-        print(json.dumps([CLEAN] + [variant_key(v) for v in active_variants(manifest)]))
+        ids = [CLEAN] + [variant_key(v) for v in active_variants(manifest)]
+        wanted = [w.strip() for w in args.only.split(",") if w.strip()]
+        unknown = sorted(set(wanted) - set(ids))
+        if unknown:
+            raise SystemExit(f"--only: no active variant {unknown}")
+        print(json.dumps([i for i in ids if not wanted or i in wanted]))
         return 0
     doc = bench(CLEAN if args.clean else args.variant, args.out)
     print(annotation(doc))
