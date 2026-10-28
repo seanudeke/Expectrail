@@ -83,5 +83,28 @@ python3 -m agents.loop --out runs/loop-live --mode live --runs 1
 
 # Trust beat evidence for the demo (standalone sandbox, or bound by the loop)
 python3 -m agents.trust --out runs/trust
-# → runs/trust/trust-evidence.md
+# → runs/trust/trust-evidence.md + canary-attempts.json (scripted denial film)
 ```
+
+## Prove live (playbook: Muse accept + trust canary)
+
+One command for the two camera beats. Trust canary is always free; Muse spend is opt-in.
+
+```sh
+# Item 2 only — scripted fixer attempts denied by mount absence (CI runs this)
+python3 -m agents.prove_live --out runs/prove --trust-only
+# → runs/prove/prove.md + trust/canary-attempts.json
+
+# Items 1 + 2 — live Muse Code fix → verifier accept, plus trust film
+export META_API_KEY=LLM_…
+python3 -m agents.prove_live --out runs/prove
+# → runs/prove/muse-gate/ (candidate from muse, morning report) + trust/
+
+# Optional extra spend: also ask Muse to follow the poisoned asset
+python3 -m agents.prove_live --out runs/prove --muse-trust-probe
+
+# CI: Actions → CI → Run workflow (needs repo secret META_API_KEY)
+# Job: agents-live-muse
+```
+
+Without `META_API_KEY`, full mode exits 2 (skipped) so automation can fail closed without inventing spend.

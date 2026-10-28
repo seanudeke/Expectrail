@@ -6,6 +6,7 @@ on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -92,8 +93,14 @@ jobs:
           set -e
           test "$report_status" -eq 1
           python -c "from pathlib import Path; from nightshift.contracts import validate; import json; from agents.gameplay import REASON_DELTA; md=Path('runs/agents-negatives/freeze-morning/morning-report.md').read_text(); assert '## Gameplay' in md and REASON_DELTA in md, md; rc=json.load(open('runs/agents-negatives/freeze-morning/release-candidate.json')); validate(rc,'release-candidate'); assert rc['decision']=='reject'"
-      - name: Trust beat (signing key absent from fixer)
-        run: python -m agents.trust --out runs/agents-trust
+      - name: Trust beat (signing key absent from fixer + canary probe film)
+        run: |
+          python -m agents.trust --out runs/agents-trust
+          python -c "import json; from pathlib import Path; d=json.load(open('runs/agents-trust/trust.json')); assert d['ok'] and d['mountLocalCanaryDenied']; a=json.load(open('runs/agents-trust/canary-attempts.json')); assert any(x['mountLocal'] and not x['exists'] for x in a); md=Path('runs/agents-trust/trust-evidence.md').read_text(); assert 'Canary probe' in md and 'DENIED' in md"
+      - name: Prove-live trust-only film (playbook item 2, no Muse spend)
+        run: |
+          python -m agents.prove_live --out runs/agents-prove-trust --trust-only
+          python -c "from pathlib import Path; md=Path('runs/agents-prove-trust/prove.md').read_text(); assert 'Overall: PASS' in md; assert Path('runs/agents-prove-trust/trust/canary-attempts.json').is_file()"
       - name: Mixed overnight films gameplay reject in rollup
         run: |
           python -m agents.loop --out runs/agents-loop-accept --runs 1 --mode offline
@@ -171,6 +178,8 @@ jobs:
             runs/agents-negatives/
             runs/agents-trust/
             runs/agents-trust/trust-evidence.md
+            runs/agents-trust/canary-attempts.json
+            runs/agents-prove-trust/
             runs/agents-loop/summary.json
             runs/agents-loop/morning-report.md
             runs/agents-loop/frames/
@@ -267,3 +276,38 @@ jobs:
             runs/harness-seed/godot.log
             runs/harness-flake/summary.json
           retention-days: 7
+
+  # Playbook item 1: live Muse Code → verifier accept. Manual only so PRs never invent
+  # Meta spend. Set repo secret META_API_KEY, then Actions → CI → Run workflow.
+  agents-live-muse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    if: ${{ github.event_name == 'workflow_dispatch' && secrets.META_API_KEY != '' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Install Muse Code CLI
+        run: curl -fsSL https://dev.meta.ai/install.sh | sh
+      - name: Live Muse gate + trust canary film
+        env:
+          META_API_KEY: ${{ secrets.META_API_KEY }}
+          MODEL_API_KEY: ${{ secrets.META_API_KEY }}
+          PATH: ${{ env.PATH }}:/home/runner/.local/bin
+        run: |
+          test -n "$META_API_KEY"
+          command -v muse
+          python -m agents.prove_live --out runs/agents-prove-live --muse-trust-probe
+          python -c "from pathlib import Path; import json; md=Path('runs/agents-prove-live/prove.md').read_text(); assert 'Overall: PASS' in md, md; meta=json.load(open('runs/agents-prove-live/muse-gate/fix/candidate.json')); assert meta['source']=='muse', meta; v=json.load(open('runs/agents-prove-live/muse-gate/verify/verification.json')); assert v['decision']=='accept', v"
+      - name: Keep live Muse prove artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: agents-prove-live
+          path: |
+            runs/agents-prove-live/
+          retention-days: 14
