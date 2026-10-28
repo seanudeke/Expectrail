@@ -27,7 +27,8 @@ from agents.keys import (
     muse_subprocess_env,
 )
 from agents.patchutil import assert_editable, path_allowed, sha256_file
-from agents.sandbox import run_muse_sandboxed
+from agents.guard import collect_guard, guard_enabled, install_guard
+from agents.sandbox import detect_sandbox, muse_kind_for, muse_workspace_root, run_muse_sandboxed
 from harness.run import REPO, apply_patches, tree_digest
 from nightshift.contracts import load, validate
 
@@ -99,7 +100,9 @@ def _diff_worktree(clean_seeded: Path, edited: Path, editable: list[str] | None 
     files = sorted(
         p.relative_to(edited).as_posix()
         for p in edited.rglob("*")
-        if p.is_file() and ".godot" not in p.parts and p.name not in IGNORE_DIFF_NAMES
+        if p.is_file() and ".godot" not in p.parts and ".muse" not in p.parts
+        and ".fixer-guard-log" not in p.parts
+        and p.name not in IGNORE_DIFF_NAMES
     )
     for rel in files:
         if editable is not None and not path_allowed(rel, editable):
@@ -180,6 +183,7 @@ def run_fixer(
     patch_path = out / "candidate.patch"
     prompt_meta: dict | None = None
     sandbox_meta: dict | None = None
+    guard_meta: dict | None = None
     empty = False
     if candidate_patch is not None:
         text = candidate_patch.read_text(encoding="utf-8")
@@ -217,15 +221,26 @@ def run_fixer(
             json.dumps(sorted(env.keys()), indent=2) + "\n", encoding="utf-8"
         )
         timeout = int(request["budget"].get("minutesPerAttempt", 15) * 60)
+        detected = detect_sandbox()
+        guard_installed = None
+        if guard_enabled():
+            # Muse Code PreToolUse hook: blocks writes outside the editable globs and logs every call.
+            guard_installed = install_guard(
+                work, request["editable"],
+                root_as_muse_sees_it=muse_workspace_root(work, muse_kind_for(detected)),
+            )
         proc, sandbox_meta = run_muse_sandboxed(
             prompt,
             work=work,
             env=env,
             timeout=timeout,
             require_sandbox=require_sandbox,
+            detected=detected,
         )
         (out / "muse.log").write_text(proc.stdout + "\n" + proc.stderr, encoding="utf-8")
         (out / "sandbox.json").write_text(json.dumps(sandbox_meta, indent=2) + "\n", encoding="utf-8")
+        if guard_installed is not None:
+            guard_meta = collect_guard(work, out, guard_installed)
         text = _diff_worktree(baseline, work, editable=request["editable"])
         if not text.strip():
             empty = True
@@ -263,6 +278,9 @@ def run_fixer(
         meta.update(prompt_meta)
     if sandbox_meta:
         meta["sandbox"] = sandbox_meta
+    if guard_meta is not None:
+        meta["guard"] = {k: guard_meta[k] for k in ("installed", "loaded", "calls")}
+        meta["guard"]["blocked"] = len(guard_meta["blocked"])
     (out / "candidate.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
     return meta
 

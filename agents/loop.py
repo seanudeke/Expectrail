@@ -41,10 +41,13 @@ def _promote_candidate(attempt_out: Path, fix_out: Path) -> None:
     for name in (
         "candidate.patch", "candidate.json", "muse.log", "muse-prompt.txt",
         "muse-env-names.json", "sandbox.json", "repair-request.json",
+        "guard.json", "guard-log.jsonl",
     ):
         src = attempt_out / name
         if src.is_file():
             shutil.copy2(src, fix_out / name)
+        elif name.startswith("guard") and (fix_out / name).is_file():
+            (fix_out / name).unlink()  # never let an earlier attempt's guard log describe this one
     work = attempt_out / "fixer-work"
     dest = fix_out / "fixer-work"
     if work.is_dir():
@@ -65,6 +68,7 @@ def one_run(
     before_frames: list[Path] | None = None,
     after_frames: list[Path] | None = None,
     require_sandbox: bool = False,
+    feedback: Path | None = None,
 ) -> dict:
     out.mkdir(parents=True, exist_ok=True)
     signing_key = out / "verifier-host" / ".nightshift-signing-key"
@@ -218,6 +222,8 @@ def one_run(
             signing_key_path=signing_key,
             gameplay_verdict=gameplay_path if gameplay_path.is_file() else None,
             verification_path=verify_out / "verification.json",
+            feedback=feedback,
+            guard=fix_out / "guard.json" if (fix_out / "guard.json").is_file() else None,
         )
         return _with_timing({
             "decision": verification["decision"],
@@ -271,11 +277,15 @@ def main(argv: list[str] | None = None) -> int:
                    help="before frame(s) for morning report (default: fixture PNG)")
     p.add_argument("--after", type=Path, action="append", default=[],
                    help="after frame(s) for morning report (default: fixture PNG)")
+    p.add_argument("--feedback", type=Path,
+                   help="feedback-intake.json from agents.feedback, shown in each morning report")
     args = p.parse_args(argv)
     # A mistyped NIGHTSHIFT_OBS_PROVIDER is a configuration error: stop here, before the fixer
     # runs, rather than let verify fail later and be recorded as a rejected candidate.
     from agents.observations import resolve_provider
     resolve_provider()
+    if args.feedback is not None:
+        validate(load(args.feedback, "feedback-intake"), "feedback-intake")  # fail now, not mid-run
 
     resolved = seal_mode_flags(
         resolve_mode(args.mode),
@@ -315,6 +325,7 @@ def main(argv: list[str] | None = None) -> int:
             before_frames=before_frames,
             after_frames=after_frames,
             require_sandbox=args.require_sandbox,
+            feedback=args.feedback,
         ))
         print(f"run {i}: {results[-1]['decision']}"
               + (f" ({results[-1].get('error')})" if results[-1].get("error") else ""))

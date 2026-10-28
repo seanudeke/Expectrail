@@ -73,6 +73,11 @@ def _bwrap_cmd(work: Path, argv: list[str], *, network: bool) -> list[str]:
         "--die-with-parent",
         "--unshare-pid",
         "--bind", str(work), "/fixer",
+    ]
+    if (work / ".muse").is_dir():
+        # Muse Code project config and the fixer guard: readable, never writable by the agent.
+        cmd.extend(["--ro-bind", str(work / ".muse"), "/fixer/.muse"])
+    cmd += [
         "--chdir", "/fixer",
         "--dev", "/dev",
         "--proc", "/proc",
@@ -239,6 +244,16 @@ def probe_blocked_canary_read(
     }
 
 
+def muse_kind_for(detected: str) -> str:
+    """Muse runs under bwrap or not at all (docker cannot run the host muse binary)."""
+    return "bwrap" if detected == "bwrap" else "none"
+
+
+def muse_workspace_root(work: Path, muse_kind: str) -> str:
+    """The fixer workspace path as Muse Code sees it (bwrap binds it at /fixer)."""
+    return "/fixer" if muse_kind == "bwrap" else str(work.resolve())
+
+
 def run_muse_sandboxed(
     prompt: str,
     *,
@@ -246,15 +261,17 @@ def run_muse_sandboxed(
     env: Mapping[str, str] | None = None,
     timeout: int,
     require_sandbox: bool = False,
+    detected: str | None = None,
 ) -> tuple[subprocess.CompletedProcess[str], dict]:
     """Run `muse exec` under bwrap when available; else host with env scrub.
 
     Docker is not used for Muse (image would need a Linux muse CLI). On Darwin,
-    kind stays none unless bwrap exists.
+    kind stays none unless bwrap exists. Pass ``detected`` (from detect_sandbox) when the
+    caller already probed, so the workspace path it prepared matches the sandbox used.
     """
-    kind = detect_sandbox()
+    kind = detected if detected is not None else detect_sandbox()
     # Prefer bwrap for Muse; docker cannot run the host muse binary on macOS.
-    muse_kind = "bwrap" if kind == "bwrap" else "none"
+    muse_kind = muse_kind_for(kind)
     if require_sandbox and muse_kind == "none":
         raise SystemExit(
             "--require-sandbox needs bubblewrap (bwrap) on PATH to confine Muse Code"

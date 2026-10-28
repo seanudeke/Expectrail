@@ -1,0 +1,85 @@
+{
+  "_note": "Canned Muse Spark answers for offline runs of agents.feedback. Not model output. Turn 5 is deliberately classified as 'other' to show the fixed phrase rules catching what the model misses.",
+  "classify": {
+    "items": [
+      {
+        "turn": 0,
+        "category": "other",
+        "instruction": null,
+        "reason": "status remark"
+      },
+      {
+        "turn": 1,
+        "category": "bug",
+        "instruction": "The player never falls through the ground.",
+        "reason": "player fell through the floor"
+      },
+      {
+        "turn": 2,
+        "category": "request",
+        "instruction": null,
+        "reason": "asks for double jump"
+      },
+      {
+        "turn": 3,
+        "category": "weaken-check",
+        "instruction": null,
+        "reason": "asks to turn off the floor check"
+      },
+      {
+        "turn": 4,
+        "category": "bug",
+        "instruction": "The gold coins stay visible.",
+        "reason": "coin vanished without being collected"
+      },
+      {
+        "turn": 5,
+        "category": "other",
+        "instruction": null,
+        "reason": "aside to the assistant"
+      },
+      {
+        "turn": 6,
+        "category": "other",
+        "instruction": null,
+        "reason": "praise"
+      }
+    ]
+  },
+  "drafts": {
+    "The player never falls through the ground.": {
+      "id": "ignored-by-writer",
+      "objects": {
+        "player": {
+          "prompt": "blue robot"
+        },
+        "ground": {
+          "prompt": "grass-topped ground"
+        }
+      },
+      "assertion": {
+        "type": "never-crosses",
+        "object": "player",
+        "boundary": {
+          "relativeTo": "ground",
+          "edge": "top",
+          "side": "above",
+          "tolerancePx": 12
+        }
+      }
+    },
+    "The gold coins stay visible.": {
+      "id": "ignored-by-writer",
+      "objects": {
+        "coin": {
+          "prompt": "gold coin"
+        }
+      },
+      "assertion": {
+        "type": "visible",
+        "object": "coin",
+        "minFraction": 0.9
+      }
+    }
+  }
+}

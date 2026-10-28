@@ -1,0 +1,393 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/seanudeke/nightshift/contracts/feedback-intake.schema.json",
+  "title": "Feedback intake: what playtesters said, and where each remark went",
+  "description": "Written by agents.feedback from a diarized Muse Voice Transcribe result (or a transcript fixture). Feedback never reaches the fixer: a bug report becomes an unapproved draft test spec, a request to weaken or remove a check goes to a person, and nothing here is a repair request. Cross-field rules (turn indexes in range, counts match items) are checked in nightshift.contracts.validate.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "id",
+    "source",
+    "classifier",
+    "policy",
+    "turns",
+    "items",
+    "counts"
+  ],
+  "properties": {
+    "format": {
+      "const": "nightshift.feedback-intake/v0"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "file",
+        "sha256",
+        "transcriber"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "audio",
+            "transcript"
+          ]
+        },
+        "file": {
+          "type": "string",
+          "description": "file name only; the audio itself is not copied into the run"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "consent": {
+          "type": "boolean",
+          "description": "the operator confirmed everyone recorded agreed to it (required for audio)"
+        },
+        "durationMs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "transcriber": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "provenance"
+          ],
+          "properties": {
+            "provenance": {
+              "enum": [
+                "live",
+                "fixture"
+              ]
+            },
+            "model": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "mode": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "sessionId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "keywords": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "audio"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "consent"
+            ],
+            "properties": {
+              "consent": {
+                "const": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "classifier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provenance"
+      ],
+      "properties": {
+        "provenance": {
+          "enum": [
+            "model",
+            "fixture",
+            "rules-only"
+          ],
+          "description": "rules always run; model or fixture says what else decided"
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "why the model classifier was not used, when it failed"
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "toFixer",
+        "bugReports",
+        "checkChanges"
+      ],
+      "properties": {
+        "toFixer": {
+          "const": "never"
+        },
+        "bugReports": {
+          "const": "draft-spec-awaiting-approval"
+        },
+        "checkChanges": {
+          "const": "human-queue"
+        }
+      }
+    },
+    "turns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "speaker",
+          "startMs",
+          "text"
+        ],
+        "properties": {
+          "speaker": {
+            "type": "string"
+          },
+          "startMs": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "turn",
+          "speaker",
+          "startMs",
+          "text",
+          "category",
+          "decidedBy",
+          "route",
+          "reason"
+        ],
+        "properties": {
+          "turn": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "speaker": {
+            "type": "string"
+          },
+          "startMs": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "text": {
+            "type": "string"
+          },
+          "category": {
+            "enum": [
+              "bug",
+              "weaken-check",
+              "request",
+              "other"
+            ]
+          },
+          "decidedBy": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "rule",
+                "model",
+                "fixture",
+                "default"
+              ]
+            }
+          },
+          "route": {
+            "enum": [
+              "draft-spec",
+              "human-queue",
+              "logged"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "instruction": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "the plain-English check handed to the spec writer (bug reports only)"
+          },
+          "draft": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "specId",
+              "approved"
+            ],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "specId": {
+                "type": "string"
+              },
+              "approved": {
+                "const": false
+              }
+            }
+          },
+          "draftProblems": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "category": {
+                  "const": "weaken-check"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "route": {
+                  "const": "human-queue"
+                },
+                "draft": {
+                  "type": "null"
+                },
+                "instruction": {
+                  "type": "null"
+                },
+                "decidedBy": {
+                  "contains": {
+                    "enum": [
+                      "rule",
+                      "model",
+                      "fixture"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "route": {
+                  "const": "draft-spec"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "category": {
+                  "const": "bug"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "route": {
+                  "not": {
+                    "const": "draft-spec"
+                  }
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "draft": {
+                  "type": "null"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bug",
+        "weaken-check",
+        "request",
+        "other"
+      ],
+      "properties": {
+        "bug": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "weaken-check": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "request": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "other": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}
