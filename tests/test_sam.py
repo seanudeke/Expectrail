@@ -666,6 +666,14 @@ class VerifierWithSamTest(unittest.TestCase):
                 loop.main(["--out", str(self.root / "loop")])
         one_run.assert_not_called()
 
+    def test_the_hide_the_player_fixture_is_a_valid_candidate(self):
+        from agents.patchutil import assert_editable, paths_touched
+        text = (REPO / "agents" / "fixtures" / "fix-but-hide-player.patch").read_text()
+        self.assertEqual(paths_touched(text), ["player/player.tscn"])
+        self.assertEqual(assert_editable(text, ["player/**", "level/**"]), [])
+        self.assertIn("+collision_mask = 30", text)   # the real fix
+        self.assertIn("+z_index = -6", text)          # and the player sprite drawn behind the scenery
+
     def test_an_unknown_provider_stops_verify_before_any_work(self):
         from agents.verifier import verify
         from tests.test_agents import _request

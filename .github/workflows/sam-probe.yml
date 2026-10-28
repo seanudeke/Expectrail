@@ -33,6 +33,9 @@ on:
       runs:
         description: Only these runs, e.g. clean,physics-fall-through_v1 (default all)
         default: ''
+      candidate:
+        description: verify mode only, the candidate patch to verify
+        default: agents/fixtures/fix-collision-mask.patch
 
 permissions:
   contents: read
@@ -196,11 +199,13 @@ jobs:
           MODEL_API_KEY: ${{ secrets.MODEL_API_KEY || secrets.META_API_KEY }}
           NIGHTSHIFT_OBS_PROVIDER: sam
           EVERY: ${{ inputs.every }}
+          CANDIDATE: ${{ inputs.candidate }}
         run: |
           [[ "$EVERY" =~ ^[0-9]+$ ]] || { echo "::error::every must be a number"; exit 1; }
+          [[ "$CANDIDATE" =~ ^agents/fixtures/[A-Za-z0-9._-]+\.patch$ && -f "$CANDIDATE" ]] || { echo "::error::candidate must be a patch under agents/fixtures/"; exit 1; }
           export NIGHTSHIFT_SAM_EVERY="$EVERY"
           set +e
-          python -m agents.gate1 --out runs/sam-verify --candidate-patch agents/fixtures/fix-collision-mask.patch
+          python -m agents.gate1 --out runs/sam-verify --candidate-patch "$CANDIDATE"
           echo "gate1 exit $?"
           set -e
           python - <<'PY'
