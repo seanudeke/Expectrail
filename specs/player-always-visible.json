@@ -1,0 +1,18 @@
+{
+  "format": "nightshift.test-spec/v0",
+  "id": "player-always-visible",
+  "instruction": "The player is always visible.",
+  "objects": {
+    "player": {
+      "prompt": "blue robot"
+    }
+  },
+  "assertion": {
+    "type": "visible",
+    "object": "player"
+  },
+  "window": {
+    "fromFrame": 0,
+    "toFrame": 119
+  }
+}
