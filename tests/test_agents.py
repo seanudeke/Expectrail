@@ -2348,7 +2348,41 @@ class MuseJudgeTest(unittest.TestCase):
         text = "DECISION: reject\nscratch\nDECISION: accept\n"
         self.assertEqual(parse_decision(text), "accept")
         self.assertIsNone(parse_decision("no decision here"))
+        self.assertIsNone(parse_decision(""))
         self.assertIsNone(parse_decision("DECISION: maybe"))
+        self.assertIsNone(parse_decision("DECISION: accept."))
+        self.assertIsNone(parse_decision('DECISION: "accept"'))
+        self.assertEqual(parse_decision("looks fixed\nDECISION: reject\n"), "reject")
+        self.assertEqual(parse_decision("DECISION: needs-review\n"), "needs-review")
+        # Prose mentioning the word must not false-accept without a real line.
+        self.assertIsNone(parse_decision("I would DECISION: accept if I could"))
+
+    def test_prompt_isolation_and_work_allowlist(self):
+        from agents.muse_judge import ALLOWED_WORK_RELPATHS, build_judge_prompt, run_muse_judge
+        prompt = build_judge_prompt(
+            before_rel="frames/before.png",
+            after_rel="frames/after.png",
+            instruction="Is the after frame fixed?",
+        )
+        for tok in (
+            "verification.json", "repair-request.json", "obs-fixed.json",
+            "release-candidate.json", "nightshift.verification",
+        ):
+            self.assertNotIn(tok, prompt.lower())
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "judge"
+            result = run_muse_judge(
+                out,
+                before=BEFORE_FRAME,
+                after=AFTER_FRAME,
+                fixture_log=REPO / "agents" / "fixtures" / "muse-judge-accept.log",
+            )
+            self.assertEqual(set(result["workFiles"]), ALLOWED_WORK_RELPATHS)
+            work_files = {
+                p.relative_to(out / "work").as_posix()
+                for p in (out / "work").rglob("*") if p.is_file()
+            }
+            self.assertEqual(work_files, ALLOWED_WORK_RELPATHS)
 
     def test_fixture_log_accept(self):
         from agents.muse_judge import PROMPT_POLICY, run_muse_judge
@@ -2365,8 +2399,56 @@ class MuseJudgeTest(unittest.TestCase):
             self.assertEqual(result["decision"], "accept")
             self.assertEqual(result["source"], "fixture-log")
             self.assertEqual(result["promptPolicy"], PROMPT_POLICY)
+            self.assertTrue(result.get("beforeSha256"))
             self.assertTrue((out / "muse.log").is_file())
             self.assertTrue((out / "judge.json").is_file())
+
+    def test_missing_frames_and_fixture_fail_closed(self):
+        from agents.muse_judge import run_muse_judge
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "judge"
+            missing = run_muse_judge(
+                out / "a",
+                before=Path(tmp) / "nope.png",
+                after=AFTER_FRAME,
+                fixture_log=REPO / "agents" / "fixtures" / "muse-judge-accept.log",
+            )
+            self.assertFalse(missing["ok"])
+            self.assertIsNone(missing["decision"])
+            bad_fix = run_muse_judge(
+                out / "b",
+                before=BEFORE_FRAME,
+                after=AFTER_FRAME,
+                fixture_log=Path(tmp) / "missing.log",
+            )
+            self.assertFalse(bad_fix["ok"])
+            garbage = Path(tmp) / "garbage.log"
+            garbage.write_text("looks fine to me\n", encoding="utf-8")
+            bad_parse = run_muse_judge(
+                out / "c", before=BEFORE_FRAME, after=AFTER_FRAME, fixture_log=garbage,
+            )
+            self.assertFalse(bad_parse["ok"])
+            self.assertIsNone(bad_parse["decision"])
+
+    def test_nonzero_muse_exit_fail_closed_even_with_decision(self):
+        from agents.muse_judge import run_muse_judge
+        fake = mock.Mock(
+            returncode=1,
+            stdout="DECISION: accept\n",
+            stderr="",
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch("agents.muse_judge.muse_code_ready", return_value=True):
+                with mock.patch("agents.muse_judge.subprocess.run", return_value=fake):
+                    result = run_muse_judge(
+                        Path(tmp) / "judge",
+                        before=BEFORE_FRAME,
+                        after=AFTER_FRAME,
+                    )
+            self.assertFalse(result["ok"])
+            self.assertIsNone(result["decision"])
+            self.assertEqual(result["rawDecision"], "accept")
+            self.assertEqual(result["exitCode"], 1)
 
     def test_live_without_keys_skips(self):
         from agents.muse_judge import run_muse_judge
@@ -2407,9 +2489,15 @@ class BenchCompareTest(unittest.TestCase):
             self.assertTrue(doc["nightshiftOk"])
             self.assertTrue(doc["museOk"])
             self.assertEqual(doc["agreement"], "agree")
+            self.assertTrue(doc["case"]["caseId"])
+            self.assertTrue(doc["case"]["beforeSha256"])
             arms = {a["name"]: a for a in doc["arms"]}
             self.assertEqual(arms["muse-screenshots"]["decision"], "accept")
+            self.assertTrue(arms["muse-screenshots"]["accepted"])
             self.assertFalse(arms["muse-screenshots"]["skipped"])
+            md = (out / "bench-compare.md").read_text()
+            self.assertIn("DECIDED (accept)", md)
+            self.assertNotIn("PASS (accept)", md)
             code = bench_main(["--out", str(out), "--fixture-muse", str(fixture)])
             self.assertEqual(code, 0)
 
@@ -2423,6 +2511,11 @@ class BenchCompareTest(unittest.TestCase):
             self.assertTrue(doc["nightshiftOk"])
             self.assertTrue(doc["museOk"])
             self.assertEqual(doc["agreement"], "disagree")
+            arms = {a["name"]: a for a in doc["arms"]}
+            self.assertEqual(arms["muse-screenshots"]["decision"], "reject")
+            self.assertFalse(arms["muse-screenshots"]["accepted"])
+            md = (out / "bench-compare.md").read_text()
+            self.assertIn("DECIDED (reject)", md)
             code = bench_main(["--out", str(out), "--fixture-muse", str(fixture)])
             self.assertEqual(code, 0)
 

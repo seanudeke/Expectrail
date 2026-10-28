@@ -23,11 +23,17 @@ from pathlib import Path
 
 from agents.gate1 import main as gate1_main
 from agents.keys import load_dotenv
-from agents.muse_judge import DEFAULT_INSTRUCTION, PROMPT_POLICY, run_muse_judge
+from agents.muse_judge import (
+    DEFAULT_INSTRUCTION,
+    PROMPT_POLICY,
+    file_sha256,
+    run_muse_judge,
+)
 from harness.run import REPO
 from nightshift.contracts import validate
 
 FORMAT = "nightshift.bench-compare/v0"
+CASE_ID = "physics-fall-through/v1-fix-collision-mask"
 DEFAULT_BEFORE = REPO / "agents" / "fixtures" / "frames" / "before-fall.png"
 DEFAULT_AFTER = REPO / "agents" / "fixtures" / "frames" / "after-fixed.png"
 
@@ -126,17 +132,23 @@ def _muse_screenshots_arm(
             "slot": str(slot),
             "promptPolicy": PROMPT_POLICY,
         }
+    decided = bool(judge.get("ok"))
+    decision = judge.get("decision")
     return {
         "name": "muse-screenshots",
-        "ok": bool(judge.get("ok")),
+        # ok = judge completed with a valid decision (accept|reject|needs-review).
+        # accept alone is not required — disagreement with Nightshift is filmed.
+        "ok": decided,
         "skipped": False,
-        "decision": judge.get("decision"),
+        "decision": decision,
+        "accepted": decision == "accept" if decided else False,
         "source": judge.get("source"),
         "promptPolicy": judge.get("promptPolicy"),
         "promptSha256": judge.get("promptSha256"),
         "museLog": judge.get("museLog"),
         "detail": judge.get("detail"),
         "slot": str(slot),
+        "workFiles": judge.get("workFiles"),
     }
 
 
@@ -177,10 +189,18 @@ def build_compare(
         "format": FORMAT,
         "generatedAt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "case": {
+            "caseId": CASE_ID,
             "family": "physics-fall-through",
+            "question": instruction,
             "before": str(before),
             "after": str(after),
-            "instruction": instruction,
+            "beforeSha256": file_sha256(before) if before.is_file() else None,
+            "afterSha256": file_sha256(after) if after.is_file() else None,
+            "decisionMeans": {
+                "accept": "after frame shows the bug fixed (from screenshots alone)",
+                "reject": "after frame still shows the bug / not clearly fixed",
+                "needs-review": "images inconclusive",
+            },
         },
         "arms": [nightshift, muse],
         "nightshiftOk": bool(nightshift.get("ok")),
@@ -197,7 +217,7 @@ def build_compare(
         "# Bench compare — Muse screenshots vs Nightshift",
         "",
         f"- Generated: `{doc['generatedAt']}`",
-        f"- Case: `{doc['case']['family']}`",
+        f"- Case: `{doc['case']['caseId']}`",
         f"- Nightshift: {'PASS' if nightshift.get('ok') else 'FAIL'} — {nightshift.get('detail')}",
     ]
     if nightshift.get("publicKey"):
@@ -205,12 +225,16 @@ def build_compare(
     if muse.get("skipped"):
         muse_label = "SKIPPED"
     elif muse.get("ok"):
-        muse_label = f"PASS ({muse.get('decision')})"
+        # Valid decision — not a Nightshift-style "PASS win"; label the decision explicitly.
+        muse_label = f"DECIDED ({muse.get('decision')})"
     else:
         muse_label = "FAIL"
     lines.append(f"- Muse screenshots: {muse_label} — {muse.get('detail')}")
     if agreement:
-        lines.append(f"- Agreement: `{agreement}` (Nightshift `{nightshift.get('decision')}` vs Muse `{muse.get('decision')}`)")
+        lines.append(
+            f"- Agreement: `{agreement}` "
+            f"(Nightshift `{nightshift.get('decision')}` vs Muse `{muse.get('decision')}`)"
+        )
     lines.append("")
     (out / "bench-compare.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     return doc
