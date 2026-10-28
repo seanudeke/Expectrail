@@ -1,0 +1,5 @@
+{
+  "every": "1",
+  "spec": "specs/player-always-visible.json",
+  "runs": "clean"
+}
