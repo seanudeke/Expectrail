@@ -146,16 +146,23 @@ def build_report(
         verification_path=verification_path,
     )
 
+    cand = verification["candidate"]
+    request_id = cand.get("request", "")
+    request_sha = cand.get("requestSha256")
     lines = [
         "# Nightshift morning report",
         "",
         f"**Decision:** `{decision}`",
-        f"**Request:** `{verification['candidate'].get('request', '')}`",
-        f"**Attempt:** {verification['candidate']['attempt']}",
-        f"**Candidate patch sha256:** `{verification['candidate']['patchSha256']}`",
+        f"**Request:** `{request_id}`",
+    ]
+    if request_sha:
+        lines.append(f"**Request sha256:** `{request_sha}`")
+    lines.extend([
+        f"**Attempt:** {cand['attempt']}",
+        f"**Candidate patch sha256:** `{cand['patchSha256']}`",
         "",
         "## Checks",
-    ]
+    ])
     for c in verification.get("checks", []):
         lines.append(f"- `{c['kind']}` / `{c['spec']}` on `{c['route']}` → **{c['result']}**")
     lines.extend(["", "## Reasons"])
@@ -164,6 +171,14 @@ def build_report(
 
     suite = verification.get("suite")
     if suite:
+        early = suite.get("earlyReject")
+        if early:
+            lines.extend([
+                "",
+                "## Early reject",
+                f"- gate: `{early.get('gate')}`",
+                f"- detail: {early.get('detail')}",
+            ])
         lines.extend(["", "## Suite provenance"])
         for label, key in (("candidate", "candidate"), ("clean", "clean"), ("held-out", "heldOut")):
             arm = suite.get(key) or {}
@@ -228,8 +243,12 @@ def build_report(
         "decision": decision,
         "signature": signature,
         "signingKey": key_note,
-        "candidatePatchSha256": verification["candidate"]["patchSha256"],
+        "candidatePatchSha256": cand["patchSha256"],
     }
+    if request_id:
+        rc["requestId"] = request_id
+    if request_sha:
+        rc["requestSha256"] = request_sha
     validate(rc, "release-candidate")
     (out / "release-candidate.json").write_text(json.dumps(rc, indent=2) + "\n", encoding="utf-8")
     lines.extend([
@@ -239,8 +258,12 @@ def build_report(
         f"- verification sha256: `{rc['verificationSha256']}`",
         f"- signature: `{signature[:16]}…`",
         f"- signing material: `{key_note}` (never mounted into the fixer workspace)",
-        "",
     ])
+    if request_id:
+        lines.append(f"- request id: `{request_id}`")
+    if request_sha:
+        lines.append(f"- request sha256: `{request_sha}`")
+    lines.append("")
     text = "\n".join(lines) + "\n"
     (out / "morning-report.md").write_text(text, encoding="utf-8")
     summary = {
@@ -248,7 +271,9 @@ def build_report(
         "report": "morning-report.md",
         "releaseCandidate": "release-candidate.json",
         "verificationSha256": rc["verificationSha256"],
-        "candidateSha256": verification["candidate"]["patchSha256"],
+        "candidateSha256": cand["patchSha256"],
+        "requestId": request_id or None,
+        "requestSha256": request_sha,
         "unresolved": unresolved,
         "frames": frame_meta,
         "signingKey": key_note,
@@ -275,12 +300,17 @@ def write_loop_rollup(out: Path, *, summary: dict) -> Path:
     """
     accepted = summary["accepted"]
     runs = summary["runs"]
+    cost = summary.get("cost") or {}
+    timing = summary.get("timing") or {}
     lines = [
         "# Nightshift overnight morning rollup",
         "",
         f"**Accepted:** {accepted} of {runs}",
         f"**Mode:** `{summary.get('mode', {}).get('mode', 'unknown')}`",
         f"**Verification provenance:** `{summary.get('verificationProvenance', 'unknown')}`",
+        f"**Wall-clock ms:** `{timing.get('wallClockMs', 'n/a')}`",
+        f"**Cost:** modelCalls=`{cost.get('modelCalls', 'n/a')}` "
+        f"costUsd=`{cost.get('costUsd')}` provenance=`{cost.get('costProvenance', 'n/a')}`",
         "",
         "## Per-run",
     ]
@@ -288,17 +318,28 @@ def write_loop_rollup(out: Path, *, summary: dict) -> Path:
     last_accept_run = -1
     last_accept_morning: Path | None = None
     latest_reject_gameplay: tuple[int, dict] | None = None
+    trust_lines: list[str] = []
     for i, result in enumerate(summary.get("results", [])):
         decision = result.get("decision")
         morning = result.get("morning")
         rel = f"run-{i:02d}/morning/morning-report.md"
         err = result.get("error")
         gameplay = _result_gameplay(result)
+        trust = result.get("trust")
+        run_ms = (result.get("timing") or {}).get("wallClockMs")
         line = f"- run-{i:02d}: `{decision}`"
         if morning:
             line += f" → [{rel}]({rel})"
         if gameplay:
             line += f" gameplay=`{gameplay.get('result')}` reason={gameplay.get('reason')}"
+        if run_ms is not None:
+            line += f" ({run_ms}ms)"
+        if isinstance(trust, dict):
+            trust_ok = trust.get("ok")
+            trust_label = "PASS" if trust_ok else "FAIL"
+            line += f" trust=`{trust_label}`"
+            trust_rel = f"run-{i:02d}/trust/trust-evidence.md"
+            trust_lines.append(f"- run-{i:02d}: `{trust_label}` → [{trust_rel}]({trust_rel})")
         if err:
             line += f" ({err})"
         lines.append(line)
@@ -344,6 +385,9 @@ def write_loop_rollup(out: Path, *, summary: dict) -> Path:
                 f"- minDeltaX: `{g.get('minDeltaX')}`",
                 f"- deltaX: `{g.get('deltaX')}`",
             ])
+
+    if trust_lines:
+        lines.extend(["", "## Trust", *trust_lines])
 
     out.mkdir(parents=True, exist_ok=True)
     path = out / "morning-report.md"

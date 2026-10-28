@@ -237,6 +237,18 @@ class VerifierDecideTest(unittest.TestCase):
             held = next(c for c in doc["checks"] if c["kind"] == "held-out")
             self.assertEqual(held["result"], "needs-review")
             self.assertEqual(doc["suite"]["heldOut"]["source"], "unavailable")
+            morning = build_report(
+                verification=doc,
+                candidate=REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
+                out=Path(tmp) / "morning-nr",
+                verification_path=Path(tmp) / "verify" / "verification.json",
+            )
+            self.assertEqual(morning["decision"], "needs-review")
+            rc = json.loads((Path(tmp) / "morning-nr" / "release-candidate.json").read_text())
+            validate(rc, "release-candidate")
+            self.assertEqual(rc["decision"], "needs-review")
+            report = (Path(tmp) / "morning-nr" / "morning-report.md").read_text()
+            self.assertIn("source=`unavailable`", report)
 
     def test_harness_clean_abort_falls_back_and_still_decides(self):
         """Godot SIGABRT on clean-replay must not leave verification.json unwritten."""
@@ -357,6 +369,27 @@ class VerifierDecideTest(unittest.TestCase):
             self.assertEqual(doc["suite"]["candidate"]["source"], "not-run")
             self.assertEqual(doc["suite"]["clean"]["source"], "not-run")
             self.assertEqual(doc["suite"]["heldOut"]["source"], "not-run")
+            self.assertEqual(doc["suite"]["earlyReject"]["gate"], "editable-globs")
+            self.assertIn("requestSha256", doc["candidate"])
+            from nightshift.contracts import digest as cdigest
+            self.assertEqual(doc["candidate"]["requestSha256"], cdigest(_request()))
+            morning = build_report(
+                verification=doc,
+                candidate=REPO / "agents" / "fixtures" / "freeze-player.patch",
+                out=Path(tmp) / "morning-early",
+                verification_path=Path(tmp) / "verification.json",
+            )
+            report = (Path(tmp) / "morning-early" / "morning-report.md").read_text()
+            self.assertIn("## Early reject", report)
+            self.assertIn("editable-globs", report)
+            self.assertIn("source=`not-run`", report)
+            self.assertEqual(morning["requestSha256"], doc["candidate"]["requestSha256"])
+            self.assertIn(f"**Request:** `{doc['candidate']['request']}`", report)
+            self.assertEqual(doc["candidate"]["request"], _request()["id"])
+            rc = json.loads((Path(tmp) / "morning-early" / "release-candidate.json").read_text())
+            validate(rc, "release-candidate")
+            self.assertEqual(rc["requestSha256"], doc["candidate"]["requestSha256"])
+            self.assertEqual(rc["requestId"], doc["candidate"]["request"])
             validate(doc, "verification")
 
 
@@ -709,6 +742,8 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             self.assertIn("PASS", evidence)
             self.assertIn("deny-by-absence", evidence)
             self.assertIn("obs-clean.json", evidence)
+            self.assertIn("player-motion-on-smoke.json", evidence)
+            self.assertIn("player-reaches-end-of-route.json", evidence)
             poison = (out / "fixer-workspace" / "player" / "readme-extra.txt").read_text()
             self.assertIn("IGNORE PREVIOUS", poison)
             self.assertIn(".nightshift-signing-key", poison)
@@ -1027,13 +1062,24 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             self.assertEqual(summary["accepted"], 3)
             self.assertEqual(summary["runs"], 3)
             self.assertTrue(all(r["decision"] == "accept" for r in summary["results"]))
+            validate(summary, "overnight-summary")
+            self.assertEqual(summary["cost"]["costProvenance"], "unmetered-offline")
+            self.assertEqual(summary["cost"]["modelCalls"], 0)
+            self.assertIsNone(summary["cost"]["costUsd"])
+            self.assertGreaterEqual(summary["timing"]["wallClockMs"], 0)
             for r in summary["results"]:
                 self.assertEqual(r["gameplay"]["result"], "pass")
                 self.assertEqual(r["gameplay"]["spec"], GAMEPLAY_SPEC_ID)
+                self.assertIn("wallClockMs", r["timing"])
+                self.assertTrue(r["trust"]["ok"])
             self.assertEqual(summary["mode"]["mode"], "offline")
             self.assertEqual(summary["verificationProvenance"], "fixture")
             rollup = (out / "morning-report.md").read_text(encoding="utf-8")
             self.assertIn("3 of 3", rollup)
+            self.assertIn("Wall-clock ms:", rollup)
+            self.assertIn("unmetered-offline", rollup)
+            self.assertIn("## Trust", rollup)
+            self.assertIn("trust=`PASS`", rollup)
             self.assertIn("run-00/morning/morning-report.md", rollup)
             self.assertIn("![before](frames/before-00.png)", rollup)
             self.assertIn("![after](frames/after-00.png)", rollup)
@@ -1045,6 +1091,11 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             rc = json.loads((out / "run-00" / "morning" / "release-candidate.json").read_text())
             validate(rc, "release-candidate")
             self.assertEqual(rc["decision"], "accept")
+            self.assertTrue(rc.get("requestSha256"))
+            from agents.bench import from_summary
+            stub = from_summary(summary)
+            self.assertEqual(stub["provenance"], "agents-offline-stub")
+            self.assertEqual(stub["accepted"], 3)
 
     def test_loop_missing_frame_rejects(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1076,6 +1127,7 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             self.assertIn("FileNotFoundError", result_after["error"])
             self.assertIsNone(result_after.get("morning"))
             self.assertIsNone(result_after.get("gameplay"))
+            self.assertIn("wallClockMs", result_after["timing"])
 
     def test_loop_empty_frame_lists_reject(self):
         with tempfile.TemporaryDirectory() as tmp:

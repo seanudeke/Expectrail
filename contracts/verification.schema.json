@@ -38,6 +38,11 @@
         },
         "request": {
           "type": "string"
+        },
+        "requestSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Digest of the repair-request document that produced this verification"
         }
       }
     },
@@ -121,7 +126,21 @@
       "properties": {
         "candidate": { "$ref": "#/$defs/suiteArm" },
         "clean": { "$ref": "#/$defs/suiteArm" },
-        "heldOut": { "$ref": "#/$defs/suiteArm" }
+        "heldOut": { "$ref": "#/$defs/suiteArm" },
+        "earlyReject": {
+          "type": "object",
+          "required": ["gate", "detail"],
+          "additionalProperties": false,
+          "properties": {
+            "gate": {
+              "enum": ["editable-globs", "base-tree"]
+            },
+            "detail": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
       }
     }
   },

@@ -1,0 +1,54 @@
+{
+  "format": "nightshift.overnight-summary/v0",
+  "mode": {
+    "mode": "offline",
+    "offline_triage": true,
+    "use_muse": false,
+    "wonder_key": false,
+    "muse_ready": false
+  },
+  "runs": 2,
+  "accepted": 1,
+  "verificationProvenance": "fixture",
+  "cost": {
+    "modelCalls": 0,
+    "costUsd": null,
+    "costProvenance": "unmetered-offline"
+  },
+  "timing": {
+    "wallClockMs": 42.0,
+    "startedAt": "2026-10-27T00:00:00+00:00",
+    "finishedAt": "2026-10-27T00:00:00.042000+00:00"
+  },
+  "results": [
+    {
+      "decision": "reject",
+      "error": null,
+      "gameplay": {
+        "spec": "player-motion-on-smoke",
+        "result": "fail",
+        "reason": "player delta-x below minimum (freeze or short walk)",
+        "source": "fixture-trace:trace-freeze.json",
+        "minDeltaX": 200.0,
+        "deltaX": 0.0
+      },
+      "morning": null,
+      "trust": { "ok": true },
+      "timing": { "wallClockMs": 20.0 },
+      "verificationProvenance": "fixture"
+    },
+    {
+      "decision": "accept",
+      "gameplay": {
+        "spec": "player-motion-on-smoke",
+        "result": "pass",
+        "reason": "player moved",
+        "source": "fixture-trace:trace-fixed.json",
+        "minDeltaX": 200.0,
+        "deltaX": 250.0
+      },
+      "timing": { "wallClockMs": 22.0 },
+      "verificationProvenance": "fixture"
+    }
+  ]
+}

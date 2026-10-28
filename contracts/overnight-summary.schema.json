@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/seanudeke/nightshift/contracts/overnight-summary.schema.json",
+  "title": "Overnight summary: filmable loop rollup beside morning-report.md",
+  "description": "Written by agents.loop after N runs. Offline cost stubs are honest zeros with provenance unmetered-offline — never invent Meta spend.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "mode",
+    "runs",
+    "accepted",
+    "verificationProvenance",
+    "cost",
+    "timing",
+    "results"
+  ],
+  "properties": {
+    "format": {
+      "const": "nightshift.overnight-summary/v0"
+    },
+    "mode": {
+      "type": "object",
+      "required": ["mode"],
+      "properties": {
+        "mode": { "enum": ["auto", "offline", "live"] },
+        "offline_triage": { "type": "boolean" },
+        "use_muse": { "type": "boolean" },
+        "wonder_key": { "type": "boolean" },
+        "muse_ready": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "runs": { "type": "integer", "minimum": 1 },
+    "accepted": { "type": "integer", "minimum": 0 },
+    "verificationProvenance": {
+      "enum": ["fixture", "harness"]
+    },
+    "cost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["modelCalls", "costUsd", "costProvenance"],
+      "properties": {
+        "modelCalls": { "type": "integer", "minimum": 0 },
+        "costUsd": { "type": ["number", "null"] },
+        "costProvenance": {
+          "enum": ["unmetered-offline", "unmetered-live-unset", "metered"]
+        }
+      }
+    },
+    "timing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["wallClockMs"],
+      "properties": {
+        "wallClockMs": { "type": "number", "minimum": 0 },
+        "startedAt": { "type": "string" },
+        "finishedAt": { "type": "string" }
+      }
+    },
+    "results": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["decision"],
+        "properties": {
+          "decision": { "enum": ["accept", "reject", "needs-review"] },
+          "error": { "type": ["string", "null"] },
+          "gameplay": { "type": ["object", "null"] },
+          "morning": { "type": ["object", "null"] },
+          "trust": { "type": ["object", "null"] },
+          "timing": {
+            "type": "object",
+            "properties": {
+              "wallClockMs": { "type": "number", "minimum": 0 }
+            },
+            "additionalProperties": true
+          },
+          "triageSource": { "type": "string" },
+          "fixerSource": { "type": "string" },
+          "verificationProvenance": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    }
+  }
+}

@@ -35,6 +35,14 @@
     "candidatePatchSha256": {
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"
+    },
+    "requestId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "requestSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
     }
   }
 }

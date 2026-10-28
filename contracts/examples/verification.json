@@ -4,7 +4,8 @@
     "patchSha256": "2222222222222222222222222222222222222222222222222222222222222222",
     "baseTree": "6a273587d64e10a74c0160256cfdc4964f16ed3e93fe7ab178e1bedc5071b280",
     "attempt": 1,
-    "request": "rr-0001"
+    "request": "rr-0001",
+    "requestSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
   },
   "evaluator": {
     "name": "nightshift.evaluator",

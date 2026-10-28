@@ -4,5 +4,7 @@
   "decision": "reject",
   "signature": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
   "signingKey": "demo-fake-key",
-  "candidatePatchSha256": "2222222222222222222222222222222222222222222222222222222222222222"
+  "candidatePatchSha256": "2222222222222222222222222222222222222222222222222222222222222222",
+  "requestId": "rr-0001",
+  "requestSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
 }

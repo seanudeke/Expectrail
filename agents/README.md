@@ -69,8 +69,10 @@ returns. Default verification is fixture observations (`verificationProvenance`)
 # One-command overnight path (auto: Wonder/Muse when keys exist, else fixtures)
 python3 -m agents.loop --out runs/loop --mode auto --runs 1
 
-# CI / deterministic — open runs/loop/morning-report.md for the filmable hand-over
+# CI / deterministic — see agents/demo-path.md for the filmable hand-over checklist
 python3 -m agents.loop --out runs/loop --mode offline --runs 10
+# → summary.json is nightshift.overnight-summary/v0 (wall-clock + unmetered-offline cost)
+python3 -m agents.bench --summary runs/loop/summary.json
 
 # Force live Wonder + Muse Code (fails closed without keys + muse)
 export META_API_KEY=LLM_…

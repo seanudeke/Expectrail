@@ -15,7 +15,9 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 import traceback
+from datetime import datetime, timezone
 from pathlib import Path
 
 from agents.fixer import run_fixer
@@ -25,7 +27,7 @@ from agents.triage import WONDER_MODEL, triage
 from agents.trust import run_trust_check
 from agents.verifier import verify
 from harness.run import REPO
-from nightshift.contracts import load
+from nightshift.contracts import load, validate
 
 DEFAULT_BEFORE = REPO / "agents" / "fixtures" / "frames" / "before-fall.png"
 DEFAULT_AFTER = REPO / "agents" / "fixtures" / "frames" / "after-fixed.png"
@@ -48,6 +50,11 @@ def one_run(
     # on disk during exec (deny-by-absence for the overnight topology).
     signing_key = out / "verifier-host" / ".nightshift-signing-key"
     trust = None
+    t0 = time.perf_counter()
+
+    def _with_timing(payload: dict) -> dict:
+        payload["timing"] = {"wallClockMs": round((time.perf_counter() - t0) * 1000, 3)}
+        return payload
 
     try:
         request = triage(
@@ -93,7 +100,7 @@ def one_run(
                 verifier_host=signing_key.parent,
             )
             if not trust["ok"]:
-                return {
+                return _with_timing({
                     "decision": "reject",
                     "error": "trust beat failed",
                     "trust": trust,
@@ -101,7 +108,7 @@ def one_run(
                     "gameplay": None,
                     "triageSource": triage_source,
                     "verificationProvenance": "harness" if not skip_harness else "fixture",
-                }
+                })
 
         verification = verify(
             request, fix_out / "candidate.patch", out / "verify",
@@ -124,7 +131,7 @@ def one_run(
             gameplay_verdict=gameplay_path if gameplay_path.is_file() else None,
             verification_path=verify_out / "verification.json",
         )
-        return {
+        return _with_timing({
             "decision": verification["decision"],
             "morning": summary,
             "gameplay": gameplay_film_stub(summary),
@@ -132,17 +139,17 @@ def one_run(
             "triageSource": triage_source,
             "fixerSource": json.loads((fix_out / "candidate.json").read_text()).get("source"),
             "verificationProvenance": "harness" if not skip_harness else "fixture",
-        }
+        })
     except (Exception, SystemExit) as exc:  # noqa: BLE001 — overnight loop must not forge accept
         (out / "loop-error.txt").write_text(traceback.format_exc(), encoding="utf-8")
-        return {
+        return _with_timing({
             "decision": "reject",
             "error": f"{type(exc).__name__}: {exc}",
             "trust": trust,
             "morning": None,
             "gameplay": None,
             "verificationProvenance": "harness" if not skip_harness else "fixture",
-        }
+        })
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -184,6 +191,8 @@ def main(argv: list[str] | None = None) -> int:
         f"fixer={'muse' if use_muse else 'fixture'} harness={provenance}"
     )
 
+    started = datetime.now(timezone.utc)
+    t_loop = time.perf_counter()
     results = []
     for i in range(args.runs):
         run_out = args.out / f"run-{i:02d}"
@@ -201,14 +210,38 @@ def main(argv: list[str] | None = None) -> int:
         print(f"run {i}: {results[-1]['decision']}"
               + (f" ({results[-1].get('error')})" if results[-1].get("error") else ""))
 
+    finished = datetime.now(timezone.utc)
     accepted = sum(1 for r in results if r["decision"] == "accept")
+    # Offline fixtures never invent Meta spend; live/auto without a meter stay unset.
+    if offline_triage and not use_muse:
+        cost = {
+            "modelCalls": 0,
+            "costUsd": None,
+            "costProvenance": "unmetered-offline",
+        }
+    else:
+        cost = {
+            "modelCalls": 0,
+            "costUsd": None,
+            "costProvenance": "unmetered-live-unset",
+        }
     summary = {
+        "format": "nightshift.overnight-summary/v0",
         "mode": resolved,
         "runs": args.runs,
         "accepted": accepted,
         "verificationProvenance": provenance,
+        "cost": cost,
+        "timing": {
+            "wallClockMs": round((time.perf_counter() - t_loop) * 1000, 3),
+            "startedAt": started.isoformat(),
+            "finishedAt": finished.isoformat(),
+        },
         "results": results,
     }
+    validate(summary, "overnight-summary")
+    if accepted > args.runs:
+        raise SystemExit(f"overnight-summary invariant broken: accepted={accepted} runs={args.runs}")
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     rollup = write_loop_rollup(args.out, summary=summary)
