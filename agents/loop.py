@@ -164,6 +164,8 @@ def one_run(
 
 
 def main(argv: list[str] | None = None) -> int:
+    from agents.keys import load_dotenv
+    load_dotenv()
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--out", type=Path, default=Path("runs/loop"))
     p.add_argument("--runs", type=int, default=1)
