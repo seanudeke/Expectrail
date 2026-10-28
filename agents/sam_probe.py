@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import statistics
 import sys
 from pathlib import Path
@@ -228,6 +229,44 @@ def markdown(spec: dict, runs: list[dict], hint: dict | None, model: str, stats:
     return "\n".join(lines) + "\n"
 
 
+def _escape(text: str) -> str:
+    return text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+
+
+def _num(value) -> str:
+    return "n/a" if value is None else f"{value:g}" if isinstance(value, (int, float)) else str(value)
+
+
+def annotations(report: dict) -> list[str]:
+    """One GitHub notice per run plus one for tolerance and cost (GitHub keeps 10 per step).
+
+    Annotations are readable through the checks API, so the numbers can be read back without
+    downloading the artifact or the log.
+    """
+    lines = []
+    for run in report["runs"][:8]:
+        parts = [run["verdict"]["result"]]
+        for name, m in run["objects"].items():
+            s, mp = m["bestScore"], m["matchesPerFrame"]
+            parts.append(f"{name} {m['framesFound']}/{m['framesProbed']}"
+                         + (f" score min {s['min']:.2f} med {s['median']:.2f} matches {mp['min']}-{mp['max']}"
+                            f" box {_num((m['boxWidth'] or {}).get('median'))}x{_num((m['boxHeight'] or {}).get('median'))}"
+                            if s else ""))
+        if run.get("gaps"):
+            parts.append("gaps " + " ".join(f"{g['frame']}:{_num(g['gap'])}" for g in run["gaps"]))
+        lines.append(f"::notice title=SAM probe {run['run']}::{_escape('; '.join(parts))}")
+    hint, stats = report.get("tolerance") or {}, report.get("stats", {})
+    calls = stats.get("calls") or 0
+    summary = [f"model {report['model']}", f"calls {calls}", f"cache hits {stats.get('cacheHits', 0)}",
+               f"seconds per call {stats.get('seconds', 0) / calls:.2f}" if calls else "seconds per call n/a"]
+    if hint:
+        summary.append(f"approved tolerance {_num(hint['approvedTolerancePx'])}")
+        summary.append(f"clean worst gap {_num(hint['cleanWorstGap'])}")
+        summary.append("bug worst gaps " + " ".join(f"{k}:{_num(v)}" for k, v in hint["others"].items()))
+    lines.append(f"::notice title=SAM probe summary::{_escape('; '.join(summary))}")
+    return lines
+
+
 def main(argv: list[str] | None = None) -> int:
     from agents.keys import load_dotenv
     from nightshift.contracts import load
@@ -271,13 +310,18 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{run.name}: {results[-1]['verdict']['result']}", flush=True)
     except SamError as exc:
         print(f"SAM failed: {exc}", file=sys.stderr)
+        if os.environ.get("GITHUB_ACTIONS") == "true":
+            print(f"::error title=SAM probe failed::{_escape(str(exc)[:500])} (after {client.calls} calls)")
         return 2
-    stats = {"calls": client.calls, "cacheHits": cache.hits}
+    stats = {"calls": client.calls, "cacheHits": cache.hits, "seconds": round(client.seconds, 2)}
     hint = tolerance_hint(spec, results, set(args.clean.split(",")))
     report = {"spec": spec["id"], "model": client.model, "stats": stats, "runs": results, "tolerance": hint}
     (args.out / "probe.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     (args.out / "probe.md").write_text(markdown(spec, results, hint, client.model, stats), encoding="utf-8")
     print(f"wrote {args.out / 'probe.md'}")
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        for line in annotations(report):
+            print(line)
     return 0
 
 

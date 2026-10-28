@@ -435,6 +435,22 @@ class ProbeTest(unittest.TestCase):
         self.assertIn("| clean | 13 | pass |", md)
         self.assertIn("worst gap", md)
 
+    def test_annotations_carry_the_numbers_on_one_line_each(self):
+        from agents.sam_probe import annotations
+        clean, clean_scene = self.make_run("clean", lambda i: GROUND_TOP)
+        bug, bug_scene = self.make_run("physics-fall-through_v1", player_bottom_falling)
+        runs = [probe_run(r, SPEC, None, 10, s.client(), Cache(None), 2, None)
+                for r, s in ((clean, clean_scene), (bug, bug_scene))]
+        report = {"spec": SPEC["id"], "model": "sam-3.1", "stats": {"calls": 52, "cacheHits": 0, "seconds": 26.0},
+                  "runs": runs, "tolerance": tolerance_hint(SPEC, runs, {"clean"})}
+        lines = annotations(report)
+        self.assertEqual(len(lines), 3)
+        self.assertTrue(all(line.startswith("::notice title=SAM probe ") and "\n" not in line for line in lines))
+        self.assertIn("clean::pass; player 13/13 score min 0.91", lines[0])
+        self.assertIn("gaps 0:0 10:0", lines[0])
+        self.assertIn("seconds per call 0.50", lines[2])
+        self.assertIn("physics-fall-through_v1:", lines[2])
+
     @unittest.skipUnless(__import__("importlib").util.find_spec("PIL"), "Pillow not installed")
     def test_overlays_and_contact_sheet(self):
         run, scene = self.make_run("clean", lambda i: GROUND_TOP)
