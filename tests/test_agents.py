@@ -2139,6 +2139,21 @@ class CleanPromptEnvHonestyTest(unittest.TestCase):
         self.assertIn("agents-sandbox", yml)
         self.assertIn("bubblewrap", yml)
 
+    def test_ci_job_if_never_uses_secrets_context(self):
+        """GitHub rejects `secrets.*` in job-level `if:` and the whole workflow fails to start.
+
+        Regression for run 40618179131 / closed PR #20: agents-live-muse must gate on
+        event name only, then check META_API_KEY inside a step / env.
+        """
+        import re
+        yml = (REPO / ".github" / "workflows" / "ci.yml").read_text()
+        job_ifs = re.findall(r"(?m)^    if:.*$", yml)
+        bad = [line for line in job_ifs if "secrets." in line]
+        self.assertEqual(bad, [], msg=f"job-level if must not reference secrets: {bad}")
+        # Live Muse stays dispatch-only (secret checked in a step via META_API_KEY_SET).
+        self.assertIn("if: ${{ github.event_name == 'workflow_dispatch' }}", yml)
+        self.assertIn("META_API_KEY_SET:", yml)
+
 
 def _walk_trace(*, frozen: bool = False) -> dict:
     """A clean-looking walk on the floor, or a player that never moves."""
