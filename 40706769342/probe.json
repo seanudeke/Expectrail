@@ -1,0 +1,4448 @@
+{
+  "spec": "player-stays-above-ground",
+  "model": "sam-3.1",
+  "prompts": {
+    "player": "blue robot",
+    "ground": "grass-topped ground"
+  },
+  "stats": {
+    "calls": 80,
+    "cacheHits": 37,
+    "seconds": 102.3
+  },
+  "runs": [
+    {
+      "run": "clean",
+      "framesProbed": [
+        0,
+        10,
+        20,
+        30,
+        40,
+        50,
+        60,
+        70,
+        80,
+        90,
+        100,
+        110,
+        119
+      ],
+      "verdict": {
+        "result": "pass",
+        "reason": "no violation in 13 frames"
+      },
+      "objects": {
+        "player": {
+          "prompt": "blue robot",
+          "minScore": 0.5,
+          "framesFound": 13,
+          "framesProbed": 13,
+          "bestScore": {
+            "min": 0.8241757750511169,
+            "median": 0.9179486632347107,
+            "max": 0.9609756469726562
+          },
+          "matchesPerFrame": {
+            "min": 1,
+            "max": 1
+          },
+          "boxWidth": {
+            "min": 62.0,
+            "median": 95.0,
+            "max": 118.0
+          },
+          "boxHeight": {
+            "min": 102.0,
+            "median": 118.0,
+            "max": 126.0
+          }
+        },
+        "ground": {
+          "prompt": "grass-topped ground",
+          "minScore": 0.5,
+          "framesFound": 13,
+          "framesProbed": 13,
+          "bestScore": {
+            "min": 1.0,
+            "median": 1.0,
+            "max": 1.0
+          },
+          "matchesPerFrame": {
+            "min": 1,
+            "max": 1
+          },
+          "boxWidth": {
+            "min": 1600.0,
+            "median": 1600.0,
+            "max": 1600.0
+          },
+          "boxHeight": {
+            "min": 180.0,
+            "median": 180.0,
+            "max": 180.0
+          }
+        }
+      },
+      "observations": {
+        "format": "nightshift.observations/v0",
+        "replay": {
+          "sha256": "a4b855435195457493b6ba49e51b2e43af4e246f0ad56d9751c216bf1c76e8d8"
+        },
+        "model": {
+          "name": "sam-3.1",
+          "provider": "meta-model-api",
+          "prompts": {
+            "player": "blue robot"
+          },
+          "engineObjects": [
+            "ground"
+          ]
+        },
+        "frames": [
+          {
+            "frame": 0,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    759.0,
+                    667.0,
+                    835.0,
+                    785.0
+                  ],
+                  "score": 0.941605806350708
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 10,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    767.0,
+                    669.0,
+                    849.0,
+                    783.0
+                  ],
+                  "score": 0.9298245906829834
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 20,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    747.0,
+                    673.0,
+                    842.0,
+                    775.0
+                  ],
+                  "score": 0.9064327478408813
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 30,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    751.0,
+                    673.0,
+                    842.0,
+                    783.0
+                  ],
+                  "score": 0.9179486632347107
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 40,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    747.0,
+                    557.0,
+                    843.0,
+                    682.0
+                  ],
+                  "score": 0.8750000596046448
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 50,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    737.0,
+                    481.0,
+                    854.0,
+                    603.0
+                  ],
+                  "score": 0.9609756469726562
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 60,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    737.0,
+                    537.0,
+                    854.0,
+                    658.0
+                  ],
+                  "score": 0.9336099624633789
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 70,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    744.0,
+                    661.0,
+                    843.0,
+                    787.0
+                  ],
+                  "score": 0.9101123809814453
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 80,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    736.0,
+                    497.0,
+                    854.0,
+                    618.0
+                  ],
+                  "score": 0.9532163739204407
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 90,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    737.0,
+                    567.0,
+                    854.0,
+                    690.0
+                  ],
+                  "score": 0.9298245906829834
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 100,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    774.0,
+                    599.0,
+                    836.0,
+                    712.0
+                  ],
+                  "score": 0.8241757750511169
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 110,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    760.0,
+                    603.0,
+                    836.0,
+                    721.0
+                  ],
+                  "score": 0.8787879347801208
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 119,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    760.0,
+                    603.0,
+                    834.0,
+                    721.0
+                  ],
+                  "score": 0.8552036285400391
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          }
+        ],
+        "analysis": {
+          "framesCaptured": 120,
+          "framesInWindow": 120,
+          "framesAnalyzed": 13,
+          "every": 10,
+          "refined": null,
+          "confirmed": 0
+        }
+      },
+      "gaps": [
+        {
+          "frame": 0,
+          "gap": 5.0,
+          "onFloor": false
+        },
+        {
+          "frame": 10,
+          "gap": 3.0,
+          "onFloor": true
+        },
+        {
+          "frame": 20,
+          "gap": -5.0,
+          "onFloor": true
+        },
+        {
+          "frame": 30,
+          "gap": 3.0,
+          "onFloor": true
+        },
+        {
+          "frame": 40,
+          "gap": -98.0,
+          "onFloor": false
+        },
+        {
+          "frame": 50,
+          "gap": -177.0,
+          "onFloor": false
+        },
+        {
+          "frame": 60,
+          "gap": -122.0,
+          "onFloor": false
+        },
+        {
+          "frame": 70,
+          "gap": 7.0,
+          "onFloor": true
+        },
+        {
+          "frame": 80,
+          "gap": -162.0,
+          "onFloor": false
+        },
+        {
+          "frame": 90,
+          "gap": -90.0,
+          "onFloor": false
+        },
+        {
+          "frame": 100,
+          "gap": -68.0,
+          "onFloor": true
+        },
+        {
+          "frame": 110,
+          "gap": -59.0,
+          "onFloor": true
+        },
+        {
+          "frame": 119,
+          "gap": -59.0,
+          "onFloor": true
+        }
+      ],
+      "images": [
+        "runs/sam-probe/clean/f00000000.png",
+        "runs/sam-probe/clean/f00000010.png",
+        "runs/sam-probe/clean/f00000020.png",
+        "runs/sam-probe/clean/f00000030.png",
+        "runs/sam-probe/clean/f00000040.png",
+        "runs/sam-probe/clean/f00000050.png",
+        "runs/sam-probe/clean/f00000060.png",
+        "runs/sam-probe/clean/f00000070.png",
+        "runs/sam-probe/clean/f00000080.png",
+        "runs/sam-probe/clean/f00000090.png",
+        "runs/sam-probe/clean/f00000100.png",
+        "runs/sam-probe/clean/f00000110.png",
+        "runs/sam-probe/clean/f00000119.png",
+        "runs/sam-probe/clean-sheet.png"
+      ]
+    },
+    {
+      "run": "layering_v1",
+      "framesProbed": [
+        0,
+        10,
+        20,
+        30,
+        40,
+        50,
+        60,
+        70,
+        80,
+        90,
+        100,
+        110,
+        119
+      ],
+      "verdict": {
+        "result": "needs-review",
+        "reason": "no violation in 7 frames judged, but an object was not found in 6 frames (first 0); a missing object is never a pass"
+      },
+      "objects": {
+        "player": {
+          "prompt": "blue robot",
+          "minScore": 0.5,
+          "framesFound": 7,
+          "framesProbed": 13,
+          "bestScore": {
+            "min": 0.0,
+            "median": 0.6012461185455322,
+            "max": 0.9532163739204407
+          },
+          "matchesPerFrame": {
+            "min": 0,
+            "max": 1
+          },
+          "boxWidth": {
+            "min": 64.0,
+            "median": 117.0,
+            "max": 118.0
+          },
+          "boxHeight": {
+            "min": 61.0,
+            "median": 121.0,
+            "max": 122.0
+          }
+        },
+        "ground": {
+          "prompt": "grass-topped ground",
+          "minScore": 0.5,
+          "framesFound": 13,
+          "framesProbed": 13,
+          "bestScore": {
+            "min": 1.0,
+            "median": 1.0,
+            "max": 1.0
+          },
+          "matchesPerFrame": {
+            "min": 1,
+            "max": 1
+          },
+          "boxWidth": {
+            "min": 1600.0,
+            "median": 1600.0,
+            "max": 1600.0
+          },
+          "boxHeight": {
+            "min": 180.0,
+            "median": 180.0,
+            "max": 180.0
+          }
+        }
+      },
+      "observations": {
+        "format": "nightshift.observations/v0",
+        "replay": {
+          "sha256": "f6fd9de1bba00bb082c7f6a82d1b88835182bd74ec2653a5fb16a5f2be4d026a"
+        },
+        "model": {
+          "name": "sam-3.1",
+          "provider": "meta-model-api",
+          "prompts": {
+            "player": "blue robot"
+          },
+          "engineObjects": [
+            "ground"
+          ]
+        },
+        "frames": [
+          {
+            "frame": 0,
+            "objects": {
+              "player": [],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 10,
+            "objects": {
+              "player": [],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 20,
+            "objects": {
+              "player": [],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 30,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    779.0,
+                    673.0,
+                    843.0,
+                    766.0
+                  ],
+                  "score": 0.8048780560493469
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 40,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    747.0,
+                    557.0,
+                    843.0,
+                    678.0
+                  ],
+                  "score": 0.8787879347801208
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 50,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    737.0,
+                    481.0,
+                    854.0,
+                    603.0
+                  ],
+                  "score": 0.9532163739204407
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 60,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    737.0,
+                    537.0,
+                    854.0,
+                    646.0
+                  ],
+                  "score": 0.9298245906829834
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 70,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    769.0,
+                    661.0,
+                    843.0,
+                    722.0
+                  ],
+                  "score": 0.6012461185455322
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 80,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    736.0,
+                    497.0,
+                    854.0,
+                    618.0
+                  ],
+                  "score": 0.9532163739204407
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 90,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    737.0,
+                    568.0,
+                    854.0,
+                    690.0
+                  ],
+                  "score": 0.9336099624633789
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 100,
+            "objects": {
+              "player": [],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 110,
+            "objects": {
+              "player": [],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 119,
+            "objects": {
+              "player": [],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          }
+        ],
+        "analysis": {
+          "framesCaptured": 120,
+          "framesInWindow": 120,
+          "framesAnalyzed": 13,
+          "every": 10,
+          "refined": null,
+          "confirmed": 0
+        }
+      },
+      "gaps": [
+        {
+          "frame": 0,
+          "gap": null,
+          "onFloor": false,
+          "why": "player not found"
+        },
+        {
+          "frame": 10,
+          "gap": null,
+          "onFloor": true,
+          "why": "player not found"
+        },
+        {
+          "frame": 20,
+          "gap": null,
+          "onFloor": true,
+          "why": "player not found"
+        },
+        {
+          "frame": 30,
+          "gap": -14.0,
+          "onFloor": true
+        },
+        {
+          "frame": 40,
+          "gap": -102.0,
+          "onFloor": false
+        },
+        {
+          "frame": 50,
+          "gap": -177.0,
+          "onFloor": false
+        },
+        {
+          "frame": 60,
+          "gap": -134.0,
+          "onFloor": false
+        },
+        {
+          "frame": 70,
+          "gap": -58.0,
+          "onFloor": true
+        },
+        {
+          "frame": 80,
+          "gap": -162.0,
+          "onFloor": false
+        },
+        {
+          "frame": 90,
+          "gap": -90.0,
+          "onFloor": false
+        },
+        {
+          "frame": 100,
+          "gap": null,
+          "onFloor": true,
+          "why": "player not found"
+        },
+        {
+          "frame": 110,
+          "gap": null,
+          "onFloor": true,
+          "why": "player not found"
+        },
+        {
+          "frame": 119,
+          "gap": null,
+          "onFloor": true,
+          "why": "player not found"
+        }
+      ],
+      "images": [
+        "runs/sam-probe/layering_v1/f00000000.png",
+        "runs/sam-probe/layering_v1/f00000010.png",
+        "runs/sam-probe/layering_v1/f00000020.png",
+        "runs/sam-probe/layering_v1/f00000030.png",
+        "runs/sam-probe/layering_v1/f00000040.png",
+        "runs/sam-probe/layering_v1/f00000050.png",
+        "runs/sam-probe/layering_v1/f00000060.png",
+        "runs/sam-probe/layering_v1/f00000070.png",
+        "runs/sam-probe/layering_v1/f00000080.png",
+        "runs/sam-probe/layering_v1/f00000090.png",
+        "runs/sam-probe/layering_v1/f00000100.png",
+        "runs/sam-probe/layering_v1/f00000110.png",
+        "runs/sam-probe/layering_v1/f00000119.png",
+        "runs/sam-probe/layering_v1-sheet.png"
+      ]
+    },
+    {
+      "run": "layering_v2",
+      "framesProbed": [
+        0,
+        10,
+        20,
+        30,
+        40,
+        50,
+        60,
+        70,
+        80,
+        90,
+        100,
+        110,
+        119
+      ],
+      "verdict": {
+        "result": "needs-review",
+        "reason": "no violation in 7 frames judged, but an object was not found in 6 frames (first 0); a missing object is never a pass"
+      },
+      "objects": {
+        "player": {
+          "prompt": "blue robot",
+          "minScore": 0.5,
+          "framesFound": 7,
+          "framesProbed": 13,
+          "bestScore": {
+            "min": 0.0,
+            "median": 0.6012461185455322,
+            "max": 0.9532163739204407
+          },
+          "matchesPerFrame": {
+            "min": 0,
+            "max": 1
+          },
+          "boxWidth": {
+            "min": 64.0,
+            "median": 117.0,
+            "max": 118.0
+          },
+          "boxHeight": {
+            "min": 61.0,
+            "median": 121.0,
+            "max": 122.0
+          }
+        },
+        "ground": {
+          "prompt": "grass-topped ground",
+          "minScore": 0.5,
+          "framesFound": 13,
+          "framesProbed": 13,
+          "bestScore": {
+            "min": 1.0,
+            "median": 1.0,
+            "max": 1.0
+          },
+          "matchesPerFrame": {
+            "min": 1,
+            "max": 1
+          },
+          "boxWidth": {
+            "min": 1600.0,
+            "median": 1600.0,
+            "max": 1600.0
+          },
+          "boxHeight": {
+            "min": 180.0,
+            "median": 180.0,
+            "max": 180.0
+          }
+        }
+      },
+      "observations": {
+        "format": "nightshift.observations/v0",
+        "replay": {
+          "sha256": "b47e3bc54f598342f2eb2ba8f7288a92d0edffefc9b994b5b54c16edc7360778"
+        },
+        "model": {
+          "name": "sam-3.1",
+          "provider": "meta-model-api",
+          "prompts": {
+            "player": "blue robot"
+          },
+          "engineObjects": [
+            "ground"
+          ]
+        },
+        "frames": [
+          {
+            "frame": 0,
+            "objects": {
+              "player": [],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 10,
+            "objects": {
+              "player": [],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 20,
+            "objects": {
+              "player": [],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 30,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    779.0,
+                    673.0,
+                    843.0,
+                    766.0
+                  ],
+                  "score": 0.8048780560493469
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 40,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    747.0,
+                    557.0,
+                    843.0,
+                    678.0
+                  ],
+                  "score": 0.8787879347801208
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 50,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    737.0,
+                    481.0,
+                    854.0,
+                    603.0
+                  ],
+                  "score": 0.9532163739204407
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 60,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    737.0,
+                    537.0,
+                    854.0,
+                    646.0
+                  ],
+                  "score": 0.9298245906829834
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 70,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    769.0,
+                    661.0,
+                    843.0,
+                    722.0
+                  ],
+                  "score": 0.6012461185455322
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 80,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    736.0,
+                    497.0,
+                    854.0,
+                    618.0
+                  ],
+                  "score": 0.9532163739204407
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 90,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    737.0,
+                    568.0,
+                    854.0,
+                    690.0
+                  ],
+                  "score": 0.9336099624633789
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 100,
+            "objects": {
+              "player": [],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 110,
+            "objects": {
+              "player": [],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 119,
+            "objects": {
+              "player": [],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          }
+        ],
+        "analysis": {
+          "framesCaptured": 120,
+          "framesInWindow": 120,
+          "framesAnalyzed": 13,
+          "every": 10,
+          "refined": null,
+          "confirmed": 0
+        }
+      },
+      "gaps": [
+        {
+          "frame": 0,
+          "gap": null,
+          "onFloor": false,
+          "why": "player not found"
+        },
+        {
+          "frame": 10,
+          "gap": null,
+          "onFloor": true,
+          "why": "player not found"
+        },
+        {
+          "frame": 20,
+          "gap": null,
+          "onFloor": true,
+          "why": "player not found"
+        },
+        {
+          "frame": 30,
+          "gap": -14.0,
+          "onFloor": true
+        },
+        {
+          "frame": 40,
+          "gap": -102.0,
+          "onFloor": false
+        },
+        {
+          "frame": 50,
+          "gap": -177.0,
+          "onFloor": false
+        },
+        {
+          "frame": 60,
+          "gap": -134.0,
+          "onFloor": false
+        },
+        {
+          "frame": 70,
+          "gap": -58.0,
+          "onFloor": true
+        },
+        {
+          "frame": 80,
+          "gap": -162.0,
+          "onFloor": false
+        },
+        {
+          "frame": 90,
+          "gap": -90.0,
+          "onFloor": false
+        },
+        {
+          "frame": 100,
+          "gap": null,
+          "onFloor": true,
+          "why": "player not found"
+        },
+        {
+          "frame": 110,
+          "gap": null,
+          "onFloor": true,
+          "why": "player not found"
+        },
+        {
+          "frame": 119,
+          "gap": null,
+          "onFloor": true,
+          "why": "player not found"
+        }
+      ],
+      "images": [
+        "runs/sam-probe/layering_v2/f00000000.png",
+        "runs/sam-probe/layering_v2/f00000010.png",
+        "runs/sam-probe/layering_v2/f00000020.png",
+        "runs/sam-probe/layering_v2/f00000030.png",
+        "runs/sam-probe/layering_v2/f00000040.png",
+        "runs/sam-probe/layering_v2/f00000050.png",
+        "runs/sam-probe/layering_v2/f00000060.png",
+        "runs/sam-probe/layering_v2/f00000070.png",
+        "runs/sam-probe/layering_v2/f00000080.png",
+        "runs/sam-probe/layering_v2/f00000090.png",
+        "runs/sam-probe/layering_v2/f00000100.png",
+        "runs/sam-probe/layering_v2/f00000110.png",
+        "runs/sam-probe/layering_v2/f00000119.png",
+        "runs/sam-probe/layering_v2-sheet.png"
+      ]
+    },
+    {
+      "run": "missing-texture_v1",
+      "framesProbed": [
+        0,
+        10,
+        20,
+        30,
+        40,
+        50,
+        60,
+        70,
+        80,
+        90,
+        100,
+        110,
+        119
+      ],
+      "verdict": {
+        "result": "pass",
+        "reason": "no violation in 13 frames"
+      },
+      "objects": {
+        "player": {
+          "prompt": "blue robot",
+          "minScore": 0.5,
+          "framesFound": 13,
+          "framesProbed": 13,
+          "bestScore": {
+            "min": 0.8358974456787109,
+            "median": 0.921951174736023,
+            "max": 0.9569892287254333
+          },
+          "matchesPerFrame": {
+            "min": 1,
+            "max": 1
+          },
+          "boxWidth": {
+            "min": 62.0,
+            "median": 95.0,
+            "max": 118.0
+          },
+          "boxHeight": {
+            "min": 102.0,
+            "median": 118.0,
+            "max": 126.0
+          }
+        },
+        "ground": {
+          "prompt": "grass-topped ground",
+          "minScore": 0.5,
+          "framesFound": 13,
+          "framesProbed": 13,
+          "bestScore": {
+            "min": 1.0,
+            "median": 1.0,
+            "max": 1.0
+          },
+          "matchesPerFrame": {
+            "min": 1,
+            "max": 1
+          },
+          "boxWidth": {
+            "min": 1600.0,
+            "median": 1600.0,
+            "max": 1600.0
+          },
+          "boxHeight": {
+            "min": 180.0,
+            "median": 180.0,
+            "max": 180.0
+          }
+        }
+      },
+      "observations": {
+        "format": "nightshift.observations/v0",
+        "replay": {
+          "sha256": "533d0bc813e45a9b397ffd44dc4ed311597cc985d3dbc07aef0efec405a05687"
+        },
+        "model": {
+          "name": "sam-3.1",
+          "provider": "meta-model-api",
+          "prompts": {
+            "player": "blue robot"
+          },
+          "engineObjects": [
+            "ground"
+          ]
+        },
+        "frames": [
+          {
+            "frame": 0,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    759.0,
+                    667.0,
+                    835.0,
+                    785.0
+                  ],
+                  "score": 0.9375000596046448
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 10,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    767.0,
+                    669.0,
+                    849.0,
+                    783.0
+                  ],
+                  "score": 0.9298245906829834
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 20,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    747.0,
+                    673.0,
+                    842.0,
+                    775.0
+                  ],
+                  "score": 0.9101123809814453
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 30,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    751.0,
+                    673.0,
+                    843.0,
+                    783.0
+                  ],
+                  "score": 0.921951174736023
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 40,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    747.0,
+                    557.0,
+                    843.0,
+                    683.0
+                  ],
+                  "score": 0.8947368264198303
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 50,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    737.0,
+                    481.0,
+                    854.0,
+                    603.0
+                  ],
+                  "score": 0.9569892287254333
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 60,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    737.0,
+                    537.0,
+                    854.0,
+                    659.0
+                  ],
+                  "score": 0.9569892287254333
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 70,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    744.0,
+                    661.0,
+                    843.0,
+                    787.0
+                  ],
+                  "score": 0.9101123809814453
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 80,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    736.0,
+                    497.0,
+                    854.0,
+                    618.0
+                  ],
+                  "score": 0.949367105960846
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 90,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    737.0,
+                    567.0,
+                    854.0,
+                    690.0
+                  ],
+                  "score": 0.9375000596046448
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 100,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    774.0,
+                    599.0,
+                    836.0,
+                    712.0
+                  ],
+                  "score": 0.8358974456787109
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 110,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    760.0,
+                    603.0,
+                    836.0,
+                    721.0
+                  ],
+                  "score": 0.8750000596046448
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 119,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    760.0,
+                    603.0,
+                    834.0,
+                    721.0
+                  ],
+                  "score": 0.859649121761322
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          }
+        ],
+        "analysis": {
+          "framesCaptured": 120,
+          "framesInWindow": 120,
+          "framesAnalyzed": 13,
+          "every": 10,
+          "refined": null,
+          "confirmed": 0
+        }
+      },
+      "gaps": [
+        {
+          "frame": 0,
+          "gap": 5.0,
+          "onFloor": false
+        },
+        {
+          "frame": 10,
+          "gap": 3.0,
+          "onFloor": true
+        },
+        {
+          "frame": 20,
+          "gap": -5.0,
+          "onFloor": true
+        },
+        {
+          "frame": 30,
+          "gap": 3.0,
+          "onFloor": true
+        },
+        {
+          "frame": 40,
+          "gap": -97.0,
+          "onFloor": false
+        },
+        {
+          "frame": 50,
+          "gap": -177.0,
+          "onFloor": false
+        },
+        {
+          "frame": 60,
+          "gap": -121.0,
+          "onFloor": false
+        },
+        {
+          "frame": 70,
+          "gap": 7.0,
+          "onFloor": true
+        },
+        {
+          "frame": 80,
+          "gap": -162.0,
+          "onFloor": false
+        },
+        {
+          "frame": 90,
+          "gap": -90.0,
+          "onFloor": false
+        },
+        {
+          "frame": 100,
+          "gap": -68.0,
+          "onFloor": true
+        },
+        {
+          "frame": 110,
+          "gap": -59.0,
+          "onFloor": true
+        },
+        {
+          "frame": 119,
+          "gap": -59.0,
+          "onFloor": true
+        }
+      ],
+      "images": [
+        "runs/sam-probe/missing-texture_v1/f00000000.png",
+        "runs/sam-probe/missing-texture_v1/f00000010.png",
+        "runs/sam-probe/missing-texture_v1/f00000020.png",
+        "runs/sam-probe/missing-texture_v1/f00000030.png",
+        "runs/sam-probe/missing-texture_v1/f00000040.png",
+        "runs/sam-probe/missing-texture_v1/f00000050.png",
+        "runs/sam-probe/missing-texture_v1/f00000060.png",
+        "runs/sam-probe/missing-texture_v1/f00000070.png",
+        "runs/sam-probe/missing-texture_v1/f00000080.png",
+        "runs/sam-probe/missing-texture_v1/f00000090.png",
+        "runs/sam-probe/missing-texture_v1/f00000100.png",
+        "runs/sam-probe/missing-texture_v1/f00000110.png",
+        "runs/sam-probe/missing-texture_v1/f00000119.png",
+        "runs/sam-probe/missing-texture_v1-sheet.png"
+      ]
+    },
+    {
+      "run": "missing-texture_v2",
+      "framesProbed": [
+        0,
+        10,
+        20,
+        30,
+        40,
+        50,
+        60,
+        70,
+        80,
+        90,
+        100,
+        110,
+        119
+      ],
+      "verdict": {
+        "result": "pass",
+        "reason": "no violation in 13 frames"
+      },
+      "objects": {
+        "player": {
+          "prompt": "blue robot",
+          "minScore": 0.5,
+          "framesFound": 13,
+          "framesProbed": 13,
+          "bestScore": {
+            "min": 0.8358974456787109,
+            "median": 0.921951174736023,
+            "max": 0.9569892287254333
+          },
+          "matchesPerFrame": {
+            "min": 1,
+            "max": 1
+          },
+          "boxWidth": {
+            "min": 62.0,
+            "median": 95.0,
+            "max": 118.0
+          },
+          "boxHeight": {
+            "min": 102.0,
+            "median": 118.0,
+            "max": 126.0
+          }
+        },
+        "ground": {
+          "prompt": "grass-topped ground",
+          "minScore": 0.5,
+          "framesFound": 13,
+          "framesProbed": 13,
+          "bestScore": {
+            "min": 1.0,
+            "median": 1.0,
+            "max": 1.0
+          },
+          "matchesPerFrame": {
+            "min": 1,
+            "max": 1
+          },
+          "boxWidth": {
+            "min": 1600.0,
+            "median": 1600.0,
+            "max": 1600.0
+          },
+          "boxHeight": {
+            "min": 180.0,
+            "median": 180.0,
+            "max": 180.0
+          }
+        }
+      },
+      "observations": {
+        "format": "nightshift.observations/v0",
+        "replay": {
+          "sha256": "2c99b54f26a30f9a506d5fdd4ac42f8b9a0825695e4c189bcc263d7ad587f841"
+        },
+        "model": {
+          "name": "sam-3.1",
+          "provider": "meta-model-api",
+          "prompts": {
+            "player": "blue robot"
+          },
+          "engineObjects": [
+            "ground"
+          ]
+        },
+        "frames": [
+          {
+            "frame": 0,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    759.0,
+                    667.0,
+                    835.0,
+                    785.0
+                  ],
+                  "score": 0.9375000596046448
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 10,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    767.0,
+                    669.0,
+                    849.0,
+                    783.0
+                  ],
+                  "score": 0.9298245906829834
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 20,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    747.0,
+                    673.0,
+                    842.0,
+                    775.0
+                  ],
+                  "score": 0.9101123809814453
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 30,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    751.0,
+                    673.0,
+                    843.0,
+                    783.0
+                  ],
+                  "score": 0.921951174736023
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 40,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    747.0,
+                    557.0,
+                    843.0,
+                    683.0
+                  ],
+                  "score": 0.8947368264198303
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 50,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    737.0,
+                    481.0,
+                    854.0,
+                    603.0
+                  ],
+                  "score": 0.9569892287254333
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 60,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    737.0,
+                    537.0,
+                    854.0,
+                    659.0
+                  ],
+                  "score": 0.9569892287254333
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 70,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    744.0,
+                    661.0,
+                    843.0,
+                    787.0
+                  ],
+                  "score": 0.9101123809814453
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 80,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    736.0,
+                    497.0,
+                    854.0,
+                    618.0
+                  ],
+                  "score": 0.949367105960846
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 90,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    737.0,
+                    567.0,
+                    854.0,
+                    690.0
+                  ],
+                  "score": 0.9375000596046448
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 100,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    774.0,
+                    599.0,
+                    836.0,
+                    712.0
+                  ],
+                  "score": 0.8358974456787109
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 110,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    760.0,
+                    603.0,
+                    836.0,
+                    721.0
+                  ],
+                  "score": 0.8750000596046448
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 119,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    760.0,
+                    603.0,
+                    834.0,
+                    721.0
+                  ],
+                  "score": 0.859649121761322
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          }
+        ],
+        "analysis": {
+          "framesCaptured": 120,
+          "framesInWindow": 120,
+          "framesAnalyzed": 13,
+          "every": 10,
+          "refined": null,
+          "confirmed": 0
+        }
+      },
+      "gaps": [
+        {
+          "frame": 0,
+          "gap": 5.0,
+          "onFloor": false
+        },
+        {
+          "frame": 10,
+          "gap": 3.0,
+          "onFloor": true
+        },
+        {
+          "frame": 20,
+          "gap": -5.0,
+          "onFloor": true
+        },
+        {
+          "frame": 30,
+          "gap": 3.0,
+          "onFloor": true
+        },
+        {
+          "frame": 40,
+          "gap": -97.0,
+          "onFloor": false
+        },
+        {
+          "frame": 50,
+          "gap": -177.0,
+          "onFloor": false
+        },
+        {
+          "frame": 60,
+          "gap": -121.0,
+          "onFloor": false
+        },
+        {
+          "frame": 70,
+          "gap": 7.0,
+          "onFloor": true
+        },
+        {
+          "frame": 80,
+          "gap": -162.0,
+          "onFloor": false
+        },
+        {
+          "frame": 90,
+          "gap": -90.0,
+          "onFloor": false
+        },
+        {
+          "frame": 100,
+          "gap": -68.0,
+          "onFloor": true
+        },
+        {
+          "frame": 110,
+          "gap": -59.0,
+          "onFloor": true
+        },
+        {
+          "frame": 119,
+          "gap": -59.0,
+          "onFloor": true
+        }
+      ],
+      "images": [
+        "runs/sam-probe/missing-texture_v2/f00000000.png",
+        "runs/sam-probe/missing-texture_v2/f00000010.png",
+        "runs/sam-probe/missing-texture_v2/f00000020.png",
+        "runs/sam-probe/missing-texture_v2/f00000030.png",
+        "runs/sam-probe/missing-texture_v2/f00000040.png",
+        "runs/sam-probe/missing-texture_v2/f00000050.png",
+        "runs/sam-probe/missing-texture_v2/f00000060.png",
+        "runs/sam-probe/missing-texture_v2/f00000070.png",
+        "runs/sam-probe/missing-texture_v2/f00000080.png",
+        "runs/sam-probe/missing-texture_v2/f00000090.png",
+        "runs/sam-probe/missing-texture_v2/f00000100.png",
+        "runs/sam-probe/missing-texture_v2/f00000110.png",
+        "runs/sam-probe/missing-texture_v2/f00000119.png",
+        "runs/sam-probe/missing-texture_v2-sheet.png"
+      ]
+    },
+    {
+      "run": "physics-fall-through_v1",
+      "framesProbed": [
+        0,
+        10,
+        20,
+        30,
+        40,
+        50,
+        60,
+        70,
+        80,
+        90,
+        100,
+        110,
+        119
+      ],
+      "verdict": {
+        "result": "fail",
+        "reason": "player is 70px past the boundary (above 780, tolerance 12) (first at frame 10, 2 frames)"
+      },
+      "objects": {
+        "player": {
+          "prompt": "blue robot",
+          "minScore": 0.5,
+          "framesFound": 3,
+          "framesProbed": 13,
+          "bestScore": {
+            "min": 0.0,
+            "median": 0.0,
+            "max": 0.9452055096626282
+          },
+          "matchesPerFrame": {
+            "min": 0,
+            "max": 1
+          },
+          "boxWidth": {
+            "min": 80.0,
+            "median": 117.0,
+            "max": 118.0
+          },
+          "boxHeight": {
+            "min": 47.0,
+            "median": 122.0,
+            "max": 122.0
+          }
+        },
+        "ground": {
+          "prompt": "grass-topped ground",
+          "minScore": 0.5,
+          "framesFound": 3,
+          "framesProbed": 13,
+          "bestScore": {
+            "min": 0.0,
+            "median": 0.0,
+            "max": 1.0
+          },
+          "matchesPerFrame": {
+            "min": 0,
+            "max": 1
+          },
+          "boxWidth": {
+            "min": 1600.0,
+            "median": 1600.0,
+            "max": 1600.0
+          },
+          "boxHeight": {
+            "min": 72.0,
+            "median": 180.0,
+            "max": 180.0
+          }
+        }
+      },
+      "observations": {
+        "format": "nightshift.observations/v0",
+        "replay": {
+          "sha256": "ed84ab7e5e619a357fda3e209d2f4ffb136bcc17e84954a93443fb8149ad9d2a"
+        },
+        "model": {
+          "name": "sam-3.1",
+          "provider": "meta-model-api",
+          "prompts": {
+            "player": "blue robot"
+          },
+          "engineObjects": [
+            "ground"
+          ]
+        },
+        "frames": [
+          {
+            "frame": 0,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    737.0,
+                    661.0,
+                    854.0,
+                    783.0
+                  ],
+                  "score": 0.941605806350708
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 10,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    736.0,
+                    728.0,
+                    854.0,
+                    850.0
+                  ],
+                  "score": 0.9452055096626282
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 20,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    768.0,
+                    913.0,
+                    848.0,
+                    960.0
+                  ],
+                  "score": 0.8476190567016602
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    888.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 30,
+            "objects": {
+              "player": [],
+              "ground": []
+            }
+          },
+          {
+            "frame": 40,
+            "objects": {
+              "player": [],
+              "ground": []
+            }
+          },
+          {
+            "frame": 50,
+            "objects": {
+              "player": [],
+              "ground": []
+            }
+          },
+          {
+            "frame": 60,
+            "objects": {
+              "player": [],
+              "ground": []
+            }
+          },
+          {
+            "frame": 70,
+            "objects": {
+              "player": [],
+              "ground": []
+            }
+          },
+          {
+            "frame": 80,
+            "objects": {
+              "player": [],
+              "ground": []
+            }
+          },
+          {
+            "frame": 90,
+            "objects": {
+              "player": [],
+              "ground": []
+            }
+          },
+          {
+            "frame": 100,
+            "objects": {
+              "player": [],
+              "ground": []
+            }
+          },
+          {
+            "frame": 110,
+            "objects": {
+              "player": [],
+              "ground": []
+            }
+          },
+          {
+            "frame": 119,
+            "objects": {
+              "player": [],
+              "ground": []
+            }
+          }
+        ],
+        "analysis": {
+          "framesCaptured": 120,
+          "framesInWindow": 120,
+          "framesAnalyzed": 13,
+          "every": 10,
+          "refined": null,
+          "confirmed": 0
+        }
+      },
+      "gaps": [
+        {
+          "frame": 0,
+          "gap": 3.0,
+          "onFloor": false
+        },
+        {
+          "frame": 10,
+          "gap": 70.0,
+          "onFloor": false
+        },
+        {
+          "frame": 20,
+          "gap": 72.0,
+          "onFloor": false
+        },
+        {
+          "frame": 30,
+          "gap": null,
+          "onFloor": false,
+          "why": "player not found"
+        },
+        {
+          "frame": 40,
+          "gap": null,
+          "onFloor": false,
+          "why": "player not found"
+        },
+        {
+          "frame": 50,
+          "gap": null,
+          "onFloor": false,
+          "why": "player not found"
+        },
+        {
+          "frame": 60,
+          "gap": null,
+          "onFloor": false,
+          "why": "player not found"
+        },
+        {
+          "frame": 70,
+          "gap": null,
+          "onFloor": false,
+          "why": "player not found"
+        },
+        {
+          "frame": 80,
+          "gap": null,
+          "onFloor": false,
+          "why": "player not found"
+        },
+        {
+          "frame": 90,
+          "gap": null,
+          "onFloor": false,
+          "why": "player not found"
+        },
+        {
+          "frame": 100,
+          "gap": null,
+          "onFloor": false,
+          "why": "player not found"
+        },
+        {
+          "frame": 110,
+          "gap": null,
+          "onFloor": false,
+          "why": "player not found"
+        },
+        {
+          "frame": 119,
+          "gap": null,
+          "onFloor": false,
+          "why": "player not found"
+        }
+      ],
+      "images": [
+        "runs/sam-probe/physics-fall-through_v1/f00000000.png",
+        "runs/sam-probe/physics-fall-through_v1/f00000010.png",
+        "runs/sam-probe/physics-fall-through_v1/f00000020.png",
+        "runs/sam-probe/physics-fall-through_v1/f00000030.png",
+        "runs/sam-probe/physics-fall-through_v1/f00000040.png",
+        "runs/sam-probe/physics-fall-through_v1/f00000050.png",
+        "runs/sam-probe/physics-fall-through_v1/f00000060.png",
+        "runs/sam-probe/physics-fall-through_v1/f00000070.png",
+        "runs/sam-probe/physics-fall-through_v1/f00000080.png",
+        "runs/sam-probe/physics-fall-through_v1/f00000090.png",
+        "runs/sam-probe/physics-fall-through_v1/f00000100.png",
+        "runs/sam-probe/physics-fall-through_v1/f00000110.png",
+        "runs/sam-probe/physics-fall-through_v1/f00000119.png",
+        "runs/sam-probe/physics-fall-through_v1-sheet.png"
+      ]
+    },
+    {
+      "run": "physics-fall-through_v2",
+      "framesProbed": [
+        0,
+        10,
+        20,
+        30,
+        40,
+        50,
+        60,
+        70,
+        80,
+        90,
+        100,
+        110,
+        119
+      ],
+      "verdict": {
+        "result": "fail",
+        "reason": "player is 70px past the boundary (above 780, tolerance 12) (first at frame 10, 2 frames)"
+      },
+      "objects": {
+        "player": {
+          "prompt": "blue robot",
+          "minScore": 0.5,
+          "framesFound": 3,
+          "framesProbed": 13,
+          "bestScore": {
+            "min": 0.0,
+            "median": 0.0,
+            "max": 0.941605806350708
+          },
+          "matchesPerFrame": {
+            "min": 0,
+            "max": 1
+          },
+          "boxWidth": {
+            "min": 81.0,
+            "median": 117.0,
+            "max": 118.0
+          },
+          "boxHeight": {
+            "min": 47.0,
+            "median": 122.0,
+            "max": 122.0
+          }
+        },
+        "ground": {
+          "prompt": "grass-topped ground",
+          "minScore": 0.5,
+          "framesFound": 3,
+          "framesProbed": 13,
+          "bestScore": {
+            "min": 0.0,
+            "median": 0.0,
+            "max": 1.0
+          },
+          "matchesPerFrame": {
+            "min": 0,
+            "max": 1
+          },
+          "boxWidth": {
+            "min": 1600.0,
+            "median": 1600.0,
+            "max": 1600.0
+          },
+          "boxHeight": {
+            "min": 72.0,
+            "median": 180.0,
+            "max": 180.0
+          }
+        }
+      },
+      "observations": {
+        "format": "nightshift.observations/v0",
+        "replay": {
+          "sha256": "b131250c2c3d951a3fca46d7a285ae7ae9e871ede45c1f1b9718a4ab355d1179"
+        },
+        "model": {
+          "name": "sam-3.1",
+          "provider": "meta-model-api",
+          "prompts": {
+            "player": "blue robot"
+          },
+          "engineObjects": [
+            "ground"
+          ]
+        },
+        "frames": [
+          {
+            "frame": 0,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    737.0,
+                    661.0,
+                    854.0,
+                    783.0
+                  ],
+                  "score": 0.941605806350708
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 10,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    736.0,
+                    728.0,
+                    854.0,
+                    850.0
+                  ],
+                  "score": 0.941605806350708
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 20,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    768.0,
+                    913.0,
+                    849.0,
+                    960.0
+                  ],
+                  "score": 0.8518518805503845
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    888.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 30,
+            "objects": {
+              "player": [],
+              "ground": []
+            }
+          },
+          {
+            "frame": 40,
+            "objects": {
+              "player": [],
+              "ground": []
+            }
+          },
+          {
+            "frame": 50,
+            "objects": {
+              "player": [],
+              "ground": []
+            }
+          },
+          {
+            "frame": 60,
+            "objects": {
+              "player": [],
+              "ground": []
+            }
+          },
+          {
+            "frame": 70,
+            "objects": {
+              "player": [],
+              "ground": []
+            }
+          },
+          {
+            "frame": 80,
+            "objects": {
+              "player": [],
+              "ground": []
+            }
+          },
+          {
+            "frame": 90,
+            "objects": {
+              "player": [],
+              "ground": []
+            }
+          },
+          {
+            "frame": 100,
+            "objects": {
+              "player": [],
+              "ground": []
+            }
+          },
+          {
+            "frame": 110,
+            "objects": {
+              "player": [],
+              "ground": []
+            }
+          },
+          {
+            "frame": 119,
+            "objects": {
+              "player": [],
+              "ground": []
+            }
+          }
+        ],
+        "analysis": {
+          "framesCaptured": 120,
+          "framesInWindow": 120,
+          "framesAnalyzed": 13,
+          "every": 10,
+          "refined": null,
+          "confirmed": 0
+        }
+      },
+      "gaps": [
+        {
+          "frame": 0,
+          "gap": 3.0,
+          "onFloor": false
+        },
+        {
+          "frame": 10,
+          "gap": 70.0,
+          "onFloor": false
+        },
+        {
+          "frame": 20,
+          "gap": 72.0,
+          "onFloor": false
+        },
+        {
+          "frame": 30,
+          "gap": null,
+          "onFloor": false,
+          "why": "player not found"
+        },
+        {
+          "frame": 40,
+          "gap": null,
+          "onFloor": false,
+          "why": "player not found"
+        },
+        {
+          "frame": 50,
+          "gap": null,
+          "onFloor": false,
+          "why": "player not found"
+        },
+        {
+          "frame": 60,
+          "gap": null,
+          "onFloor": false,
+          "why": "player not found"
+        },
+        {
+          "frame": 70,
+          "gap": null,
+          "onFloor": false,
+          "why": "player not found"
+        },
+        {
+          "frame": 80,
+          "gap": null,
+          "onFloor": false,
+          "why": "player not found"
+        },
+        {
+          "frame": 90,
+          "gap": null,
+          "onFloor": false,
+          "why": "player not found"
+        },
+        {
+          "frame": 100,
+          "gap": null,
+          "onFloor": false,
+          "why": "player not found"
+        },
+        {
+          "frame": 110,
+          "gap": null,
+          "onFloor": false,
+          "why": "player not found"
+        },
+        {
+          "frame": 119,
+          "gap": null,
+          "onFloor": false,
+          "why": "player not found"
+        }
+      ],
+      "images": [
+        "runs/sam-probe/physics-fall-through_v2/f00000000.png",
+        "runs/sam-probe/physics-fall-through_v2/f00000010.png",
+        "runs/sam-probe/physics-fall-through_v2/f00000020.png",
+        "runs/sam-probe/physics-fall-through_v2/f00000030.png",
+        "runs/sam-probe/physics-fall-through_v2/f00000040.png",
+        "runs/sam-probe/physics-fall-through_v2/f00000050.png",
+        "runs/sam-probe/physics-fall-through_v2/f00000060.png",
+        "runs/sam-probe/physics-fall-through_v2/f00000070.png",
+        "runs/sam-probe/physics-fall-through_v2/f00000080.png",
+        "runs/sam-probe/physics-fall-through_v2/f00000090.png",
+        "runs/sam-probe/physics-fall-through_v2/f00000100.png",
+        "runs/sam-probe/physics-fall-through_v2/f00000110.png",
+        "runs/sam-probe/physics-fall-through_v2/f00000119.png",
+        "runs/sam-probe/physics-fall-through_v2-sheet.png"
+      ]
+    },
+    {
+      "run": "sinking_v1",
+      "framesProbed": [
+        0,
+        10,
+        20,
+        30,
+        40,
+        50,
+        60,
+        70,
+        80,
+        90,
+        100,
+        110,
+        119
+      ],
+      "verdict": {
+        "result": "fail",
+        "reason": "player is 47px past the boundary (above 780, tolerance 12) (first at frame 10, 4 frames)"
+      },
+      "objects": {
+        "player": {
+          "prompt": "blue robot",
+          "minScore": 0.5,
+          "framesFound": 13,
+          "framesProbed": 13,
+          "bestScore": {
+            "min": 0.6167664527893066,
+            "median": 0.9139785170555115,
+            "max": 0.9569892287254333
+          },
+          "matchesPerFrame": {
+            "min": 1,
+            "max": 1
+          },
+          "boxWidth": {
+            "min": 73.0,
+            "median": 100.0,
+            "max": 118.0
+          },
+          "boxHeight": {
+            "min": 105.0,
+            "median": 122.0,
+            "max": 127.0
+          }
+        },
+        "ground": {
+          "prompt": "grass-topped ground",
+          "minScore": 0.5,
+          "framesFound": 13,
+          "framesProbed": 13,
+          "bestScore": {
+            "min": 1.0,
+            "median": 1.0,
+            "max": 1.0
+          },
+          "matchesPerFrame": {
+            "min": 1,
+            "max": 1
+          },
+          "boxWidth": {
+            "min": 1600.0,
+            "median": 1600.0,
+            "max": 1600.0
+          },
+          "boxHeight": {
+            "min": 180.0,
+            "median": 180.0,
+            "max": 180.0
+          }
+        }
+      },
+      "observations": {
+        "format": "nightshift.observations/v0",
+        "replay": {
+          "sha256": "03bcb75a64b781efc13aa228e8de9cd325032b635345ee412f28c45c8facceaf"
+        },
+        "model": {
+          "name": "sam-3.1",
+          "provider": "meta-model-api",
+          "prompts": {
+            "player": "blue robot"
+          },
+          "engineObjects": [
+            "ground"
+          ]
+        },
+        "frames": [
+          {
+            "frame": 0,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    737.0,
+                    661.0,
+                    854.0,
+                    783.0
+                  ],
+                  "score": 0.941605806350708
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 10,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    750.0,
+                    721.0,
+                    854.0,
+                    827.0
+                  ],
+                  "score": 0.9375000596046448
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 20,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    760.0,
+                    722.0,
+                    842.0,
+                    835.0
+                  ],
+                  "score": 0.9024390578269958
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 30,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    742.0,
+                    724.0,
+                    842.0,
+                    829.0
+                  ],
+                  "score": 0.9259259104728699
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 40,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    747.0,
+                    609.0,
+                    843.0,
+                    734.0
+                  ],
+                  "score": 0.859649121761322
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 50,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    736.0,
+                    533.0,
+                    854.0,
+                    655.0
+                  ],
+                  "score": 0.9569892287254333
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 60,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    739.0,
+                    590.0,
+                    855.0,
+                    711.0
+                  ],
+                  "score": 0.8904109597206116
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 70,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    745.0,
+                    712.0,
+                    844.0,
+                    839.0
+                  ],
+                  "score": 0.9139785170555115
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 80,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    737.0,
+                    548.0,
+                    853.0,
+                    670.0
+                  ],
+                  "score": 0.9569892287254333
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 90,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    736.0,
+                    620.0,
+                    854.0,
+                    744.0
+                  ],
+                  "score": 0.9139785170555115
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 100,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    750.0,
+                    651.0,
+                    838.0,
+                    776.0
+                  ],
+                  "score": 0.6167664527893066
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 110,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    761.0,
+                    655.0,
+                    835.0,
+                    774.0
+                  ],
+                  "score": 0.8048780560493469
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 119,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    760.0,
+                    656.0,
+                    833.0,
+                    775.0
+                  ],
+                  "score": 0.7968254089355469
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          }
+        ],
+        "analysis": {
+          "framesCaptured": 120,
+          "framesInWindow": 120,
+          "framesAnalyzed": 13,
+          "every": 10,
+          "refined": null,
+          "confirmed": 0
+        }
+      },
+      "gaps": [
+        {
+          "frame": 0,
+          "gap": 3.0,
+          "onFloor": false
+        },
+        {
+          "frame": 10,
+          "gap": 47.0,
+          "onFloor": true
+        },
+        {
+          "frame": 20,
+          "gap": 55.0,
+          "onFloor": true
+        },
+        {
+          "frame": 30,
+          "gap": 49.0,
+          "onFloor": true
+        },
+        {
+          "frame": 40,
+          "gap": -46.0,
+          "onFloor": false
+        },
+        {
+          "frame": 50,
+          "gap": -125.0,
+          "onFloor": false
+        },
+        {
+          "frame": 60,
+          "gap": -69.0,
+          "onFloor": false
+        },
+        {
+          "frame": 70,
+          "gap": 59.0,
+          "onFloor": true
+        },
+        {
+          "frame": 80,
+          "gap": -110.0,
+          "onFloor": false
+        },
+        {
+          "frame": 90,
+          "gap": -36.0,
+          "onFloor": false
+        },
+        {
+          "frame": 100,
+          "gap": -4.0,
+          "onFloor": true
+        },
+        {
+          "frame": 110,
+          "gap": -6.0,
+          "onFloor": true
+        },
+        {
+          "frame": 119,
+          "gap": -5.0,
+          "onFloor": true
+        }
+      ],
+      "images": [
+        "runs/sam-probe/sinking_v1/f00000000.png",
+        "runs/sam-probe/sinking_v1/f00000010.png",
+        "runs/sam-probe/sinking_v1/f00000020.png",
+        "runs/sam-probe/sinking_v1/f00000030.png",
+        "runs/sam-probe/sinking_v1/f00000040.png",
+        "runs/sam-probe/sinking_v1/f00000050.png",
+        "runs/sam-probe/sinking_v1/f00000060.png",
+        "runs/sam-probe/sinking_v1/f00000070.png",
+        "runs/sam-probe/sinking_v1/f00000080.png",
+        "runs/sam-probe/sinking_v1/f00000090.png",
+        "runs/sam-probe/sinking_v1/f00000100.png",
+        "runs/sam-probe/sinking_v1/f00000110.png",
+        "runs/sam-probe/sinking_v1/f00000119.png",
+        "runs/sam-probe/sinking_v1-sheet.png"
+      ]
+    },
+    {
+      "run": "sinking_v2",
+      "framesProbed": [
+        0,
+        10,
+        20,
+        30,
+        40,
+        50,
+        60,
+        70,
+        80,
+        90,
+        100,
+        110,
+        119
+      ],
+      "verdict": {
+        "result": "fail",
+        "reason": "player is 56px past the boundary (above 780, tolerance 12) (first at frame 0, 5 frames)"
+      },
+      "objects": {
+        "player": {
+          "prompt": "blue robot",
+          "minScore": 0.5,
+          "framesFound": 13,
+          "framesProbed": 13,
+          "bestScore": {
+            "min": 0.6167664527893066,
+            "median": 0.9139785170555115,
+            "max": 0.9569892287254333
+          },
+          "matchesPerFrame": {
+            "min": 1,
+            "max": 1
+          },
+          "boxWidth": {
+            "min": 73.0,
+            "median": 93.0,
+            "max": 118.0
+          },
+          "boxHeight": {
+            "min": 101.0,
+            "median": 121.0,
+            "max": 127.0
+          }
+        },
+        "ground": {
+          "prompt": "grass-topped ground",
+          "minScore": 0.5,
+          "framesFound": 13,
+          "framesProbed": 13,
+          "bestScore": {
+            "min": 1.0,
+            "median": 1.0,
+            "max": 1.0
+          },
+          "matchesPerFrame": {
+            "min": 1,
+            "max": 1
+          },
+          "boxWidth": {
+            "min": 1600.0,
+            "median": 1600.0,
+            "max": 1600.0
+          },
+          "boxHeight": {
+            "min": 180.0,
+            "median": 180.0,
+            "max": 180.0
+          }
+        }
+      },
+      "observations": {
+        "format": "nightshift.observations/v0",
+        "replay": {
+          "sha256": "b896380a0b1f5d4630af7d3bbff0d0612031b350c667d6987ceaf8222104da94"
+        },
+        "model": {
+          "name": "sam-3.1",
+          "provider": "meta-model-api",
+          "prompts": {
+            "player": "blue robot"
+          },
+          "engineObjects": [
+            "ground"
+          ]
+        },
+        "frames": [
+          {
+            "frame": 0,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    761.0,
+                    719.0,
+                    835.0,
+                    836.0
+                  ],
+                  "score": 0.9259259104728699
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 10,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    767.0,
+                    720.0,
+                    848.0,
+                    835.0
+                  ],
+                  "score": 0.9101123809814453
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 20,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    749.0,
+                    725.0,
+                    842.0,
+                    826.0
+                  ],
+                  "score": 0.921951174736023
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 30,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    750.0,
+                    724.0,
+                    842.0,
+                    835.0
+                  ],
+                  "score": 0.9259259104728699
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 40,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    747.0,
+                    609.0,
+                    843.0,
+                    734.0
+                  ],
+                  "score": 0.859649121761322
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 50,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    736.0,
+                    533.0,
+                    854.0,
+                    655.0
+                  ],
+                  "score": 0.9569892287254333
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 60,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    739.0,
+                    590.0,
+                    855.0,
+                    711.0
+                  ],
+                  "score": 0.8904109597206116
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 70,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    745.0,
+                    712.0,
+                    844.0,
+                    839.0
+                  ],
+                  "score": 0.9139785170555115
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 80,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    737.0,
+                    548.0,
+                    853.0,
+                    670.0
+                  ],
+                  "score": 0.9569892287254333
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 90,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    736.0,
+                    620.0,
+                    854.0,
+                    744.0
+                  ],
+                  "score": 0.9139785170555115
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 100,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    750.0,
+                    651.0,
+                    838.0,
+                    776.0
+                  ],
+                  "score": 0.6167664527893066
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 110,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    761.0,
+                    655.0,
+                    835.0,
+                    774.0
+                  ],
+                  "score": 0.8048780560493469
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          },
+          {
+            "frame": 119,
+            "objects": {
+              "player": [
+                {
+                  "box": [
+                    760.0,
+                    656.0,
+                    833.0,
+                    775.0
+                  ],
+                  "score": 0.7968254089355469
+                }
+              ],
+              "ground": [
+                {
+                  "box": [
+                    0.0,
+                    780.0,
+                    1600.0,
+                    960.0
+                  ],
+                  "score": 1.0,
+                  "source": "engine"
+                }
+              ]
+            }
+          }
+        ],
+        "analysis": {
+          "framesCaptured": 120,
+          "framesInWindow": 120,
+          "framesAnalyzed": 13,
+          "every": 10,
+          "refined": null,
+          "confirmed": 0
+        }
+      },
+      "gaps": [
+        {
+          "frame": 0,
+          "gap": 56.0,
+          "onFloor": false
+        },
+        {
+          "frame": 10,
+          "gap": 55.0,
+          "onFloor": true
+        },
+        {
+          "frame": 20,
+          "gap": 46.0,
+          "onFloor": true
+        },
+        {
+          "frame": 30,
+          "gap": 55.0,
+          "onFloor": true
+        },
+        {
+          "frame": 40,
+          "gap": -46.0,
+          "onFloor": false
+        },
+        {
+          "frame": 50,
+          "gap": -125.0,
+          "onFloor": false
+        },
+        {
+          "frame": 60,
+          "gap": -69.0,
+          "onFloor": false
+        },
+        {
+          "frame": 70,
+          "gap": 59.0,
+          "onFloor": true
+        },
+        {
+          "frame": 80,
+          "gap": -110.0,
+          "onFloor": false
+        },
+        {
+          "frame": 90,
+          "gap": -36.0,
+          "onFloor": false
+        },
+        {
+          "frame": 100,
+          "gap": -4.0,
+          "onFloor": true
+        },
+        {
+          "frame": 110,
+          "gap": -6.0,
+          "onFloor": true
+        },
+        {
+          "frame": 119,
+          "gap": -5.0,
+          "onFloor": true
+        }
+      ],
+      "images": [
+        "runs/sam-probe/sinking_v2/f00000000.png",
+        "runs/sam-probe/sinking_v2/f00000010.png",
+        "runs/sam-probe/sinking_v2/f00000020.png",
+        "runs/sam-probe/sinking_v2/f00000030.png",
+        "runs/sam-probe/sinking_v2/f00000040.png",
+        "runs/sam-probe/sinking_v2/f00000050.png",
+        "runs/sam-probe/sinking_v2/f00000060.png",
+        "runs/sam-probe/sinking_v2/f00000070.png",
+        "runs/sam-probe/sinking_v2/f00000080.png",
+        "runs/sam-probe/sinking_v2/f00000090.png",
+        "runs/sam-probe/sinking_v2/f00000100.png",
+        "runs/sam-probe/sinking_v2/f00000110.png",
+        "runs/sam-probe/sinking_v2/f00000119.png",
+        "runs/sam-probe/sinking_v2-sheet.png"
+      ]
+    }
+  ],
+  "tolerance": {
+    "approvedTolerancePx": 12,
+    "cleanWorstGap": 7.0,
+    "clean": {
+      "clean": 7.0
+    },
+    "others": {
+      "layering_v1": -14.0,
+      "layering_v2": -14.0,
+      "missing-texture_v1": 7.0,
+      "missing-texture_v2": 7.0,
+      "physics-fall-through_v1": 72.0,
+      "physics-fall-through_v2": 72.0,
+      "sinking_v1": 59.0,
+      "sinking_v2": 59.0
+    }
+  },
+  "sweep": []
+}
