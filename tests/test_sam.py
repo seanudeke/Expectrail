@@ -510,23 +510,129 @@ class VerifierTest(unittest.TestCase):
         validate(doc, "verification")
         return doc, out
 
-    def test_sam_failure_on_the_candidate_is_needs_review_not_a_crash(self):
+    def test_observations_failure_on_the_candidate_is_needs_review_not_a_crash(self):
         clean = load(REPO / "agents" / "fixtures" / "obs-clean.json", "observations")
-        doc, out = self.verify_with([SystemExit("sam observations unavailable: HTTP 503"), clean])
+        doc, out = self.verify_with([SystemExit("observations unavailable: HTTP 503"), clean])
         regression = next(c for c in doc["checks"] if c["kind"] == "regression")
         self.assertEqual(regression["result"], "needs-review")
         self.assertEqual(doc["suite"]["candidate"]["source"], "unavailable")
         self.assertNotEqual(doc["decision"], "accept")
         self.assertIn("HTTP 503", (out / "observations-error.txt").read_text())
 
-    def test_sam_failure_on_the_clean_replay_is_needs_review_not_a_fixture_pass(self):
+    def test_observations_failure_on_the_clean_replay_is_needs_review_not_a_fixture_pass(self):
         fixed = load(REPO / "agents" / "fixtures" / "obs-fixed.json", "observations")
-        doc, out = self.verify_with([fixed, SystemExit("sam observations unavailable: HTTP 429")])
+        doc, out = self.verify_with([fixed, SystemExit("observations unavailable: HTTP 429")])
         clean = next(c for c in doc["checks"] if c["kind"] == "clean")
         self.assertEqual(clean["result"], "needs-review")
         self.assertEqual(doc["suite"]["clean"]["source"], "unavailable")
         self.assertNotEqual(doc["decision"], "accept")
         self.assertIn("HTTP 429", (out / "observations-clean-error.txt").read_text())
+
+
+ROBOT = lambda i: box_token(0, (60, 40, 80, 70), 0.9)
+COINS = lambda i: box_token(0, (100, 20, 108, 28), 0.85) + "," + box_token(1, (120, 20, 128, 28), 0.8)
+
+
+class VerifierWithSamTest(unittest.TestCase):
+    """NIGHTSHIFT_OBS_PROVIDER=sam: the ground spec on the engine, the SAM specs on SAM's view."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.root = Path(tmp.name)
+        self.scene = Scene(self.root / "scene", extra={"blue robot": ROBOT, "gold coin": COINS})
+
+    def harness(self, route, harness_out, patches=None, **_kw):
+        harness_out.mkdir(parents=True, exist_ok=True)
+        (harness_out / "trace.json").write_text((REPO / "agents" / "fixtures" / "trace-fixed.json").read_text())
+        (harness_out / "replay.json").write_text("{}\n")
+        (harness_out / "frames").mkdir(exist_ok=True)
+        for i in range(120):
+            (harness_out / "frames" / f"f{i:08d}.png").write_bytes(png_bytes(W, H, i))
+
+    def verify(self, transport, **kw):
+        from agents.verifier import verify
+        from tests.test_agents import _request
+        out = self.root / "verify"
+        real = sam.MetaSamClient
+        env = {"NIGHTSHIFT_OBS_PROVIDER": "sam", "NIGHTSHIFT_SAM_CACHE": "off"}
+        with mock.patch.dict(os.environ, env), \
+                mock.patch("agents.verifier.harness_run", side_effect=self.harness), \
+                mock.patch.object(sam, "MetaSamClient", side_effect=lambda: real(transport=transport, retries=0)):
+            os.environ.pop("NIGHTSHIFT_HELDOUT_DIR", None)
+            doc = verify(_request(), REPO / "agents" / "fixtures" / "fix-collision-mask.patch", out, **kw)
+        validate(doc, "verification")
+        return doc, out
+
+    def by(self, doc, kind):
+        return {c["spec"]: c["result"] for c in doc["checks"] if c["kind"] == kind}
+
+    def test_sam_specs_join_the_engine_ground_check(self):
+        doc, out = self.verify(self.scene.transport)
+        self.assertEqual(self.by(doc, "regression"), {"player-stays-above-ground": "pass",
+                                                      "player-always-visible": "pass", "coins-visible": "pass"})
+        self.assertEqual(self.by(doc, "clean"), {"player-stays-above-ground": "pass",
+                                                 "player-always-visible": "pass", "coins-visible": "pass"})
+        self.assertTrue((out / "observations-player-always-visible.json").is_file())
+        self.assertTrue((out / "verdict-clean-coins-visible.json").is_file())
+        self.assertEqual(json.loads((out / "observations.json").read_text())["model"]["name"],
+                         "nightshift.trace-synthetic")
+        self.assertIn("engine's position log", doc["suite"]["candidate"]["detail"])
+        self.assertIn("player-always-visible", doc["suite"]["clean"]["detail"])
+
+    def test_a_sam_failure_is_needs_review_and_the_ground_check_still_runs(self):
+        def down(body):
+            raise urllib.error.HTTPError("u", 503, "down", {}, io.BytesIO(b"maintenance"))
+        doc, out = self.verify(down)
+        self.assertEqual(self.by(doc, "regression"), {"player-stays-above-ground": "pass",
+                                                      "player-always-visible": "needs-review",
+                                                      "coins-visible": "needs-review"})
+        self.assertNotEqual(doc["decision"], "accept")
+        self.assertIn("503", (out / "observations-player-always-visible-error.txt").read_text())
+
+    def test_a_missing_player_fails_the_candidate(self):
+        gone = Scene(self.root / "gone", extra={"blue robot": lambda i: ROBOT(i) if i < 30 else "",
+                                                 "gold coin": COINS})
+        doc, _ = self.verify(gone.transport)
+        self.assertEqual(self.by(doc, "regression")["player-always-visible"], "fail")
+        self.assertEqual(doc["decision"], "reject")
+
+    def test_offline_fixtures_cannot_be_judged_by_sam(self):
+        doc, out = self.verify(self.scene.transport,
+                               observations_path=REPO / "agents" / "fixtures" / "obs-fixed.json", skip_harness=True)
+        self.assertEqual(self.by(doc, "regression")["player-always-visible"], "needs-review")
+        self.assertEqual(self.by(doc, "clean")["coins-visible"], "needs-review")
+        self.assertIn("no captured frames", (out / "observations-coins-visible-error.txt").read_text())
+
+    def test_held_out_routes_need_every_visual_spec(self):
+        from agents.verifier import _run_held_out_routes
+        root = self.root / "held"
+        root.mkdir()
+        (root / "route.json").write_text((REPO / "harness" / "routes" / "smoke.json").read_text())
+        manifest = {"routes": [{"name": "a", "file": "route.json", "minDeltaX": 0}]}
+        ground = load(REPO / "agents" / "specs" / "player-stays-above-ground.json", "test-spec")
+        real = sam.MetaSamClient
+        gone = Scene(self.root / "gone", extra={"blue robot": lambda i: "", "gold coin": COINS})
+        for transport, expected in ((self.scene.transport, "pass"), (gone.transport, "fail")):
+            out = self.root / f"out-{expected}"
+            with mock.patch.dict(os.environ, {"NIGHTSHIFT_SAM_CACHE": "off"}), \
+                    mock.patch("agents.verifier.harness_run", side_effect=self.harness), \
+                    mock.patch.object(sam, "MetaSamClient", side_effect=lambda: real(transport=transport, retries=0)):
+                verdict, arm_doc = _run_held_out_routes(root, manifest, ground, [], out, use_sam=True)
+            row = verdict["routes"][0]
+            self.assertEqual(set(row["visuals"]), {"player-stays-above-ground", "player-always-visible",
+                                                   "coins-visible"})
+            self.assertEqual(row["visual"], expected)
+            self.assertIn("SAM specs", arm_doc["detail"])
+
+    def test_an_unknown_provider_stops_verify_before_any_work(self):
+        from agents.verifier import verify
+        from tests.test_agents import _request
+        with mock.patch.dict(os.environ, {"NIGHTSHIFT_OBS_PROVIDER": "nope"}), \
+                mock.patch("agents.verifier.harness_run") as harness:
+            with self.assertRaises(SystemExit):
+                verify(_request(), REPO / "agents" / "fixtures" / "fix-collision-mask.patch", self.root / "v")
+        harness.assert_not_called()
 
 
 if __name__ == "__main__":

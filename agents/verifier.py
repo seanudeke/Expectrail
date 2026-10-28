@@ -15,6 +15,11 @@ fixture runs, forks) it falls back to the interim fixture, labeled interim-fixtu
 
 Optional `suite` on the verification document records candidate/clean/held-out
 provenance (harness vs fixture vs fixture-fallback vs unavailable).
+
+With NIGHTSHIFT_OBS_PROVIDER=sam, the specs in SAM_SPECS (player always visible, coins
+visible) are also judged on SAM 3.1's view of the candidate, clean and held-out replays, and
+every one must pass. The ground spec stays on the engine's position log: SAM cannot see the
+ground in this game's art (docs/sam.md).
 """
 from __future__ import annotations
 
@@ -32,7 +37,7 @@ from agents.gameplay import (
     judge_trace,
 )
 from agents.isolation import arm
-from agents.observations import from_trace
+from agents.observations import from_trace, resolve_provider
 from agents.patchutil import assert_editable, sha256_file
 from harness.run import REPO, run as harness_run, tree_digest
 from nightshift.contracts import digest, load, validate
@@ -56,6 +61,67 @@ _NOT_RUN = arm(source="not-run", detail="suite checks skipped (early reject)")
 # Checkout of the private held-out repository (manifest.json, routes/, bugs/). Set only on
 # the verifier's machine; never on the fixer's.
 HELDOUT_ENV = "NIGHTSHIFT_HELDOUT_DIR"
+
+# Specs SAM 3.1 can judge in this game, approved after the live probes (docs/sam.md). With
+# NIGHTSHIFT_OBS_PROVIDER=sam they are judged on SAM's view of every replay the verifier makes
+# (candidate, clean and held-out routes), in addition to the ground spec. SAM cannot see the
+# ground in this art, so the ground spec is always judged on the engine's position log.
+SAM_SPECS = ("specs/player-always-visible.json", "specs/coins-visible.json")
+SAM_SPECS_ENV = "NIGHTSHIFT_SAM_SPECS"  # comma-separated repo paths, to override SAM_SPECS
+
+
+def sam_on() -> bool:
+    """True when SAM should judge the visual specs. An unknown provider fails here, early."""
+    return resolve_provider() == "sam"
+
+
+def sam_specs() -> list[dict]:
+    raw = os.environ.get(SAM_SPECS_ENV, "")
+    paths = [p.strip() for p in raw.split(",") if p.strip()] or list(SAM_SPECS)
+    return [load(REPO / p, "test-spec") for p in paths]
+
+
+def _sam_verdicts(trace: dict | None, replay_sha: str, frames_dir: Path | None, out_dir: Path,
+                  prefix: str = "") -> list[tuple[dict, dict | None, str | None]]:
+    """SAM's verdict on one replay for each SAM spec: (spec, verdict, None) or (spec, None, error).
+
+    Observations and verdicts are written next to the replay's other evidence. A replay without
+    frames (offline fixtures, a failed harness run) or a SAM failure gives no verdict, which the
+    callers turn into needs-review, never a pass.
+    """
+    results: list[tuple[dict, dict | None, str | None]] = []
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for spec in sam_specs():
+        name = f"{prefix}{spec['id']}"
+        if frames_dir is None or not Path(frames_dir).is_dir():
+            error = "no captured frames for this replay (offline fixtures or a failed harness run)"
+        else:
+            try:
+                obs = from_trace(trace or {}, replay_sha256=replay_sha, frames_dir=str(frames_dir), spec=spec,
+                                 provider="sam")
+            except SystemExit as exc:
+                error = str(exc)
+            else:
+                (out_dir / f"observations-{name}.json").write_text(json.dumps(obs, indent=2) + "\n", encoding="utf-8")
+                verdict = evaluate(spec, obs)
+                (out_dir / f"verdict-{name}.json").write_text(json.dumps(verdict, indent=2) + "\n", encoding="utf-8")
+                results.append((spec, verdict, None))
+                continue
+        (out_dir / f"observations-{name}-error.txt").write_text(f"{error}\n", encoding="utf-8")
+        results.append((spec, None, error))
+    return results
+
+
+def _sam_checks(kind: str, route_name: str, trace: dict | None, replay_sha: str, frames_dir: Path | None,
+                out: Path, prefix: str = "") -> list[dict]:
+    checks = []
+    for spec, verdict, _error in _sam_verdicts(trace, replay_sha, frames_dir, out, prefix):
+        if verdict is None:
+            checks.append({"spec": spec["id"], "kind": kind, "route": route_name, "result": "needs-review",
+                           "verdictSha256": "0" * 64})
+        else:
+            checks.append(_check(kind, spec["id"], route_name, verdict))
+    return checks
 
 
 def held_out_set() -> tuple[Path | None, dict | None, str | None]:
@@ -84,11 +150,12 @@ def held_out_set() -> tuple[Path | None, dict | None, str | None]:
 
 
 def _run_held_out_routes(
-    root: Path, manifest: dict, spec: dict, patches: list[Path], out: Path,
+    root: Path, manifest: dict, spec: dict, patches: list[Path], out: Path, use_sam: bool = False,
 ) -> tuple[dict, dict]:
     """Replay seed + candidate on each private route; return (verdict, suite arm).
 
-    A route passes only if the visual spec and the gameplay check both pass on it.
+    A route passes only if every visual spec and the gameplay check pass on it: the ground
+    spec on the engine's position log, plus the SAM specs on SAM's view when ``use_sam``.
     A harness failure on any route makes the whole check needs-review, never pass.
     """
     rows = []
@@ -104,15 +171,19 @@ def _run_held_out_routes(
                 row["harnessRetried"] = True
                 harness_run(root / entry["file"], run_dir, patches=patches)
             trace = json.loads((run_dir / "trace.json").read_text(encoding="utf-8"))
-            obs = from_trace(
-                trace, replay_sha256=sha256_file(run_dir / "replay.json"),
-                frames_dir=str(run_dir / "frames") if (run_dir / "frames").is_dir() else None, spec=spec,
-            )
-            visual = evaluate(spec, obs)
+            replay_sha = sha256_file(run_dir / "replay.json")
+            obs = from_trace(trace, replay_sha256=replay_sha, spec=spec, provider="trace")
+            visuals = {spec["id"]: evaluate(spec, obs)["result"]}
+            if use_sam:
+                for sam_spec, verdict, _error in _sam_verdicts(trace, replay_sha, run_dir / "frames", run_dir):
+                    visuals[sam_spec["id"]] = verdict["result"] if verdict else "needs-review"
+            visual = ("fail" if "fail" in visuals.values()
+                      else "pass" if all(v == "pass" for v in visuals.values()) else "needs-review")
             play = judge_trace(trace, min_delta_x=float(entry["minDeltaX"]))
-            parts = (visual["result"], play["result"])
+            parts = (visual, play["result"])
             row.update(
-                visual=visual["result"],
+                visual=visual,
+                visuals=visuals,
                 gameplay=play["result"],
                 gameplayReason=play["reason"],
                 observationsSha256=digest(obs),
@@ -133,7 +204,8 @@ def _run_held_out_routes(
         source="harness",
         path=str(out / "held-out"),
         observations_sha256=digest(verdict),
-        detail=f"{len(rows)} private held-out route(s) via {HELDOUT_ENV}",
+        detail=(f"{len(rows)} private held-out route(s) via {HELDOUT_ENV}"
+                + ("; ground spec on the engine's position log, SAM specs on SAM's view" if use_sam else "")),
     )
     return verdict, held_arm
 
@@ -248,11 +320,15 @@ def verify(
         patches.append(_resolve(seed))
     patches.append(candidate)
 
-    # Regression: still the observations evaluator (never-crosses). Loaded before observations
-    # so the sam provider gets its prompts, window and sampling from the spec it will be judged by.
+    # Regression: the ground spec (never-crosses), always judged on the engine's position log;
+    # SAM cannot see the ground in this art. With SAM on, the SAM specs are judged as well.
     reg_spec = load(REGRESSION_SPEC, "test-spec")
     if failing.get("spec", {}).get("id") == reg_spec["id"]:
         reg_spec = failing["spec"]
+    use_sam = sam_on()
+    sam_note = (f"; SAM 3.1 judges {', '.join(s['id'] for s in sam_specs())} on its own observations"
+                if use_sam else "")
+    trace, replay_sha, frames_dir = None, "0" * 64, None
 
     if observations_path is not None:
         observations = load(observations_path, "observations")
@@ -269,15 +345,10 @@ def verify(
         replay_sha = sha256_file(out / "replay" / "replay.json")
         frames_dir = out / "replay" / "frames"
         try:
-            observations = from_trace(
-                trace,
-                replay_sha256=replay_sha,
-                frames_dir=str(frames_dir) if frames_dir.is_dir() else None,
-                spec=reg_spec,
-            )
+            observations = from_trace(trace, replay_sha256=replay_sha, spec=reg_spec, provider="trace")
         except SystemExit as exc:
-            # The observations provider (SAM) could not judge the candidate: the regression
-            # check is needs-review, never a pass, and the other checks still run.
+            # The engine observations could not be built: the regression check is needs-review,
+            # never a pass, and the other checks still run.
             observations = None
             (out / "observations-error.txt").write_text(f"{exc}\n", encoding="utf-8")
             candidate_arm = arm(source="unavailable", detail=f"candidate observations unavailable: {exc}")
@@ -287,6 +358,7 @@ def verify(
                 source="harness",
                 path=str(out / "observations.json"),
                 observations_sha256=digest(observations),
+                detail=f"ground spec judged on the engine's position log{sam_note}" if use_sam else None,
             )
 
     route_name = route_doc.get("name", route.stem)
@@ -305,6 +377,8 @@ def verify(
             json.dumps(reg_verdict, indent=2) + "\n", encoding="utf-8"
         )
         checks.append(_check("regression", reg_spec["id"], route_name, reg_verdict))
+    if use_sam:
+        checks += _sam_checks("regression", route_name, trace, replay_sha, frames_dir, out)
 
     # Gameplay: same agents.gameplay predicate for harness trace and offline fixtures.
     gameplay_trace, gameplay_source, min_dx = _resolve_gameplay_trace(
@@ -342,6 +416,7 @@ def verify(
     # fixture so verify still emits a four-kind decision (fail still beats unclear).
     clean_path = clean_observations_path or CLEAN_OBS
     clean_spec = load(REGRESSION_SPEC, "test-spec")
+    clean_trace, clean_replay_sha, clean_frames = None, "0" * 64, None
     if skip_harness or observations_path is not None:
         clean_obs = load(clean_path, "observations")
         if digest(clean_obs) == digest(observations):
@@ -379,16 +454,13 @@ def verify(
                 detail=f"clean harness failed; see {out / 'clean-harness-error.txt'}",
             )
         else:
-            # The harness rendered the clean game. If the observations provider (SAM) cannot
-            # judge it, that is needs-review: falling back to the fixture here would pass the
-            # clean check on data SAM never saw.
+            # The harness rendered the clean game. If its observations cannot be built, that is
+            # needs-review: falling back to the fixture here would pass the clean check on data
+            # nobody looked at.
             clean_route = "clean-control"
             clean_frames = out / "clean-replay" / "frames"
             try:
-                clean_obs = from_trace(
-                    clean_trace, replay_sha256=clean_replay_sha,
-                    frames_dir=str(clean_frames) if clean_frames.is_dir() else None, spec=clean_spec,
-                )
+                clean_obs = from_trace(clean_trace, replay_sha256=clean_replay_sha, spec=clean_spec, provider="trace")
             except SystemExit as exc:
                 clean_obs = None
                 (out / "observations-clean-error.txt").write_text(f"{exc}\n", encoding="utf-8")
@@ -401,6 +473,7 @@ def verify(
                     source="harness",
                     path=str(out / "observations-clean.json"),
                     observations_sha256=digest(clean_obs),
+                    detail=f"ground spec judged on the engine's position log{sam_note}" if use_sam else None,
                 )
     if clean_obs is None:
         checks.append({
@@ -414,6 +487,9 @@ def verify(
         clean_verdict = evaluate(clean_spec, clean_obs)
         (out / "verdict-clean.json").write_text(json.dumps(clean_verdict, indent=2) + "\n", encoding="utf-8")
         checks.append(_check("clean", clean_spec["id"], clean_route, clean_verdict))
+    if use_sam:
+        # A fixture clean run has no frames, so SAM's clean checks are needs-review there.
+        checks += _sam_checks("clean", clean_route, clean_trace, clean_replay_sha, clean_frames, out, "clean-")
 
     # Held-out: private routes when the held-out set is mounted on this (verifier) machine
     # and we are replaying for real; otherwise the labeled interim fixture.
@@ -434,7 +510,8 @@ def verify(
         })
         held_arm = arm(source="unavailable", detail=f"held-out set unusable: {held_problem}")
     elif use_private:
-        held_verdict, held_arm = _run_held_out_routes(held_root, held_manifest, held_spec, patches, out)
+        held_verdict, held_arm = _run_held_out_routes(held_root, held_manifest, held_spec, patches, out,
+                                                      use_sam=use_sam)
         (out / "verdict-held-out.json").write_text(json.dumps(held_verdict, indent=2) + "\n", encoding="utf-8")
         checks.append(_check("held-out", held_spec["id"], "held-out-routes", held_verdict))
     elif held_path.is_file():

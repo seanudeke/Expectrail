@@ -7,11 +7,41 @@ plain code. This page is the handoff for wiring SAM in for real and calibrating 
 ## Status
 
 - Built: the adapter (`agents/sam_observations.py`), the probe (`agents/sam_probe.py`), a manual
-  GitHub Actions workflow (**SAM probe**), and offline tests (`tests/test_sam.py`).
-- Not done yet: **no call has been made to the live API from this repo.** The build environment had
-  no key. The parser follows Meta's documented output format and reads a published sample response
-  correctly, but the first live run is the real test. Run the probe first (below).
+  GitHub Actions workflow (**SAM probe**), the verifier wiring, and offline tests
+  (`tests/test_sam.py`).
+- **Live since October 28.** The probe has run against the real API: about one second per request,
+  every response parsed. Findings and the specs they led to are below.
 - CI on pull requests keeps using the position-log stand-in (`trace` provider). It has no key.
+
+## What the live probes found (October 28)
+
+Runs 40653267793 to 40656100304 of the SAM probe workflow; per-run results are on the
+`sam-probe-results` branch.
+
+- **SAM 3.1 does not see the ground in this game's art.** It segments things, not surfaces.
+  "grass-topped ground", "ground", "floor", "dirt", "terrain", "platform", "cliff" and "ledge"
+  matched nothing in 13 of 13 frames; "grass" matched the grass band in 3 of 13; "rock" found the
+  decorative boulders. So the ground spec (`player-stays-above-ground`) cannot be judged by SAM.
+- **"small robot character" also matches the red beetle enemies**, at up to 0.84 confidence. If the
+  robot fell out of view, SAM would point at an enemy and the bug would be missed.
+- **"blue robot" matches only the robot**: 120 of 120 clean frames (lowest 0.64), nothing else in
+  the scene ever matched. "blue and white robot", "robot boy" and "astronaut" were close behind;
+  "robot" and "small robot" also match the enemies.
+- **"gold coin" finds the coins**: 120 of 120 clean frames (lowest 0.69), 11 to 16 coins a frame.
+
+That led to two specs Sean approved on October 28:
+
+| Spec | Prompt | Clean (every frame) | Seeded bugs (every 4th frame) |
+| --- | --- | --- | --- |
+| `player-always-visible` | blue robot | pass, 120/120 | fall-through v1, v2: fail (robot seen in 6/31); layering v1, v2: fail (17/31); missing-texture: pass |
+| `coins-visible` | gold coin | pass, 120/120 | missing-texture v1, v2: fail (0/13) |
+
+Together they fail all six seeded bugs with no false alarm on the clean run. The ground spec stays
+judged on the engine's position log, labeled that way; combining the engine's ground line with
+SAM's robot box is the next step after Gate 2.
+
+One honest limit: "always visible" cannot see a robot that sinks partway into the ground but stays
+on screen. The ground spec on the position log still covers that.
 
 ## Where SAM runs
 
@@ -63,35 +93,33 @@ python3 -m agents.sam_observations --run runs/seeded/physics-fall-through_v1 \
   --spec specs/player-stays-above-ground.json
 ```
 
-**The whole loop:** set `NIGHTSHIFT_OBS_PROVIDER=sam`. The verifier then sends the candidate,
-clean and held-out replays' frames to SAM, with the regression spec's prompts and window.
+**The whole loop:** set `NIGHTSHIFT_OBS_PROVIDER=sam`. For the candidate, clean and held-out
+replays, the verifier then judges:
 
-## What to decide from the probe, in order
+- the ground spec on the engine's position log, as before;
+- every spec in `agents.verifier.SAM_SPECS` (player always visible, coins visible) on SAM's view of
+  the same frames. Override the list with `NIGHTSHIFT_SAM_SPECS=specs/a.json,specs/b.json`.
 
-Any change to a prompt, `minScore` or `tolerancePx` changes the spec, so it needs Sean's approval
-again (`python3 -m nightshift.spec_writer approve ...`).
+Every check must pass. The suite provenance says which source judged what. The held-out routes
+have not been probed with SAM yet (their frames must not leave the verifier machine), so the
+first SAM-on verifier run there is also their first SAM test.
 
-1. **Is the player found on every clean frame?** The evaluator is strict: one clean frame without
-   the player makes the clean check needs-review, and the verifier will not accept a fix. If the
-   probe shows misses, try other prompts ("robot", "small robot") or a per-object `minScore`.
-2. **What does "grass-topped ground" match?** The floating platforms are grass-topped too. For
-   `never-crosses`, the evaluator takes the ground matches that overlap the player horizontally and
-   picks the one whose top edge is nearest the player's bottom edge, above or below it. When the
-   player jumps under a platform, that can be the platform above, which reads as "past the
-   boundary": a false fail on the clean run. The probe shows it as a large gap on a clean jump frame.
-   If it happens, narrow the prompt, or change the rule to "the nearest surface under the player"
-   (an evaluator change: agree it with Sean and add a test).
-3. **Set the tolerance in the right units.** The approved `tolerancePx` is 12, set against the
-   position-log stand-in, whose boxes are in game-world pixels. SAM's boxes are in captured-frame
-   pixels, and frames are 1600x960 for an 800x480 game viewport (camera zoom 1), so one world pixel
-   is two frame pixels: 12 here means 6 in the old units. The probe prints the worst clean gap and
-   the fall-through gaps. Pick a tolerance above every clean gap and below the bugs'.
-4. **The other bug families need their own specs.** On the missing-texture and layering runs this
-   spec is about the player and the ground, so a hidden player shows up as "not found", which is
-   needs-review. That is correct for this spec. Catching those bugs needs specs such as "the coin is
-   visible" and "the player is visible".
-5. **Sample rate.** The default is every 4th frame, the rate in `docs/evaluation.md`. Time and
-   cost per request from the probe run decide whether to change it.
+**Prompt sweeps.** `--sweep player="blue robot|robot boy|astronaut"` tries several prompts for one
+object over the same frames; `--set ground=grass` probes one other prompt without editing the spec.
+Both are inputs on the SAM probe workflow, together with `runs` to probe only some runs.
+
+## What is still open
+
+1. **Held-out routes under SAM.** Run the verifier with `NIGHTSHIFT_OBS_PROVIDER=sam` on the
+   verifier machine and read `verdict-held-out.json`: each route lists `visuals` per spec. Coins
+   in particular may be off screen on some private route.
+2. **The ground, properly.** Log the camera each frame in the harness, project the level's ground
+   line into frame pixels, and compare it with SAM's robot box. That restores a vision-checked
+   `never-crosses` and catches a robot that sinks but stays visible.
+3. **Score margin.** The lowest clean scores were 0.64 (player) and 0.69 (coins) against the 0.5
+   threshold. Watch it when the art or the camera changes.
+4. **Sample rate.** Every 4th frame cost 31 requests a run, at about one second each with four in
+   flight. Keep it unless cost says otherwise.
 
 ## How it looks at fewer frames
 
