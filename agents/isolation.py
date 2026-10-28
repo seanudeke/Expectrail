@@ -18,6 +18,8 @@ FIXER_FORBIDDEN_BASENAMES = frozenset({
     "player-reaches-end-of-route.json",
     # Current opaque motion id — deny so a fake SAM/spec file cannot mount either.
     "player-motion-on-smoke.json",
+    # Verifier-side gameplay adjunct — must not mount into fixer-work.
+    "verdict-gameplay.json",
     "evaluator.py",
 })
 

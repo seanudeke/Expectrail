@@ -38,3 +38,4 @@ something; keep prior work out of it.
 | Oct 27 | Gameplay-verdict contract + filmable morning Gameplay section | `contracts/gameplay-verdict.schema.json`, `agents/report.py` |
 | Oct 27 | Honest motion check id, filmable overnight gameplay rollup, RC contract | `agents/verifier.py`, `agents/report.py`, `contracts/release-candidate.schema.json` |
 | Oct 27 | Overnight summary contract, wall-clock/cost stubs, RR→RC bind, demo package | `contracts/overnight-summary.schema.json`, `agents/loop.py`, `agents/bench.py`, `bench/` |
+| Oct 27 | Film/operability hardening: sources, trust film, harness morning, multi-gameplay fail-closed | `agents/report.py`, `agents/isolation.py`, `.github/workflows/ci.yml` |

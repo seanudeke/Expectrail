@@ -54,6 +54,22 @@ class ContractsTest(unittest.TestCase):
         with self.assertRaises(ContractError):
             validate(overnight, "overnight-summary")
         overnight = json.loads((EXAMPLES / "overnight-summary.json").read_text())
+        overnight["accepted"] = overnight["runs"] + 1
+        with self.assertRaises(ContractError):
+            validate(overnight, "overnight-summary")
+        overnight = json.loads((EXAMPLES / "overnight-summary.json").read_text())
+        overnight["results"] = overnight["results"][:1]
+        with self.assertRaises(ContractError):
+            validate(overnight, "overnight-summary")
+        overnight = json.loads((EXAMPLES / "overnight-summary.json").read_text())
+        overnight["cost"] = {
+            "modelCalls": 0,
+            "costUsd": None,
+            "costProvenance": "metered",
+        }
+        with self.assertRaises(ContractError):
+            validate(overnight, "overnight-summary")
+        overnight = json.loads((EXAMPLES / "overnight-summary.json").read_text())
         overnight["format"] = "nightshift.overnight-summary/v1"
         with self.assertRaises(ContractError):
             validate(overnight, "overnight-summary")

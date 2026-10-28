@@ -55,10 +55,13 @@ def _materialize_frames(srcs: list[Path], dest_dir: Path, prefix: str) -> list[d
 
 
 def _gameplay_check(verification: dict) -> dict | None:
-    for c in verification.get("checks", []):
-        if c.get("kind") == "gameplay":
-            return c
-    return None
+    """Return the single gameplay check, or None. Fail-closed if more than one."""
+    found = [c for c in verification.get("checks", []) if c.get("kind") == "gameplay"]
+    if len(found) > 1:
+        raise ContractError(
+            f"verification has {len(found)} gameplay checks; morning binds exactly one"
+        )
+    return found[0] if found else None
 
 
 def _bind_gameplay_verdict(doc: dict, check: dict) -> dict:
@@ -327,9 +330,15 @@ def write_loop_rollup(out: Path, *, summary: dict) -> Path:
         gameplay = _result_gameplay(result)
         trust = result.get("trust")
         run_ms = (result.get("timing") or {}).get("wallClockMs")
+        triage_source = result.get("triageSource")
+        fixer_source = result.get("fixerSource")
         line = f"- run-{i:02d}: `{decision}`"
         if morning:
             line += f" → [{rel}]({rel})"
+        if triage_source:
+            line += f" triage=`{triage_source}`"
+        if fixer_source:
+            line += f" fixer=`{fixer_source}`"
         if gameplay:
             line += f" gameplay=`{gameplay.get('result')}` reason={gameplay.get('reason')}"
         if run_ms is not None:

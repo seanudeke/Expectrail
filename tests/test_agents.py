@@ -286,6 +286,16 @@ class VerifierDecideTest(unittest.TestCase):
             self.assertEqual(doc["suite"]["candidate"]["source"], "harness")
             self.assertIn("clean harness failed", doc["suite"]["clean"].get("detail", ""))
             validate(doc, "verification")
+            morning = build_report(
+                verification=doc,
+                candidate=REPO / "agents" / "fixtures" / "freeze-player.patch",
+                out=out / "morning-fallback",
+                verification_path=out / "verification.json",
+            )
+            report = (out / "morning-fallback" / "morning-report.md").read_text()
+            self.assertIn("source=`fixture-fallback`", report)
+            self.assertIn("## Suite provenance", report)
+            self.assertEqual(morning["decision"], "reject")
             self.assertEqual(
                 json.loads((out / "suite-provenance.json").read_text()),
                 doc["suite"],
@@ -391,6 +401,75 @@ class VerifierDecideTest(unittest.TestCase):
             self.assertEqual(rc["requestSha256"], doc["candidate"]["requestSha256"])
             self.assertEqual(rc["requestId"], doc["candidate"]["request"])
             validate(doc, "verification")
+
+    def test_base_tree_early_reject_films_morning(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            request = _request()
+            request["base"]["tree"] = "0" * 64
+            doc = verify(
+                request,
+                REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
+                Path(tmp) / "verify",
+                observations_path=REPO / "agents" / "fixtures" / "obs-fixed.json",
+                skip_harness=True,
+            )
+            self.assertEqual(doc["decision"], "reject")
+            self.assertEqual(doc["suite"]["earlyReject"]["gate"], "base-tree")
+            self.assertEqual(doc["suite"]["candidate"]["source"], "not-run")
+            report = build_report(
+                verification=doc,
+                candidate=REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
+                out=Path(tmp) / "morning",
+            )
+            md = (Path(tmp) / "morning" / "morning-report.md").read_text()
+            self.assertIn("## Early reject", md)
+            self.assertIn("base-tree", md)
+            self.assertIn("source=`not-run`", md)
+            self.assertEqual(report["decision"], "reject")
+
+    def test_morning_fails_closed_on_multiple_gameplay_checks(self):
+        from nightshift.contracts import ContractError, digest as cdigest
+
+        good = json.loads(
+            (REPO / "contracts" / "examples" / "gameplay-verdict.json").read_text()
+        )
+        verification = {
+            "format": "nightshift.verification/v0",
+            "candidate": {
+                "patchSha256": "a" * 64,
+                "baseTree": "b" * 64,
+                "attempt": 1,
+                "request": "rr",
+                "requestSha256": "c" * 64,
+            },
+            "evaluator": {"name": "x", "version": "0"},
+            "checks": [
+                {
+                    "spec": GAMEPLAY_SPEC_ID,
+                    "kind": "gameplay",
+                    "route": "smoke",
+                    "result": "fail",
+                    "verdictSha256": cdigest(good),
+                },
+                {
+                    "spec": "other-motion",
+                    "kind": "gameplay",
+                    "route": "smoke",
+                    "result": "pass",
+                    "verdictSha256": "d" * 64,
+                },
+            ],
+            "decision": "reject",
+            "reasons": ["ambiguous"],
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(ContractError):
+                build_report(
+                    verification=verification,
+                    candidate=None,
+                    out=Path(tmp) / "morning",
+                    gameplay_verdict=good,
+                )
 
 
 class FixerFixtureTest(unittest.TestCase):
@@ -761,6 +840,7 @@ class TriageReportTrustLoopTest(unittest.TestCase):
                 "player-stays-above-ground.json",
                 "player-reaches-end-of-route.json",
                 "player-motion-on-smoke.json",
+                "verdict-gameplay.json",
                 "evaluator.py",
             }),
         )
@@ -775,6 +855,7 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             "player-stays-above-ground.json",
             "player-reaches-end-of-route.json",
             "player-motion-on-smoke.json",
+            "verdict-gameplay.json",
         )
         for name in plants:
             with self.subTest(name=name):
@@ -791,6 +872,19 @@ class TriageReportTrustLoopTest(unittest.TestCase):
                     self.assertFalse(result["ok"])
                     self.assertFalse(result["suiteControlsAbsentFromFixer"])
                     self.assertTrue(any(p.endswith(name) for p in result["forbiddenPathsInFixer"]))
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "trust"
+            run_trust_check(out)
+            nested = out / "fixer-workspace" / "deep" / "nested" / "obs-clean.json"
+            nested.parent.mkdir(parents=True)
+            nested.write_text("{}\n", encoding="utf-8")
+            result = run_trust_check(
+                out / "nested-recheck",
+                fixer_work=out / "fixer-workspace",
+                verifier_host=out / "verifier-host",
+            )
+            self.assertFalse(result["ok"])
+            self.assertTrue(any(p.endswith("obs-clean.json") for p in result["forbiddenPathsInFixer"]))
 
     def test_triage_without_keys_never_calls_wonder(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1080,6 +1174,8 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             self.assertIn("unmetered-offline", rollup)
             self.assertIn("## Trust", rollup)
             self.assertIn("trust=`PASS`", rollup)
+            self.assertIn("triage=`offline`", rollup)
+            self.assertIn("fixer=`fixture`", rollup)
             self.assertIn("run-00/morning/morning-report.md", rollup)
             self.assertIn("![before](frames/before-00.png)", rollup)
             self.assertIn("![after](frames/after-00.png)", rollup)
@@ -1163,6 +1259,53 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             text = path.read_text(encoding="utf-8")
             self.assertIn("1 of 2", text)
             self.assertIn("Unresolved", text)
+            self.assertNotIn("Latest accept frames", text)
+            self.assertNotIn("## Gameplay", text)
+
+    def test_loop_no_trust_omits_trust_film(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "loop"
+            code = loop_main([
+                "--out", str(out),
+                "--mode", "offline",
+                "--runs", "1",
+                "--no-trust",
+            ])
+            self.assertEqual(code, 0)
+            summary = json.loads((out / "summary.json").read_text())
+            self.assertIsNone(summary["results"][0].get("trust"))
+            rollup = (out / "morning-report.md").read_text()
+            self.assertNotIn("## Trust", rollup)
+            self.assertNotIn("trust=`PASS`", rollup)
+            self.assertIn("triage=`offline`", rollup)
+            self.assertIn("fixer=`fixture`", rollup)
+
+    def test_trust_fail_rollup_films_fail(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            summary = {
+                "format": "nightshift.overnight-summary/v0",
+                "mode": {"mode": "offline", "offline_triage": True, "use_muse": False},
+                "runs": 1,
+                "accepted": 0,
+                "verificationProvenance": "fixture",
+                "cost": {"modelCalls": 0, "costUsd": None, "costProvenance": "unmetered-offline"},
+                "timing": {"wallClockMs": 1.0},
+                "results": [{
+                    "decision": "reject",
+                    "error": "trust beat failed",
+                    "morning": None,
+                    "gameplay": None,
+                    "trust": {"ok": False},
+                    "timing": {"wallClockMs": 1.0},
+                }],
+            }
+            from nightshift.contracts import validate as v
+            v(summary, "overnight-summary")
+            text = write_loop_rollup(out, summary=summary).read_text()
+            self.assertIn("## Trust", text)
+            self.assertIn("trust=`FAIL`", text)
+            self.assertIn("## Unresolved", text)
             self.assertNotIn("Latest accept frames", text)
             self.assertNotIn("## Gameplay", text)
 

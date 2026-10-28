@@ -240,8 +240,6 @@ def main(argv: list[str] | None = None) -> int:
         "results": results,
     }
     validate(summary, "overnight-summary")
-    if accepted > args.runs:
-        raise SystemExit(f"overnight-summary invariant broken: accepted={accepted} runs={args.runs}")
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     rollup = write_loop_rollup(args.out, summary=summary)
