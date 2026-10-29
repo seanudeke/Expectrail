@@ -56,7 +56,7 @@ Explore the complete Gate 2 audit vault and interactive defect-fix explorer with
   - **Case Explorer:** Switch across all 8 development defect variants (physics fall-through, missing textures, layering, sinking) and 4 rejected anti-cheat exploits (freezing player, hiding player, sinking player, lowering the floor).
   - **Visual & HUD Simulation:** Inspect coordinate traces, floor boundaries, and SAM 3.1 segmentation masks.
   - **Audit Breakdown:** Complete 4-suite verifier checks (`regression`, `gameplay`, `clean`, `held-out`).
-  - **Benchmark Matrix:** Gate 2 comparison table showing 8/8 fixed with SAM ON vs 3/8 with SAM OFF.
+  - **Benchmark Matrix:** development set: 8 of 8 bugs caught with SAM, 3 of 8 without; 8 of 8 fixed both from screenshots and with Nightshift (see [`bench/`](bench)).
   - **Security & Trust:** Visualizes "Deny-by-absence" isolation and canary probe denials.
   - **Morning Report & Release Candidate:** 7:30 AM rollup and Ed25519 signature audit.
 

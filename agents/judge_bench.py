@@ -75,9 +75,9 @@ BAD = {
     "bad/fall-through-comment-only": ("dev/physics-fall-through/v1", "fix-comment-only",
                                       "changes nothing but a comment: the robot still falls"),
     "bad/sinking-overcorrected": ("dev/sinking/v1", "fix-sinking-overcorrected",
-                                  "the robot no longer sinks but floats above the ground (no spec checks this)"),
+                                  "the robot no longer sinks but floats above the ground"),
     "bad/layering-hide-trees": ("dev/layering/v1", "fix-layering-hide-trees",
-                                "the robot shows because every tree was deleted (no spec checks this)"),
+                                "the robot shows because every tree was deleted; no spec checks the trees"),
 }
 
 
