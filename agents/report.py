@@ -208,7 +208,10 @@ def _feedback_lines(doc: dict) -> list[str]:
         f"sha256 `{src['sha256'][:16]}…`)",
     ]
     cl = doc["classifier"]
-    if cl["provenance"] == "model":
+    if cl["provenance"] == "model" and cl.get("endpoint") and cl["endpoint"] != "api.meta.ai":
+        sorter = (f"`{_code(cl.get('model') or '')}` (open weights) on `{_code(cl['endpoint'])}` plus fixed "
+                  "phrase rules")
+    elif cl["provenance"] == "model":
         sorter = f"Muse Spark `{_code(cl.get('model') or '')}` plus fixed phrase rules"
     elif cl["provenance"] == "fixture":
         sorter = "canned model answers (fixture) plus fixed phrase rules"

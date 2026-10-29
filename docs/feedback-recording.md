@@ -82,6 +82,25 @@ python3 -m agents.feedback --offline --transcript agents/fixtures/feedback/playt
   --fixture agents/fixtures/feedback/spark-fixture.json --out runs/feedback
 ```
 
+## Open weights: sorting on Muse Spark Open
+
+The hackathon's open-weights prize counts only Muse Glimmer or Muse Spark Open, served on our own
+hardware or through partner inference; SAM 3.1 through Meta's API does not count. `--sorter open`
+sends the sorting and the spec drafting to Muse Spark Open on Baseten's OpenAI-compatible endpoint
+(the hackathon's model id `meta-models/muse-spark-open-1026`). Transcription stays on Muse Voice
+Transcribe.
+
+```sh
+export BASETEN_API_KEY=...        # Baseten's hackathon credit; never commit it
+python3 -m agents.feedback --audio playtest-1.wav --consent --sorter open --out runs/feedback
+```
+
+The intake records the model and the host that served it (`classifier.endpoint`), and the morning
+report says "open weights on inference.baseten.co". Another partner works the same way: set
+`NIGHTSHIFT_OPEN_API_BASE` to its OpenAI-compatible `/v1` URL and `NIGHTSHIFT_OPEN_MODEL` to its
+model id. Neither key is ever passed to Muse Code. In CI, pick `sorter: open` on **Feedback (live)**
+after adding the `BASETEN_API_KEY` secret.
+
 ## Filming the beat
 
 ```sh

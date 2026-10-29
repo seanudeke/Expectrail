@@ -71,6 +71,7 @@ python3 -m agents.feedback --offline --transcript agents/fixtures/feedback/playt
 python3 -m agents.loop --out runs/loop --mode offline --feedback runs/feedback/feedback-intake.json
 # Live feedback: python3 -m agents.feedback --audio playtest.wav --consent --out runs/feedback
 python3 -m agents.film_feedback --out runs/film-feedback   # hostile-feedback beat → film.md
+# Open weights: add --sorter open (Muse Spark Open on Baseten, BASETEN_API_KEY) to agents.feedback
 # Live Muse film (clean prompt): python3 -m agents.prove_live --out runs/prove
 # Live overnight path: python3 -m agents.loop --mode live
 ```

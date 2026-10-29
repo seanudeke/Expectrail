@@ -404,6 +404,65 @@ class ReportTest(unittest.TestCase):
             self.assertNotIn("feedback", summary)
 
 
+class OpenWeightsTest(unittest.TestCase):
+    """--sorter open: Muse Spark Open on a partner's OpenAI-compatible endpoint (Baseten by default)."""
+
+    def test_transport_request_shape(self):
+        seen = {}
+
+        class Resp(io.BytesIO):
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+        def fake_urlopen(req, timeout):
+            seen["url"], seen["auth"] = req.full_url, req.get_header("Authorization")
+            seen["body"] = json.loads(req.data)
+            return Resp(json.dumps({"choices": [{"message": {"content": "{}"}}]}).encode())
+
+        with mock.patch.object(fb.urllib.request, "urlopen", fake_urlopen):
+            fb.openai_transport("https://inference.baseten.co/v1/", "bk")({"model": fb.OPEN_MODEL, "messages": []})
+        self.assertEqual(seen["url"], "https://inference.baseten.co/v1/chat/completions")
+        self.assertEqual(seen["auth"], "Bearer bk")
+        self.assertEqual(seen["body"]["model"], "meta-models/muse-spark-open-1026")
+
+        def refused(req, timeout):
+            raise urllib.error.HTTPError(req.full_url, 400, "bad", {}, io.BytesIO(b"json_schema unsupported"))
+
+        with mock.patch.object(fb.urllib.request, "urlopen", refused):
+            with self.assertRaisesRegex(spec_writer.SpecDraftError, "^HTTP 400"):
+                fb.openai_transport("https://x.example/v1", "bk")({})
+
+    def test_cli_open_sorter_records_the_endpoint(self):
+        fixture = fb.fixture_transport(json.loads(SPARK.read_text()))
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch.dict(os.environ, {"BASETEN_API_KEY": "", "NIGHTSHIFT_OPEN_API_KEY": ""}):
+                self.assertEqual(fb.main(["--transcript", str(TRANSCRIPT), "--consent", "--sorter", "open",
+                                          "--out", tmp]), 1)  # no key
+            with mock.patch.dict(os.environ, {"BASETEN_API_KEY": "bk"}), \
+                    mock.patch.object(fb, "openai_transport", return_value=fixture) as made:
+                self.assertEqual(fb.main(["--transcript", str(TRANSCRIPT), "--consent", "--sorter", "open",
+                                          "--out", tmp]), 0)
+                made.assert_called_once_with(fb.OPEN_API_BASE, "bk")
+            doc = json.loads((Path(tmp) / "feedback-intake.json").read_text())
+            self.assertEqual(validate(doc), "feedback-intake")
+            self.assertEqual(doc["classifier"]["endpoint"], "inference.baseten.co")
+            self.assertEqual(doc["classifier"]["model"], fb.OPEN_MODEL)
+            self.assertEqual(sum(1 for i in doc["items"] if i.get("draft")), 2)  # drafted by the same model
+            md, _ = ReportTest()._report(Path(tmp), feedback=doc)
+            self.assertIn("(open weights) on `inference.baseten.co`", md)
+
+    def test_open_key_never_reaches_muse_code(self):
+        from agents.keys import MUSE_ENV_ALLOWLIST, muse_subprocess_env
+
+        self.assertFalse(set(fb.OPEN_KEY_ENVS) & MUSE_ENV_ALLOWLIST)
+        env = muse_subprocess_env({"BASETEN_API_KEY": "bk", "NIGHTSHIFT_OPEN_API_KEY": "ok", "PATH": "/usr/bin"})
+        self.assertNotIn("BASETEN_API_KEY", env)
+        self.assertNotIn("NIGHTSHIFT_OPEN_API_KEY", env)
+
+
 class WorkflowTest(unittest.TestCase):
     def test_live_feedback_is_manual_and_needs_consent(self):
         import re

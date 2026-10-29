@@ -19,6 +19,11 @@ DOTENV_KEYS = frozenset({
     "META_API_BASE",
     "NIGHTSHIFT_MODEL_API_BASE",
     "NIGHTSHIFT_SPEC_MODEL",
+    # Open weights (Muse Spark Open on a partner endpoint) for agents.feedback --sorter open
+    "BASETEN_API_KEY",
+    "NIGHTSHIFT_OPEN_API_KEY",
+    "NIGHTSHIFT_OPEN_API_BASE",
+    "NIGHTSHIFT_OPEN_MODEL",
 })
 
 # Muse Code subprocess: model key + runtime/TLS/temp/proxy hygiene — not a sandbox.
