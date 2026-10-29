@@ -63,3 +63,47 @@ class BenchCollectTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def matrix_fetch(run_notes):
+    """A fake GitHub API: run id -> list of (case, condition, message)."""
+    def fetch(path):
+        parts = path.split("/")
+        if parts[-2] == "runs" and parts[-1].isdigit():
+            return {"html_url": f"https://x/{parts[-1]}", "head_sha": "abc1234def", "created_at": "2026-10-29T17:00:00Z"}
+        if "/jobs" in path:
+            run = int(path.split("/runs/")[1].split("/")[0])
+            return {"jobs": [{"id": run * 100 + i, "name": f"run ({c}, {k})"} for i, (c, k, _m) in enumerate(run_notes[run])]
+                    + [{"id": 1, "name": "summary"}]}
+        job = int(parts[-2])
+        run, i = divmod(job, 100)
+        c, k, msg = run_notes[run][i]
+        return [{"title": f"Fix matrix {c} {k}", "message": msg}]
+    return fetch
+
+
+FIXED = "detected fail; outcome fixed; attempts 1 (1: accept); 600.0 s; live=True"
+ERROR = "detected fail; outcome error; attempts 0 (); 940.0 s; live=True"
+LATER = "detected fail; outcome fixed; attempts 2 (1: timeout; 2: accept); 1800.0 s; live=True"
+
+
+class MatrixCollectTest(unittest.TestCase):
+    def test_a_later_run_only_fills_in_errors(self):
+        notes = {1: [("dev/a/v1", "nightshift", FIXED), ("dev/b/v1", "nightshift", ERROR)],
+                 2: [("dev/a/v1", "nightshift", ERROR), ("dev/b/v1", "nightshift", LATER)]}
+        doc = bc.collect_matrix([1, 2], "dev", fetch=matrix_fetch(notes))
+        rows = {r["case"]: r for r in doc["rows"]}
+        self.assertEqual(rows["dev/a/v1"]["run"], 1)  # a fix is never replaced by a later error
+        self.assertEqual(rows["dev/b/v1"]["run"], 2)
+        self.assertEqual(rows["dev/b/v1"]["replaces"], {"run": 1, "outcome": "error"})
+        self.assertEqual(rows["dev/b/v1"]["attempts"], ["timeout", "accept"])
+        s = doc["conditions"]["nightshift"]
+        self.assertEqual((s["fixed"], s["error"], s["cases"], s["firstAttemptFixes"]), (2, 0, 2, 1))
+        md = bc.matrix_markdown(doc)
+        self.assertIn("| nightshift | 2 of 2 | 0 | 0 | 0 | 0 |", md)
+        self.assertIn("replaces an error in 1", md)
+
+    def test_offline_results_are_refused(self):
+        notes = {1: [("dev/a/v1", "screenshots", FIXED.replace("live=True", "live=False"))]}
+        with self.assertRaises(SystemExit):
+            bc.collect_matrix([1], "dev", fetch=matrix_fetch(notes))
