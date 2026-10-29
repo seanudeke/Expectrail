@@ -428,7 +428,7 @@ def main(argv: list[str] | None = None) -> int:
                                          args.engine_ground, reference))
                 print(f"{run.name}: {results[-1]['verdict']['result']}", flush=True)
     except SamError as exc:
-        print(f"SAM failed: {exc}", file=sys.stderr)
+        print(f"{_label()} failed: {exc}", file=sys.stderr)
         if on_github:
             print(f"::error title={_label()} probe failed::{_escape(str(exc)[:500])} (after {client.calls} calls)")
         return 2
