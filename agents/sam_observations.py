@@ -57,7 +57,9 @@ WORKERS_ENV = "NIGHTSHIFT_SAM_WORKERS"
 # Which model looks at the frames: sam (SAM 3.1, Meta Model API) or glimmer (Muse Glimmer, open
 # weights, agents.glimmer_client). Everything else in this module is the same for both.
 BACKEND_ENV = "NIGHTSHIFT_VISION_BACKEND"
-BACKENDS = ("sam", "glimmer")
+BACKENDS = ("sam", "glimmer", "both")
+GLIMMER_ALONE_ENV = "NIGHTSHIFT_GLIMMER_ALONE"
+VISION_LABELS = {"sam": "SAM 3.1", "glimmer": "Muse Glimmer", "both": "SAM 3.1 with Muse Glimmer"}
 DEFAULT_EVERY = 4
 DEFAULT_WORKERS = 4
 # Bump when the request or the parsing changes, so older cache entries are never reused.
@@ -321,13 +323,34 @@ def vision_backend() -> str:
     return name
 
 
-def default_client():
-    """The frame-vision client for this run: SAM 3.1, or Muse Glimmer when the backend says so."""
-    if vision_backend() == "glimmer":
-        from agents.glimmer_client import GlimmerClient
+def vision_label() -> str:
+    try:
+        return VISION_LABELS[vision_backend()]
+    except SamError:
+        return VISION_LABELS["sam"]
 
-        return GlimmerClient()
-    return MetaSamClient()
+
+def default_client(verdict: bool = False):
+    """The frame-vision client for this run: SAM 3.1, Muse Glimmer, or both (an object counts only
+    when both see it).
+
+    ``verdict=True`` is the verifier's path. Glimmer alone is refused there unless
+    NIGHTSHIFT_GLIMMER_ALONE=1: the fixer controls the candidate's pixels, and a vision-language
+    model can be talked into a pass by text drawn into the game. Use ``both`` for verdicts.
+    """
+    backend = vision_backend()
+    if backend == "sam":
+        return MetaSamClient()
+    from agents.glimmer_client import BothClient, GlimmerClient
+
+    if backend == "both":
+        return BothClient()
+    alone = os.environ.get(GLIMMER_ALONE_ENV, "").strip().lower() in ("1", "true", "yes")
+    if verdict and not alone:
+        raise SamError("Glimmer alone does not decide a verdict: the fixer controls the frames, and text drawn "
+                       f"into the game could talk a vision-language model into a pass. Use {BACKEND_ENV}=both, "
+                       f"or set {GLIMMER_ALONE_ENV}=1 to measure Glimmer on known fixtures")
+    return GlimmerClient()
 
 
 # ---------------------------------------------------------------------------------------------
@@ -600,7 +623,7 @@ def _from_replay(frames_dir, replay_sha256, *, spec, prompts, every, refine, con
     frames = frame_files(Path(frames_dir))
     if not frames:
         raise SamError(f"no frames in {frames_dir}")
-    client = client or default_client()
+    client = client or default_client(verdict=True)
     cache = cache if cache is not None else Cache(default_cache_dir())
     workers = workers or int(os.environ.get(WORKERS_ENV, DEFAULT_WORKERS))
     rate = every or int(os.environ.get(EVERY_ENV, DEFAULT_EVERY))

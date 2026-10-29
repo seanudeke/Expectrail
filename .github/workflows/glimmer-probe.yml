@@ -3,12 +3,16 @@
 #
 #   probe:  render the clean game and every seeded bug, ask Glimmer where the spec's objects are on
 #           a sample of frames, and post per-run results (annotations + run summary + artifact).
-#   verify: the Gate 1 path with the vision checks on Glimmer instead of SAM: the real fix should be
-#           accepted, and the fix that hides the robot rejected. Includes the private held-out routes
-#           when HELDOUT_TOKEN is set; only check results leave the runner.
+#   verify: the Gate 1 path with the vision checks judged by `both` (SAM's boxes count only where
+#           Glimmer also sees the object; needs the SAM key too) or by Glimmer alone (measurement on
+#           known fixtures only). The real fix should be accepted and the hide-the-robot fix rejected.
+#           With HELDOUT_TOKEN set it includes the private held-out routes: their frames are sent to
+#           the vision endpoints as images, as SAM's are to Meta's API, and nothing from the held-out
+#           set is published (no artifact in this mode, only check results as annotations).
 #
-# Needs the FIREWORKS_API_KEY repo secret (Glimmer on Fireworks serverless), or point `base` at our
-# own vLLM / SGLang server with GLIMMER_API_KEY. Never runs on pull requests.
+# Needs the FIREWORKS_API_KEY repo secret (Glimmer on Fireworks serverless), or GLIMMER_API_KEY with
+# `base` on our own vLLM / SGLang server, whose host must be in the GLIMMER_ALLOWED_HOST repo
+# variable. https only, so the key never travels in clear. Never runs on pull requests.
 name: Glimmer probe
 
 on:
@@ -39,6 +43,11 @@ on:
       candidate:
         description: verify mode, the candidate patch to verify
         default: agents/fixtures/fix-collision-mask.patch
+      judge:
+        description: verify mode, both (SAM boxes counted only where Glimmer agrees) or glimmer alone (measurement only)
+        type: choice
+        options: [both, glimmer]
+        default: both
 
 permissions:
   contents: read
@@ -49,7 +58,10 @@ jobs:
     timeout-minutes: 60
     env:
       GLIMMER_KEY_SET: ${{ secrets.FIREWORKS_API_KEY != '' || secrets.GLIMMER_API_KEY != '' }}
+      SAM_KEY_SET: ${{ secrets.MODEL_API_KEY != '' || secrets.META_API_KEY != '' }}
       HELDOUT_TOKEN_SET: ${{ secrets.HELDOUT_TOKEN != '' }}
+      ALLOWED_HOST: ${{ vars.GLIMMER_ALLOWED_HOST }}
+      JUDGE: ${{ inputs.judge }}
       MODE: ${{ inputs.mode }}
       SPEC: ${{ inputs.spec }}
       EVERY: ${{ inputs.every }}
@@ -65,7 +77,16 @@ jobs:
             exit 1
           fi
           [[ "$EVERY" =~ ^[0-9]+$ ]] || { echo "::error::every must be a number"; exit 1; }
-          [[ "$BASE" =~ ^https?://[A-Za-z0-9.:-]+(/[A-Za-z0-9._-]+)*/?$ ]] || { echo "::error::base must be an http(s) URL"; exit 1; }
+          [[ "$BASE" =~ ^https://([A-Za-z0-9.-]+)(:[0-9]+)?(/[A-Za-z0-9._-]+)*/?$ ]] || { echo "::error::base must be an https URL"; exit 1; }
+          host="${BASH_REMATCH[1]}"
+          if [ "$host" != "api.fireworks.ai" ] && { [ -z "$ALLOWED_HOST" ] || [ "$host" != "$ALLOWED_HOST" ]; }; then
+            echo "::error::$host is not api.fireworks.ai or the GLIMMER_ALLOWED_HOST repo variable; the key is only sent to those"
+            exit 1
+          fi
+          if [ "$MODE" = "verify" ] && [ "$JUDGE" = "both" ] && [ "$SAM_KEY_SET" != "true" ]; then
+            echo "::error::judge=both needs the MODEL_API_KEY (or META_API_KEY) secret for SAM."
+            exit 1
+          fi
           [[ "$MODEL" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "::error::model must be a model id"; exit 1; }
           [[ "$SPEC" =~ ^specs/[A-Za-z0-9._-]+\.json$ ]] || { echo "::error::spec must be a file under specs/"; exit 1; }
           [[ "$CANDIDATE" =~ ^agents/fixtures/[A-Za-z0-9._-]+\.patch$ ]] || { echo "::error::candidate must be a patch under agents/fixtures/"; exit 1; }
@@ -91,7 +112,10 @@ jobs:
       - name: Point the verifier at the held-out set
         if: env.HELDOUT_TOKEN_SET == 'true' && inputs.mode == 'verify'
         run: echo "NIGHTSHIFT_HELDOUT_DIR=$GITHUB_WORKSPACE/heldout-set" >> "$GITHUB_ENV"
-      - name: Probe - render the clean game and every seeded bug, then ask Glimmer
+      - name: Probe - render the clean game and every seeded bug (no key in this step)
+        if: inputs.mode == 'probe'
+        run: python -m harness.check_seeded --out runs/seeded
+      - name: Probe - ask Glimmer what it sees
         if: inputs.mode == 'probe'
         env:
           NIGHTSHIFT_VISION_BACKEND: glimmer
@@ -99,18 +123,23 @@ jobs:
         run: |
           [ -f "$SPEC" ] || { echo "::error::no spec $SPEC"; exit 1; }
           export NIGHTSHIFT_GLIMMER_API_BASE="$BASE" NIGHTSHIFT_GLIMMER_MODEL="$MODEL" NIGHTSHIFT_GLIMMER_COORDS="$COORDS"
-          python -m harness.check_seeded --out runs/seeded
           python -m agents.sam_probe --spec "$SPEC" --every "$EVERY" --out runs/glimmer-probe --runs runs/seeded/*/
-      - name: Verify - Gate 1 path with Glimmer as the eyes
+      - name: Verify - Gate 1 path with Glimmer in the vision checks
         if: inputs.mode == 'verify'
         env:
           NIGHTSHIFT_OBS_PROVIDER: sam
-          NIGHTSHIFT_VISION_BACKEND: glimmer
           NIGHTSHIFT_GLIMMER_API_KEY: ${{ secrets.GLIMMER_API_KEY || secrets.FIREWORKS_API_KEY }}
+          MODEL_API_KEY: ${{ secrets.MODEL_API_KEY || secrets.META_API_KEY }}
         run: |
           [ -f "$CANDIDATE" ] || { echo "::error::no candidate $CANDIDATE"; exit 1; }
           export NIGHTSHIFT_GLIMMER_API_BASE="$BASE" NIGHTSHIFT_GLIMMER_MODEL="$MODEL" NIGHTSHIFT_GLIMMER_COORDS="$COORDS"
           export NIGHTSHIFT_SAM_EVERY="$EVERY"
+          if [ "$JUDGE" = "glimmer" ]; then
+            # Measurement on a known fixture only: Glimmer alone never decides a real verdict.
+            export NIGHTSHIFT_VISION_BACKEND=glimmer NIGHTSHIFT_GLIMMER_ALONE=1
+          else
+            export NIGHTSHIFT_VISION_BACKEND=both
+          fi
           set +e
           python -m agents.gate1 --out runs/glimmer-verify --candidate-patch "$CANDIDATE"
           echo "gate1 exit $?"
@@ -121,7 +150,8 @@ jobs:
           out = Path("runs/glimmer-verify/verify")
           doc = json.loads((out / "verification.json").read_text())
           rows = ", ".join(f"{c['kind']} {c['spec']} {c['result']}" for c in doc["checks"])
-          print(f"::notice title=Glimmer verify decision::{doc['decision']}")
+          import os
+          print(f"::notice title=Glimmer verify decision::{doc['decision']} (judge {os.environ['NIGHTSHIFT_VISION_BACKEND']})")
           print(f"::notice title=Glimmer verify checks::{rows}")
           held = out / "verdict-held-out.json"
           if held.is_file():

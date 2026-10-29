@@ -62,10 +62,34 @@ class ParseTest(unittest.TestCase):
         self.assertEqual(unit[0]["box"], [800.0, 480.0, 840.0, 540.0])
         self.assertEqual(gl.parse_boxes('{"objects": []}', (W, H)), [])
 
-    def test_clips_edges_and_drops_slivers(self):
-        got = gl.parse_boxes(json.dumps({"objects": [{"box": [1580, 900, 1650, 980], "confidence": 0.6},
-                                                     {"box": [1700, 10, 1750, 40], "confidence": 0.6}]}), (W, H))
+    def test_edges(self):
+        # a box a few pixels past the edge (inside the 2% margin) is clipped to the frame
+        got = gl.parse_boxes(json.dumps({"objects": [{"box": [1580, 900, 1620, 970], "confidence": 0.6}]}), (W, H))
         self.assertEqual(got, [{"box": [1580.0, 900.0, 1600.0, 960.0], "score": 0.6}])
+        for box in ([1580, 900, 1650, 980],   # well past the edge
+                    [1601, 10, 1620, 40],     # only in the margin: no area inside the frame
+                    [700, 500, 40, 60]):      # [x, y, w, h], not corners: refused, not reordered
+            with self.subTest(box=box), self.assertRaises(sam.SamError):
+                gl.parse_boxes(json.dumps({"objects": [{"box": box, "confidence": 0.9}]}), (W, H))
+
+    def test_score_is_never_rounded_over_the_threshold(self):
+        got = gl.parse_boxes(json.dumps({"objects": [{"box": [1, 1, 9, 9], "confidence": 0.49996}]}), (W, H))
+        self.assertEqual(got[0]["score"], 0.49996)
+
+    def test_hostile_shapes_are_samerror(self):
+        for text in ('{"objects": [{"box": [1, 1, 1' + "0" * 400 + ', 9], "confidence": 0.5}]}',
+                     "[" * 100000 + "]" * 100000,
+                     '{"objects": [{"box": [1, 1, NaN, 9], "confidence": 0.5}]}',
+                     '{"objects": [{"box": [true, 1, 5, 9], "confidence": 0.5}]}',
+                     '{"objects": ["box"]}'):
+            with self.subTest(text=text[:40]), self.assertRaises(sam.SamError):
+                gl.parse_boxes(text, (W, H))
+        parts = json.dumps({"choices": [{"message": {"content": [{"type": "text", "text": 7}]}}]}).encode()
+        with self.assertRaises(sam.SamError):
+            gl.answer_text(parts)
+        deep = b'{"choices": ' + b"[" * 100000 + b"]" * 100000 + b"}"
+        with self.assertRaises(sam.SamError):
+            gl.answer_text(deep)
 
     def test_surprises_are_needs_review_never_pass(self):
         bad = [
@@ -82,6 +106,8 @@ class ParseTest(unittest.TestCase):
                 gl.parse_boxes(text, (W, H))
         with self.assertRaises(sam.SamError):
             gl.parse_boxes('{"objects": []}', (W, H), "inches")
+        with self.assertRaises(sam.SamError):
+            gl.GlimmerClient(key="k", coords="inches")  # checked before any request is spent
 
     def test_answer_text_unwraps_fences_and_parts(self):
         fenced = json.dumps({"choices": [{"message": {"content": "```json\n{\"objects\": []}\n```"}}]}).encode()
@@ -130,6 +156,15 @@ class ClientTest(unittest.TestCase):
         self.assertEqual(calls, ["json_schema", "json_object", "json_object"])  # remembered
         self.assertIn("open-weights glimmer at api.fireworks.ai", client.provider)
 
+    def test_only_a_schema_refusal_switches_to_json_mode(self):
+        def too_big(body):
+            raise urllib.error.HTTPError("u", 400, "bad", {}, io.BytesIO(b"image exceeds the size limit"))
+
+        client = gl.GlimmerClient(transport=too_big, key="k", sleep=lambda s: None)
+        with self.assertRaisesRegex(sam.SamError, "glimmer HTTP 400"):
+            client.segment(self.png, "blue robot")
+        self.assertTrue(client._structured)
+
     def test_errors_and_retries(self):
         seen = []
 
@@ -167,6 +202,67 @@ class ClientTest(unittest.TestCase):
                 require_separate_sam_key()
             os.environ["FIREWORKS_API_KEY"] = "g"
             require_separate_sam_key()  # no MODEL_API_KEY needed when Glimmer is the eyes
+
+    def test_both_counts_an_object_only_when_both_see_it(self):
+        sam_calls = []
+
+        class FakeSam:
+            model, base, calls, seconds = "sam-3.1", "https://api.meta.ai/v1", 0, 0.0
+
+            def segment(self, png, prompt):
+                sam_calls.append(prompt)
+                return [{"box": [700.0, 500.0, 740.0, 560.0], "score": 0.8}]
+
+        def glimmer_answer(objects):
+            return gl.GlimmerClient(transport=lambda b: reply(objects), key="k", sleep=lambda s: None)
+
+        both = gl.BothClient(FakeSam(), glimmer_answer([]))
+        self.assertEqual(both.segment(self.png, "blue robot"), [])
+        self.assertEqual(sam_calls, [])  # Glimmer does not see it: SAM is not asked
+        both = gl.BothClient(FakeSam(), glimmer_answer([{"box": [1, 1, 9, 9], "confidence": 0.3}]))
+        self.assertEqual(both.segment(self.png, "blue robot"), [])  # below the evaluator's threshold
+        both = gl.BothClient(FakeSam(), glimmer_answer([{"box": [690, 495, 745, 565], "confidence": 0.9}]))
+        self.assertEqual(both.segment(self.png, "blue robot"), [{"box": [700.0, 500.0, 740.0, 560.0], "score": 0.8}])
+        self.assertIn("counted only where open-weights glimmer", both.provider)
+
+        class BlindSam(FakeSam):
+            def segment(self, png, prompt):
+                return []
+
+        # Glimmer talked into "it's there" (text drawn into the game): SAM still has to find it.
+        fooled = gl.BothClient(BlindSam(), glimmer_answer([{"box": [700, 500, 740, 560], "confidence": 0.99}]))
+        self.assertEqual(fooled.segment(self.png, "blue robot"), [])
+
+    def test_glimmer_alone_never_decides_a_verdict(self):
+        with mock.patch.dict(os.environ, {"NIGHTSHIFT_VISION_BACKEND": "glimmer", "NIGHTSHIFT_GLIMMER_ALONE": ""}):
+            with self.assertRaisesRegex(sam.SamError, "both"):
+                sam.default_client(verdict=True)
+            self.assertIsInstance(sam.default_client(), gl.GlimmerClient)  # measuring is fine
+            os.environ["NIGHTSHIFT_GLIMMER_ALONE"] = "1"
+            self.assertIsInstance(sam.default_client(verdict=True), gl.GlimmerClient)
+        with mock.patch.dict(os.environ, {"NIGHTSHIFT_VISION_BACKEND": "both"}):
+            self.assertIsInstance(sam.default_client(verdict=True), gl.BothClient)
+            self.assertEqual(sam.vision_label(), "SAM 3.1 with Muse Glimmer")
+        with tempfile.TemporaryDirectory() as tmp, \
+                mock.patch.dict(os.environ, {"NIGHTSHIFT_VISION_BACKEND": "glimmer", "NIGHTSHIFT_GLIMMER_ALONE": ""}):
+            frames = Path(tmp) / "frames"
+            frames.mkdir()
+            (frames / "f00000000.png").write_bytes(png_bytes(W, H, 0))
+            spec = load(REPO / "specs" / "player-always-visible.json", "test-spec")
+            with self.assertRaises(sam.SamError):  # the verifier turns this into needs-review
+                sam.from_replay(frames_dir=frames, spec=spec, cache=sam.Cache(None))
+
+    def test_keys_for_both_and_typos(self):
+        base = {"NIGHTSHIFT_OBS_PROVIDER": "sam", "META_API_KEY": "m", "FIREWORKS_API_KEY": "g",
+                "NIGHTSHIFT_GLIMMER_API_KEY": ""}
+        with mock.patch.dict(os.environ, {**base, "NIGHTSHIFT_VISION_BACKEND": "both", "MODEL_API_KEY": ""}):
+            with self.assertRaises(SystemExit):
+                require_separate_sam_key()  # both still needs SAM's own key
+            os.environ["MODEL_API_KEY"] = "s"
+            require_separate_sam_key()
+        with mock.patch.dict(os.environ, {**base, "NIGHTSHIFT_VISION_BACKEND": "glimer", "MODEL_API_KEY": "s"}):
+            with self.assertRaises(SystemExit):
+                require_separate_sam_key()  # a typo stops the run before the fixer, not after
 
     def test_backend_switch(self):
         with mock.patch.dict(os.environ, {"NIGHTSHIFT_VISION_BACKEND": "glimmer"}):

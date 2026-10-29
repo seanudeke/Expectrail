@@ -1,9 +1,11 @@
 """Muse Glimmer (open weights) as Nightshift's frame-vision backend, behind SAM's client interface.
 
     export FIREWORKS_API_KEY=...                     # or NIGHTSHIFT_GLIMMER_API_KEY; never commit it
-    NIGHTSHIFT_VISION_BACKEND=glimmer NIGHTSHIFT_OBS_PROVIDER=sam python3 -m agents.gate1 ...
-    NIGHTSHIFT_VISION_BACKEND=glimmer python3 -m agents.sam_observations --run runs/seeded/clean \\
-        --spec specs/player-always-visible.json
+    # verdicts: an object counts only where SAM and Glimmer both see it (needs MODEL_API_KEY too)
+    NIGHTSHIFT_VISION_BACKEND=both NIGHTSHIFT_OBS_PROVIDER=sam python3 -m agents.gate1 ...
+    # measuring Glimmer alone on known runs
+    NIGHTSHIFT_VISION_BACKEND=glimmer python3 -m agents.sam_probe --spec specs/player-always-visible.json \\
+        --runs runs/seeded/*/
 
 The verifier's vision checks (the visibility specs and the hybrid ground check) ask one question per
 frame and object: where is "<noun phrase>" drawn? ``agents.sam_observations`` asks SAM 3.1 through
@@ -14,6 +16,15 @@ Glimmer 30B (Apache 2.0) on any OpenAI-compatible endpoint: Fireworks serverless
 ``NIGHTSHIFT_GLIMMER_MODEL=meta-models/Muse-Glimmer-30B``). Everything around the call stays the
 same: sampling, refining to the first bad frame, confirming every frame before a pass, the cache,
 and needs-review on any failure.
+
+Glimmer never decides an accept on its own. It reads images the way a language model reads text,
+and the fixer controls the candidate's pixels: a fix could draw text into the game that talks a
+vision-language model into "the robot is there". SAM 3.1 is a segmenter and cannot be talked to. So
+the verifier uses ``NIGHTSHIFT_VISION_BACKEND=both``: SAM's boxes count only on frames where Glimmer
+also sees the object (``BothClient``), which can only make the gate stricter than SAM alone.
+``glimmer`` alone is for measuring Glimmer (``agents.sam_probe``, or the verifier with
+``NIGHTSHIFT_GLIMMER_ALONE=1`` on known fixtures); without that flag the verifier refuses it and every
+vision check is needs-review.
 
 What differs from SAM, and the code is honest about:
 
@@ -51,7 +62,9 @@ COORDS = ("pixels", "norm1000", "norm1")
 # Bump when the prompt or the parsing changes, so cached answers to an older question are not reused.
 REQUEST_VERSION = "glimmer-1"
 RETRY_STATUS = frozenset({429, 500, 502, 503, 504})
-OUT_OF_FRAME = 0.5  # a box corner more than half a frame outside the image is a format error, not a box
+# A corner more than 2% of the frame outside the image is a format error (another grid, or not a box).
+OUT_OF_FRAME = 0.02
+SCHEMA_REFUSAL = ("response_format", "json_schema", "schema", "structured")
 
 SYSTEM_PROMPT = (
     "You are the eyes of an automated test for a 2D platformer game. You look at one captured frame "
@@ -119,10 +132,13 @@ def answer_text(raw: bytes) -> str:
     try:
         doc = json.loads(raw)
         content = doc["choices"][0]["message"]["content"]
-    except (ValueError, KeyError, IndexError, TypeError) as exc:
+    except (ValueError, KeyError, IndexError, TypeError, RecursionError) as exc:
         raise SamError(f"glimmer reply is not a chat completion: {raw[:160]!r}") from exc
     if isinstance(content, list):  # content parts
-        content = "".join(p.get("text", "") for p in content if isinstance(p, dict))
+        texts = [p.get("text", "") for p in content if isinstance(p, dict)]
+        if not all(isinstance(t, str) for t in texts):
+            raise SamError("glimmer reply has a content part whose text is not a string")
+        content = "".join(texts)
     if not isinstance(content, str):
         raise SamError("glimmer reply has no text content")
     text = content.strip()
@@ -133,19 +149,35 @@ def answer_text(raw: bytes) -> str:
 
 
 def _num(value) -> float:
-    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
-        raise SamError(f"glimmer box value is not a finite number: {value!r}")
-    return float(value)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise SamError(f"glimmer box value is not a number: {str(value)[:40]!r}")
+    try:
+        out = float(value)
+    except OverflowError as exc:
+        raise SamError("glimmer box value is too large to be a pixel") from exc
+    if not math.isfinite(out):
+        raise SamError(f"glimmer box value is not finite: {out!r}")
+    return out
 
 
 def parse_boxes(text: str, size: tuple[int, int], coords: str = "pixels") -> list[dict]:
     """Glimmer's JSON answer -> [{"box": [x0, y0, x1, y1], "score": c}] in pixels of ``size``.
 
-    Prose, a missing confidence, a box far outside the frame or any other surprise raises SamError,
-    which the verifier turns into needs-review. Nothing here can turn into a pass.
+    Prose, a missing confidence, corners in the wrong order, a box outside the frame or any other
+    surprise raises SamError, which the verifier turns into needs-review. Nothing is repaired into a
+    box: an [x, y, w, h] answer or one on another grid is refused, not reinterpreted.
     """
     if coords not in COORDS:
         raise SamError(f"{COORDS_ENV} must be one of {', '.join(COORDS)}")
+    try:
+        return _parse_boxes(text, size, coords)
+    except SamError:
+        raise
+    except (ValueError, TypeError, OverflowError, RecursionError) as exc:
+        raise SamError(f"unreadable glimmer answer: {type(exc).__name__}") from exc
+
+
+def _parse_boxes(text: str, size: tuple[int, int], coords: str) -> list[dict]:
     try:
         doc = json.loads(text)
     except ValueError as exc:
@@ -167,15 +199,18 @@ def parse_boxes(text: str, size: tuple[int, int], coords: str = "pixels") -> lis
         x0, y0, x1, y1 = (_num(v) for v in obj["box"])
         x0, x1 = x0 * scale[0], x1 * scale[0]
         y0, y1 = y0 * scale[1], y1 * scale[1]
-        if min(x0, x1) < -OUT_OF_FRAME * w or max(x0, x1) > (1 + OUT_OF_FRAME) * w or \
-                min(y0, y1) < -OUT_OF_FRAME * h or max(y0, y1) > (1 + OUT_OF_FRAME) * h:
-            raise SamError(f"glimmer box {obj['box']} is far outside the {int(w)}x{int(h)} frame; "
+        if x1 <= x0 or y1 <= y0:
+            raise SamError(f"glimmer box {str(obj['box'])[:80]} is not [x0, y0, x1, y1] with x0 < x1 and y0 < y1")
+        if x0 < -OUT_OF_FRAME * w or x1 > (1 + OUT_OF_FRAME) * w or \
+                y0 < -OUT_OF_FRAME * h or y1 > (1 + OUT_OF_FRAME) * h:
+            raise SamError(f"glimmer box {str(obj['box'])[:80]} is outside the {int(w)}x{int(h)} frame; "
                            f"check {COORDS_ENV} (now {coords})")
-        x0, x1 = sorted((max(0.0, min(w, x0)), max(0.0, min(w, x1))))
-        y0, y1 = sorted((max(0.0, min(h, y0)), max(0.0, min(h, y1))))
+        x0, x1 = max(0.0, x0), min(w, x1)
+        y0, y1 = max(0.0, y0), min(h, y1)
         if x1 - x0 < 1 or y1 - y0 < 1:
-            continue  # nothing left inside the frame: not a detection
-        out.append({"box": [round(x0, 3), round(y0, 3), round(x1, 3), round(y1, 3)], "score": round(score, 4)})
+            raise SamError(f"glimmer box {str(obj['box'])[:80]} has no area inside the frame")
+        # The score is kept as given: rounding could lift 0.49996 over the evaluator's 0.5.
+        out.append({"box": [round(x0, 3), round(y0, 3), round(x1, 3), round(y1, 3)], "score": score})
     return sorted(out, key=lambda d: (-d["score"], d["box"]))
 
 
@@ -197,6 +232,8 @@ class GlimmerClient(MetaSamClient):
                          timeout=timeout, sleep=sleep)
         self._key = key
         self.coords = (coords or os.environ.get(COORDS_ENV, "pixels")).strip().lower()
+        if self.coords not in COORDS:
+            raise SamError(f"{COORDS_ENV} must be one of {', '.join(COORDS)}, not {self.coords!r}")
         host = urllib.parse.urlparse(self.base).hostname or self.base
         # What the observations document records as the provider (see _document).
         self.provider = f"open-weights glimmer at {host}, self-reported confidence"
@@ -254,10 +291,48 @@ class GlimmerClient(MetaSamClient):
         try:
             raw, _ = self._call(request_body(prompt, url, size, self.model, structured))
         except SamError as exc:
-            # Some servers reject json_schema; fall back to plain JSON mode once and remember it.
-            if not (structured and str(exc).startswith("glimmer HTTP 400")):
+            # A server that rejects json_schema gets plain JSON mode, once, remembered. Any other
+            # 400 (image too large, context length) is a real failure: needs-review.
+            text = str(exc).lower()
+            if not (structured and text.startswith("glimmer http 400") and any(w in text for w in SCHEMA_REFUSAL)):
                 raise
             with self._flag:
                 self._structured = False
             raw, _ = self._call(request_body(prompt, url, size, self.model, False))
         return parse_boxes(answer_text(raw), size, self.coords)
+
+
+class BothClient:
+    """SAM 3.1's boxes, counted only on frames where Muse Glimmer also sees the object.
+
+    The verdict backend: an object is found when both models find it, so adding Glimmer can only
+    make a check stricter than SAM alone. Boxes (and their scores) are SAM's, since the evaluator's
+    geometry needs a segmenter's precision; Glimmer answers "is it visibly drawn here at all".
+    """
+
+    def __init__(self, sam_client: MetaSamClient | None = None, glimmer: GlimmerClient | None = None,
+                 min_score: float | None = None):
+        from nightshift.evaluator import DEFAULT_MIN_SCORE
+
+        self.sam = sam_client or MetaSamClient()
+        self.glimmer = glimmer or GlimmerClient()
+        self.min_score = DEFAULT_MIN_SCORE if min_score is None else min_score
+        self.model = f"{self.sam.model}+{self.glimmer.model}"
+        self.base = f"{self.sam.base}|{self.glimmer.base}"
+        self.cache_tag = self.glimmer.cache_tag + "#both-1"
+        host = urllib.parse.urlparse(self.glimmer.base).hostname or self.glimmer.base
+        self.provider = f"SAM 3.1 boxes, counted only where open-weights glimmer at {host} also sees the object"
+
+    @property
+    def calls(self) -> int:
+        return self.sam.calls + self.glimmer.calls
+
+    @property
+    def seconds(self) -> float:
+        return self.sam.seconds + self.glimmer.seconds
+
+    def segment(self, png: Path, prompt: str) -> list[dict]:
+        seen = [d for d in self.glimmer.segment(png, prompt) if d["score"] >= self.min_score]
+        if not seen:
+            return []  # Glimmer does not see it: not found, whatever SAM says
+        return self.sam.segment(png, prompt)
