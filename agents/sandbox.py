@@ -96,6 +96,12 @@ def _bwrap_cmd(work: Path, argv: list[str], *, network: bool) -> list[str]:
             cmd.extend(["--ro-bind", ro, ro])
     # Host muse binary (Linux ELF) when present. Give Muse a writable tmpfs $HOME so
     # session locks / update stamps work; never rw-bind the real host home.
+    #
+    # Nothing else from the host's ~/.local is mounted. Muse Code 1.4 keeps its sessions under
+    # ~/.local/share/muse/sessions, which must be writable; a read-only bind of the host's
+    # ~/.local/share (which exists as soon as Godot has run, since Godot writes
+    # ~/.local/share/godot) made every Muse run fail with "failed to acquire the session writer
+    # lease ... Read-only file system". It also exposed other programs' data to the fixer.
     home = Path.home()
     cmd.extend(["--tmpfs", str(home), "--setenv", "HOME", str(home)])
     muse = shutil.which("muse")
@@ -103,10 +109,6 @@ def _bwrap_cmd(work: Path, argv: list[str], *, network: bool) -> list[str]:
         muse_path = Path(muse).resolve()
         cmd.extend(["--dir", str(muse_path.parent)])
         cmd.extend(["--ro-bind", str(muse_path), str(muse_path)])
-        for sub in ("lib", "share"):
-            p = home / ".local" / sub
-            if p.is_dir():
-                cmd.extend(["--ro-bind", str(p), str(p)])
     cmd.extend(["--"] + argv)
     return cmd
 
