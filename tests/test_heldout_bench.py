@@ -72,6 +72,33 @@ class HeldOutBenchTest(unittest.TestCase):
         with self.assertRaises(SystemExit):
             hb.main(["--list", "--only", "fam/v0"])  # retired
 
+    def test_dev_set_lists_the_public_bugs_after_clean(self):
+        out = io.StringIO()
+        with redirect_stdout(out):
+            hb.main(["--list", "--set", "dev"])
+        ids = json.loads(out.getvalue())
+        self.assertEqual(ids[0], "clean")
+        self.assertEqual(ids[1:], sorted(hb.dev_variants()))
+        self.assertIn("dev/physics-fall-through/v1", ids)
+        self.assertTrue(all(i.startswith("dev/") for i in ids[1:]))
+        self.assertNotIn("fam/v1", ids)  # private variants never appear in the dev set
+
+    def test_a_dev_variant_runs_the_same_routes_with_its_public_patch(self):
+        row = {"engine": "fail", "gameplay": "pass", "hybrid": "fail", "player-always-visible": "pass",
+               "coins-visible": "pass"}
+        doc, calls = self.run_bench("dev/physics-fall-through/v1", [row] * 3)
+        self.assertEqual([c[0] for c in calls], [hb.SMOKE_ROUTE, self.root / "routes/one.json",
+                                                 self.root / "routes/two.json"])
+        self.assertTrue(all(c[2] == [hb.BUGS / "physics-fall-through" / "v1.patch"] for c in calls))
+        self.assertEqual(doc["expectedSpec"], "player-stays-above-ground")
+        line = hb.annotation(doc)
+        self.assertTrue(line.startswith("::notice title=Dev bench dev/physics-fall-through/v1::caught with SAM on: yes"))
+        self.assertTrue((Path(self.tmp.name) / "out" / "dev_physics-fall-through_v1" / "bench.json").is_file())
+
+    def test_an_unknown_dev_variant_is_refused(self):
+        with self.assertRaises(SystemExit):
+            self.run_bench("dev/physics-fall-through/v9", [])
+
     def test_variant_runs_on_smoke_and_every_private_route_with_its_patch(self):
         row = {"engine": "pass", "gameplay": "pass", "hybrid": "pass", "player-always-visible": "pass",
                "coins-visible": "pass"}

@@ -14,11 +14,16 @@ on a candidate:
 A variant is caught when a check fails on at least one route. ``--clean`` runs the same checks on
 the unpatched game: any failure there is a false alarm.
 
+``--set dev`` runs the public development variants (``bugs/<family>/vN.patch``, ids
+``dev/<family>/vN``) through exactly the same routes and checks, so development and held-out
+detection are measured the same way and reported separately.
+
 Only the variant id, counts and verdicts are printed. The manifest's descriptions, route names,
 frames and traces stay in the output directory, which callers must not publish. Exit is 1 when the
 run decided nothing, so a green job always means the checks ran.
 
     NIGHTSHIFT_HELDOUT_DIR=../Nightshift-heldout python3 -m agents.heldout_bench --list
+    NIGHTSHIFT_HELDOUT_DIR=... python3 -m agents.heldout_bench --list --set dev
     NIGHTSHIFT_HELDOUT_DIR=... NIGHTSHIFT_OBS_PROVIDER=sam MODEL_API_KEY=... \\
         python3 -m agents.heldout_bench --variant physics-fall-through/v5 --out runs/bench
     ... --clean --out runs/bench          # the false-alarm control
@@ -43,7 +48,13 @@ from nightshift.contracts import load
 from nightshift.evaluator import evaluate
 
 SMOKE_ROUTE = REPO / "harness" / "routes" / "smoke.json"
+BUGS = REPO / "bugs"
 CLEAN = "clean"
+DEV_PREFIX = "dev/"
+SETS = ("held-out", "dev")
+# The spec each public family is aimed at (docs/evaluation.md); informational only.
+DEV_FAMILY_SPECS = {"physics-fall-through": "player-stays-above-ground", "sinking": "player-stays-above-ground",
+                    "missing-texture": "coins-visible", "layering": "player-always-visible"}
 RESULTS = ("fail", "needs-review", "pass")
 # Which checks decide the verifier's verdict in each mode.
 SAM_ON_CHECKS = ("hybrid", "gameplay")  # plus every SAM spec
@@ -63,6 +74,19 @@ def variant_key(entry: dict) -> str:
 def active_variants(manifest: dict) -> list[dict]:
     """Variants in the benchmark: every manifest entry not marked retired."""
     return [v for v in manifest.get("variants") or [] if not v.get("retired")]
+
+
+def dev_variants(bugs: Path | None = None) -> dict[str, Path]:
+    """The public development variants, ``dev/<family>/vN`` -> patch, sorted."""
+    root = bugs or BUGS
+    return {f"{DEV_PREFIX}{p.parent.name}/{p.stem}": p for p in sorted(root.glob("*/v*.patch"))}
+
+
+def set_ids(manifest: dict, which: str) -> list[str]:
+    """Every id ``--list`` offers for one set, the clean control first."""
+    if which == "dev":
+        return [CLEAN] + list(dev_variants())
+    return [CLEAN] + [variant_key(v) for v in active_variants(manifest)]
 
 
 def _routes(root: Path, manifest: dict) -> list[tuple[str, Path, float]]:
@@ -138,6 +162,12 @@ def bench(key: str, out: Path) -> dict:
     if key == CLEAN:
         patches: list[Path] = []
         expected = None
+    elif key.startswith(DEV_PREFIX):
+        dev = dev_variants()
+        if key not in dev:
+            raise SystemExit(f"{key}: no such development variant under bugs/")
+        patches = [dev[key]]
+        expected = DEV_FAMILY_SPECS.get(key.split("/")[1])
     else:
         matches = [v for v in active_variants(manifest) if variant_key(v) == key]
         if len(matches) != 1:
@@ -190,7 +220,7 @@ def annotation(doc: dict) -> str:
     label = "false alarm" if doc["variant"] == CLEAN else "caught"
     head = f"{label} with SAM on: {doc['caughtWithSamOn']}; " if doc["sam"] else ""
     head += f"{label} with SAM off: {doc['caughtWithSamOff']}"
-    title = f"Held-out bench {doc['variant']}"
+    title = f"{'Dev' if doc['variant'].startswith(DEV_PREFIX) else 'Held-out'} bench {doc['variant']}"
     lines = [f"::notice title={title}::{head}; over {n} routes: " + "; ".join(parts)]
     lines += [f"::error title={title} error::{public_error(e)}" for e in doc.get("errors") or []]
     return "\n".join(lines)
@@ -200,10 +230,12 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument("--list", action="store_true", help="print the active variant ids (and clean) as JSON")
-    g.add_argument("--variant", help="family/id of one held-out variant")
+    g.add_argument("--variant", help="family/id of one held-out variant, or dev/family/id of a public one")
     g.add_argument("--clean", action="store_true", help="the unpatched game (false-alarm control)")
     g.add_argument("--annotate", type=Path, help="print the public annotation for a bench.json")
     p.add_argument("--only", default="", help="with --list: keep only these comma-separated ids (all must exist)")
+    p.add_argument("--set", choices=SETS, default="held-out", dest="which",
+                   help="with --list: the private held-out variants or the public development ones")
     p.add_argument("--out", type=Path, default=REPO / "runs" / "held-out-bench")
     args = p.parse_args(argv)
     if args.annotate:
@@ -213,7 +245,7 @@ def main(argv: list[str] | None = None) -> int:
         _root, manifest, problem = held_out_set()
         if manifest is None:
             raise SystemExit(f"held-out set unavailable: {problem or 'NIGHTSHIFT_HELDOUT_DIR is not set'}")
-        ids = [CLEAN] + [variant_key(v) for v in active_variants(manifest)]
+        ids = set_ids(manifest, args.which)
         wanted = [w.strip() for w in args.only.split(",") if w.strip()]
         unknown = sorted(set(wanted) - set(ids))
         if unknown:

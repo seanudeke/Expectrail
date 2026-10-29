@@ -81,6 +81,28 @@ The second row is the reason vision is in the loop: the position log says the ro
 where it should be, and only the picture shows it can't be seen. To repeat either run: Actions,
 **SAM probe**, mode `verify`, and the candidate's path under `agents/fixtures/`.
 
+**Development detection (mode `dev-bench`):** the same jobs, routes and checks for the public
+development variants in `bugs/` (ids `dev/<family>/vN`), so the two sets are measured the same way
+and reported separately.
+
+First run, October 29 (run 40841977642), same five routes and checks:
+
+| Development variant | Engine | Gameplay | Hybrid | player-always-visible | coins-visible | Caught, SAM on | Caught, SAM off |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| clean (control) | 5 pass | 5 pass | 5 pass | 5 pass | 5 pass | no false alarm | no false alarm |
+| physics-fall-through/v1 | 5 fail | 5 fail | 5 fail | 5 fail | 5 pass | yes | yes |
+| physics-fall-through/v2 | 5 fail | 5 fail | 5 fail | 5 fail | 5 pass | yes | yes |
+| sinking/v1 | 5 fail | 5 pass | 5 fail | 2 fail, 3 pass | 5 pass | yes | yes |
+| sinking/v2 | 5 pass | 5 pass | 5 fail | 2 fail, 3 pass | 5 pass | yes | no |
+| missing-texture/v1 | 5 pass | 5 pass | 5 pass | 5 pass | 5 fail | yes | no |
+| missing-texture/v2 | 5 pass | 5 pass | 5 pass | 5 pass | 5 fail | yes | no |
+| layering/v1 | 5 pass | 5 pass | 5 needs-review | 5 fail | 5 pass | yes | no |
+| layering/v2 | 5 pass | 5 pass | 5 needs-review | 5 fail | 5 pass | yes | no |
+
+With SAM on, 8 of 8 development variants are caught; without it, 3 of 8. Same pattern as the held-out
+set: the hybrid is needs-review on layering, and the sinking variants also fail player-always-visible
+on some routes (both unexplained so far).
+
 **Held-out detection (mode `heldout-bench`):** for each active held-out variant, and the clean game
 as a false-alarm control, the workflow renders the game with the variant and no fix on the smoke
 route and every private route, then judges it with the engine ground check, the hybrid ground check,

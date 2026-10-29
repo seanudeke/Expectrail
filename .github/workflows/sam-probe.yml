@@ -12,9 +12,9 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: probe (look at frames), verify (Gate 1 accept path with SAM on, incl. private held-out routes) or heldout-bench (would the verifier catch each private bug variant)
+        description: probe (look at frames), verify (Gate 1 accept path with SAM on, incl. private held-out routes), heldout-bench (would the verifier catch each private bug variant) or dev-bench (the same for the public development variants)
         type: choice
-        options: [probe, verify, heldout-bench]
+        options: [probe, verify, heldout-bench, dev-bench]
         default: probe
       every:
         description: Probe every Nth frame of each run (10 means 13 frames a run; heldout-bench ignores it and samples as the verifier does)
@@ -32,7 +32,7 @@ on:
         description: Try several prompts for one object, e.g. ground=ground|floor|dirt (up to 9)
         default: ''
       runs:
-        description: Only these runs, e.g. clean,physics-fall-through_v1 (default all); in heldout-bench mode, variant ids, e.g. clean,layering/v5
+        description: Only these runs, e.g. clean,physics-fall-through_v1 (default all); in heldout-bench mode, variant ids, e.g. clean,layering/v5; in dev-bench mode, e.g. dev/sinking/v2
         default: ''
       engine_ground:
         description: probe mode, take this object (e.g. ground) from the engine's ground line instead of SAM
@@ -245,9 +245,10 @@ jobs:
   # judge it with the verifier's checks (agents/heldout_bench.py). The private set's descriptions,
   # patches, frames and traces never leave the runner: no artifacts, the harness output goes to a
   # file that is never printed, and the only output is one annotation per variant with its id,
-  # counts and verdicts.
+  # counts and verdicts. mode=dev-bench runs the public development variants (ids dev/<family>/vN)
+  # through the same jobs, routes and checks, so both sets are measured the same way.
   heldout-list:
-    if: ${{ inputs.mode == 'heldout-bench' }}
+    if: ${{ inputs.mode == 'heldout-bench' || inputs.mode == 'dev-bench' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -278,9 +279,10 @@ jobs:
         env:
           NIGHTSHIFT_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
           RUNS: ${{ inputs.runs }}
+          SET: ${{ inputs.mode == 'dev-bench' && 'dev' || 'held-out' }}
         run: |
           [[ -z "$RUNS" || "$RUNS" =~ ^[a-z0-9/_-]+(,[a-z0-9/_-]+)*$ ]] || { echo "::error::runs must be variant ids and commas"; exit 1; }
-          variants=$(python -m agents.heldout_bench --list --only "$RUNS")
+          variants=$(python -m agents.heldout_bench --list --set "$SET" --only "$RUNS")
           [[ "$variants" =~ ^\[(\"[a-z0-9/_-]+\"(,\ )?)+\]$ ]] || { echo "::error::unexpected variant list"; exit 1; }
           echo "variants=$variants" >> "$GITHUB_OUTPUT"
           echo "variants: $variants"
@@ -326,7 +328,7 @@ jobs:
           NIGHTSHIFT_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
           VARIANT: ${{ matrix.variant }}
         run: |
-          [[ "$VARIANT" =~ ^[a-z0-9_-]+(/[a-z0-9_-]+)?$ ]] || { echo "::error::unexpected variant id"; exit 1; }
+          [[ "$VARIANT" =~ ^[a-z0-9_-]+(/[a-z0-9_-]+){0,2}$ ]] || { echo "::error::unexpected variant id"; exit 1; }
           start=$(date +%s)
           # The benchmark exits non-zero when it decided nothing, so the counts are still published
           # and the job is red: a green run always means the checks ran.
@@ -336,7 +338,7 @@ jobs:
           set -e
           bench_json="runs/bench/${VARIANT//\//_}/bench.json"
           [[ -f "$bench_json" ]] && python -m agents.heldout_bench --annotate "$bench_json"
-          echo "::notice title=Held-out bench time ${VARIANT}::$(( $(date +%s) - start )) s"
+          echo "::notice title=Bench time ${VARIANT}::$(( $(date +%s) - start )) s"
           if [[ "$code" -ne 0 ]]; then
             echo "::error title=Held-out bench ${VARIANT}::the benchmark decided nothing or failed (exit $code); its log stays on the runner"
             exit "$code"
