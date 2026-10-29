@@ -89,6 +89,28 @@ check fails on at least one route. Each variant gets one annotation with its id,
 and verdicts; nothing else from the private set leaves the runner (no artifacts, and the harness
 output goes to a file that is never printed).
 
+First full run, October 28 (run 40805529944), five routes per variant, every pass confirmed on
+every frame:
+
+| Held-out variant | Engine | Gameplay | Hybrid | player-always-visible | coins-visible | Caught, SAM on | Caught, SAM off |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| clean (control) | 5 pass | 5 pass | 5 pass | 5 pass | 5 pass | no false alarm | no false alarm |
+| physics-fall-through/v5 | 5 fail | 5 fail | 5 fail | 5 fail | 5 pass | yes | yes |
+| physics-fall-through/v6 | 5 fail | 5 fail | 5 fail | 5 fail | 5 pass | yes | yes |
+| missing-texture/v5 | 5 pass | 5 pass | 5 pass | 5 pass | 5 fail | yes | no |
+| missing-texture/v6 | 5 pass | 5 pass | 5 pass | 5 pass | 5 fail | yes | no |
+| layering/v5 | 5 pass | 5 pass | 5 needs-review | 5 fail | 5 pass | yes | no |
+| layering/v6 | 5 pass | 5 pass | 5 needs-review | 5 fail | 5 pass | yes | no |
+| sinking/v3 | 5 fail | 5 pass | 5 fail | 3 fail, 2 pass | 5 pass | yes | yes |
+| sinking/v4 | 5 pass | 5 pass | 5 pass | 5 pass | 5 pass | **no** | no |
+
+With SAM on, 7 of 8 held-out variants are caught; without it, 3 of 8. No false alarm on the clean
+routes either way. Sinking/v4 is a known blind spot, predicted before the run: every check measures
+the robot against the level's collision, so a bug that moves only the art is invisible to all of
+them. Not yet explained: the hybrid's needs-review on layering, and sinking/v3 failing
+player-always-visible on three routes. The benchmark does not count SAM calls or cost yet; each
+variant took 4 to 8 minutes on a GitHub runner.
+
 ## Where SAM runs
 
 SAM 3.1 is on the Meta Model API, the same service and key type as Muse Spark. No GPU and no
