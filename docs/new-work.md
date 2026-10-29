@@ -69,7 +69,7 @@ something; keep prior work out of it.
 | Oct 29 | Detection results recorded in `bench/detection/` from the runs' own annotations, with a one-command rerun per set | `agents/bench_collect.py`, `bench/rerun-detection.sh`, `bench/detection/` |
 | Oct 29 | Judge benchmark: 15 candidate fixes with a known answer (8 undo a seeded bug, 7 only look fixed or change nothing), judged by the verifier with and without SAM and by Muse Code from screenshots; the screenshot judge takes several frames and runs inside bubblewrap | `agents/judge_bench.py`, `agents/muse_judge.py`, `agents/fixtures/fix-*.patch`, `.github/workflows/fix-matrix.yml` |
 | Oct 29 | Playtest routes expansion: coins.json (pickup & visibility), combat.json (weapon fire & hazards), traversal.json (elevated platforms & layering); schema tests | `harness/routes/`, `docs/harness.md`, `tests/test_harness.py` |
-| Oct 29 | Playtest routes expansion: coins.json (pickup & visibility), combat.json (weapon fire & hazards), traversal.json (elevated platforms & layering); schema tests | `harness/routes/`, `docs/harness.md`, `tests/test_harness.py` |
 | Oct 29 | Cross-platform harness runner: auto-detect macOS Godot in `tools/godot_mac/`, bypass xvfb-run on darwin, platform tests | `harness/run.py`, `tests/test_harness.py` |
+| Oct 29 | Interactive Hosted Demo & Audit Vault: 4-tab interactive web app with 8 seeded variants, 4 rejected exploits, SAM 3.1 overlays, coordinate traces, Gate 2 benchmark matrix, and signed release candidate | `docs/demo/index.html`, `docs/index.html`, `README.md` |
 
 
