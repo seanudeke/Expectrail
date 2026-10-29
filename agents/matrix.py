@@ -249,11 +249,15 @@ def run_case(key: str, condition: str, out: Path, *, live: bool, use_sam: bool |
                              require_sandbox=require_sandbox)
             film = {"attempt": attempt, "source": meta.get("source"), "empty": meta.get("empty", False),
                     "patchSha256": meta.get("patchSha256")}
+            if meta.get("timedOut"):
+                film["timedOut"] = True
             row["attempts"].append(film)
             candidate = attempt_out / "candidate.patch"
             if meta.get("empty") or not candidate.read_text(encoding="utf-8").strip():
-                film["decision"] = "empty"
-                prior = {"decision": "reject", "reasons": ["the attempt changed no editable file"],
+                film["decision"] = "timeout" if meta.get("timedOut") else "empty"
+                prior = {"decision": "reject",
+                         "reasons": ["the attempt ran out of time without changing an editable file"
+                                     if meta.get("timedOut") else "the attempt changed no editable file"],
                          "attempt": attempt}
                 if not live:
                     break  # offline the candidate never changes; one attempt shows the path
@@ -290,8 +294,8 @@ def _finish(row: dict, work: Path, t0: float) -> dict:
 def public_row(row: dict) -> dict:
     """What may leave the runner for a private case: ids, outcomes and per-attempt decisions."""
     out = {k: row[k] for k in PUBLIC_KEYS if k in row}
-    out["attempts"] = [{"attempt": a.get("attempt"), "decision": a.get("decision"), "empty": a.get("empty", False)}
-                       for a in row.get("attempts", [])]
+    out["attempts"] = [{"attempt": a.get("attempt"), "decision": a.get("decision"), "empty": a.get("empty", False),
+                        "timedOut": a.get("timedOut", False)} for a in row.get("attempts", [])]
     return out
 
 

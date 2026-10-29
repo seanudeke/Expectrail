@@ -162,6 +162,8 @@ jobs:
           tries = "; ".join(f"{a['attempt']}: {a.get('decision')}" for a in r["attempts"])
           print(f"::notice title=Fix matrix {r['case']} {r['condition']}::detected {r.get('detected')}; "
                 f"outcome {r['outcome']}; attempts {r['attemptsUsed']} ({tries}); {r['wallClockSeconds']} s; live={r['live']}")
+          if r.get("detail") and not r.get("private"):  # public cases only: why it errored or was not detected
+              print(f"::warning title=Fix matrix {r['case']} {r['condition']} detail::{' '.join(r['detail'].split())[:300]}")
           PY
           if [[ "$SET" == "dev" ]]; then
             # Public cases only: what Muse did on each attempt, so an empty attempt has a visible cause.
