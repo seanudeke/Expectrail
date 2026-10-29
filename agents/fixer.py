@@ -198,6 +198,7 @@ def run_fixer(
     prompt_meta: dict | None = None
     sandbox_meta: dict | None = None
     guard_meta: dict | None = None
+    muse_exit: int | None = None
     empty = False
     if candidate_patch is not None:
         text = candidate_patch.read_text(encoding="utf-8")
@@ -256,6 +257,7 @@ def run_fixer(
             detected=detected,
         )
         (out / "muse.log").write_text(proc.stdout + "\n" + proc.stderr, encoding="utf-8")
+        muse_exit = proc.returncode
         (out / "sandbox.json").write_text(json.dumps(sandbox_meta, indent=2) + "\n", encoding="utf-8")
         if guard_installed is not None:
             guard_meta = collect_guard(work, out, guard_installed)
@@ -294,6 +296,8 @@ def run_fixer(
     }
     if prompt_meta:
         meta.update(prompt_meta)
+    if muse_exit is not None:
+        meta["museExit"] = muse_exit
     if sandbox_meta:
         meta["sandbox"] = sandbox_meta
     if guard_meta is not None:

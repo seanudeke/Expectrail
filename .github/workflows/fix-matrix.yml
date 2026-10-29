@@ -6,6 +6,10 @@
 # separate key; the job refuses when it is missing or the same). Muse runs only inside bubblewrap
 # (--require-sandbox), because the verifier's private set is on this runner's disk. Only results,
 # candidate patches, prompts and Muse logs are kept: no frames, traces or held-out material.
+#
+# set=held-out runs the active private variants instead (once, after the code freeze): their
+# results are sanitized to ids, outcomes and per-attempt decisions, and nothing else is printed
+# or kept, since a candidate patch, a reason or Muse's log would describe the bug.
 name: Fix matrix
 
 on:
@@ -15,8 +19,13 @@ on:
         description: Run Muse Code (spends Meta credit). Off runs the offline path with empty candidates.
         type: boolean
         default: false
+      set:
+        description: dev (public development variants) or held-out (private; run once, after the code freeze)
+        type: choice
+        options: [dev, held-out]
+        default: dev
       cases:
-        description: Comma-separated case ids (default all eight), e.g. dev/sinking/v2,dev/layering/v1
+        description: Comma-separated case ids (default all in the set), e.g. dev/sinking/v2,dev/layering/v1
         default: ''
       conditions:
         description: Comma-separated conditions (default both), screenshots and/or nightshift
@@ -40,16 +49,26 @@ jobs:
         with:
           python-version: '3.13'
       - run: python -m pip install -r requirements-dev.txt
+      - name: Fetch the private held-out set (ids only are read here)
+        if: inputs.set == 'held-out'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: seanudeke/Nightshift-heldout
+          token: ${{ secrets.HELDOUT_TOKEN }}
+          path: heldout-set
+          persist-credentials: false
       - name: Pick the cases and conditions
         id: plan
         env:
           CASES: ${{ inputs.cases }}
           CONDITIONS: ${{ inputs.conditions }}
+          SET: ${{ inputs.set }}
+          NIGHTSHIFT_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
         run: |
           python - <<'PY'
           import json, os
-          from agents.matrix import CONDITIONS, dev_variants
-          every = sorted(dev_variants())
+          from agents.matrix import CONDITIONS, dev_variants, heldout_cases
+          every = sorted(dev_variants()) if os.environ["SET"] == "dev" else sorted(heldout_cases())
           cases = [c.strip() for c in os.environ["CASES"].split(",") if c.strip()] or every
           conds = [c.strip() for c in os.environ["CONDITIONS"].split(",") if c.strip()] or list(CONDITIONS)
           bad = sorted(set(cases) - set(every)) + sorted(set(conds) - set(CONDITIONS))
@@ -127,6 +146,7 @@ jobs:
           NIGHTSHIFT_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
           CASE: ${{ matrix.case }}
           CONDITION: ${{ matrix.condition }}
+          SET: ${{ inputs.set }}
         run: |
           args=(--case "$CASE" --condition "$CONDITION" --out runs/matrix)
           if [[ "$LIVE" == "true" ]]; then args+=(--live --require-sandbox); fi
@@ -134,7 +154,7 @@ jobs:
           python -m agents.matrix "${args[@]}" > matrix.log 2>&1
           code=$?
           set -e
-          tail -n 1 matrix.log
+          if [[ "$SET" == "dev" ]]; then tail -n 1 matrix.log; fi
           dir="runs/matrix/${CASE//\//_}/$CONDITION"
           python - "$dir/result.json" <<'PY'
           import json, sys
@@ -143,11 +163,36 @@ jobs:
           print(f"::notice title=Fix matrix {r['case']} {r['condition']}::detected {r.get('detected')}; "
                 f"outcome {r['outcome']}; attempts {r['attemptsUsed']} ({tries}); {r['wallClockSeconds']} s; live={r['live']}")
           PY
+          if [[ "$SET" == "dev" ]]; then
+            # Public cases only: what Muse did on each attempt, so an empty attempt has a visible cause.
+            for d in "$dir"/attempt-*; do
+              [[ -d "$d" ]] || continue
+              python - "$d" <<'PY'
+          import json, re, sys
+          from pathlib import Path
+          d = Path(sys.argv[1])
+          meta = json.loads((d / "candidate.json").read_text()) if (d / "candidate.json").is_file() else {}
+          box = json.loads((d / "sandbox.json").read_text()) if (d / "sandbox.json").is_file() else {}
+          log = (d / "muse.log").read_text(errors="replace") if (d / "muse.log").is_file() else ""
+          log = re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", log)
+          tail = " | ".join(line.strip() for line in log.strip().splitlines()[-8:] if line.strip())[-700:]
+          print(f"::notice title=Muse {d.name}::source {meta.get('source')}; empty {meta.get('empty')}; "
+                f"exit {meta.get('museExit')}; sandbox {box.get('kind')}; log: {tail or '(empty)'}")
+          PY
+            done
+          fi
           exit "$code"
       - name: Keep the result, the candidates, the prompts and Muse's logs (no frames, no held-out material)
         if: always()
+        env:
+          SET: ${{ inputs.set }}
         run: |
           mkdir -p keep
+          if [[ "$SET" == "held-out" ]]; then
+            # Private cases: the sanitized result only.
+            find runs/matrix -name result.json -print | while read -r f; do mkdir -p "keep/$(dirname "$f")"; cp "$f" "keep/$f"; done
+            exit 0
+          fi
           find runs/matrix -path '*held-out*' -prune -o -type f \( -name result.json -o -name candidate.patch \
             -o -name muse-prompt.txt -o -name muse.log -o -name candidate.json -o -name detection.json \) -print \
             | while read -r f; do mkdir -p "keep/$(dirname "$f")"; cp "$f" "keep/$f"; done

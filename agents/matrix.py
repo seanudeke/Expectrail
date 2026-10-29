@@ -20,6 +20,12 @@ same verifier, and nothing in either briefing names the cause.
     python3 -m agents.matrix --list
     python3 -m agents.matrix --case dev/sinking/v2 --condition nightshift --out runs/matrix --live
     python3 -m agents.matrix --summarize runs/matrix
+    NIGHTSHIFT_HELDOUT_DIR=... python3 -m agents.matrix --list --set held-out
+
+Held-out cases (``<family>/vN`` from the private manifest) run the same way, once, after the code
+freeze. What they write publicly is sanitized: ``result.json`` keeps ids, outcomes and per-attempt
+decisions only; reasons, candidate patches and Muse's log stay in ``result-private.json`` and the
+attempt folders on the runner, since a fix or a reason would describe the bug.
 
 Offline (no ``--live``) the fixer is given an empty candidate, or ``--fixture-candidate`` (a known
 patch, e.g. agents/fixtures/fix-collision-mask.patch for dev/physics-fall-through/v1), so the
@@ -39,7 +45,9 @@ from agents.fixer import build_muse_prompt, run_fixer
 from agents.observations import from_trace
 from agents.orchestrator import build_repair_request
 from agents.patchutil import sha256_file
-from agents.verifier import REGRESSION_SPEC, _ground_observations, reference_surfaces, sam_on, verify
+from agents.verifier import (
+    REGRESSION_SPEC, _ground_observations, held_out_set, reference_surfaces, sam_on, verify,
+)
 from harness.run import REPO, run as harness_run
 from nightshift.contracts import digest, load, validate
 from nightshift.evaluator import EVALUATOR, evaluate
@@ -61,6 +69,16 @@ FAMILY_SPECS = {
 }
 
 
+SPEC_FILES = {
+    "player-stays-above-ground": REGRESSION_SPEC,
+    "coins-visible": REPO / "specs" / "coins-visible.json",
+    "player-always-visible": REPO / "specs" / "player-always-visible.json",
+}
+SETS = ("dev", "held-out")
+PUBLIC_KEYS = ("format", "case", "condition", "live", "sam", "private", "detected", "outcome", "attemptsUsed",
+               "wallClockSeconds")
+
+
 def dev_variants() -> dict[str, Path]:
     """The public development variants, ``dev/<family>/vN`` -> patch (the ids the detection
     benchmark uses for the same patches)."""
@@ -74,23 +92,51 @@ def case_spec(key: str) -> dict:
     return load(FAMILY_SPECS[family], "test-spec")
 
 
+def heldout_cases() -> dict[str, tuple[Path, Path]]:
+    """Active private variants, ``<family>/vN`` -> (patch, spec file). Never prints a description."""
+    root, manifest, problem = held_out_set()
+    if manifest is None:
+        raise SystemExit(f"held-out set unavailable: {problem or 'NIGHTSHIFT_HELDOUT_DIR is not set'}")
+    cases: dict[str, tuple[Path, Path]] = {}
+    for v in manifest.get("variants") or []:
+        if v.get("retired"):
+            continue
+        key = f"{v['family']}/{v['id']}"
+        if v.get("spec") not in SPEC_FILES:
+            raise SystemExit(f"{key}: its spec is not one the matrix knows")
+        cases[key] = (root / v["patch"], SPEC_FILES[v["spec"]])
+    return cases
+
+
+def resolve_case(key: str) -> tuple[Path, dict, bool]:
+    """(patch, spec, private) for a development id (``dev/...``) or an active held-out id."""
+    if key.startswith("dev/"):
+        dev = dev_variants()
+        if key not in dev:
+            raise SystemExit(f"{key}: no such development variant under bugs/")
+        return dev[key], case_spec(key), False
+    held = heldout_cases()
+    if key not in held:
+        raise SystemExit(f"{key}: not an active held-out variant")
+    patch, spec_path = held[key]
+    return patch, load(spec_path, "test-spec"), True
+
+
 def _frame_files(frames_dir: Path) -> list[Path]:
     return sorted(frames_dir.glob("*.png"))
 
 
-def detect(key: str, out: Path, *, use_sam: bool, reference: list | None) -> dict:
+def detect(patch: Path, spec: dict, out: Path, *, use_sam: bool, reference: list | None) -> dict:
     """Render the bugged game on the smoke route and judge the case's spec, as Nightshift would.
 
     Returns the verdict (contract ``verdict``), the frames directory and the bugged trace path.
     A spec only SAM can judge is needs-review with SAM off: Nightshift cannot see that bug then.
     """
-    patch = dev_variants()[key]
     run_dir = out / "bugged"
     harness_run(SMOKE_ROUTE, run_dir, patches=[patch])
     trace = json.loads((run_dir / "trace.json").read_text(encoding="utf-8"))
     replay_sha = sha256_file(run_dir / "replay.json")
     frames = run_dir / "frames"
-    spec = case_spec(key)
     if spec["id"] == load(REGRESSION_SPEC, "test-spec")["id"]:
         obs, _source = _ground_observations(spec, trace, replay_sha, frames, use_sam, reference)
         verdict = evaluate(spec, obs)
@@ -159,16 +205,16 @@ def run_case(key: str, condition: str, out: Path, *, live: bool, use_sam: bool |
     """One case under one condition: detect, brief, up to ATTEMPTS fixes, each verified."""
     if condition not in CONDITIONS:
         raise SystemExit(f"unknown condition {condition!r}")
-    if key not in dev_variants():
-        raise SystemExit(f"{key}: no such development variant under bugs/")
+    patch, spec, private = resolve_case(key)
     use_sam = sam_on() if use_sam is None else use_sam
     work = out / key.replace("/", "_") / condition
     work.mkdir(parents=True, exist_ok=True)
     t0 = time.perf_counter()
-    row: dict = {"case": key, "condition": condition, "live": live, "sam": use_sam, "attempts": []}
+    row: dict = {"case": key, "condition": condition, "live": live, "sam": use_sam, "private": private,
+                 "attempts": []}
     try:
         reference = reference_surfaces(work)
-        detection = detect(key, work, use_sam=use_sam, reference=reference)
+        detection = detect(patch, spec, work, use_sam=use_sam, reference=reference)
         verdict = detection["verdict"]
         row["detected"] = verdict["result"]
         if condition == "nightshift" and verdict["result"] != "fail":
@@ -178,7 +224,8 @@ def run_case(key: str, condition: str, out: Path, *, live: bool, use_sam: bool |
         request = build_repair_request(
             request_id=f"rr-matrix-{key.replace('/', '-')}-{condition}",
             spec=detection["spec"], verdict=verdict, route=load(SMOKE_ROUTE, "route"),
-            base_patch=str(dev_variants()[key].relative_to(REPO)), editable=EDITABLE,
+            base_patch=str(patch.relative_to(REPO)) if patch.is_relative_to(REPO) else str(patch),
+            editable=EDITABLE,
             key_frames=[f for f in files if "/screenshots/" in f], attempts=ATTEMPTS,
         )
         (work / "repair-request.json").write_text(json.dumps(request, indent=2) + "\n", encoding="utf-8")
@@ -232,8 +279,20 @@ def _finish(row: dict, work: Path, t0: float) -> dict:
     row["format"] = FORMAT
     row["wallClockSeconds"] = round(time.perf_counter() - t0, 1)
     row["attemptsUsed"] = len(row["attempts"])
+    if row.get("private"):
+        # The full row (reasons, checks, error detail) can describe a private bug: it stays here.
+        (work / "result-private.json").write_text(json.dumps(row, indent=2) + "\n", encoding="utf-8")
+        row = public_row(row)
     (work / "result.json").write_text(json.dumps(row, indent=2) + "\n", encoding="utf-8")
     return row
+
+
+def public_row(row: dict) -> dict:
+    """What may leave the runner for a private case: ids, outcomes and per-attempt decisions."""
+    out = {k: row[k] for k in PUBLIC_KEYS if k in row}
+    out["attempts"] = [{"attempt": a.get("attempt"), "decision": a.get("decision"), "empty": a.get("empty", False)}
+                       for a in row.get("attempts", [])]
+    return out
 
 
 def summarize(out: Path) -> dict:
@@ -278,10 +337,11 @@ def main(argv: list[str] | None = None) -> int:
     load_dotenv()
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     g = p.add_mutually_exclusive_group(required=True)
-    g.add_argument("--list", action="store_true", help="print the case ids as JSON")
-    g.add_argument("--case", help="dev/<family>/vN")
+    g.add_argument("--list", action="store_true", help="print the case ids of one set as JSON")
+    g.add_argument("--case", help="dev/<family>/vN, or <family>/vN for an active held-out variant")
     g.add_argument("--summarize", type=Path, help="build matrix-summary.json and print a table")
     p.add_argument("--condition", choices=CONDITIONS)
+    p.add_argument("--set", choices=SETS, default="dev", dest="which", help="with --list")
     p.add_argument("--out", type=Path, default=REPO / "runs" / "matrix")
     p.add_argument("--live", action="store_true", help="run Muse Code (spends Meta credit)")
     p.add_argument("--fixture-candidate", type=Path, help="offline: verify this patch instead of an empty one")
@@ -289,7 +349,7 @@ def main(argv: list[str] | None = None) -> int:
                    help="refuse to run Muse Code outside bubblewrap (CI: the verifier's private set is on disk)")
     args = p.parse_args(argv)
     if args.list:
-        print(json.dumps(sorted(dev_variants())))
+        print(json.dumps(sorted(dev_variants()) if args.which == "dev" else sorted(heldout_cases())))
         return 0
     if args.summarize:
         print(markdown(summarize(args.summarize)))
