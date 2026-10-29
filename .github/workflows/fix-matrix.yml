@@ -1,0 +1,189 @@
+# Run by hand: the Gate 2 fix matrix (agents/matrix.py). For each development variant and each
+# condition (screenshots, nightshift), Muse Code gets up to three attempts and the verifier, with
+# SAM on and the private held-out routes mounted, judges every candidate.
+#
+# Spends Meta credit when live is true: Muse Code on META_API_KEY, SAM on MODEL_API_KEY (a
+# separate key; the job refuses when it is missing or the same). Muse runs only inside bubblewrap
+# (--require-sandbox), because the verifier's private set is on this runner's disk. Only results,
+# candidate patches, prompts and Muse logs are kept: no frames, traces or held-out material.
+name: Fix matrix
+
+on:
+  workflow_dispatch:
+    inputs:
+      live:
+        description: Run Muse Code (spends Meta credit). Off runs the offline path with empty candidates.
+        type: boolean
+        default: false
+      cases:
+        description: Comma-separated case ids (default all eight), e.g. dev/sinking/v2,dev/layering/v1
+        default: ''
+      conditions:
+        description: Comma-separated conditions (default both), screenshots and/or nightshift
+        default: 'screenshots,nightshift'
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      cases: ${{ steps.plan.outputs.cases }}
+      conditions: ${{ steps.plan.outputs.conditions }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Pick the cases and conditions
+        id: plan
+        env:
+          CASES: ${{ inputs.cases }}
+          CONDITIONS: ${{ inputs.conditions }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from agents.matrix import CONDITIONS, dev_variants
+          every = sorted(dev_variants())
+          cases = [c.strip() for c in os.environ["CASES"].split(",") if c.strip()] or every
+          conds = [c.strip() for c in os.environ["CONDITIONS"].split(",") if c.strip()] or list(CONDITIONS)
+          bad = sorted(set(cases) - set(every)) + sorted(set(conds) - set(CONDITIONS))
+          if bad:
+              raise SystemExit(f"unknown case or condition: {bad}")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"cases={json.dumps(cases)}\nconditions={json.dumps(conds)}\n")
+          print(cases, conds)
+          PY
+
+  run:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        case: ${{ fromJSON(needs.plan.outputs.cases) }}
+        condition: ${{ fromJSON(needs.plan.outputs.conditions) }}
+    env:
+      LIVE: ${{ inputs.live }}
+      KEYS_OK: ${{ secrets.META_API_KEY != '' && secrets.MODEL_API_KEY != '' }}
+      HELDOUT_TOKEN_SET: ${{ secrets.HELDOUT_TOKEN != '' }}
+    steps:
+      - name: Require both keys for a live run
+        if: env.LIVE == 'true' && env.KEYS_OK != 'true'
+        run: |
+          echo "::error::Set META_API_KEY (Muse) and MODEL_API_KEY (SAM, a different key) first."
+          exit 1
+      - name: Require the held-out token
+        if: env.HELDOUT_TOKEN_SET != 'true'
+        run: |
+          echo "::error::Set HELDOUT_TOKEN so the verifier can mount the private held-out routes."
+          exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Install bubblewrap, xvfb, software OpenGL
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends bubblewrap xvfb libgl1-mesa-dri libglx-mesa0 patch
+      - name: Allow unprivileged user namespaces for bubblewrap
+        run: |
+          if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
+          fi
+          if [ -f /proc/sys/kernel/unprivileged_userns_clone ]; then
+            echo 1 | sudo tee /proc/sys/kernel/unprivileged_userns_clone
+          fi
+          bwrap --die-with-parent --unshare-pid --dev /dev --tmpfs /tmp \
+            --ro-bind /usr /usr --ro-bind /bin /bin --ro-bind /lib /lib \
+            --ro-bind /lib64 /lib64 -- true
+      - name: Download Godot 4.7.2 and check its SHA-512
+        run: ./harness/get_godot.sh
+      - name: Fetch the private held-out set (verifier side only)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: seanudeke/Nightshift-heldout
+          token: ${{ secrets.HELDOUT_TOKEN }}
+          path: heldout-set
+          persist-credentials: false
+      - name: Install Muse Code CLI
+        if: env.LIVE == 'true'
+        run: |
+          curl -fsSL https://dev.meta.ai/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Run the case
+        env:
+          META_API_KEY: ${{ inputs.live && secrets.META_API_KEY || '' }}
+          MODEL_API_KEY: ${{ inputs.live && secrets.MODEL_API_KEY || '' }}
+          NIGHTSHIFT_OBS_PROVIDER: ${{ inputs.live && 'sam' || 'trace' }}
+          NIGHTSHIFT_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
+          CASE: ${{ matrix.case }}
+          CONDITION: ${{ matrix.condition }}
+        run: |
+          args=(--case "$CASE" --condition "$CONDITION" --out runs/matrix)
+          if [[ "$LIVE" == "true" ]]; then args+=(--live --require-sandbox); fi
+          set +e
+          python -m agents.matrix "${args[@]}" > matrix.log 2>&1
+          code=$?
+          set -e
+          tail -n 1 matrix.log
+          dir="runs/matrix/${CASE//\//_}/$CONDITION"
+          python - "$dir/result.json" <<'PY'
+          import json, sys
+          r = json.load(open(sys.argv[1]))
+          tries = "; ".join(f"{a['attempt']}: {a.get('decision')}" for a in r["attempts"])
+          print(f"::notice title=Fix matrix {r['case']} {r['condition']}::detected {r.get('detected')}; "
+                f"outcome {r['outcome']}; attempts {r['attemptsUsed']} ({tries}); {r['wallClockSeconds']} s; live={r['live']}")
+          PY
+          exit "$code"
+      - name: Keep the result, the candidates, the prompts and Muse's logs (no frames, no held-out material)
+        if: always()
+        run: |
+          mkdir -p keep
+          find runs/matrix -path '*held-out*' -prune -o -type f \( -name result.json -o -name candidate.patch \
+            -o -name muse-prompt.txt -o -name muse.log -o -name candidate.json -o -name detection.json \) -print \
+            | while read -r f; do mkdir -p "keep/$(dirname "$f")"; cp "$f" "keep/$f"; done
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: matrix-${{ strategy.job-index }}
+          path: keep/
+          retention-days: 14
+
+  summary:
+    needs: run
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          pattern: matrix-*
+          merge-multiple: true
+          path: results
+      - name: Summarize
+        run: |
+          python -m agents.matrix --summarize results/runs/matrix | tee -a "$GITHUB_STEP_SUMMARY"
+          python - <<'PY'
+          import json
+          doc = json.load(open("results/runs/matrix/matrix-summary.json"))
+          for c, s in doc["conditions"].items():
+              print(f"::notice title=Fix matrix {c}::fixed {s['fixed']} of {s['cases']}; not fixed {s['notFixed']}; "
+                    f"not detected {s['notDetected']}; needs review {s['needsReview']}; errors {s['errors']}; "
+                    f"{s['attempts']} attempts; live={s['live']}")
+          PY
