@@ -85,7 +85,8 @@ where it should be, and only the picture shows it can't be seen. To repeat eithe
 development variants in `bugs/` (ids `dev/<family>/vN`), so the two sets are measured the same way
 and reported separately.
 
-First run, October 29 (run 40841977642), same five routes and checks:
+First run, October 29 (run 40841977642, recorded in `bench/detection/dev.json`), same five routes
+and checks:
 
 | Development variant | Engine | Gameplay | Hybrid | player-always-visible | coins-visible | Caught, SAM on | Caught, SAM off |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -111,8 +112,8 @@ check fails on at least one route. Each variant gets one annotation with its id,
 and verdicts; nothing else from the private set leaves the runner (no artifacts, and the harness
 output goes to a file that is never printed).
 
-First full run, October 28 (run 40805529944), five routes per variant, every pass confirmed on
-every frame:
+First full run, October 28 (run 40805529944, recorded in `bench/detection/held-out.json`), five
+routes per variant, every pass confirmed on every frame:
 
 | Held-out variant | Engine | Gameplay | Hybrid | player-always-visible | coins-visible | Caught, SAM on | Caught, SAM off |
 | --- | --- | --- | --- | --- | --- | --- | --- |
