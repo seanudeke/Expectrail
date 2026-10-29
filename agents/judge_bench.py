@@ -36,11 +36,18 @@ import traceback
 from contextlib import contextmanager
 from pathlib import Path
 
-from agents.matrix import EDITABLE, SCREENSHOT_FRAMES, SMOKE_ROUTE, case_spec, dev_variants
-from agents.muse_judge import run_muse_judge
+from agents.matrix import (
+    EDITABLE,
+    SCREENSHOT_FRAMES,
+    SMOKE_ROUTE,
+    case_spec,
+    dev_variants,
+)
+from agents.muse_judge import DECISION_RE, run_muse_judge
 from agents.orchestrator import build_repair_request
 from agents.verifier import verify
-from harness.run import REPO, apply_patches, run as harness_run
+from harness.run import REPO, apply_patches
+from harness.run import run as harness_run
 from nightshift.contracts import digest, load
 from nightshift.evaluator import EVALUATOR
 
@@ -126,6 +133,19 @@ def _correct(label: str, decision: str | None) -> bool | None:
     return decision == "accept" if label == "good" else decision != "accept"
 
 
+def muse_reason(judge: dict, limit: int = 400) -> str:
+    """What Muse wrote just before its last DECISION line (its reasoning), else the judge's own detail."""
+    try:
+        text = Path(judge.get("museLog") or "").read_text(encoding="utf-8")
+    except (OSError, TypeError):
+        return judge.get("detail") or ""
+    matches = list(DECISION_RE.finditer(text))
+    if not matches:
+        return judge.get("detail") or ""
+    said = " ".join(text[:matches[-1].start()].split())
+    return ("..." + said[-limit:]) if len(said) > limit else said
+
+
 def run_case(key: str, out: Path, *, live: bool, sam: bool = True) -> dict:
     """One candidate in front of every judge; a crash is recorded, never counted as a verdict."""
     spec = cases().get(key)
@@ -154,7 +174,7 @@ def run_case(key: str, out: Path, *, live: bool, sam: bool = True) -> dict:
                 v = verify(request, candidate, work / name)
             row["decisions"][name] = v["decision"]
             # Which checks failed, without the route they failed on (private routes have names).
-            row["reasons"][name] = [r.split(" on ")[0] for r in (v.get("reasons") or [])][:4]
+            row["reasons"][name] = list(dict.fromkeys(r.split(" on ")[0] for r in (v.get("reasons") or [])))[:6]
         if live:
             harness_run(SMOKE_ROUTE, work / "bugged", patches=[bug_patch])
             before = _frames(work / "bugged" / "frames")
@@ -167,7 +187,7 @@ def run_case(key: str, out: Path, *, live: bool, sam: bool = True) -> dict:
             judge = run_muse_judge(work / "muse-judge", before=before, after=after, instruction=instruction,
                                    sandboxed=True)
             row["decisions"]["museScreenshots"] = judge.get("decision")
-            row["reasons"]["museScreenshots"] = [judge.get("detail")]
+            row["reasons"]["museScreenshots"] = [muse_reason(judge)]
         row["correct"] = {k: _correct(spec["label"], d) for k, d in row["decisions"].items()}
     except (Exception, SystemExit) as exc:  # noqa: BLE001
         (work / "judge-error.txt").write_text(traceback.format_exc(), encoding="utf-8")

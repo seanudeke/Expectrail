@@ -354,6 +354,12 @@ jobs:
           print(f"::notice title=Judge {r['case']}::label {r['label']}; SAM on {d.get('nightshiftSam')}; "
                 f"SAM off {d.get('nightshiftNoSam')}; Muse screenshots {d.get('museScreenshots')}; "
                 f"{r['wallClockSeconds']} s; live={r['live']}")
+          # Every judge case is built from public development variants, so its reasons can be shown.
+          names = {"nightshiftSam": "SAM on", "nightshiftNoSam": "SAM off", "museScreenshots": "Muse screenshots"}
+          why = [f"{names[k]}: " + " | ".join(" ".join(str(x).split())[:200] for x in (v or [])[:3])
+                 for k, v in (r.get("reasons") or {}).items() if k in names and v]
+          if why:
+              print(f"::notice title=Judge reasons {r['case']}::" + " ;; ".join(why)[:900])
           if r.get("error"):
               print(f"::warning title=Judge {r['case']} error::{' '.join(r['error'].split())[:300]}")
           PY

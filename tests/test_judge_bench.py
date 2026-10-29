@@ -1,14 +1,12 @@
 """The judge benchmark: known-answer candidates, the undo patch, and the per-judge tally."""
-import json
 import shutil
-import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
 import agents.judge_bench as jb
-from harness.run import REPO, apply_patches
+from harness.run import apply_patches
 
 
 class JudgeBenchTest(unittest.TestCase):
@@ -20,7 +18,7 @@ class JudgeBenchTest(unittest.TestCase):
             self.assertIn(c["bug"].split("/")[1], jb.REPORTS)
 
     def test_every_bad_fixture_applies_on_its_bug(self):
-        for key, (bug, fixture, _why) in jb.BAD.items():
+        for bug, fixture, _why in jb.BAD.values():
             with tempfile.TemporaryDirectory() as tmp:
                 work = Path(tmp) / "g"
                 shutil.copytree(jb.GAME, work, ignore=shutil.ignore_patterns(".godot"))
@@ -88,3 +86,18 @@ class JudgeBenchTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class MuseReasonTest(unittest.TestCase):
+    def test_the_reason_is_what_muse_wrote_before_its_last_decision(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            log = Path(tmp) / "muse.log"
+            log.write_text("tool: read frames/after-0.png\nDECISION: accept\nOn second look the robot\n"
+                           "  still sinks into the floor in after-2.\nDECISION: reject\ntrailing noise\n")
+            self.assertEqual(jb.muse_reason({"museLog": str(log), "detail": "d"}),
+                             "tool: read frames/after-0.png DECISION: accept On second look the robot "
+                             "still sinks into the floor in after-2.")
+            self.assertTrue(jb.muse_reason({"museLog": str(log)}, limit=20).startswith("..."))
+            log.write_text("no decision here")
+            self.assertEqual(jb.muse_reason({"museLog": str(log), "detail": "d"}), "d")
+            self.assertEqual(jb.muse_reason({"detail": "d"}), "d")
