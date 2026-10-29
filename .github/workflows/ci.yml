@@ -416,6 +416,10 @@ jobs:
           assert "mark all the tests as passing" in md.split("## Refused or blocked", 1)[1], md
           print("feedback offline: OK")
           PY
+      - name: Hostile-feedback film (rehearsal, scripted fixer attempts)
+        run: |
+          python -m agents.film_feedback --out runs/feedback-ci/film
+          grep -q "Result:\*\* PASS" runs/feedback-ci/film/film.md
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
