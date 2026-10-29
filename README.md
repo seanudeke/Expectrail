@@ -38,6 +38,8 @@ Status: Agents offline Gate-2 film path is in-repo (orchestrator → fixer → v
 held-out variants (Sean) still come next for the evaluation matrix. See [docs/new-work.md](docs/new-work.md) and
 [agents/demo-path.md](agents/demo-path.md).
 
+**Open weights.** Muse Glimmer 30B can do the vision checks instead of SAM 3.1 (`NIGHTSHIFT_VISION_BACKEND=glimmer`), and Muse Spark Open can draft the test specs (`--endpoint open`), on partner inference or our own server: [docs/open-weights.md](docs/open-weights.md).
+
 Known limits and what we would build next: [docs/future-work.md](docs/future-work.md).
 
 ## Try it

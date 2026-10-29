@@ -26,8 +26,8 @@ from pathlib import Path
 
 from agents.observations import engine_ground_by_frame, has_engine_ground, with_reference_ground
 from agents.sam_observations import (
-    Cache, MetaSamClient, SamError, _document, default_cache_dir, frame_files, observe, png_size, sample,
-    sha256_bytes, window,
+    Cache, SamError, _document, default_cache_dir, default_client, frame_files, observe, png_size, sample,
+    sha256_bytes, vision_backend, window,
 )
 from nightshift.evaluator import DEFAULT_MIN_SCORE, EDGE, SIDE, _overlap, evaluate
 
@@ -187,7 +187,7 @@ def probe_run(run: Path, spec: dict, picked: list[int] | None, every: int, clien
         observed[i].update(objs)
     replay = run / "replay.json"
     doc = _document(observed, prompts, client.model, sha256_bytes(replay) if replay.is_file() else "0" * 64,
-                    len(frames), len(indices), every, [], 0, engine)
+                    len(frames), len(indices), every, [], 0, engine, getattr(client, "provider", "meta-model-api"))
     verdict = evaluate(spec, doc)
     result = {"run": run.name, "framesProbed": chosen, "verdict": {k: verdict[k] for k in ("result", "reason")},
               "objects": object_metrics(spec, observed), "observations": doc}
@@ -220,7 +220,7 @@ def tolerance_hint(spec: dict, runs: list[dict], clean_names: set[str]) -> dict 
 
 
 def markdown(spec: dict, runs: list[dict], hint: dict | None, model: str, stats: dict) -> str:
-    lines = [f"# SAM probe: {spec['id']}", "",
+    lines = [f"# {_label()} probe: {spec['id']}", "",
              f"Model `{model}`. Prompts: " + ", ".join(f"{n} = \"{o['prompt']}\"" for n, o in spec["objects"].items())
              + f". API calls {stats.get('calls', 0)}, cache hits {stats.get('cacheHits', 0)}.", "",
              "Verdicts below are on the probed frames only, not a full run.", "",
@@ -252,6 +252,14 @@ def markdown(spec: dict, runs: list[dict], hint: dict | None, model: str, stats:
     return "\n".join(lines) + "\n"
 
 
+def _label() -> str:
+    """Which model the probe is about, for titles: SAM, or Glimmer with NIGHTSHIFT_VISION_BACKEND=glimmer."""
+    try:
+        return "Glimmer" if vision_backend() == "glimmer" else "SAM"
+    except SamError:
+        return "SAM"
+
+
 def _escape(text: str) -> str:
     return text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
 
@@ -277,7 +285,7 @@ def annotations(report: dict) -> list[str]:
                             if s else ""))
         if run.get("gaps"):
             parts.append("gaps " + " ".join(f"{g['frame']}:{_num(g['gap'])}" for g in run["gaps"]))
-        lines.append(f"::notice title=SAM probe {run['run']}::{_escape('; '.join(parts))}")
+        lines.append(f"::notice title={_label()} probe {run['run']}::{_escape('; '.join(parts))}")
     hint, stats = report.get("tolerance") or {}, report.get("stats", {})
     calls = stats.get("calls") or 0
     summary = [f"model {report['model']}", f"calls {calls}", f"cache hits {stats.get('cacheHits', 0)}",
@@ -286,7 +294,7 @@ def annotations(report: dict) -> list[str]:
         summary.append(f"approved tolerance {_num(hint['approvedTolerancePx'])}")
         summary.append(f"clean worst gap {_num(hint['cleanWorstGap'])}")
         summary.append("bug worst gaps " + " ".join(f"{k}:{_num(v)}" for k, v in hint["others"].items()))
-    lines.append(f"::notice title=SAM probe summary::{_escape('; '.join(summary))}")
+    lines.append(f"::notice title={_label()} probe summary::{_escape('; '.join(summary))}")
     return lines
 
 
@@ -341,7 +349,7 @@ def sweep_annotations(results: list[dict]) -> list[str]:
         hint = item.get("tolerance")
         if hint:
             parts.append(f"clean worst gap {_num(hint['cleanWorstGap'])}")
-        lines.append(f"::notice title=SAM sweep {name}={item['prompt']}::{_escape('; '.join(parts))}")
+        lines.append(f"::notice title={_label()} sweep {name}={item['prompt']}::{_escape('; '.join(parts))}")
     return lines
 
 
@@ -399,7 +407,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{total} requests at most (cached frames are not sent)")
         return 0
 
-    client = MetaSamClient()
+    client = default_client()
     cache = Cache(None if args.no_cache else default_cache_dir())
     args.out.mkdir(parents=True, exist_ok=True)
     clean_names = set(args.clean.split(","))
@@ -422,7 +430,7 @@ def main(argv: list[str] | None = None) -> int:
     except SamError as exc:
         print(f"SAM failed: {exc}", file=sys.stderr)
         if on_github:
-            print(f"::error title=SAM probe failed::{_escape(str(exc)[:500])} (after {client.calls} calls)")
+            print(f"::error title={_label()} probe failed::{_escape(str(exc)[:500])} (after {client.calls} calls)")
         return 2
     stats = {"calls": client.calls, "cacheHits": cache.hits, "seconds": round(client.seconds, 2)}
     hint = tolerance_hint(spec, results, clean_names) if results else None
@@ -448,7 +456,7 @@ def main(argv: list[str] | None = None) -> int:
         if swept:
             summary = (f"model {client.model}; calls {stats['calls']}; cache hits {stats['cacheHits']}; seconds per call "
                        f"{stats['seconds'] / stats['calls']:.2f}" if stats["calls"] else "no calls")
-            print(f"::notice title=SAM probe summary::{_escape(summary)}")
+            print(f"::notice title={_label()} probe summary::{_escape(summary)}")
     return 0
 
 

@@ -54,6 +54,10 @@ EVERY_ENV = "NIGHTSHIFT_SAM_EVERY"
 CONFIRM_ENV = "NIGHTSHIFT_SAM_CONFIRM"
 CACHE_ENV = "NIGHTSHIFT_SAM_CACHE"
 WORKERS_ENV = "NIGHTSHIFT_SAM_WORKERS"
+# Which model looks at the frames: sam (SAM 3.1, Meta Model API) or glimmer (Muse Glimmer, open
+# weights, agents.glimmer_client). Everything else in this module is the same for both.
+BACKEND_ENV = "NIGHTSHIFT_VISION_BACKEND"
+BACKENDS = ("sam", "glimmer")
 DEFAULT_EVERY = 4
 DEFAULT_WORKERS = 4
 # Bump when the request or the parsing changes, so older cache entries are never reused.
@@ -310,6 +314,22 @@ class MetaSamClient:
 _warned_shared_key = threading.Event()
 
 
+def vision_backend() -> str:
+    name = os.environ.get(BACKEND_ENV, "sam").strip().lower() or "sam"
+    if name not in BACKENDS:
+        raise SamError(f"unknown {BACKEND_ENV} {name!r} (want {'|'.join(BACKENDS)})")
+    return name
+
+
+def default_client():
+    """The frame-vision client for this run: SAM 3.1, or Muse Glimmer when the backend says so."""
+    if vision_backend() == "glimmer":
+        from agents.glimmer_client import GlimmerClient
+
+        return GlimmerClient()
+    return MetaSamClient()
+
+
 # ---------------------------------------------------------------------------------------------
 # The cache
 # ---------------------------------------------------------------------------------------------
@@ -483,7 +503,7 @@ def observe(frames: dict[int, Path], indices: list[int], prompts: dict[str, str]
 
     def run(job):
         i, name = job
-        key = Cache.key(shas[i], prompts[name], client.model, client.base)
+        key = Cache.key(shas[i], prompts[name], client.model, client.base + getattr(client, "cache_tag", ""))
         detections = cache.get(key)
         if detections is None:
             detections = client.segment(frames[i], prompts[name])
@@ -507,10 +527,10 @@ def observe(frames: dict[int, Path], indices: list[int], prompts: dict[str, str]
 
 
 def _document(observed, prompts, model, replay_sha256, captured, in_window, every, refined,
-              confirmed: int = 0, engine_objects: dict | None = None) -> dict:
+              confirmed: int = 0, engine_objects: dict | None = None, provider: str = "meta-model-api") -> dict:
     engine_objects = engine_objects or {}
     engine_names = sorted({name for objs in engine_objects.values() for name in objs})
-    model_doc = {"name": model, "provider": "meta-model-api", "prompts": dict(prompts)}
+    model_doc = {"name": model, "provider": provider, "prompts": dict(prompts)}
     if engine_names:
         # These objects come from the game engine, not from SAM: the evaluator compares SAM's view
         # of the prompted objects against them (e.g. the robot SAM sees against the level's ground).
@@ -580,7 +600,7 @@ def _from_replay(frames_dir, replay_sha256, *, spec, prompts, every, refine, con
     frames = frame_files(Path(frames_dir))
     if not frames:
         raise SamError(f"no frames in {frames_dir}")
-    client = client or MetaSamClient()
+    client = client or default_client()
     cache = cache if cache is not None else Cache(default_cache_dir())
     workers = workers or int(os.environ.get(WORKERS_ENV, DEFAULT_WORKERS))
     rate = every or int(os.environ.get(EVERY_ENV, DEFAULT_EVERY))
@@ -597,7 +617,8 @@ def _from_replay(frames_dir, replay_sha256, *, spec, prompts, every, refine, con
 
     def doc_of(refined_frames, confirmed_count=0):
         return _document(observed, names, client.model, replay_sha256, len(frames), len(indices), rate,
-                         refined_frames, confirmed_count, engine_objects)
+                         refined_frames, confirmed_count, engine_objects,
+                         getattr(client, "provider", "meta-model-api"))
 
     refined: list[int] = []
     if refine and spec and rate > 1:
