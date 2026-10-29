@@ -67,6 +67,10 @@ adapter sends whichever won.
 - Decision (2026-10-28): 3.1 is the tracer bullet and opens the epic; 3.2 waits on its numbers. Its
   wait on the SAM key is carried by its unknown, not by an epic-level after, so the epic is not gated
   as a whole.
+- Decision (2026-10-28, user approval): the clip sender is a throwaway beside `agents/sam_probe.py`
+  — the adapter is not touched until a measurement says the clip path won; ffmpeg (preinstalled on
+  ubuntu-latest runners) encodes the frames to H.264. The spend (a few runs, per-frame billing,
+  50-frame minimum) is approved.
 - Unknown: the adapter has no clip request path — `request_body()` sends one prompt and one PNG, and
   only the parser is video-ready. Where the sender lives and what encodes H.264 on the runner is
   settled before 3.1 starts; no reference in the repo describes the video request shape.

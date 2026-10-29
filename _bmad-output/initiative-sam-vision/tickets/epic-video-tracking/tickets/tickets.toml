@@ -10,7 +10,7 @@ covers = ["R1"]
 after = []
 hitl = true
 risk = "high"
-unknown = "Three things before a clip can be sent: the SAM key (HTTP 402 today), approval for a run billed per frame with a 50-frame minimum, and where the clip sender lives (a throwaway beside agents/sam_probe.py, or the adapter) with what encodes the frames to H.264 on the runner."
+unknown = "The SAM key: HTTP 402 billing_not_configured, a billing problem on the Meta team's side (confirmed again by run 40800572513 today). Spend and the sender questions are settled; this is the only wait."
 
 [[entry]]
 id = 2
