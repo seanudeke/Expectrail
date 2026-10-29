@@ -10,7 +10,6 @@ covers = ["R8"]
 after = []
 hitl = true
 risk = "medium"
-unknown = "Where the margin is reported and against what floor: the spec's own minScore (0.5 today), a recorded minimum from the last clean run, or a new approved number. Sean decides; the observations schema already allows the field."
 
 [[entry]]
 id = 2
@@ -33,4 +32,4 @@ covers = ["R1", "R2", "R3", "R4", "R5", "R6", "R7"]
 after = []
 hitl = false
 risk = "high"
-unknown = "The SAM key returns HTTP 402 billing_not_configured, and epic-held-out-bench owns the fix; this run waits on that, not on the epic."
+unknown = "The SAM key works now (run 40805529944, Oct 29). What is left is timing: another agent session is dispatching runs in this repo (PRs #48/#49), so this dispatch should not overlap theirs without the user's go-ahead."

@@ -10,7 +10,7 @@ covers = ["R1"]
 after = []
 hitl = true
 risk = "high"
-unknown = "The SAM key: HTTP 402 billing_not_configured, a billing problem on the Meta team's side (confirmed again by run 40800572513 today). Spend and the sender questions are settled; this is the only wait."
+unknown = "Nothing structural: the key works (run 40805529944), the spend is approved and the sender is settled (throwaway beside agents/sam_probe.py, ffmpeg). What is left is timing: another agent session is dispatching runs here, so this one waits for the user's go-ahead."
 
 [[entry]]
 id = 2
