@@ -449,7 +449,9 @@ def verify(
         reg_spec = failing["spec"]
     use_sam = sam_on()
     sam_spec_docs = sam_specs(reg_spec["id"]) if use_sam else []
-    sam_note = (f"; SAM 3.1 judges {', '.join(s['id'] for s in sam_spec_docs)} on its own observations"
+    from agents.sam_observations import vision_label
+
+    sam_note = (f"; {vision_label()} judges {', '.join(s['id'] for s in sam_spec_docs)} on its own observations"
                 if use_sam else "")
     trace, replay_sha, frames_dir = None, "0" * 64, None
     # The clean game's level surfaces: the ground every replay here is judged against.
