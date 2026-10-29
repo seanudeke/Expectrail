@@ -69,7 +69,7 @@ COORDS = ("pixels", "norm1000", "norm1")
 # the frame's pixels and its y 0.95-0.99 times, i.e. 1600/1000 and 960/1000 on a 1600x960 frame.
 DEFAULT_COORDS = "norm1000"
 # Bump when the prompt or the parsing changes, so cached answers to an older question are not reused.
-REQUEST_VERSION = "glimmer-3"
+REQUEST_VERSION = "glimmer-4"
 # Glimmer reasons before it answers, and its reasoning counts against max_tokens: at 2048 a frame with a
 # dozen coins was cut off mid-JSON (Oct 29). Room for the reasoning plus up to MAX_OBJECTS boxes.
 MAX_TOKENS = int(os.environ.get("NIGHTSHIFT_GLIMMER_MAX_TOKENS", "8192"))
@@ -122,8 +122,11 @@ GRIDS = {
 
 def user_prompt(prompt: str, size: tuple[int, int], coords: str = "pixels") -> str:
     w, h = size
+    # The image's pixel size only when asking for pixels: told "1600 by 960 pixels" and asked for the
+    # 0-1000 grid, Glimmer sometimes rescaled its own grid answer once more (x / 1.6; run 40937863760).
+    size_line = f"This image is {w} by {h} pixels. " if coords == "pixels" else ""
     return (
-        f'This image is {w} by {h} pixels. Find every visible "{prompt}". '
+        f'{size_line}Find every visible "{prompt}". '
         'Answer with JSON only: {"objects": [{"box": [x0, y0, x1, y1], "confidence": c}]}, one entry per '
         f"separate {prompt}, at most {MAX_OBJECTS} entries. {GRIDS[coords]}: x0, y0 is the top-left corner and x1, "
         "y1 the bottom-right, with the origin at the top-left and y growing downward. confidence is how "

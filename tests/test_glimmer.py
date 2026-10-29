@@ -183,6 +183,7 @@ class GridTest(unittest.TestCase):
             # Clean frame 0: the engine puts the robot at [760, 660, 840, 780].
             self.assertEqual(client.segment(png, "blue robot"), [{"box": [752.0, 662.4, 856.0, 796.8], "score": 0.9}])
         self.assertIn("0 to 1000 grid", gl.user_prompt("blue robot", (W, H), "norm1000"))
+        self.assertNotIn(str(W), gl.user_prompt("blue robot", (W, H), "norm1000"))  # no pixel size to rescale by
         self.assertIn("pixels of this image", gl.user_prompt("blue robot", (W, H), "pixels"))
         body = gl.request_body("blue robot", "data:,", (W, H), coords="norm1000")
         self.assertIn("0 to 1000 grid", body["messages"][1]["content"][0]["text"])
