@@ -51,11 +51,18 @@ def file_sha256(path: Path) -> str:
 
 def build_judge_prompt(
     *,
-    before_rel: str,
-    after_rel: str,
+    before_rel: str | list[str],
+    after_rel: str | list[str],
     instruction: str,
 ) -> str:
-    """Plain-English screenshot judge prompt (no structured Nightshift checks)."""
+    """Plain-English screenshot judge prompt (no structured Nightshift checks).
+
+    ``before_rel`` / ``after_rel`` may each be one frame or several frames of the same route.
+    """
+    if not isinstance(before_rel, str):
+        before_rel = ", ".join(before_rel)
+    if not isinstance(after_rel, str):
+        after_rel = ", ".join(after_rel)
     return f"""You are judging a Godot 2D platformer bug from screenshots alone.
 
 ## Instruction
@@ -66,7 +73,7 @@ def build_judge_prompt(
 - After (candidate): {after_rel}
 
 ## Rules
-- Open and look at both image files.
+- Open and look at every image file listed.
 - Do not invent file contents you could not open.
 - Do not run the game, edit files, or search for tests, specs, keys, or evaluator code.
 - Do not use Nightshift contracts, held-out routes, or SAM.
@@ -102,15 +109,23 @@ def _work_inventory(work: Path) -> list[str]:
 def run_muse_judge(
     out: Path,
     *,
-    before: Path,
-    after: Path,
+    before: Path | list[Path],
+    after: Path | list[Path],
     instruction: str = DEFAULT_INSTRUCTION,
     fixture_log: Path | None = None,
     timeout: int = 600,
+    sandboxed: bool = False,
 ) -> dict:
-    """Run Muse Code as a screenshot-only judge; fail closed without a parseable decision."""
+    """Run Muse Code as a screenshot-only judge; fail closed without a parseable decision.
+
+    ``before`` / ``after`` are one frame each, or lists of frames of the same route (the judge
+    then sees all of them). ``sandboxed`` runs Muse inside bubblewrap with only its frames
+    mounted, as the fixer is; use it wherever anything else sits on the machine's disk.
+    """
     out.mkdir(parents=True, exist_ok=True)
-    if not before.is_file() or not after.is_file():
+    befores = [before] if isinstance(before, Path) else list(before)
+    afters = [after] if isinstance(after, Path) else list(after)
+    if not befores or not afters or not all(p.is_file() for p in befores + afters):
         result = {
             "ok": False,
             "skipped": False,
@@ -137,13 +152,20 @@ def run_muse_judge(
     if work.exists():
         shutil.rmtree(work)
     work.mkdir(parents=True)
-    before_rel = "frames/before.png"
-    after_rel = "frames/after.png"
+    if len(befores) == 1 and len(afters) == 1:
+        before_rels: list[str] = ["frames/before.png"]
+        after_rels: list[str] = ["frames/after.png"]
+    else:
+        before_rels = [f"frames/before-{i + 1}.png" for i in range(len(befores))]
+        after_rels = [f"frames/after-{i + 1}.png" for i in range(len(afters))]
     (work / "frames").mkdir()
-    shutil.copy2(before, work / before_rel)
-    shutil.copy2(after, work / after_rel)
+    for src, rel in zip(befores + afters, before_rels + after_rels):
+        shutil.copy2(src, work / rel)
+    before_rel: str | list[str] = before_rels[0] if len(before_rels) == 1 else before_rels
+    after_rel: str | list[str] = after_rels[0] if len(after_rels) == 1 else after_rels
+    allowed = ALLOWED_WORK_RELPATHS if len(befores) == len(afters) == 1 else frozenset(before_rels + after_rels)
     inventory = _work_inventory(work)
-    if set(inventory) != ALLOWED_WORK_RELPATHS:
+    if set(inventory) != allowed:
         result = {
             "ok": False,
             "skipped": False,
@@ -175,10 +197,10 @@ def run_muse_judge(
     meta: dict = {
         "promptPolicy": PROMPT_POLICY,
         "promptSha256": prompt_sha256(prompt),
-        "before": str(before),
-        "after": str(after),
-        "beforeSha256": file_sha256(before),
-        "afterSha256": file_sha256(after),
+        "before": str(befores[0]) if len(befores) == 1 else [str(p) for p in befores],
+        "after": str(afters[0]) if len(afters) == 1 else [str(p) for p in afters],
+        "beforeSha256": file_sha256(befores[0]) if len(befores) == 1 else [file_sha256(p) for p in befores],
+        "afterSha256": file_sha256(afters[0]) if len(afters) == 1 else [file_sha256(p) for p in afters],
         "instruction": instruction,
         "workFiles": inventory,
     }
@@ -199,6 +221,20 @@ def run_muse_judge(
         }
         (out / "judge.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
         return result
+    elif sandboxed:
+        from agents.sandbox import run_muse_sandboxed
+
+        try:
+            proc, sandbox_meta = run_muse_sandboxed(prompt, work=work, env=muse_subprocess_env(), timeout=timeout,
+                                                    require_sandbox=True)
+        except subprocess.TimeoutExpired as exc:
+            text = [s.decode("utf-8", "replace") if isinstance(s, bytes) else (s or "") for s in (exc.stdout, exc.stderr)]
+            proc = subprocess.CompletedProcess(exc.cmd, -1, text[0], text[1])
+            sandbox_meta = {"kind": "bwrap", "timedOut": True}
+        meta["sandbox"] = sandbox_meta
+        log_text = (proc.stdout or "") + "\n" + (proc.stderr or "")
+        source = "muse"
+        exit_code = proc.returncode
     else:
         proc = subprocess.run(
             ["muse", "exec", "--disable-approval", "--trust-workspace", prompt],

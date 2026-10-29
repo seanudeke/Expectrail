@@ -3,6 +3,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from typing import ClassVar
 
 import agents.bench_collect as bc
 
@@ -107,3 +108,67 @@ class MatrixCollectTest(unittest.TestCase):
         notes = {1: [("dev/a/v1", "screenshots", FIXED.replace("live=True", "live=False"))]}
         with self.assertRaises(SystemExit):
             bc.collect_matrix([1], "dev", fetch=matrix_fetch(notes))
+
+
+class JudgeCollectTest(unittest.TestCase):
+    RUNS: ClassVar[dict] = {
+        9: [("good/sinking/v1", "label good; SAM on accept; SAM off accept; Muse screenshots reject; 300.0 s; live=True",
+             None),
+            ("bad/fall-through-hide-player",
+             "label bad; SAM on reject; SAM off accept; Muse screenshots accept; 400.0 s; live=True", None),
+            ("bad/layering-hide-trees", "label bad; SAM on accept; SAM off accept; Muse screenshots None; 500.0 s; live=True",
+             None)],
+        10: [("good/sinking/v1", "label good; SAM on accept; SAM off accept; Muse screenshots accept; 300.0 s; live=True",
+              "SAM on: all 9 checks passed ;; Muse screenshots: The robot stands on the floor now."),
+             ("bad/fall-through-hide-player",
+              "label bad; SAM on reject; SAM off accept; Muse screenshots accept; 400.0 s; live=True",
+              "SAM on: candidate check player-always-visible failed | held-out check player-always-visible failed"),
+             ("bad/layering-hide-trees",
+              "label bad; SAM on accept; SAM off accept; Muse screenshots reject; 500.0 s; live=True", None)],
+    }
+
+    def fetch(self, path):
+        parts = path.split("/")
+        if parts[-2] == "runs" and parts[-1].isdigit():
+            run = int(parts[-1])
+            return {"html_url": f"https://x/{run}", "head_sha": "abc1234def", "created_at": "2026-10-29T19:00:00Z"}
+        if "/jobs" in path:
+            run = int(parts[-2])
+            return {"jobs": [{"id": run * 100 + i, "name": f"judge-run ({c})"} for i, (c, _m, _r) in
+                             enumerate(self.RUNS[run])]}
+        job = int(parts[-2])
+        c, m, why = self.RUNS[job // 100][job % 100]
+        notes = [{"title": f"Judge {c}", "message": m}, {"title": "", "message": "runner image notice"}]
+        if why:
+            notes.append({"title": f"Judge reasons {c}", "message": why})
+        return notes
+
+    def test_one_run_to_per_judge_counts(self):
+        doc = bc.collect_judge([9], fetch=self.fetch)
+        run = doc["runs"][0]
+        self.assertEqual(run["judges"]["nightshiftSam"], {"goodAccepted": 1, "good": 1, "badAccepted": 1, "bad": 2,
+                                                          "undecided": 0})
+        self.assertEqual(run["judges"]["museScreenshots"]["badAccepted"], 1)
+        self.assertEqual(run["judges"]["museScreenshots"]["undecided"], 1)
+        md = bc.judge_markdown(doc)
+        self.assertIn("| Nightshift, SAM off | 9 | 1 of 1 | 2 of 2 | 0 |", md)
+        self.assertIn("| bad/fall-through-hide-player | reject | reject | accept | accept |", md)
+        self.assertNotIn("changed between runs", md)
+
+    def test_two_runs_show_what_changed_and_the_reasons(self):
+        doc = bc.collect_judge([9, 10], fetch=self.fetch)
+        self.assertEqual(doc["changedBetweenRuns"]["museScreenshots"], ["bad/layering-hide-trees", "good/sinking/v1"])
+        self.assertEqual(doc["changedBetweenRuns"]["nightshiftSam"], [])
+        hide = next(r for r in doc["runs"][1]["rows"] if r["case"] == "bad/fall-through-hide-player")
+        self.assertEqual(hide["reasons"]["nightshiftSam"], ["candidate check player-always-visible failed",
+                                                            "held-out check player-always-visible failed"])
+        md = bc.judge_markdown(doc)
+        self.assertIn("| good/sinking/v1 | accept | accept, accept | accept, accept | reject, accept |", md)
+        self.assertIn("Muse from screenshots: bad/layering-hide-trees, good/sinking/v1.", md)
+        self.assertIn("The robot stands on the floor now.", md)
+
+    def test_offline_judge_runs_are_refused(self):
+        self.RUNS = {9: [("good/sinking/v1",
+                          "label good; SAM on None; SAM off accept; Muse screenshots None; 3.0 s; live=False", None)]}
+        with self.assertRaises(SystemExit):
+            bc.collect_judge([9], fetch=self.fetch)

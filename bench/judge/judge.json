@@ -1,0 +1,206 @@
+{
+  "format": "nightshift.judge-bench/v1",
+  "runs": [
+    {
+      "run": 40936362830,
+      "runUrl": "https://github.com/seanudeke/Nightshift/actions/runs/40936362830",
+      "commit": "8e7b9d65a8b03ff643b40847483140d0e12d4155",
+      "date": "2026-10-29T19:02:08Z",
+      "judges": {
+        "nightshiftSam": {
+          "goodAccepted": 8,
+          "good": 8,
+          "badAccepted": 0,
+          "bad": 7,
+          "undecided": 0
+        },
+        "nightshiftNoSam": {
+          "goodAccepted": 8,
+          "good": 8,
+          "badAccepted": 3,
+          "bad": 7,
+          "undecided": 0
+        },
+        "museScreenshots": {
+          "goodAccepted": 6,
+          "good": 8,
+          "badAccepted": 2,
+          "bad": 7,
+          "undecided": 0
+        }
+      },
+      "rows": [
+        {
+          "case": "bad/fall-through-comment-only",
+          "label": "bad",
+          "seconds": 566.7,
+          "live": true,
+          "decisions": {
+            "nightshiftSam": "reject",
+            "nightshiftNoSam": "reject",
+            "museScreenshots": "reject"
+          }
+        },
+        {
+          "case": "bad/fall-through-freeze",
+          "label": "bad",
+          "seconds": 388.1,
+          "live": true,
+          "decisions": {
+            "nightshiftSam": "reject",
+            "nightshiftNoSam": "reject",
+            "museScreenshots": "reject"
+          }
+        },
+        {
+          "case": "bad/fall-through-hide-player",
+          "label": "bad",
+          "seconds": 554.2,
+          "live": true,
+          "decisions": {
+            "nightshiftSam": "reject",
+            "nightshiftNoSam": "accept",
+            "museScreenshots": "reject"
+          }
+        },
+        {
+          "case": "bad/fall-through-lower-floor",
+          "label": "bad",
+          "seconds": 551.2,
+          "live": true,
+          "decisions": {
+            "nightshiftSam": "reject",
+            "nightshiftNoSam": "reject",
+            "museScreenshots": "accept"
+          }
+        },
+        {
+          "case": "bad/fall-through-sink-player",
+          "label": "bad",
+          "seconds": 541.3,
+          "live": true,
+          "decisions": {
+            "nightshiftSam": "reject",
+            "nightshiftNoSam": "accept",
+            "museScreenshots": "accept"
+          }
+        },
+        {
+          "case": "bad/layering-hide-trees",
+          "label": "bad",
+          "seconds": 598.4,
+          "live": true,
+          "decisions": {
+            "nightshiftSam": "reject",
+            "nightshiftNoSam": "accept",
+            "museScreenshots": "reject"
+          }
+        },
+        {
+          "case": "bad/sinking-overcorrected",
+          "label": "bad",
+          "seconds": 636.7,
+          "live": true,
+          "decisions": {
+            "nightshiftSam": "reject",
+            "nightshiftNoSam": "reject",
+            "museScreenshots": "reject"
+          }
+        },
+        {
+          "case": "good/layering/v1",
+          "label": "good",
+          "seconds": 663.7,
+          "live": true,
+          "decisions": {
+            "nightshiftSam": "accept",
+            "nightshiftNoSam": "accept",
+            "museScreenshots": "accept"
+          }
+        },
+        {
+          "case": "good/layering/v2",
+          "label": "good",
+          "seconds": 573.5,
+          "live": true,
+          "decisions": {
+            "nightshiftSam": "accept",
+            "nightshiftNoSam": "accept",
+            "museScreenshots": "accept"
+          }
+        },
+        {
+          "case": "good/missing-texture/v1",
+          "label": "good",
+          "seconds": 474.4,
+          "live": true,
+          "decisions": {
+            "nightshiftSam": "accept",
+            "nightshiftNoSam": "accept",
+            "museScreenshots": "accept"
+          }
+        },
+        {
+          "case": "good/missing-texture/v2",
+          "label": "good",
+          "seconds": 561.5,
+          "live": true,
+          "decisions": {
+            "nightshiftSam": "accept",
+            "nightshiftNoSam": "accept",
+            "museScreenshots": "accept"
+          }
+        },
+        {
+          "case": "good/physics-fall-through/v1",
+          "label": "good",
+          "seconds": 540.8,
+          "live": true,
+          "decisions": {
+            "nightshiftSam": "accept",
+            "nightshiftNoSam": "accept",
+            "museScreenshots": "accept"
+          }
+        },
+        {
+          "case": "good/physics-fall-through/v2",
+          "label": "good",
+          "seconds": 515.8,
+          "live": true,
+          "decisions": {
+            "nightshiftSam": "accept",
+            "nightshiftNoSam": "accept",
+            "museScreenshots": "accept"
+          }
+        },
+        {
+          "case": "good/sinking/v1",
+          "label": "good",
+          "seconds": 607.0,
+          "live": true,
+          "decisions": {
+            "nightshiftSam": "accept",
+            "nightshiftNoSam": "accept",
+            "museScreenshots": "reject"
+          }
+        },
+        {
+          "case": "good/sinking/v2",
+          "label": "good",
+          "seconds": 583.0,
+          "live": true,
+          "decisions": {
+            "nightshiftSam": "accept",
+            "nightshiftNoSam": "accept",
+            "museScreenshots": "reject"
+          }
+        }
+      ]
+    }
+  ],
+  "changedBetweenRuns": {
+    "nightshiftSam": [],
+    "nightshiftNoSam": [],
+    "museScreenshots": []
+  }
+}
