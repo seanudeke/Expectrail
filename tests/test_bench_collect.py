@@ -107,3 +107,28 @@ class MatrixCollectTest(unittest.TestCase):
         notes = {1: [("dev/a/v1", "screenshots", FIXED.replace("live=True", "live=False"))]}
         with self.assertRaises(SystemExit):
             bc.collect_matrix([1], "dev", fetch=matrix_fetch(notes))
+
+
+class JudgeCollectTest(unittest.TestCase):
+    def test_judge_annotations_to_per_judge_counts(self):
+        notes = [("good/sinking/v1", "label good; SAM on accept; SAM off accept; Muse screenshots accept; 300.0 s; live=True"),
+                 ("bad/fall-through-hide-player", "label bad; SAM on reject; SAM off accept; Muse screenshots accept; 400.0 s; live=True"),
+                 ("bad/layering-hide-trees", "label bad; SAM on accept; SAM off accept; Muse screenshots None; 500.0 s; live=True")]
+
+        def fetch(path):
+            parts = path.split("/")
+            if parts[-2] == "runs" and parts[-1].isdigit():
+                return {"html_url": "https://x/9", "head_sha": "abc1234def", "created_at": "2026-10-29T19:00:00Z"}
+            if "/jobs" in path:
+                return {"jobs": [{"id": i + 10, "name": f"judge-run ({c})"} for i, (c, _m) in enumerate(notes)]}
+            c, m = notes[int(parts[-2]) - 10]
+            return [{"title": f"Judge {c}", "message": m}]
+
+        doc = bc.collect_judge(9, fetch=fetch)
+        self.assertEqual(doc["judges"]["nightshiftSam"], {"goodAccepted": 1, "good": 1, "badAccepted": 1, "bad": 2,
+                                                         "undecided": 0})
+        self.assertEqual(doc["judges"]["museScreenshots"]["badAccepted"], 1)
+        self.assertEqual(doc["judges"]["museScreenshots"]["undecided"], 1)
+        md = bc.judge_markdown(doc)
+        self.assertIn("| Nightshift, SAM off | 1 of 1 | 2 of 2 | 0 |", md)
+        self.assertIn("| bad/fall-through-hide-player | reject | reject | accept | accept |", md)

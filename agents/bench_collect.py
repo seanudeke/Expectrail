@@ -33,6 +33,10 @@ FORMAT = "nightshift.detection-bench/v0"
 MATRIX_FORMAT = "nightshift.fix-matrix-bench/v0"
 OUT_DIR = REPO / "bench" / "detection"
 MATRIX_DIR = REPO / "bench" / "fix-matrix"
+JUDGE_DIR = REPO / "bench" / "judge"
+JUDGE_TITLE = re.compile(r"^Judge (?P<case>(?:good|bad)/\S+)$")
+JUDGE_MSG = re.compile(r"^label (?P<label>good|bad); SAM on (?P<sam>\S+); SAM off (?P<nosam>\S+); "
+                       r"Muse screenshots (?P<muse>\S+); (?P<seconds>[\d.]+) s; live=(?P<live>True|False)$")
 MATRIX_TITLE = re.compile(r"^Fix matrix (?P<case>\S+/\S+) (?P<condition>screenshots|nightshift)$")
 MATRIX_MSG = re.compile(r"^detected (?P<detected>[a-z-]+); outcome (?P<outcome>[a-z-]+); attempts (?P<n>\d+) "
                         r"\((?P<tries>[^)]*)\); (?P<seconds>[\d.]+) s; live=(?P<live>True|False)$")
@@ -164,6 +168,52 @@ def collect_matrix(run_ids: list[int], which: str, fetch=gh_json) -> dict:
             "rule": "first non-error result per case and condition, in run order"}
 
 
+def collect_judge(run_id: int, fetch=gh_json) -> dict:
+    """A judge-benchmark run -> per-case decisions and, per judge, good and bad fixes accepted."""
+    run, notes = run_annotations(run_id, fetch, prefix="judge-run")
+    rows = []
+    for note in notes:
+        m = JUDGE_TITLE.match(note.get("title") or "")
+        if not m:
+            continue
+        msg = JUDGE_MSG.match(" ".join((note.get("message") or "").split()))
+        if not msg:
+            raise ValueError(f"unrecognised judge annotation: {note.get('message')!r}")
+        decided = lambda v: v if v in ("accept", "reject", "needs-review") else None  # noqa: E731
+        rows.append({"case": m["case"], "label": msg["label"], "seconds": float(msg["seconds"]),
+                     "live": msg["live"] == "True",
+                     "decisions": {"nightshiftSam": decided(msg["sam"]), "nightshiftNoSam": decided(msg["nosam"]),
+                                   "museScreenshots": decided(msg["muse"])}})
+    if not rows:
+        raise SystemExit(f"run {run_id}: no judge results among its annotations")
+    rows.sort(key=lambda r: (r["label"] != "bad", r["case"]))
+    judges = {}
+    for j in ("nightshiftSam", "nightshiftNoSam", "museScreenshots"):
+        good = [r for r in rows if r["label"] == "good"]
+        bad = [r for r in rows if r["label"] == "bad"]
+        judges[j] = {"goodAccepted": sum(r["decisions"][j] == "accept" for r in good), "good": len(good),
+                     "badAccepted": sum(r["decisions"][j] == "accept" for r in bad), "bad": len(bad),
+                     "undecided": sum(r["decisions"][j] is None for r in rows)}
+    return {"format": "nightshift.judge-bench/v0", "run": run_id, "runUrl": run.get("html_url"),
+            "commit": run.get("head_sha"), "date": run.get("created_at"), "judges": judges, "rows": rows}
+
+
+def judge_markdown(doc: dict) -> str:
+    names = {"nightshiftSam": "Nightshift, SAM on", "nightshiftNoSam": "Nightshift, SAM off",
+             "museScreenshots": "Muse from screenshots"}
+    lines = ["# Judge benchmark", "",
+             "Written by `python3 -m agents.bench_collect --judge` from the run's own annotations; do not edit by hand.",
+             f"Run [{doc['run']}]({doc['runUrl']}), {doc['date'][:10]}, commit {doc['commit'][:7]}.", "",
+             "| Judge | Good fixes accepted | Bad fixes accepted | Undecided |", "| --- | --- | --- | --- |"]
+    for j, s in doc["judges"].items():
+        lines.append(f"| {names[j]} | {s['goodAccepted']} of {s['good']} | {s['badAccepted']} of {s['bad']} | {s['undecided']} |")
+    lines += ["", "| Case | Answer | " + " | ".join(names.values()) + " |", "| --- | --- | --- | --- | --- |"]
+    for r in doc["rows"]:
+        lines.append(f"| {r['case']} | {'accept' if r['label'] == 'good' else 'reject'} | "
+                     + " | ".join(str(r["decisions"][j] or "none") for j in names) + " |")
+    return "\n".join(lines) + "\n"
+
+
 def matrix_markdown(doc: dict) -> str:
     runs = ", ".join(f"[{r['run']}]({r['runUrl']}) ({r['commit'][:7]})" for r in doc["runs"])
     lines = ["# Fix matrix", "",
@@ -215,10 +265,19 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     p.add_argument("--run", type=int, required=True, action="append",
                    help="the dev-bench or heldout-bench run id (with --matrix: one or more fix-matrix runs)")
-    p.add_argument("--set", choices=("dev", "held-out"), required=True, dest="which")
+    p.add_argument("--set", choices=("dev", "held-out"), default="dev", dest="which")
     p.add_argument("--matrix", action="store_true", help="fix-matrix runs instead of a detection run")
+    p.add_argument("--judge", action="store_true", help="a judge-benchmark run instead of a detection run")
     p.add_argument("--out", type=Path)
     args = p.parse_args(argv)
+    if args.judge:
+        out = args.out or JUDGE_DIR
+        doc = collect_judge(args.run[-1])
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "judge.json").write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+        (out / "README.md").write_text(judge_markdown(doc), encoding="utf-8")
+        print(f"wrote {out / 'judge.json'} and {out / 'README.md'}")
+        return 0
     if args.matrix:
         out = args.out or MATRIX_DIR
         doc = collect_matrix(args.run, args.which)
