@@ -96,7 +96,7 @@ def read_log(path: Path) -> list[dict]:
     return entries
 
 
-def summarize(entries: list[dict], installed: dict | None) -> dict:
+def summarize(entries: list[dict], installed: dict | None, source: str = "muse") -> dict:
     blocked = [
         {k: e[k] for k in ("tool", "path", "rel", "reason") if k in e}
         for e in entries if e.get("decision") == "deny"
@@ -110,17 +110,21 @@ def summarize(entries: list[dict], installed: dict | None) -> dict:
         "commands": [e["command"] for e in entries if e.get("command")][:20],
         "unknownTools": sorted({str(e.get("tool")) for e in entries if e.get("unknown")}),
         "selfReported": True,
+        "source": source,
         "policy": (installed or {}).get("policy"),
         "hookSha256": (installed or {}).get("hookSha256"),
     }
 
 
-def collect_guard(work: Path, out: Path, installed: dict | None) -> dict:
-    """Copy the hook log next to the candidate and write guard.json."""
+def collect_guard(work: Path, out: Path, installed: dict | None, source: str = "muse") -> dict:
+    """Copy the hook log next to the candidate and write guard.json.
+
+    source says who made the tool calls: "muse" (Muse Code) or "scripted" (a film or test).
+    """
     log = work / LOG_REL
     entries = read_log(log)
     if log.is_file():
         shutil.copy2(log, out / "guard-log.jsonl")
-    summary = summarize(entries, installed)
+    summary = summarize(entries, installed, source)
     (out / "guard.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     return summary
