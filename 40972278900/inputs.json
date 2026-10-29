@@ -1,0 +1,8 @@
+{
+  "mode": "video-compare",
+  "every": "10",
+  "spec": "specs/player-stays-above-ground.json",
+  "runs": "clean",
+  "candidate": "agents/fixtures/fix-collision-mask.patch",
+  "judge": "sam"
+}

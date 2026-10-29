@@ -1,0 +1,59 @@
+[
+  {
+    "run": "clean",
+    "frames": 120,
+    "mp4Bytes": 9485518,
+    "objects": {
+      "player": {
+        "frames": 120,
+        "foundByBoth": 120,
+        "onlyImages": [],
+        "onlyVideo": [],
+        "bestScoreMeanDiff": 0.0465,
+        "bestScoreMaxDiff": 0.2971,
+        "bestBoxMaxEdgeDiffPx": 37.0,
+        "bestBoxMaxBottomDiffPx": 2.0,
+        "framesWithBottomOver5Px": 0,
+        "framesWithADifferentCount": 0
+      },
+      "coin": {
+        "frames": 120,
+        "foundByBoth": 120,
+        "onlyImages": [],
+        "onlyVideo": [],
+        "bestScoreMeanDiff": 0.0105,
+        "bestScoreMaxDiff": 0.2341,
+        "bestBoxMaxEdgeDiffPx": 695.0,
+        "bestBoxMaxBottomDiffPx": 545.0,
+        "framesWithBottomOver5Px": 90,
+        "framesWithADifferentCount": 74
+      }
+    },
+    "specs": {
+      "player-always-visible": {
+        "images": "pass",
+        "video": "pass",
+        "imagesFirstFrame": null,
+        "videoFirstFrame": null,
+        "framesFailingWithImages": 0,
+        "framesFailingWithVideo": 0,
+        "framesThatDiffer": [],
+        "framesThatDifferCount": 0
+      },
+      "coins-visible": {
+        "images": "pass",
+        "video": "pass",
+        "imagesFirstFrame": null,
+        "videoFirstFrame": null,
+        "framesFailingWithImages": 0,
+        "framesFailingWithVideo": 0,
+        "framesThatDiffer": [],
+        "framesThatDifferCount": 0
+      }
+    },
+    "images": 240,
+    "imageUsd": 0.6,
+    "videoFrames": 240,
+    "videoUsd": 0.048
+  }
+]
