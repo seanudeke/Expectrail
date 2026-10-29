@@ -81,6 +81,10 @@ The second row is the reason vision is in the loop: the position log says the ro
 where it should be, and only the picture shows it can't be seen. To repeat either run: Actions,
 **SAM probe**, mode `verify`, and the candidate's path under `agents/fixtures/`.
 
+**Development detection (mode `dev-bench`):** the same jobs, routes and checks for the public
+development variants in `bugs/` (ids `dev/<family>/vN`), so the two sets are measured the same way
+and reported separately.
+
 **Held-out detection (mode `heldout-bench`):** for each active held-out variant, and the clean game
 as a false-alarm control, the workflow renders the game with the variant and no fix on the smoke
 route and every private route, then judges it with the engine ground check, the hybrid ground check,
