@@ -68,4 +68,7 @@ something; keep prior work out of it.
 | Oct 29 | Fix matrix: held-out mode for the one-shot run after the code freeze, publishing ids, outcomes and decisions only | `agents/matrix.py`, `.github/workflows/fix-matrix.yml`, `tests/test_matrix.py` |
 | Oct 29 | Detection results recorded in `bench/detection/` from the runs' own annotations, with a one-command rerun per set | `agents/bench_collect.py`, `bench/rerun-detection.sh`, `bench/detection/` |
 | Oct 29 | Playtest routes expansion: coins.json (pickup & visibility), combat.json (weapon fire & hazards), traversal.json (elevated platforms & layering); schema tests | `harness/routes/`, `docs/harness.md`, `tests/test_harness.py` |
+| Oct 29 | Playtest routes expansion: coins.json (pickup & visibility), combat.json (weapon fire & hazards), traversal.json (elevated platforms & layering); schema tests | `harness/routes/`, `docs/harness.md`, `tests/test_harness.py` |
+| Oct 29 | Cross-platform harness runner: auto-detect macOS Godot in `tools/godot_mac/`, bypass xvfb-run on darwin, platform tests | `harness/run.py`, `tests/test_harness.py` |
+
 

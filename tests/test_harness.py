@@ -12,7 +12,9 @@ from harness.run import (
     apply_patches,
     cache_key,
     ensure_import_cache,
+    find_godot,
     get_cache_dir,
+    godot_cmd,
     prepare,
     tree_digest,
 )
@@ -44,6 +46,21 @@ class HarnessTest(unittest.TestCase):
             self.assertEqual(get_cache_dir(), Path("/custom/path/.godot"))
         with mock.patch.dict(os.environ, {"NIGHTSHIFT_GODOT_CACHE": "/custom/path/.godot"}):
             self.assertEqual(get_cache_dir(), Path("/custom/path/.godot"))
+
+    def test_find_godot_env_override(self):
+        with mock.patch.dict(os.environ, {"NIGHTSHIFT_GODOT": "/custom/godot"}):
+            self.assertEqual(find_godot(), Path("/custom/godot"))
+
+    def test_godot_cmd_display_and_platform(self):
+        fake_binary = Path("/bin/godot")
+        self.assertEqual(godot_cmd(fake_binary, display=True), [str(fake_binary)])
+        with mock.patch("sys.platform", "linux"):
+            cmd = godot_cmd(fake_binary, display=False)
+            self.assertEqual(cmd[0], "xvfb-run")
+            self.assertIn(str(fake_binary), cmd)
+        with mock.patch("sys.platform", "darwin"):
+            cmd = godot_cmd(fake_binary, display=False)
+            self.assertEqual(cmd, [str(fake_binary)])
 
     def test_prepare_with_cache(self):
         with tempfile.TemporaryDirectory() as tmp:
