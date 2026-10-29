@@ -88,18 +88,43 @@ built yet".
   model sees them, Glimmer's pixels are in the resized image's space: run the probe and set
   `NIGHTSHIFT_GLIMMER_COORDS` to match before trusting any box.
 
+## What was measured (Oct 29, Fireworks on-demand deployment, 1x H200)
+
+Glimmer alone, probe mode, every 10th frame (13 frames a run), on the same seeded runs SAM was
+measured on (docs/sam.md, SAM every 4th frame):
+
+| Spec | Clean | Seeded bugs | SAM on the same bugs |
+| --- | --- | --- | --- |
+| `player-always-visible` (blue robot) | pass, 13/13 (lowest 0.85) | fall-through v1, v2: fail (3/13); layering v1, v2: fail (7/13); sinking v1: fail (12/13); missing-texture v1, v2: pass | fall-through 6/31, layering 17/31, missing-texture pass |
+| `coins-visible` (gold coin) | pass, 13/13, 10 to 14 coins a frame | missing-texture v1, v2: fail (0/13); every robot bug: pass | 11 to 16 coins a frame; missing-texture 0/13 |
+
+Runs 40904213270 (robot) and 40915470775 (coins). Glimmer misses the robot in about the same share
+of frames as SAM on each bug, and raised no false alarm on the clean run. Its robot box is about
+70x140 pixels against SAM's 95x118, so it answers in pixels (`coords=pixels`).
+
+Verify mode, judge `both`, every 4th frame, with the four private held-out routes:
+
+| Candidate | Decision | Checks |
+| --- | --- | --- |
+| `fix-collision-mask.patch` (the real fix) | needs-review | all 7 candidate and clean checks pass; held-out ground and robot pass on 4/4 routes, coins on 3/4 (run 40915475383) |
+| `fix-but-hide-player.patch` | **reject** | player-always-visible fails on the candidate and passes on 0/4 held-out routes; coins pass (run 40915479861) |
+
+The real fix's one open item is a held-out route where the coins check produced no verdict. Glimmer
+seeing no coins would have been a fail, so this was an observations error; which kind is now
+reported by the workflow (kind only, see "Glimmer verify held-out error").
+
 ## What is not measured yet
 
-- **Glimmer's accuracy on our art.** SAM 3.1 was measured on Oct 28 (docs/sam.md): "blue robot" in
-  120 of 120 clean frames, and all six seeded bugs failed with no false alarm. Glimmer has not been
-  run on our frames yet. The Glimmer probe measures it on the same runs. SAM stays the default
-  backend until Glimmer's numbers are in.
+- **Glimmer on every frame.** The probe sampled 13 frames a run; SAM's clean numbers are on all
+  120. Verify mode confirms every frame before a pass, so `both` is measured there, Glimmer alone is not.
 - **Box precision.** The hybrid ground check compares the robot's box against the ground line with
-  a 20-pixel tolerance. A loose box from a vision-language model could raise false alarms there. The
-  probe's clean run shows this.
-- **Confidence is self-reported.** Glimmer rates its own boxes from 0 to 1. The evaluator's 0.5
-  threshold and the verifier's clean-score floor apply to that number, and the document says it is
-  self-reported.
+  a 20-pixel tolerance. In `both` the boxes are SAM's, so this only matters for Glimmer alone, whose
+  box is taller and narrower than SAM's (see above).
+- **Confidence is self-reported, and flat.** Glimmer rates its own boxes from 0 to 1, and gave 0.90 to
+  every coin on every frame. The evaluator's 0.5 threshold and the verifier's clean-score floor apply
+  to that number, but it is not a margin the way SAM's scores are. Another reason `both` is the judge.
+- **Speed.** 3.2 s a call with one run on the deployment, 12.2 s with three runs sharing one replica.
+  A verify run with `both` took about 40 minutes.
 - **Coordinates.** The prompt asks for pixels of the image. If the probe shows Glimmer answering on
   a 0-1000 grid, set `NIGHTSHIFT_GLIMMER_COORDS=norm1000`. Boxes with corners in the wrong order, or
   more than 2% of the frame outside it, are refused (needs-review); a box a few pixels past an edge

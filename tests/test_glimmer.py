@@ -133,6 +133,42 @@ class ParseTest(unittest.TestCase):
             gl.answer_text(b"<html>")
 
 
+class ErrorKindTest(unittest.TestCase):
+    """The held-out verify run reports these kinds, never the error text (it can quote a held-out frame)."""
+
+    def raised(self, fn) -> str:
+        with self.assertRaises(sam.SamError) as ctx:
+            fn()
+        return f"sam observations unavailable: {ctx.exception}"
+
+    def test_the_client_s_own_errors_get_their_kind(self):
+        box = lambda b: json.dumps({"objects": [{"box": b, "confidence": 0.9}]})  # noqa: E731
+        cases = {
+            "inverted or malformed box (strict parse)": lambda: gl.parse_boxes(box([815, 165, 780, 120]), (W, H)),
+            "box outside the frame (strict parse)": lambda: gl.parse_boxes(box([780, 120, 2 * W, 165]), (W, H)),
+            "answer not JSON": lambda: gl.parse_boxes('{"objects": [{"box": [780, 120, 815, 165], "con', (W, H)),
+            "answer cut off at max_tokens": lambda: gl.answer_text(json.dumps(
+                {"choices": [{"message": {"content": "{"}, "finish_reason": "length"}]}).encode()),
+            "reply not a chat completion": lambda: gl.answer_text(b"<html>"),
+        }
+        for kind, fn in cases.items():
+            with self.subTest(kind):
+                self.assertEqual(gl.error_kind(self.raised(fn)), kind)
+
+    def test_http_unreachable_sam_and_unknown(self):
+        self.assertEqual(gl.error_kind('sam observations unavailable: glimmer HTTP 412: {"error": "x"}'),
+                         "glimmer HTTP 412")
+        self.assertEqual(gl.error_kind("glimmer unreachable after 4 tries: TimeoutError"),
+                         "glimmer unreachable after retries (timeouts or resets)")
+        self.assertEqual(gl.error_kind("sam observations unavailable: sam-3.1 unreachable after 4 tries"), "SAM error")
+        self.assertEqual(gl.error_kind("something new"), "other error")
+
+    def test_no_content_from_the_answer_survives(self):
+        text = self.raised(lambda: gl.parse_boxes('{"objects": [{"box": [780, 120, 815, 165], "con', (W, H)))
+        self.assertIn("780", text)
+        self.assertNotIn("780", gl.error_kind(text))
+
+
 class ClientTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()

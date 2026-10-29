@@ -233,6 +233,43 @@ def _parse_boxes(text: str, size: tuple[int, int], coords: str) -> list[dict]:
     return sorted(out, key=lambda d: (-d["score"], d["box"]))
 
 
+# What kind of failure an observations error was, in fixed words only. The held-out verify run
+# reports these instead of the error text, which can quote Glimmer's answer about a held-out frame.
+_ERROR_KINDS: tuple[tuple[str, str], ...] = (
+    ("cut off at max_tokens", "answer cut off at max_tokens"),
+    ("outside the", "box outside the frame (strict parse)"),
+    ("has no area inside", "box with no area in the frame (strict parse)"),
+    ("is not [x0, y0, x1, y1]", "inverted or malformed box (strict parse)"),
+    ("box value", "box value not a usable number (strict parse)"),
+    ("unreadable glimmer box", "inverted or malformed box (strict parse)"),
+    ("without a confidence", "box without a confidence (strict parse)"),
+    ("glimmer confidence outside", "confidence outside 0..1 (strict parse)"),
+    ("did not answer in JSON", "answer not JSON"),
+    ("no objects list", "answer not JSON"),
+    ("unreadable glimmer answer", "answer not JSON"),
+    ("not a chat completion", "reply not a chat completion"),
+    ("no text content", "reply not a chat completion"),
+    ("content part", "reply not a chat completion"),
+    ("glimmer unreachable", "glimmer unreachable after retries (timeouts or resets)"),
+    ("did not wake", "glimmer deployment did not wake"),
+    ("no captured frames", "no captured frames"),
+)
+
+
+def error_kind(text: str) -> str:
+    """Classify an observations error (Glimmer's or SAM's) without repeating any of its content."""
+    flat = " ".join(text.split())
+    if "glimmer HTTP " in flat:
+        code = flat.split("glimmer HTTP ", 1)[1][:3]
+        return f"glimmer HTTP {code}" if code.isdigit() else "glimmer HTTP error"
+    for needle, kind in _ERROR_KINDS:
+        if needle in flat:
+            return kind
+    if "sam-3.1" in flat:
+        return "SAM error"
+    return "other error"
+
+
 def warm(*, base: str | None = None, model: str | None = None, key: str | None = None,
          timeout_s: float = 900.0, every_s: float = 15.0, opener=urllib.request.urlopen,
          sleep: Callable[[float], None] = time.sleep, clock: Callable[[], float] = time.monotonic) -> float:
