@@ -10,7 +10,11 @@
 #           the vision endpoints as images, as SAM's are to Meta's API, and nothing from the held-out
 #           set is published (no artifact in this mode, only check results as annotations).
 #
-# Needs the FIREWORKS_API_KEY repo secret (Glimmer on Fireworks serverless), or GLIMMER_API_KEY with
+# Glimmer left Fireworks serverless on Sep 25, 2026, so it runs on an on-demand deployment: put its
+# accounts/<account>/deployments/<id> in the GLIMMER_MODEL repo variable (or the model input). A
+# deployment scaled to zero is woken first and may take a few minutes. See docs/open-weights.md.
+#
+# Needs the FIREWORKS_API_KEY repo secret (Glimmer on Fireworks), or GLIMMER_API_KEY with
 # `base` on our own vLLM / SGLang server, whose host must be in the GLIMMER_ALLOWED_HOST repo
 # variable. https only, so the key never travels in clear. Never runs on pull requests.
 name: Glimmer probe
@@ -38,8 +42,8 @@ on:
         description: OpenAI-compatible endpoint serving Glimmer
         default: https://api.fireworks.ai/inference/v1
       model:
-        description: Model id at that endpoint
-        default: accounts/fireworks/models/muse-glimmer-30b
+        description: "Model id at that endpoint, e.g. accounts/<account>/deployments/<id> (default: the GLIMMER_MODEL repo variable)"
+        default: ''
       candidate:
         description: verify mode, the candidate patch to verify
         default: agents/fixtures/fix-collision-mask.patch
@@ -67,7 +71,7 @@ jobs:
       EVERY: ${{ inputs.every }}
       COORDS: ${{ inputs.coords }}
       BASE: ${{ inputs.base }}
-      MODEL: ${{ inputs.model }}
+      MODEL: ${{ inputs.model || vars.GLIMMER_MODEL }}
       CANDIDATE: ${{ inputs.candidate }}
     steps:
       - name: Require a Glimmer key secret and check the inputs
@@ -87,6 +91,7 @@ jobs:
             echo "::error::judge=both needs the MODEL_API_KEY (or META_API_KEY) secret for SAM."
             exit 1
           fi
+          [ -n "$MODEL" ] || { echo "::error::set the GLIMMER_MODEL repo variable (accounts/<account>/deployments/<id>) or the model input"; exit 1; }
           [[ "$MODEL" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "::error::model must be a model id"; exit 1; }
           [[ "$SPEC" =~ ^specs/[A-Za-z0-9._-]+\.json$ ]] || { echo "::error::spec must be a file under specs/"; exit 1; }
           [[ "$CANDIDATE" =~ ^agents/fixtures/[A-Za-z0-9._-]+\.patch$ ]] || { echo "::error::candidate must be a patch under agents/fixtures/"; exit 1; }
@@ -123,6 +128,7 @@ jobs:
         run: |
           [ -f "$SPEC" ] || { echo "::error::no spec $SPEC"; exit 1; }
           export NIGHTSHIFT_GLIMMER_API_BASE="$BASE" NIGHTSHIFT_GLIMMER_MODEL="$MODEL" NIGHTSHIFT_GLIMMER_COORDS="$COORDS"
+          python -m agents.glimmer_client --warm --timeout 900
           python -m agents.sam_probe --spec "$SPEC" --every "$EVERY" --out runs/glimmer-probe --runs runs/seeded/*/
       - name: Verify - Gate 1 path with Glimmer in the vision checks
         if: inputs.mode == 'verify'
@@ -134,6 +140,7 @@ jobs:
           [ -f "$CANDIDATE" ] || { echo "::error::no candidate $CANDIDATE"; exit 1; }
           export NIGHTSHIFT_GLIMMER_API_BASE="$BASE" NIGHTSHIFT_GLIMMER_MODEL="$MODEL" NIGHTSHIFT_GLIMMER_COORDS="$COORDS"
           export NIGHTSHIFT_SAM_EVERY="$EVERY"
+          python -m agents.glimmer_client --warm --timeout 900
           if [ "$JUDGE" = "glimmer" ]; then
             # Measurement on a known fixture only: Glimmer alone never decides a real verdict.
             export NIGHTSHIFT_VISION_BACKEND=glimmer NIGHTSHIFT_GLIMMER_ALONE=1

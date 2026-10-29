@@ -274,6 +274,48 @@ class ClientTest(unittest.TestCase):
                 sam.default_client()
 
 
+class WarmTest(unittest.TestCase):
+    class Resp(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    def test_waits_through_503_until_the_deployment_answers(self):
+        answers = [503, 429, 200]
+        seen = []
+
+        def opener(req, timeout):
+            seen.append((req.full_url, json.loads(req.data)["model"]))
+            code = answers.pop(0)
+            if code != 200:
+                raise urllib.error.HTTPError(req.full_url, code, "starting", {}, io.BytesIO(b"scaling up"))
+            return self.Resp(b'{"choices": []}')
+
+        t = [0.0]
+        waited = gl.warm(base="https://api.fireworks.ai/inference/v1", model="accounts/me/deployments/abc",
+                         key="k", opener=opener, sleep=lambda s: t.__setitem__(0, t[0] + s), clock=lambda: t[0])
+        self.assertEqual(waited, 30.0)
+        self.assertEqual(seen[0], ("https://api.fireworks.ai/inference/v1/chat/completions", "accounts/me/deployments/abc"))
+
+    def test_setup_errors_stop_at_once_and_say_what_to_do(self):
+        def missing(req, timeout):
+            raise urllib.error.HTTPError(req.full_url, 404, "nf", {}, io.BytesIO(b'{"error":"Model not found"}'))
+
+        with self.assertRaisesRegex(sam.SamError, "on-demand deployment"):
+            gl.warm(key="k", opener=missing, sleep=lambda s: None)
+
+    def test_gives_up_after_the_timeout(self):
+        def busy(req, timeout):
+            raise urllib.error.HTTPError(req.full_url, 503, "busy", {}, io.BytesIO(b""))
+
+        t = [0.0]
+        with self.assertRaisesRegex(sam.SamError, "did not wake"):
+            gl.warm(key="k", opener=busy, timeout_s=60, every_s=15,
+                    sleep=lambda s: t.__setitem__(0, t[0] + s), clock=lambda: t[0])
+
+
 class AdapterTest(unittest.TestCase):
     """The whole SAM adapter (sample, refine, confirm, cache) runs unchanged on Glimmer."""
 

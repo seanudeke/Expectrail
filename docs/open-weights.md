@@ -9,9 +9,34 @@ on which model, where, and how to check it.
 
 | Role | Model (license) | Served by | Turn it on | Code |
 | --- | --- | --- | --- | --- |
-| Vision checks: is the robot visible, are the coins drawn, where are the robot's feet against the level's ground line | Muse Glimmer 30B (Apache 2.0, per its model card) together with SAM 3.1 | Fireworks serverless, `accounts/fireworks/models/muse-glimmer-30b` (per Fireworks' model page); or any OpenAI-compatible server we run | `NIGHTSHIFT_OBS_PROVIDER=sam NIGHTSHIFT_VISION_BACKEND=both`, keys in `FIREWORKS_API_KEY` and `MODEL_API_KEY` | `agents/glimmer_client.py` |
+| Vision checks: is the robot visible, are the coins drawn, where are the robot's feet against the level's ground line | Muse Glimmer 30B (Apache 2.0, per its model card) together with SAM 3.1 | A Fireworks on-demand deployment of `accounts/fireworks/models/muse-glimmer-30b` (Glimmer left Fireworks serverless on Sep 25, 2026); or any OpenAI-compatible server we run | `NIGHTSHIFT_OBS_PROVIDER=sam NIGHTSHIFT_VISION_BACKEND=both`, keys in `FIREWORKS_API_KEY` and `MODEL_API_KEY` | `agents/glimmer_client.py` |
 | Test-spec drafting from plain English | Muse Spark Open (Muse Model License) | Baseten, `meta-models/muse-spark-open-1026` | `python3 -m nightshift.spec_writer draft "..." --endpoint open`, key in `BASETEN_API_KEY` | `nightshift/spec_writer.py` |
 | Sorting playtester feedback and drafting checks from it | Muse Spark Open | Baseten | `python3 -m agents.feedback ... --sorter open` | `agents/feedback.py` |
+
+## Serve Glimmer on Fireworks (on-demand)
+
+Fireworks retired Glimmer from serverless on Sep 25, 2026 (its model page says so), so a request to
+`accounts/fireworks/models/muse-glimmer-30b` returns HTTP 404 "Model not found, inaccessible, and/or
+not deployed". It still runs as an on-demand deployment: dedicated GPUs, billed per GPU-second while
+a replica is up, and able to scale to zero when idle.
+
+1. Create the deployment, from the model's page in the Fireworks dashboard or with `firectl`:
+
+   ```sh
+   firectl deployment create accounts/fireworks/models/muse-glimmer-30b \
+     --deployment-shape default --min-replica-count 0 --max-replica-count 1 \
+     --scale-to-zero-window 15m --wait
+   ```
+
+   It prints `accounts/<account>/deployments/<id>`.
+2. Put that string in the repository variable `GLIMMER_MODEL` (Settings → Secrets and variables →
+   Actions → Variables), or in `NIGHTSHIFT_GLIMMER_MODEL` for local runs.
+3. The probe workflow wakes the deployment first (`python -m agents.glimmer_client --warm`): a
+   deployment at zero replicas answers 503 for a few minutes while it starts.
+4. With minimum replicas at 0 and a 15-minute scale-to-zero window, it stops billing 15 minutes
+   after the last request (Fireworks' default window is an hour). Fireworks deletes a deployment
+   that has had no traffic for 7 days. Check the GPU price for the shape it picks before leaving it up, and
+   recreate it for the judging window (Nov 4 to 9) if the partner needs to see it run.
 
 ## How Glimmer fits
 
