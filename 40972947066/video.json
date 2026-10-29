@@ -1,0 +1,600 @@
+[
+  {
+    "run": "layering_v1",
+    "frames": 120,
+    "mp4Bytes": 9395731,
+    "objects": {
+      "player": {
+        "frames": 120,
+        "foundByBoth": 69,
+        "onlyImages": [
+          27,
+          29
+        ],
+        "onlyVideo": [
+          33,
+          100,
+          101,
+          103,
+          106,
+          107,
+          108,
+          109,
+          110,
+          111,
+          112,
+          113,
+          114,
+          115,
+          116,
+          117,
+          118,
+          119
+        ],
+        "bestScoreMeanDiff": 0.1467,
+        "bestScoreMaxDiff": 0.2312,
+        "bestBoxMaxEdgeDiffPx": 44.0,
+        "bestBoxMaxBottomDiffPx": 44.0,
+        "framesWithBottomOver5Px": 5,
+        "framesWithADifferentCount": 20
+      },
+      "coin": {
+        "frames": 120,
+        "foundByBoth": 120,
+        "onlyImages": [],
+        "onlyVideo": [],
+        "bestScoreMeanDiff": 0.0104,
+        "bestScoreMaxDiff": 0.2311,
+        "bestBoxMaxEdgeDiffPx": 695.0,
+        "bestBoxMaxBottomDiffPx": 525.0,
+        "framesWithBottomOver5Px": 94,
+        "framesWithADifferentCount": 75
+      }
+    },
+    "specs": {
+      "player-always-visible": {
+        "images": "fail",
+        "video": "fail",
+        "imagesFirstFrame": 0,
+        "videoFirstFrame": 0,
+        "framesFailingWithImages": 49,
+        "framesFailingWithVideo": 33,
+        "framesThatDiffer": [
+          27,
+          29,
+          33,
+          100,
+          101,
+          103,
+          106,
+          107,
+          108,
+          109,
+          110,
+          111,
+          112,
+          113,
+          114,
+          115,
+          116,
+          117,
+          118,
+          119
+        ],
+        "framesThatDifferCount": 20
+      },
+      "coins-visible": {
+        "images": "pass",
+        "video": "pass",
+        "imagesFirstFrame": null,
+        "videoFirstFrame": null,
+        "framesFailingWithImages": 0,
+        "framesFailingWithVideo": 0,
+        "framesThatDiffer": [],
+        "framesThatDifferCount": 0
+      }
+    },
+    "images": 240,
+    "imageUsd": 0.6,
+    "videoFrames": 240,
+    "videoUsd": 0.048
+  },
+  {
+    "run": "layering_v2",
+    "frames": 120,
+    "mp4Bytes": 9395731,
+    "objects": {
+      "player": {
+        "frames": 120,
+        "foundByBoth": 69,
+        "onlyImages": [
+          27,
+          29
+        ],
+        "onlyVideo": [
+          33,
+          100,
+          101,
+          103,
+          106,
+          107,
+          108,
+          109,
+          110,
+          111,
+          112,
+          113,
+          114,
+          115,
+          116,
+          117,
+          118,
+          119
+        ],
+        "bestScoreMeanDiff": 0.1467,
+        "bestScoreMaxDiff": 0.2312,
+        "bestBoxMaxEdgeDiffPx": 44.0,
+        "bestBoxMaxBottomDiffPx": 44.0,
+        "framesWithBottomOver5Px": 4,
+        "framesWithADifferentCount": 20
+      },
+      "coin": {
+        "frames": 120,
+        "foundByBoth": 120,
+        "onlyImages": [],
+        "onlyVideo": [],
+        "bestScoreMeanDiff": 0.0104,
+        "bestScoreMaxDiff": 0.2311,
+        "bestBoxMaxEdgeDiffPx": 695.0,
+        "bestBoxMaxBottomDiffPx": 525.0,
+        "framesWithBottomOver5Px": 94,
+        "framesWithADifferentCount": 75
+      }
+    },
+    "specs": {
+      "player-always-visible": {
+        "images": "fail",
+        "video": "fail",
+        "imagesFirstFrame": 0,
+        "videoFirstFrame": 0,
+        "framesFailingWithImages": 49,
+        "framesFailingWithVideo": 33,
+        "framesThatDiffer": [
+          27,
+          29,
+          33,
+          100,
+          101,
+          103,
+          106,
+          107,
+          108,
+          109,
+          110,
+          111,
+          112,
+          113,
+          114,
+          115,
+          116,
+          117,
+          118,
+          119
+        ],
+        "framesThatDifferCount": 20
+      },
+      "coins-visible": {
+        "images": "pass",
+        "video": "pass",
+        "imagesFirstFrame": null,
+        "videoFirstFrame": null,
+        "framesFailingWithImages": 0,
+        "framesFailingWithVideo": 0,
+        "framesThatDiffer": [],
+        "framesThatDifferCount": 0
+      }
+    },
+    "images": 0,
+    "imageUsd": 0.0,
+    "videoFrames": 240,
+    "videoUsd": 0.048
+  },
+  {
+    "run": "missing-texture_v1",
+    "frames": 120,
+    "mp4Bytes": 8765156,
+    "objects": {
+      "player": {
+        "frames": 120,
+        "foundByBoth": 120,
+        "onlyImages": [],
+        "onlyVideo": [],
+        "bestScoreMeanDiff": 0.0409,
+        "bestScoreMaxDiff": 0.2232,
+        "bestBoxMaxEdgeDiffPx": 36.0,
+        "bestBoxMaxBottomDiffPx": 3.0,
+        "framesWithBottomOver5Px": 0,
+        "framesWithADifferentCount": 0
+      },
+      "coin": {
+        "frames": 120,
+        "foundByBoth": 0,
+        "onlyImages": [],
+        "onlyVideo": [],
+        "bestScoreMeanDiff": null,
+        "bestScoreMaxDiff": null,
+        "bestBoxMaxEdgeDiffPx": null,
+        "bestBoxMaxBottomDiffPx": null,
+        "framesWithBottomOver5Px": 0,
+        "framesWithADifferentCount": 0
+      }
+    },
+    "specs": {
+      "player-always-visible": {
+        "images": "pass",
+        "video": "pass",
+        "imagesFirstFrame": null,
+        "videoFirstFrame": null,
+        "framesFailingWithImages": 0,
+        "framesFailingWithVideo": 0,
+        "framesThatDiffer": [],
+        "framesThatDifferCount": 0
+      },
+      "coins-visible": {
+        "images": "fail",
+        "video": "fail",
+        "imagesFirstFrame": 0,
+        "videoFirstFrame": 0,
+        "framesFailingWithImages": 120,
+        "framesFailingWithVideo": 120,
+        "framesThatDiffer": [],
+        "framesThatDifferCount": 0
+      }
+    },
+    "images": 240,
+    "imageUsd": 0.6,
+    "videoFrames": 240,
+    "videoUsd": 0.048
+  },
+  {
+    "run": "missing-texture_v2",
+    "frames": 120,
+    "mp4Bytes": 8765156,
+    "objects": {
+      "player": {
+        "frames": 120,
+        "foundByBoth": 120,
+        "onlyImages": [],
+        "onlyVideo": [],
+        "bestScoreMeanDiff": 0.0424,
+        "bestScoreMaxDiff": 0.2271,
+        "bestBoxMaxEdgeDiffPx": 36.0,
+        "bestBoxMaxBottomDiffPx": 3.0,
+        "framesWithBottomOver5Px": 0,
+        "framesWithADifferentCount": 0
+      },
+      "coin": {
+        "frames": 120,
+        "foundByBoth": 0,
+        "onlyImages": [],
+        "onlyVideo": [],
+        "bestScoreMeanDiff": null,
+        "bestScoreMaxDiff": null,
+        "bestBoxMaxEdgeDiffPx": null,
+        "bestBoxMaxBottomDiffPx": null,
+        "framesWithBottomOver5Px": 0,
+        "framesWithADifferentCount": 0
+      }
+    },
+    "specs": {
+      "player-always-visible": {
+        "images": "pass",
+        "video": "pass",
+        "imagesFirstFrame": null,
+        "videoFirstFrame": null,
+        "framesFailingWithImages": 0,
+        "framesFailingWithVideo": 0,
+        "framesThatDiffer": [],
+        "framesThatDifferCount": 0
+      },
+      "coins-visible": {
+        "images": "fail",
+        "video": "fail",
+        "imagesFirstFrame": 0,
+        "videoFirstFrame": 0,
+        "framesFailingWithImages": 120,
+        "framesFailingWithVideo": 120,
+        "framesThatDiffer": [],
+        "framesThatDifferCount": 0
+      }
+    },
+    "images": 0,
+    "imageUsd": 0.0,
+    "videoFrames": 240,
+    "videoUsd": 0.048
+  },
+  {
+    "run": "physics-fall-through_v1",
+    "frames": 120,
+    "mp4Bytes": 9399691,
+    "objects": {
+      "player": {
+        "frames": 120,
+        "foundByBoth": 22,
+        "onlyImages": [],
+        "onlyVideo": [
+          22
+        ],
+        "bestScoreMeanDiff": 0.0295,
+        "bestScoreMaxDiff": 0.3876,
+        "bestBoxMaxEdgeDiffPx": 3.0,
+        "bestBoxMaxBottomDiffPx": 1.0,
+        "framesWithBottomOver5Px": 0,
+        "framesWithADifferentCount": 1
+      },
+      "coin": {
+        "frames": 120,
+        "foundByBoth": 120,
+        "onlyImages": [],
+        "onlyVideo": [],
+        "bestScoreMeanDiff": 0.0113,
+        "bestScoreMaxDiff": 0.1207,
+        "bestBoxMaxEdgeDiffPx": 786.0,
+        "bestBoxMaxBottomDiffPx": 525.0,
+        "framesWithBottomOver5Px": 88,
+        "framesWithADifferentCount": 68
+      }
+    },
+    "specs": {
+      "player-always-visible": {
+        "images": "fail",
+        "video": "fail",
+        "imagesFirstFrame": 22,
+        "videoFirstFrame": 23,
+        "framesFailingWithImages": 98,
+        "framesFailingWithVideo": 97,
+        "framesThatDiffer": [
+          22
+        ],
+        "framesThatDifferCount": 1
+      },
+      "coins-visible": {
+        "images": "pass",
+        "video": "pass",
+        "imagesFirstFrame": null,
+        "videoFirstFrame": null,
+        "framesFailingWithImages": 0,
+        "framesFailingWithVideo": 0,
+        "framesThatDiffer": [],
+        "framesThatDifferCount": 0
+      }
+    },
+    "images": 240,
+    "imageUsd": 0.6,
+    "videoFrames": 240,
+    "videoUsd": 0.048
+  },
+  {
+    "run": "physics-fall-through_v2",
+    "frames": 120,
+    "mp4Bytes": 9109417,
+    "objects": {
+      "player": {
+        "frames": 120,
+        "foundByBoth": 22,
+        "onlyImages": [],
+        "onlyVideo": [
+          22
+        ],
+        "bestScoreMeanDiff": 0.0269,
+        "bestScoreMaxDiff": 0.3011,
+        "bestBoxMaxEdgeDiffPx": 2.0,
+        "bestBoxMaxBottomDiffPx": 1.0,
+        "framesWithBottomOver5Px": 0,
+        "framesWithADifferentCount": 1
+      },
+      "coin": {
+        "frames": 120,
+        "foundByBoth": 120,
+        "onlyImages": [],
+        "onlyVideo": [],
+        "bestScoreMeanDiff": 0.0125,
+        "bestScoreMaxDiff": 0.1091,
+        "bestBoxMaxEdgeDiffPx": 695.0,
+        "bestBoxMaxBottomDiffPx": 525.0,
+        "framesWithBottomOver5Px": 83,
+        "framesWithADifferentCount": 68
+      }
+    },
+    "specs": {
+      "player-always-visible": {
+        "images": "fail",
+        "video": "fail",
+        "imagesFirstFrame": 22,
+        "videoFirstFrame": 23,
+        "framesFailingWithImages": 98,
+        "framesFailingWithVideo": 97,
+        "framesThatDiffer": [
+          22
+        ],
+        "framesThatDifferCount": 1
+      },
+      "coins-visible": {
+        "images": "pass",
+        "video": "pass",
+        "imagesFirstFrame": null,
+        "videoFirstFrame": null,
+        "framesFailingWithImages": 0,
+        "framesFailingWithVideo": 0,
+        "framesThatDiffer": [],
+        "framesThatDifferCount": 0
+      }
+    },
+    "images": 224,
+    "imageUsd": 0.56,
+    "videoFrames": 240,
+    "videoUsd": 0.048
+  },
+  {
+    "run": "sinking_v1",
+    "frames": 120,
+    "mp4Bytes": 9475245,
+    "objects": {
+      "player": {
+        "frames": 120,
+        "foundByBoth": 109,
+        "onlyImages": [],
+        "onlyVideo": [
+          92,
+          93,
+          94,
+          95,
+          96,
+          97,
+          98,
+          99,
+          101,
+          107,
+          108
+        ],
+        "bestScoreMeanDiff": 0.0428,
+        "bestScoreMaxDiff": 0.3714,
+        "bestBoxMaxEdgeDiffPx": 23.0,
+        "bestBoxMaxBottomDiffPx": 15.0,
+        "framesWithBottomOver5Px": 4,
+        "framesWithADifferentCount": 11
+      },
+      "coin": {
+        "frames": 120,
+        "foundByBoth": 120,
+        "onlyImages": [],
+        "onlyVideo": [],
+        "bestScoreMeanDiff": 0.0112,
+        "bestScoreMaxDiff": 0.2116,
+        "bestBoxMaxEdgeDiffPx": 700.0,
+        "bestBoxMaxBottomDiffPx": 525.0,
+        "framesWithBottomOver5Px": 89,
+        "framesWithADifferentCount": 74
+      }
+    },
+    "specs": {
+      "player-always-visible": {
+        "images": "fail",
+        "video": "pass",
+        "imagesFirstFrame": 92,
+        "videoFirstFrame": null,
+        "framesFailingWithImages": 11,
+        "framesFailingWithVideo": 0,
+        "framesThatDiffer": [
+          92,
+          93,
+          94,
+          95,
+          96,
+          97,
+          98,
+          99,
+          101,
+          107,
+          108
+        ],
+        "framesThatDifferCount": 11
+      },
+      "coins-visible": {
+        "images": "pass",
+        "video": "pass",
+        "imagesFirstFrame": null,
+        "videoFirstFrame": null,
+        "framesFailingWithImages": 0,
+        "framesFailingWithVideo": 0,
+        "framesThatDiffer": [],
+        "framesThatDifferCount": 0
+      }
+    },
+    "images": 222,
+    "imageUsd": 0.555,
+    "videoFrames": 240,
+    "videoUsd": 0.048
+  },
+  {
+    "run": "sinking_v2",
+    "frames": 120,
+    "mp4Bytes": 9464113,
+    "objects": {
+      "player": {
+        "frames": 120,
+        "foundByBoth": 109,
+        "onlyImages": [],
+        "onlyVideo": [
+          92,
+          93,
+          94,
+          95,
+          96,
+          97,
+          98,
+          99,
+          101,
+          107,
+          108
+        ],
+        "bestScoreMeanDiff": 0.0369,
+        "bestScoreMaxDiff": 0.3479,
+        "bestBoxMaxEdgeDiffPx": 18.0,
+        "bestBoxMaxBottomDiffPx": 15.0,
+        "framesWithBottomOver5Px": 4,
+        "framesWithADifferentCount": 11
+      },
+      "coin": {
+        "frames": 120,
+        "foundByBoth": 120,
+        "onlyImages": [],
+        "onlyVideo": [],
+        "bestScoreMeanDiff": 0.0101,
+        "bestScoreMaxDiff": 0.2077,
+        "bestBoxMaxEdgeDiffPx": 700.0,
+        "bestBoxMaxBottomDiffPx": 525.0,
+        "framesWithBottomOver5Px": 92,
+        "framesWithADifferentCount": 73
+      }
+    },
+    "specs": {
+      "player-always-visible": {
+        "images": "fail",
+        "video": "pass",
+        "imagesFirstFrame": 92,
+        "videoFirstFrame": null,
+        "framesFailingWithImages": 11,
+        "framesFailingWithVideo": 0,
+        "framesThatDiffer": [
+          92,
+          93,
+          94,
+          95,
+          96,
+          97,
+          98,
+          99,
+          101,
+          107,
+          108
+        ],
+        "framesThatDifferCount": 11
+      },
+      "coins-visible": {
+        "images": "pass",
+        "video": "pass",
+        "imagesFirstFrame": null,
+        "videoFirstFrame": null,
+        "framesFailingWithImages": 0,
+        "framesFailingWithVideo": 0,
+        "framesThatDiffer": [],
+        "framesThatDifferCount": 0
+      }
+    },
+    "images": 70,
+    "imageUsd": 0.175,
+    "videoFrames": 240,
+    "videoUsd": 0.048
+  }
+]

@@ -1,0 +1,8 @@
+{
+  "mode": "video-compare",
+  "every": "10",
+  "spec": "specs/player-stays-above-ground.json",
+  "runs": "layering_v1,layering_v2,missing-texture_v1,missing-texture_v2,physics-fall-through_v1,physics-fall-through_v2,sinking_v1,sinking_v2",
+  "candidate": "agents/fixtures/fix-collision-mask.patch",
+  "judge": "sam"
+}
