@@ -6,9 +6,14 @@ robot and every coin are on every frame (the position log and the coins rows of 
 projected to frame pixels with that frame's camera, see agents.observations.engine_refs_by_frame).
 A Glimmer box is kept only when it agrees with one of those engine boxes:
 
-- it contains the engine object's centre (it is on the object, not beside it), and
+- it overlaps the box where the engine drew that object (it is on the object, not beside it), and
 - it is at most MAX_SIZE_RATIO times the engine object's width and height (a box over half the
-  screen contains everything's centre and says nothing).
+  screen overlaps everything and says nothing).
+
+Overlap, not "contains the centre": Glimmer's boxes on small objects are a few pixels off. On the
+clean game's coins (run 40947089674) half of the boxes that missed the centre missed it by 0.13 of a
+coin or less and three quarters by under half a coin; overlap is the same as allowing the centre to
+be up to half the object's size outside the box. The robot lost no box under either rule.
 
 So a hidden robot still fails (Glimmer, answering honestly, has no box to keep), and a box put
 anywhere the engine did not place the object is dropped. What it does not stop: an answer steered
@@ -25,22 +30,21 @@ from agents.sam_observations import SamError
 # The objects the engine can place. A spec asking about anything else cannot be cross-checked.
 ENGINE_OBJECTS = ("player", "coin")
 MAX_SIZE_RATIO = 3.0
-RULE = (f"a box counts only if it contains the centre of an object the engine placed on that frame and is at "
+RULE = (f"a box counts only if it overlaps the box of an object the engine placed on that frame and is at "
         f"most {MAX_SIZE_RATIO:g}x its width and height")
 
 
 def agrees(box: list[float], ref: list[float], max_ratio: float = MAX_SIZE_RATIO) -> bool:
-    cx, cy = (ref[0] + ref[2]) / 2, (ref[1] + ref[3]) / 2
-    if not (box[0] <= cx <= box[2] and box[1] <= cy <= box[3]):
-        return False
+    if box[0] > ref[2] or box[2] < ref[0] or box[1] > ref[3] or box[3] < ref[1]:
+        return False  # beside the object, not on it
     return (box[2] - box[0]) <= max_ratio * (ref[2] - ref[0]) and (box[3] - box[1]) <= max_ratio * (ref[3] - ref[1])
 
 
 def miss_gap(box: list[float], refs: list[list[float]]) -> float:
-    """How far a box missed the nearest engine object, in that object's sizes; inf with no object.
+    """How far the nearest engine object's centre is outside a box, in that object's sizes.
 
-    0 means it contains the centre (it was dropped for its size); 0.5 means the centre is half the
-    object's width or height outside the box. Calibration only: the rule itself is agrees().
+    inf with no object on the frame. Up to 0.5 the box overlaps the object (agrees() then dropped it
+    for its size); above 0.5 it missed the object. Calibration only: the rule itself is agrees().
     """
     best = float("inf")
     for ref in refs:
