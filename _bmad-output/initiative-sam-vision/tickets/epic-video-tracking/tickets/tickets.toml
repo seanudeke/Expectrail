@@ -1,0 +1,24 @@
+# Stories in build order. Table order is build order; ids are permanent.
+
+[[entry]]
+id = 1
+type = "story"
+title = "The clip path is measured against the per-frame path"
+description = "Sends the same replays both ways, one frame and prompt per request and one clip per run, and records cost, latency and tracking stability in the comparison file entry 3.2 turns into the decision. The adapter has no clip request path today, so this story builds the sender first."
+verify = "A comparison file names requests sent, wall clock and tracked-id stability for the clip path, and states that the per-frame path has no cross-frame id by construction."
+covers = ["R1"]
+after = []
+hitl = true
+risk = "high"
+unknown = "Three things before a clip can be sent: the SAM key (HTTP 402 today), approval for a run billed per frame with a 50-frame minimum, and where the clip sender lives (a throwaway beside agents/sam_probe.py, or the adapter) with what encodes the frames to H.264 on the runner."
+
+[[entry]]
+id = 2
+type = "story"
+title = "The decision and its trade-offs are recorded"
+description = "Writes the dated decision into docs/sam.md's Not built yet section: which path the adapter sends, the measured numbers behind it, and the trade-offs accepted. If the clip path wins, the adapter sends it and a pass still rests on every frame."
+verify = "docs/sam.md carries the dated decision with the numbers, and the adapter's request path matches it."
+covers = ["R2"]
+after = [1]
+hitl = false
+risk = "medium"

@@ -1,0 +1,69 @@
+# Stories in build order. Table order is build order; ids are permanent.
+
+[[entry]]
+id = 1
+type = "story"
+title = "A benchmark run that decided nothing fails the job"
+description = "Makes the held-out benchmark honest about its own blindness, on PR #39's branch: when every SAM check comes back needs-review, the job fails and emits an error annotation naming the reason, instead of reporting success with warnings."
+verify = "Dispatch the heldout-bench mode on branch bench/heldout-detection with runs narrowed to one variant and a set-but-garbage MODEL_API_KEY (not an unset one, which the preflight rejects): the job is red and carries an error annotation naming the reason, and the offline test asserts the same exit code."
+covers = ["R4"]
+after = []
+hitl = false
+risk = "low"
+
+[[entry]]
+id = 2
+type = "story"
+title = "One private variant measured end to end"
+description = "The tracer through every layer: a working SAM key, the private set mounted, one active variant plus the clean control rendered on the smoke route and every private route, and a caught or not-caught result with every SAM check decided."
+verify = "A dispatched heldout-bench run reports caught or not caught for one variant and false alarm or not for clean, with no needs-review in the SAM checks, and the run says which key it used (MODEL_API_KEY or META_API_KEY)."
+covers = ["R1", "R2"]
+after = [1]
+hitl = true
+risk = "high"
+unknown = "Who owns the Meta billing fix for HTTP 402 billing_not_configured, and does the job resolve MODEL_API_KEY or fall back to META_API_KEY?"
+
+[[entry]]
+id = 4
+type = "story"
+title = "The benchmark lands on main"
+description = "Merges PR #39, including entry 1's honest-failure fix, once a real run has finished, so the heldout-bench mode is dispatchable from main and its results are reproducible by anyone with the secrets."
+verify = "The heldout-bench mode is on main, dispatches, and its published output holds ids, counts and verdicts only."
+covers = ["R3"]
+after = [2]
+hitl = true
+risk = "low"
+
+[[entry]]
+id = 3
+type = "story"
+title = "Every active variant and the clean control measured"
+description = "Runs the whole benchmark from main: all active variants and the clean control, each over the smoke route and every private route, with the request count and wall clock reported from the benchmark's own stats beside the results entry 5 publishes."
+verify = "One dispatched run reports a caught or not-caught result for every active variant, none for clean, and its annotation states how many sam-3.1 requests it sent."
+covers = ["R1", "R2"]
+after = [2, 4]
+hitl = false
+risk = "medium"
+unknown = "About 32k sam-3.1 requests with no cache carried between dispatches: is that spend approved, and at what concurrency?"
+
+[[entry]]
+id = 5
+type = "story"
+title = "The results are where the evaluation points"
+description = "Adds only the caught or not-caught table, ids and verdicts only, to docs/evaluation.md's Held out section beside the run it came from; the stale claims in that section and in docs/sam.md belong to epic-verifier-gate."
+verify = "docs/evaluation.md's Held out section carries the table and names the run; no private patch, route or frame appears in it."
+covers = ["R1", "R3"]
+after = [3, 4]
+hitl = false
+risk = "low"
+
+[[entry]]
+id = 6
+type = "story"
+title = "Refactor sweep"
+description = "Cleanup only, scoped at its start from what the epic's plans and reviews deferred: dead branches in the benchmark, duplicated route handling, and anything the earlier stories pushed out."
+verify = "The benchmark's offline tests pass, and a re-dispatched variant's annotation matches entry 3's result for that variant."
+covers = []
+after = [1, 2, 3, 4, 5]
+hitl = false
+risk = "low"
