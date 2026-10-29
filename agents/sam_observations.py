@@ -53,11 +53,15 @@ KEY_ENV = "MODEL_API_KEY"
 # Image segmentation price on the Meta Model API: $2.50 per 1,000 images
 # (https://dev.meta.ai/docs/pricing-rate-limits, read Oct 29, 2026). Used only to report cost.
 USD_PER_IMAGE = 2.50 / 1000
+# Video segmentation on the same page: $0.20 per 1,000 frames, at least 50 frames billed a request.
+USD_PER_VIDEO_FRAME = 0.20 / 1000
+MIN_VIDEO_FRAMES = 50
 
 # Every sam-3.1 request this process sent, across all clients and threads, for cost reporting.
-# "images" counts requests that got a response (one frame and one prompt each); "requests" also
-# counts the tries that failed and were retried.
-_usage = {"requests": 0, "images": 0}
+# "images" counts image requests that got a response (one frame and one prompt each);
+# "videoFrames" the frames billed for video requests that got one; "requests" also counts the
+# tries that failed and were retried.
+_usage = {"requests": 0, "images": 0, "videoFrames": 0}
 _usage_lock = threading.Lock()
 
 
@@ -70,6 +74,13 @@ def sam_usage() -> dict:
 def sam_images_since(before: dict) -> int:
     """Images sent to sam-3.1 since the snapshot ``before`` (from ``sam_usage``)."""
     return sam_usage()["images"] - before["images"]
+
+
+def sam_usd_since(before: dict) -> float:
+    """What the sam-3.1 requests since ``before`` cost at list price, images and video frames."""
+    now = sam_usage()
+    return ((now["images"] - before["images"]) * USD_PER_IMAGE
+            + (now["videoFrames"] - before.get("videoFrames", 0)) * USD_PER_VIDEO_FRAME)
 EVERY_ENV = "NIGHTSHIFT_SAM_EVERY"
 CONFIRM_ENV = "NIGHTSHIFT_SAM_CONFIRM"
 CACHE_ENV = "NIGHTSHIFT_SAM_CACHE"
@@ -292,7 +303,8 @@ class MetaSamClient:
         with urllib.request.urlopen(req, timeout=self.timeout) as resp:
             return resp.read(), resp.headers.get("Content-Type", "")
 
-    def _call(self, body: dict) -> tuple[bytes, str]:
+    def _call(self, body: dict, *, video_frames: int | None = None) -> tuple[bytes, str]:
+        """One request with retries. ``video_frames`` set: a video of that many frames (billed per frame)."""
         delay = 2.0
         for attempt in range(self.retries + 1):
             with self._lock:
@@ -303,7 +315,10 @@ class MetaSamClient:
             try:
                 reply = self._transport(body)
                 with _usage_lock:
-                    _usage["images"] += 1
+                    if video_frames is None:
+                        _usage["images"] += 1
+                    else:
+                        _usage["videoFrames"] += max(video_frames, MIN_VIDEO_FRAMES)
                 return reply
             except SamError:
                 raise
