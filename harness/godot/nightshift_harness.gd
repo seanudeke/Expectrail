@@ -11,6 +11,9 @@ extends Node
 ##   view:   the transform from world coordinates to captured-frame pixels, [xx, xy, yx, yy, ox, oy],
 ##           so a world point (x, y) lands at (xx*x + yx*y + ox, xy*x + yy*y + oy) in the frame.
 ##           It is read in the physics tick, so it is the camera of the frame drawn before it.
+## and, when the level has collectibles of the coin class (--coins=<class_name>, default Coin):
+##   coins:  world [x, y] of every such node still in the tree, so a vision model's coin boxes can
+##           be checked against where the engine put the coins.
 ## and the trace header carries levelSurfaces: every solid tile collision polygon in world
 ## coordinates, so the verifier can measure a candidate against the clean game's ground instead of
 ## the ground the candidate itself shipped.
@@ -27,6 +30,9 @@ var _player: Node2D = null
 var _recorder: Node = null
 var _layers: Array = []          # every TileMapLayer in the level, found on the first record
 var _layers_searched := false
+var _coin_class: StringName = &"Coin"
+var _coins: Array = []           # every coin node, found on the first record
+var _coins_searched := false
 
 # How far above the player's origin a surface may sit and still count as the ground under it:
 # a robot sunk into the ground by less than this is measured against the surface it sank into.
@@ -47,6 +53,7 @@ func _ready() -> void:
 	seed(int(args.get("seed", "1")))
 	_trace_path = args.get("trace", "")
 	_player_name = args.get("player", "Player")
+	_coin_class = StringName(args.get("coins", "Coin"))
 	var route = JSON.parse_string(FileAccess.get_file_as_string(args["route"]))
 	if typeof(route) != TYPE_DICTIONARY or route.get("format", "") != "nightshift.route/v0":
 		push_error("nightshift: not a nightshift.route/v0 file: %s" % args["route"])
@@ -92,6 +99,9 @@ func record() -> void:
 		var ground = _ground_under(_player.global_position)
 		if ground != null:
 			row["ground"] = snappedf(ground, 0.001)
+	var coins := _coin_positions()
+	if not coins.is_empty():
+		row["coins"] = coins
 	var view := get_viewport().get_final_transform() * get_viewport().get_canvas_transform()
 	row["view"] = [snappedf(view.x.x, 0.0001), snappedf(view.x.y, 0.0001), snappedf(view.y.x, 0.0001),
 		snappedf(view.y.y, 0.0001), snappedf(view.origin.x, 0.001), snappedf(view.origin.y, 0.001)]
@@ -112,6 +122,25 @@ func _finish() -> void:
 		file.store_string(JSON.stringify(out, "", false))
 		file.close()
 	get_tree().quit(0)
+
+
+func _coin_positions() -> Array:
+	"""World [x, y] of every node of the coin class still in the tree (picked coins free themselves)."""
+	if not _coins_searched:
+		var scene := get_tree().current_scene
+		if scene == null:
+			return []
+		_coins_searched = true
+		for node in scene.find_children("*", "Node2D", true, false):
+			var script = node.get_script()
+			if script != null and script.get_global_name() == _coin_class:
+				_coins.append(node)
+	var out := []
+	for coin in _coins:
+		if is_instance_valid(coin) and coin.is_inside_tree():
+			var p: Vector2 = coin.global_position
+			out.append([snappedf(p.x, 0.01), snappedf(p.y, 0.01)])
+	return out
 
 
 func _ground_under(origin: Vector2) -> Variant:

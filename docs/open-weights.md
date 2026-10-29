@@ -9,7 +9,7 @@ on which model, where, and how to check it.
 
 | Role | Model (license) | Served by | Turn it on | Code |
 | --- | --- | --- | --- | --- |
-| Vision checks: is the robot visible, are the coins drawn, where are the robot's feet against the level's ground line | Muse Glimmer 30B (Apache 2.0, per its model card) together with SAM 3.1 | A Fireworks on-demand deployment of `accounts/fireworks/models/muse-glimmer-30b` (Glimmer left Fireworks serverless on Sep 25, 2026); or any OpenAI-compatible server we run | `NIGHTSHIFT_OBS_PROVIDER=sam NIGHTSHIFT_VISION_BACKEND=both`, keys in `FIREWORKS_API_KEY` and `MODEL_API_KEY` | `agents/glimmer_client.py` |
+| Vision checks: is the robot visible, are the coins drawn, where are the robot's feet against the level's ground line | Muse Glimmer 30B (Apache 2.0, per its model card), together with SAM 3.1 (`both`) or checked against the game engine with no SAM (`glimmer-engine`) | A Fireworks on-demand deployment of `accounts/fireworks/models/muse-glimmer-30b` (Glimmer left Fireworks serverless on Sep 25, 2026); or any OpenAI-compatible server we run | `NIGHTSHIFT_OBS_PROVIDER=sam NIGHTSHIFT_VISION_BACKEND=both` (keys in `FIREWORKS_API_KEY` and `MODEL_API_KEY`) or `=glimmer-engine` (`FIREWORKS_API_KEY` only) | `agents/glimmer_client.py`, `agents/engine_check.py` |
 | Test-spec drafting from plain English | Muse Spark Open (Muse Model License) | Baseten, `meta-models/muse-spark-open-1026` | `python3 -m nightshift.spec_writer draft "..." --endpoint open`, key in `BASETEN_API_KEY` | `nightshift/spec_writer.py` |
 | Sorting playtester feedback and drafting checks from it | Muse Spark Open | Baseten | `python3 -m agents.feedback ... --sorter open` | `agents/feedback.py` |
 
@@ -48,12 +48,28 @@ JSON-only instruction, and answers with boxes in pixels of the frame.
 frames where both models find it.** The boxes used for geometry are SAM's. So adding Glimmer can
 only make a check stricter than SAM alone: a robot Glimmer cannot see fails, even if SAM finds it.
 
-**Glimmer never decides an accept on its own.** It reads images the way a language model reads
+**Glimmer never decides an accept unchecked.** It reads images the way a language model reads
 text, and the fixer controls the candidate's pixels: a fix could draw text into the game that talks
-a vision-language model into "the robot is there". SAM is a segmenter and cannot be talked to, so it
-must find the robot too. The verifier refuses `NIGHTSHIFT_VISION_BACKEND=glimmer` (every vision
-check becomes needs-review) unless `NIGHTSHIFT_GLIMMER_ALONE=1` is set to measure Glimmer on known
+a vision-language model into "the robot is there". So each of Glimmer's answers is checked by
+something that cannot be talked to:
+
+- **`both`:** SAM 3.1, a segmenter, must find the object too.
+- **`glimmer-engine` (no SAM):** the game engine must have put the object there. The harness logs
+  where the robot is and where every coin is on every frame (`player` and `coins` in trace.json,
+  projected to frame pixels with that frame's camera). A Glimmer box counts only if it contains the
+  centre of an object the engine placed on that frame and is at most 3x its width and height
+  (`agents/engine_check.py`). A box beside the robot, or one over half the screen, is dropped and
+  counted in the observations document (`model.engineCheck`). The trace and the check run on the
+  verifier's side, after the frame cache; a replay whose trace cannot place objects is needs-review.
+
+The verifier refuses `NIGHTSHIFT_VISION_BACKEND=glimmer` with neither check (every vision check
+becomes needs-review) unless `NIGHTSHIFT_GLIMMER_ALONE=1` is set to measure Glimmer on known
 fixtures.
+
+What the engine check does not stop: Glimmer steered onto the object's true position. The fixer can
+compute where the hidden robot is, because it wrote the game, and could try to draw text that makes
+Glimmer answer with exactly that box. That is a far narrower attack than "write 'robot here'
+anywhere", but it is not zero. Where SAM is available, `both` remains the stronger setting.
 
 Everything around the question is shared code (`agents/sam_observations.py`):
 
@@ -68,9 +84,9 @@ The evaluator then decides each spec from the boxes, in plain code. Glimmer is n
 below the ground", only "where is it".
 
 Why open weights matter here beyond the prize: an unreleased game build is confidential, and a
-studio wants its quality gate on infrastructure it controls. Glimmer can run on the studio's own
-server today. Making it safe to drop SAM entirely needs the engine cross-check in "What is not
-built yet".
+studio wants its quality gate on infrastructure it controls. With `glimmer-engine`, every vision
+check runs on Glimmer, which a studio can serve on its own hardware, and nothing leaves for a
+hosted vision API.
 
 ## How to verify it
 
@@ -134,10 +150,12 @@ reported by the workflow (kind only, see "Glimmer verify held-out error").
 
 ## What is not built yet
 
-- **An engine cross-check for Glimmer alone.** The harness knows where the robot is on every frame
-  (the position log, projected to frame pixels). Requiring Glimmer's robot box to agree with it would
-  stop an injected "it's there" without SAM, and would let a studio run the vision checks entirely on
-  its own hardware. Until that exists, accepts need SAM too.
+- **Engine positions for other objects.** The engine check knows the robot and the coins. A spec
+  about anything else (an enemy, a door) is needs-review under `glimmer-engine` until the harness
+  logs it too.
+- **Glimmer's box precision for the ground check.** Under `glimmer-engine` the hybrid ground check
+  compares Glimmer's robot box (not SAM's) with the ground line, at the spec's 20-pixel tolerance.
+  The clean run of the verify workflow shows whether that holds.
 
 ## Keys
 
@@ -145,4 +163,4 @@ reported by the workflow (kind only, see "Glimmer verify held-out error").
 `NIGHTSHIFT_OPEN_API_KEY`) are read from the environment or the gitignored `.env`. None of them is on
 Muse Code's environment allowlist. The Glimmer key may not be the same as `META_API_KEY`, the key
 the fixer holds. In CI, add the `FIREWORKS_API_KEY` repository secret; `both` also needs the SAM key
-(`MODEL_API_KEY`).
+(`MODEL_API_KEY`). The workflow does not pass the SAM key to a `glimmer-engine` run.

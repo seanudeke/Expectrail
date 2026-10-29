@@ -183,14 +183,28 @@ def probe_run(run: Path, spec: dict, picked: list[int] | None, every: int, clien
     engine = engine_objects_for(run, engine_ground, frames, chosen, reference) if engine_ground else {}
     prompts = {name: obj["prompt"] for name, obj in spec["objects"].items() if not (engine and name == engine_ground)}
     observed = observe(frames, chosen, prompts, client, cache, workers)
+    check = None
+    if getattr(client, "engine_checked", False):
+        # As in the verifier: Glimmer's boxes count only where the engine placed that object.
+        from agents.engine_check import check_for_trace
+
+        try:
+            trace = json.loads((run / "trace.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            raise SamError(f"{run.name}: the engine check needs trace.json ({type(exc).__name__})") from exc
+        check = check_for_trace(trace, chosen)
+        observed = check(observed)
     for i, objs in engine.items():
         observed[i].update(objs)
     replay = run / "replay.json"
     doc = _document(observed, prompts, client.model, sha256_bytes(replay) if replay.is_file() else "0" * 64,
-                    len(frames), len(indices), every, [], 0, engine, getattr(client, "provider", "meta-model-api"))
+                    len(frames), len(indices), every, [], 0, engine, getattr(client, "provider", "meta-model-api"),
+                    check.summary() if check is not None else None)
     verdict = evaluate(spec, doc)
     result = {"run": run.name, "framesProbed": chosen, "verdict": {k: verdict[k] for k in ("result", "reason")},
               "objects": object_metrics(spec, observed), "observations": doc}
+    if check is not None:
+        result["engineCheck"] = check.summary()
     if spec["assertion"]["type"] == "never-crosses":
         floor = on_floor_by_frame(run)
         gaps = []
@@ -253,9 +267,9 @@ def markdown(spec: dict, runs: list[dict], hint: dict | None, model: str, stats:
 
 
 def _label() -> str:
-    """Which model the probe is about, for titles: SAM, or Glimmer with NIGHTSHIFT_VISION_BACKEND=glimmer."""
+    """Which model the probe is about, for titles: SAM, Glimmer, or Glimmer checked against the engine."""
     try:
-        return "Glimmer" if vision_backend() == "glimmer" else "SAM"
+        return {"glimmer": "Glimmer", "glimmer-engine": "Glimmer+engine"}.get(vision_backend(), "SAM")
     except SamError:
         return "SAM"
 
@@ -285,6 +299,10 @@ def annotations(report: dict) -> list[str]:
                             if s else ""))
         if run.get("gaps"):
             parts.append("gaps " + " ".join(f"{g['frame']}:{_num(g['gap'])}" for g in run["gaps"]))
+        if run.get("engineCheck"):
+            ec = run["engineCheck"]
+            parts.append("engine check " + " ".join(f"{n} kept {ec['kept'][n]} dropped {ec['dropped'][n]}"
+                                                    for n in ec["kept"]))
         lines.append(f"::notice title={_label()} probe {run['run']}::{_escape('; '.join(parts))}")
     hint, stats = report.get("tolerance") or {}, report.get("stats", {})
     calls = stats.get("calls") or 0

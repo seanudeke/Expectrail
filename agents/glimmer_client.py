@@ -400,6 +400,21 @@ class GlimmerClient(MetaSamClient):
         return parse_boxes(answer_text(raw), size, self.coords)
 
 
+class EngineCheckedGlimmer(GlimmerClient):
+    """Muse Glimmer whose boxes count only where they agree with the game engine (agents.engine_check).
+
+    The check itself runs in agents.sam_observations._from_replay, after the frame cache, because it
+    needs the replay's trace; this class only asks for it. Without a trace that can place objects,
+    that path raises SamError (needs-review): its boxes never reach a verdict unchecked.
+    """
+
+    engine_checked = True
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.provider += ", each box checked against the engine's position for that object"
+
+
 class BothClient:
     """SAM 3.1's boxes, counted only on frames where Muse Glimmer also sees the object.
 

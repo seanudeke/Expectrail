@@ -57,9 +57,10 @@ WORKERS_ENV = "NIGHTSHIFT_SAM_WORKERS"
 # Which model looks at the frames: sam (SAM 3.1, Meta Model API) or glimmer (Muse Glimmer, open
 # weights, agents.glimmer_client). Everything else in this module is the same for both.
 BACKEND_ENV = "NIGHTSHIFT_VISION_BACKEND"
-BACKENDS = ("sam", "glimmer", "both")
+BACKENDS = ("sam", "glimmer", "both", "glimmer-engine")
 GLIMMER_ALONE_ENV = "NIGHTSHIFT_GLIMMER_ALONE"
-VISION_LABELS = {"sam": "SAM 3.1", "glimmer": "Muse Glimmer", "both": "SAM 3.1 with Muse Glimmer"}
+VISION_LABELS = {"sam": "SAM 3.1", "glimmer": "Muse Glimmer", "both": "SAM 3.1 with Muse Glimmer",
+                 "glimmer-engine": "Muse Glimmer checked against the engine"}
 DEFAULT_EVERY = 4
 DEFAULT_WORKERS = 4
 # Bump when the request or the parsing changes, so older cache entries are never reused.
@@ -331,24 +332,28 @@ def vision_label() -> str:
 
 
 def default_client(verdict: bool = False):
-    """The frame-vision client for this run: SAM 3.1, Muse Glimmer, or both (an object counts only
-    when both see it).
+    """The frame-vision client for this run: SAM 3.1, Muse Glimmer, both (an object counts only
+    when both see it), or Glimmer checked against the engine (agents.engine_check).
 
     ``verdict=True`` is the verifier's path. Glimmer alone is refused there unless
     NIGHTSHIFT_GLIMMER_ALONE=1: the fixer controls the candidate's pixels, and a vision-language
-    model can be talked into a pass by text drawn into the game. Use ``both`` for verdicts.
+    model can be talked into a pass by text drawn into the game. Use ``both``, or
+    ``glimmer-engine`` to run without SAM, for verdicts.
     """
     backend = vision_backend()
     if backend == "sam":
         return MetaSamClient()
-    from agents.glimmer_client import BothClient, GlimmerClient
+    from agents.glimmer_client import BothClient, EngineCheckedGlimmer, GlimmerClient
 
     if backend == "both":
         return BothClient()
+    if backend == "glimmer-engine":
+        return EngineCheckedGlimmer()
     alone = os.environ.get(GLIMMER_ALONE_ENV, "").strip().lower() in ("1", "true", "yes")
     if verdict and not alone:
         raise SamError("Glimmer alone does not decide a verdict: the fixer controls the frames, and text drawn "
-                       f"into the game could talk a vision-language model into a pass. Use {BACKEND_ENV}=both, "
+                       f"into the game could talk a vision-language model into a pass. Use {BACKEND_ENV}=both "
+                       f"or glimmer-engine, "
                        f"or set {GLIMMER_ALONE_ENV}=1 to measure Glimmer on known fixtures")
     return GlimmerClient()
 
@@ -550,10 +555,14 @@ def observe(frames: dict[int, Path], indices: list[int], prompts: dict[str, str]
 
 
 def _document(observed, prompts, model, replay_sha256, captured, in_window, every, refined,
-              confirmed: int = 0, engine_objects: dict | None = None, provider: str = "meta-model-api") -> dict:
+              confirmed: int = 0, engine_objects: dict | None = None, provider: str = "meta-model-api",
+              engine_check: dict | None = None) -> dict:
     engine_objects = engine_objects or {}
     engine_names = sorted({name for objs in engine_objects.values() for name in objs})
     model_doc = {"name": model, "provider": provider, "prompts": dict(prompts)}
+    if engine_check is not None:
+        # The vision boxes below are only those that agreed with the engine (agents.engine_check).
+        model_doc["engineCheck"] = engine_check
     if engine_names:
         # These objects come from the game engine, not from SAM: the evaluator compares SAM's view
         # of the prompted objects against them (e.g. the robot SAM sees against the level's ground).
@@ -609,7 +618,7 @@ def from_replay(
             confirm = os.environ.get(CONFIRM_ENV, "1").strip().lower() not in ("0", "off", "false", "no")
         return _from_replay(frames_dir, replay_sha256, spec=spec, prompts=prompts, every=every, refine=refine,
                             confirm=confirm, engine_objects=engine_objects, client=client, cache=cache,
-                            workers=workers, stats=stats)
+                            workers=workers, stats=stats, trace=trace, fps=fps)
     except SamError:
         raise
     except Exception as exc:  # noqa: BLE001 - any surprise is needs-review, never a crash or a pass
@@ -617,7 +626,7 @@ def from_replay(
 
 
 def _from_replay(frames_dir, replay_sha256, *, spec, prompts, every, refine, confirm, engine_objects, client,
-                 cache, workers, stats) -> dict:
+                 cache, workers, stats, trace=None, fps=60) -> dict:
     if frames_dir is None or not Path(frames_dir).is_dir():
         raise SamError("the sam provider needs the replay's captured frames (frames_dir)")
     frames = frame_files(Path(frames_dir))
@@ -636,12 +645,23 @@ def _from_replay(frames_dir, replay_sha256, *, spec, prompts, every, refine, con
     indices = window(list(frames), spec)
     if not indices:
         raise SamError("no captured frame falls inside the spec's window")
-    observed = observe(frames, sample(indices, rate), names, client, cache, workers)
+    check = None
+    if getattr(client, "engine_checked", False):
+        from agents.engine_check import check_for_trace
+
+        check = check_for_trace(trace, list(frames), fps=fps or 60)
+
+    def look(chosen):
+        got = observe(frames, chosen, names, client, cache, workers)
+        return check(got) if check is not None else got
+
+    observed = look(sample(indices, rate))
 
     def doc_of(refined_frames, confirmed_count=0):
         return _document(observed, names, client.model, replay_sha256, len(frames), len(indices), rate,
                          refined_frames, confirmed_count, engine_objects,
-                         getattr(client, "provider", "meta-model-api"))
+                         getattr(client, "provider", "meta-model-api"),
+                         check.summary() if check is not None else None)
 
     refined: list[int] = []
     if refine and spec and rate > 1:
@@ -649,7 +669,7 @@ def _from_replay(frames_dir, replay_sha256, *, spec, prompts, every, refine, con
         kind = spec.get("assertion", {}).get("type")
         refined = refine_targets(indices, set(observed), evaluate(spec, doc), passing_frames(spec, doc), kind)
         if refined:
-            observed.update(observe(frames, refined, names, client, cache, workers))
+            observed.update(look(refined))
     confirmed: list[int] = []
     # "reaches" passes on the frame that reaches the goal, so more frames cannot change its pass.
     if confirm and spec and rate > 1 and spec.get("assertion", {}).get("type") != "reaches":
@@ -658,7 +678,7 @@ def _from_replay(frames_dir, replay_sha256, *, spec, prompts, every, refine, con
             # Sampling finds failures cheaply; a pass has to hold on every frame.
             confirmed = [i for i in indices if i not in observed]
             if confirmed:
-                observed.update(observe(frames, confirmed, names, client, cache, workers))
+                observed.update(look(confirmed))
     if stats is not None:
         stats.update(calls=client.calls, cacheHits=cache.hits, framesAnalyzed=len(observed),
                      framesCaptured=len(frames), every=rate, refined=len(refined), confirmed=len(confirmed))
