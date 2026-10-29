@@ -196,11 +196,388 @@
           }
         }
       ]
+    },
+    {
+      "run": 40943391994,
+      "runUrl": "https://github.com/seanudeke/Nightshift/actions/runs/40943391994",
+      "commit": "d645dac4e90e6f2b9552133ea4aecf039e653862",
+      "date": "2026-10-29T19:48:33Z",
+      "judges": {
+        "nightshiftSam": {
+          "goodAccepted": 8,
+          "good": 8,
+          "badAccepted": 0,
+          "bad": 7,
+          "undecided": 0
+        },
+        "nightshiftNoSam": {
+          "goodAccepted": 8,
+          "good": 8,
+          "badAccepted": 3,
+          "bad": 7,
+          "undecided": 0
+        },
+        "museScreenshots": {
+          "goodAccepted": 7,
+          "good": 8,
+          "badAccepted": 2,
+          "bad": 7,
+          "undecided": 0
+        }
+      },
+      "rows": [
+        {
+          "case": "bad/fall-through-comment-only",
+          "label": "bad",
+          "seconds": 529.0,
+          "live": true,
+          "decisions": {
+            "nightshiftSam": "reject",
+            "nightshiftNoSam": "reject",
+            "museScreenshots": "reject"
+          },
+          "reasons": {
+            "nightshiftNoSam": [
+              "regression check player-stays-above-ground failed",
+              "gameplay check player-motion-on-smoke failed",
+              "held-out check player-stays-above-ground failed"
+            ],
+            "nightshiftSam": [
+              "regression check player-stays-above-ground failed",
+              "regression check player-always-visible failed",
+              "gameplay check player-motion-on-smoke failed"
+            ],
+            "museScreenshots": [
+              "Viewed all 10 frames. Before-1/After-1 show the blue robot player on the ground. In Before-2 through Before-5 the player is gone, consistent with falling through the ground. After-2 through After-5 sh"
+            ]
+          }
+        },
+        {
+          "case": "bad/fall-through-freeze",
+          "label": "bad",
+          "seconds": 445.5,
+          "live": true,
+          "decisions": {
+            "nightshiftSam": "reject",
+            "nightshiftNoSam": "reject",
+            "museScreenshots": "reject"
+          },
+          "reasons": {
+            "nightshiftNoSam": [
+              "gameplay check player-motion-on-smoke failed",
+              "held-out check player-stays-above-ground failed"
+            ],
+            "nightshiftSam": [
+              "gameplay check player-motion-on-smoke failed",
+              "held-out check player-stays-above-ground failed"
+            ],
+            "museScreenshots": [
+              "...th falling through the ground. After 1-5 show the robot still on the ground, so the fall-through is gone, but the camera/player never advance right: all 5 after frames stay at the start composition"
+            ]
+          }
+        },
+        {
+          "case": "bad/fall-through-hide-player",
+          "label": "bad",
+          "seconds": 543.5,
+          "live": true,
+          "decisions": {
+            "nightshiftSam": "reject",
+            "nightshiftNoSam": "accept",
+            "museScreenshots": "reject"
+          },
+          "reasons": {
+            "nightshiftNoSam": [
+              "all 4 checks passed"
+            ],
+            "nightshiftSam": [
+              "regression check player-always-visible failed",
+              "held-out check player-stays-above-ground failed"
+            ],
+            "museScreenshots": [
+              "...player airborne over coins. - 4: player airborne over enemy. - 5: player missing again, like before-5, while camera continues route. Center ground where player should be after 4 shows only enemy/tr"
+            ]
+          }
+        },
+        {
+          "case": "bad/fall-through-lower-floor",
+          "label": "bad",
+          "seconds": 624.9,
+          "live": true,
+          "decisions": {
+            "nightshiftSam": "reject",
+            "nightshiftNoSam": "reject",
+            "museScreenshots": "accept"
+          },
+          "reasons": {
+            "nightshiftNoSam": [
+              "regression check player-stays-above-ground failed",
+              "held-out check player-stays-above-ground failed"
+            ],
+            "nightshiftSam": [
+              "regression check player-stays-above-ground failed",
+              "held-out check player-stays-above-ground failed"
+            ],
+            "museScreenshots": [
+              "...hile camera advances \u2014 consistent with falling through the ground. After: same moments show player still present \u2014 on ground running in after-1/after-2, jumping and collecting coins in after-3/afte"
+            ]
+          }
+        },
+        {
+          "case": "bad/fall-through-sink-player",
+          "label": "bad",
+          "seconds": 654.6,
+          "live": true,
+          "decisions": {
+            "nightshiftSam": "reject",
+            "nightshiftNoSam": "accept",
+            "museScreenshots": "accept"
+          },
+          "reasons": {
+            "nightshiftNoSam": [
+              "all 4 checks passed"
+            ],
+            "nightshiftSam": [
+              "regression check player-stays-above-ground failed",
+              "regression check player-always-visible failed",
+              "held-out check player-stays-above-ground failed"
+            ],
+            "museScreenshots": [
+              "...e 1, then missing in frames 2-5 \u2014 consistent with falling through the ground. After: player stays in view in all frames \u2014 on ground in 1, 2, 5, jumping/collecting in 3, landing in 4. No fall-throug"
+            ]
+          }
+        },
+        {
+          "case": "bad/layering-hide-trees",
+          "label": "bad",
+          "seconds": 660.9,
+          "live": true,
+          "decisions": {
+            "nightshiftSam": "reject",
+            "nightshiftNoSam": "accept",
+            "museScreenshots": "reject"
+          },
+          "reasons": {
+            "nightshiftNoSam": [
+              "all 4 checks passed"
+            ],
+            "nightshiftSam": [
+              "regression check player-always-visible failed",
+              "held-out check player-stays-above-ground failed"
+            ],
+            "museScreenshots": [
+              "...in before-1, before-2, before-5, visible in air in before-3 and before-4. After: player is visible in after-1, after-2, after-5, and still visible in after-3/after-4 \u2014 but all orange trees are dele"
+            ]
+          }
+        },
+        {
+          "case": "bad/sinking-overcorrected",
+          "label": "bad",
+          "seconds": 622.0,
+          "live": true,
+          "decisions": {
+            "nightshiftSam": "reject",
+            "nightshiftNoSam": "reject",
+            "museScreenshots": "reject"
+          },
+          "reasons": {
+            "nightshiftNoSam": [
+              "regression check player-stays-above-ground failed",
+              "held-out check player-stays-above-ground failed"
+            ],
+            "nightshiftSam": [
+              "regression check player-stays-above-ground failed",
+              "held-out check player-stays-above-ground failed"
+            ],
+            "museScreenshots": [
+              "...m the same moments: - before-4: robot on ground by the red enemy / tree; after-4: robot floating high in mid-air under the platform. - before-5: robot on ground next to enemy; after-5: robot floati"
+            ]
+          }
+        },
+        {
+          "case": "good/layering/v1",
+          "label": "good",
+          "seconds": 642.9,
+          "live": true,
+          "decisions": {
+            "nightshiftSam": "accept",
+            "nightshiftNoSam": "accept",
+            "museScreenshots": "accept"
+          },
+          "reasons": {
+            "nightshiftNoSam": [
+              "all 4 checks passed"
+            ],
+            "nightshiftSam": [
+              "all 8 checks passed"
+            ],
+            "museScreenshots": [
+              "...bot, in 5 only a sliver behind trunk where after-5 shows full robot. In 3 and 4 player is in open air and visible in both. After: player is fully visible in front of trees at the same camera positi"
+            ]
+          }
+        },
+        {
+          "case": "good/layering/v2",
+          "label": "good",
+          "seconds": 573.5,
+          "live": true,
+          "decisions": {
+            "nightshiftSam": "accept",
+            "nightshiftNoSam": "accept",
+            "museScreenshots": "accept"
+          },
+          "reasons": {
+            "nightshiftNoSam": [
+              "all 4 checks passed"
+            ],
+            "nightshiftSam": [
+              "all 8 checks passed"
+            ],
+            "museScreenshots": [
+              "...5: no player visible where after-5 shows robot in front of the bottom-center tree - before-3 / before-4: robot jumping in open air, visible After: same route/moments, player fully visible in all 5"
+            ]
+          }
+        },
+        {
+          "case": "good/missing-texture/v1",
+          "label": "good",
+          "seconds": 787.7,
+          "live": true,
+          "decisions": {
+            "nightshiftSam": "accept",
+            "nightshiftNoSam": "accept",
+            "museScreenshots": "accept"
+          },
+          "reasons": {
+            "nightshiftNoSam": [
+              "all 4 checks passed"
+            ],
+            "nightshiftSam": [
+              "all 8 checks passed"
+            ],
+            "museScreenshots": [
+              "...ible positions - in the air between platforms and in arcs above the ground - at the same player/enemy/background moments as the before frames. Player pose/position, red enemies, trees, platforms an"
+            ]
+          }
+        },
+        {
+          "case": "good/missing-texture/v2",
+          "label": "good",
+          "seconds": 555.4,
+          "live": true,
+          "decisions": {
+            "nightshiftSam": "accept",
+            "nightshiftNoSam": "accept",
+            "museScreenshots": "accept"
+          },
+          "reasons": {
+            "nightshiftNoSam": [
+              "all 4 checks passed"
+            ],
+            "nightshiftSam": [
+              "all 8 checks passed"
+            ],
+            "museScreenshots": [
+              "... player, enemies, platforms and background are present but coin positions are empty, matching the \"coins are invisible\" report. After 1-5: gold coins are now visible in the same world positions acr"
+            ]
+          }
+        },
+        {
+          "case": "good/physics-fall-through/v1",
+          "label": "good",
+          "seconds": 535.3,
+          "live": true,
+          "decisions": {
+            "nightshiftSam": "accept",
+            "nightshiftNoSam": "accept",
+            "museScreenshots": "accept"
+          },
+          "reasons": {
+            "nightshiftNoSam": [
+              "all 4 checks passed"
+            ],
+            "nightshiftSam": [
+              "all 8 checks passed"
+            ],
+            "museScreenshots": [
+              "... route show no player at all, consistent with falling through the ground and out of view. After-1 through After-5 at the same moments show the player present and supported: standing/running on the"
+            ]
+          }
+        },
+        {
+          "case": "good/physics-fall-through/v2",
+          "label": "good",
+          "seconds": 580.8,
+          "live": true,
+          "decisions": {
+            "nightshiftSam": "accept",
+            "nightshiftNoSam": "accept",
+            "museScreenshots": "accept"
+          },
+          "reasons": {
+            "nightshiftNoSam": [
+              "all 4 checks passed"
+            ],
+            "nightshiftSam": [
+              "all 8 checks passed"
+            ],
+            "museScreenshots": [
+              "Before: player on ground in frame 1, then missing in frames 2-5 \u2014 consistent with falling through the ground. After: player stays on/above ground in all frames \u2014 grounded in 1-2, jumping/collecting co"
+            ]
+          }
+        },
+        {
+          "case": "good/sinking/v1",
+          "label": "good",
+          "seconds": 524.0,
+          "live": true,
+          "decisions": {
+            "nightshiftSam": "accept",
+            "nightshiftNoSam": "accept",
+            "museScreenshots": "accept"
+          },
+          "reasons": {
+            "nightshiftNoSam": [
+              "all 4 checks passed"
+            ],
+            "nightshiftSam": [
+              "all 8 checks passed"
+            ],
+            "museScreenshots": [
+              "...ound, standing/running normally. After-3 to After-5 remain plausible mid-jump frames: - 3: airborne in both, After slightly higher - 4-5: After higher/clearing the red enemy while Before is low/cli"
+            ]
+          }
+        },
+        {
+          "case": "good/sinking/v2",
+          "label": "good",
+          "seconds": 626.6,
+          "live": true,
+          "decisions": {
+            "nightshiftSam": "accept",
+            "nightshiftNoSam": "accept",
+            "museScreenshots": "reject"
+          },
+          "reasons": {
+            "nightshiftNoSam": [
+              "all 4 checks passed"
+            ],
+            "nightshiftSam": [
+              "all 8 checks passed"
+            ],
+            "museScreenshots": [
+              "...slightly higher. - before-4: player low, feet at enemy/ground level; after-4: same moment player floats well above the enemy in mid-air. - before-5: player standing on ground; after-5: same moment"
+            ]
+          }
+        }
+      ]
     }
   ],
   "changedBetweenRuns": {
     "nightshiftSam": [],
     "nightshiftNoSam": [],
-    "museScreenshots": []
+    "museScreenshots": [
+      "good/sinking/v1"
+    ]
   }
 }
