@@ -1,0 +1,329 @@
+{
+  "format": "nightshift.detection-bench/v0",
+  "set": "held-out",
+  "run": 40805529944,
+  "runUrl": "https://github.com/seanudeke/Nightshift/actions/runs/40805529944",
+  "commit": "71f70427d4968196174a6486f5f2f8ec5e081ed1",
+  "date": "2026-10-29T02:18:06Z",
+  "caughtWithSamOn": {
+    "yes": 7,
+    "of": 8
+  },
+  "caughtWithSamOff": {
+    "yes": 3,
+    "of": 8
+  },
+  "falseAlarm": {
+    "withSamOn": "no",
+    "withSamOff": "no",
+    "cleanRoutes": 5
+  },
+  "clean": {
+    "caughtWithSamOn": "no",
+    "caughtWithSamOff": "no",
+    "checks": {
+      "engine": {
+        "fail": 0,
+        "needs-review": 0,
+        "pass": 5
+      },
+      "gameplay": {
+        "fail": 0,
+        "needs-review": 0,
+        "pass": 5
+      },
+      "hybrid": {
+        "fail": 0,
+        "needs-review": 0,
+        "pass": 5
+      },
+      "player-always-visible": {
+        "fail": 0,
+        "needs-review": 0,
+        "pass": 5
+      },
+      "coins-visible": {
+        "fail": 0,
+        "needs-review": 0,
+        "pass": 5
+      }
+    },
+    "routes": 5,
+    "seconds": 371
+  },
+  "variants": [
+    {
+      "id": "layering/v5",
+      "caughtWithSamOn": "yes",
+      "caughtWithSamOff": "no",
+      "checks": {
+        "engine": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "gameplay": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "hybrid": {
+          "fail": 0,
+          "needs-review": 5,
+          "pass": 0
+        },
+        "player-always-visible": {
+          "fail": 5,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "coins-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        }
+      },
+      "routes": 5,
+      "seconds": 238
+    },
+    {
+      "id": "layering/v6",
+      "caughtWithSamOn": "yes",
+      "caughtWithSamOff": "no",
+      "checks": {
+        "engine": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "gameplay": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "hybrid": {
+          "fail": 0,
+          "needs-review": 5,
+          "pass": 0
+        },
+        "player-always-visible": {
+          "fail": 5,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "coins-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        }
+      },
+      "routes": 5,
+      "seconds": 290
+    },
+    {
+      "id": "missing-texture/v5",
+      "caughtWithSamOn": "yes",
+      "caughtWithSamOff": "no",
+      "checks": {
+        "engine": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "gameplay": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "hybrid": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "player-always-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "coins-visible": {
+          "fail": 5,
+          "needs-review": 0,
+          "pass": 0
+        }
+      },
+      "routes": 5,
+      "seconds": 287
+    },
+    {
+      "id": "missing-texture/v6",
+      "caughtWithSamOn": "yes",
+      "caughtWithSamOff": "no",
+      "checks": {
+        "engine": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "gameplay": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "hybrid": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "player-always-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "coins-visible": {
+          "fail": 5,
+          "needs-review": 0,
+          "pass": 0
+        }
+      },
+      "routes": 5,
+      "seconds": 337
+    },
+    {
+      "id": "physics-fall-through/v5",
+      "caughtWithSamOn": "yes",
+      "caughtWithSamOff": "yes",
+      "checks": {
+        "engine": {
+          "fail": 5,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "gameplay": {
+          "fail": 5,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "hybrid": {
+          "fail": 5,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "player-always-visible": {
+          "fail": 5,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "coins-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        }
+      },
+      "routes": 5,
+      "seconds": 345
+    },
+    {
+      "id": "physics-fall-through/v6",
+      "caughtWithSamOn": "yes",
+      "caughtWithSamOff": "yes",
+      "checks": {
+        "engine": {
+          "fail": 5,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "gameplay": {
+          "fail": 5,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "hybrid": {
+          "fail": 5,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "player-always-visible": {
+          "fail": 5,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "coins-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        }
+      },
+      "routes": 5,
+      "seconds": 338
+    },
+    {
+      "id": "sinking/v3",
+      "caughtWithSamOn": "yes",
+      "caughtWithSamOff": "yes",
+      "checks": {
+        "engine": {
+          "fail": 5,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "gameplay": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "hybrid": {
+          "fail": 5,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "player-always-visible": {
+          "fail": 3,
+          "needs-review": 0,
+          "pass": 2
+        },
+        "coins-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        }
+      },
+      "routes": 5,
+      "seconds": 292
+    },
+    {
+      "id": "sinking/v4",
+      "caughtWithSamOn": "no",
+      "caughtWithSamOff": "no",
+      "checks": {
+        "engine": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "gameplay": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "hybrid": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "player-always-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "coins-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        }
+      },
+      "routes": 5,
+      "seconds": 478
+    }
+  ],
+  "rerun": "bench/rerun-detection.sh held-out"
+}

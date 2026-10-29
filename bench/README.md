@@ -1,4 +1,19 @@
-# Bench stubs (agents lane)
+# Bench
+
+Every number the README or the video quotes comes from a file here and reruns with one command.
+
+| What | Files | Rerun |
+| --- | --- | --- |
+| Detection: development variants | `detection/dev.json`, table in `detection/README.md` | `bench/rerun-detection.sh dev` |
+| Detection: held-out variants (ids and counts only) | `detection/held-out.json` | `bench/rerun-detection.sh held-out` |
+| Live Muse Code film, clean prompt | `live-muse-clean-v1/` | see its README |
+| First live Muse Spark spec draft | `spec-writer-live/` | see its README |
+| Offline demo-path stub | `overnight-offline.json` | below |
+
+The detection files are written by `python3 -m agents.bench_collect --run <id> --set dev|held-out`
+from the run's own annotations, so they carry the run, commit and date they came from.
+
+## Offline demo-path stub (agents lane)
 
 `overnight-offline.json` is regenerated from an overnight `summary.json` by:
 
