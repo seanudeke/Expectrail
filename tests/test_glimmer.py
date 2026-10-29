@@ -169,6 +169,25 @@ class ErrorKindTest(unittest.TestCase):
         self.assertNotIn("780", gl.error_kind(text))
 
 
+class GridTest(unittest.TestCase):
+    """Glimmer answers on a 0-1000 grid (measured against the engine, run 40936605897): ask for it, read it."""
+
+    def test_the_default_is_the_0_1000_grid_and_the_prompt_asks_for_it(self):
+        with mock.patch.dict(os.environ, {"NIGHTSHIFT_GLIMMER_COORDS": ""}):
+            os.environ.pop("NIGHTSHIFT_GLIMMER_COORDS")
+            client = gl.GlimmerClient(key="k", transport=lambda b: reply([{"box": [470, 690, 535, 830],
+                                                                           "confidence": 0.9}]))
+            self.assertEqual(client.coords, "norm1000")
+            png = Path(tempfile.mkdtemp()) / "f.png"
+            png.write_bytes(png_bytes(W, H, 0))
+            # Clean frame 0: the engine puts the robot at [760, 660, 840, 780].
+            self.assertEqual(client.segment(png, "blue robot"), [{"box": [752.0, 662.4, 856.0, 796.8], "score": 0.9}])
+        self.assertIn("0 to 1000 grid", gl.user_prompt("blue robot", (W, H), "norm1000"))
+        self.assertIn("pixels of this image", gl.user_prompt("blue robot", (W, H), "pixels"))
+        body = gl.request_body("blue robot", "data:,", (W, H), coords="norm1000")
+        self.assertIn("0 to 1000 grid", body["messages"][1]["content"][0]["text"])
+
+
 class ClientTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -200,7 +219,7 @@ class ClientTest(unittest.TestCase):
                 raise urllib.error.HTTPError("u", 400, "bad", {}, io.BytesIO(b"json_schema not supported"))
             return reply([{"box": [700, 500, 740, 560], "confidence": 0.9}])
 
-        client = gl.GlimmerClient(transport=transport, key="k", sleep=lambda s: None)
+        client = gl.GlimmerClient(transport=transport, key="k", sleep=lambda s: None, coords="pixels")
         got = client.segment(self.png, "blue robot")
         self.assertEqual(got, [{"box": [700.0, 500.0, 740.0, 560.0], "score": 0.9}])
         client.segment(self.png, "blue robot")
@@ -390,7 +409,7 @@ class AdapterTest(unittest.TestCase):
             frames, urls = self._frames(Path(tmp))
             fake = FakeGlimmer()
             fake.frames = urls
-            client = gl.GlimmerClient(transport=fake, key="k", sleep=lambda s: None)
+            client = gl.GlimmerClient(transport=fake, key="k", sleep=lambda s: None, coords="pixels")
             stats: dict = {}
             doc = sam.from_replay(frames_dir=frames, spec=self._spec(), client=client,
                                   cache=sam.Cache(None), workers=2, stats=stats)
@@ -402,7 +421,7 @@ class AdapterTest(unittest.TestCase):
 
             hiding = FakeGlimmer(hidden=range(20, 40))
             hiding.frames = urls
-            client = gl.GlimmerClient(transport=hiding, key="k", sleep=lambda s: None)
+            client = gl.GlimmerClient(transport=hiding, key="k", sleep=lambda s: None, coords="pixels")
             doc = sam.from_replay(frames_dir=frames, spec=self._spec(), client=client, cache=sam.Cache(None))
             verdict = evaluate(self._spec(), doc)
             self.assertEqual(verdict["result"], "fail")
@@ -412,7 +431,7 @@ class AdapterTest(unittest.TestCase):
         client = gl.GlimmerClient(key="k")
         glimmer_key = sam.Cache.key("f" * 64, "blue robot", client.model, client.base + client.cache_tag)
         self.assertNotEqual(sam_key, glimmer_key)
-        other = gl.GlimmerClient(key="k", coords="norm1000")
+        other = gl.GlimmerClient(key="k", coords="pixels")
         self.assertNotEqual(glimmer_key, sam.Cache.key("f" * 64, "blue robot", other.model,
                                                        other.base + other.cache_tag))
 

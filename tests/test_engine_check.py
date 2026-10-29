@@ -59,7 +59,9 @@ class FakeGlimmer:
         frame = self.frames.get(body["messages"][1]["content"][1]["image_url"]["url"], -1)
         table = self.robot if '"blue robot"' in text else self.coin if '"gold coin"' in text else {}
         boxes = table.get(frame, [])
-        content = json.dumps({"objects": [{"box": b, "confidence": 0.95} for b in boxes]})
+        # Glimmer answers on a 0-1000 grid over the image; the boxes above are in frame pixels.
+        grid = [[b[0] * 1000 / W, b[1] * 1000 / H, b[2] * 1000 / W, b[3] * 1000 / H] for b in boxes]
+        content = json.dumps({"objects": [{"box": g, "confidence": 0.95} for g in grid]})
         return json.dumps({"choices": [{"message": {"content": content}}]}).encode(), "application/json"
 
 

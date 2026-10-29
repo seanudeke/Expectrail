@@ -64,8 +64,12 @@ MODEL = os.environ.get("NIGHTSHIFT_GLIMMER_MODEL", BASE_MODEL)
 KEY_ENVS = ("NIGHTSHIFT_GLIMMER_API_KEY", "FIREWORKS_API_KEY")
 COORDS_ENV = "NIGHTSHIFT_GLIMMER_COORDS"
 COORDS = ("pixels", "norm1000", "norm1")
+# Glimmer answers on a 0-1000 grid over the image, whatever the prompt asks: measured against the
+# engine's robot position on Oct 29 (run 40936605897), its x came out 1.58-1.60 times smaller than
+# the frame's pixels and its y 0.95-0.99 times, i.e. 1600/1000 and 960/1000 on a 1600x960 frame.
+DEFAULT_COORDS = "norm1000"
 # Bump when the prompt or the parsing changes, so cached answers to an older question are not reused.
-REQUEST_VERSION = "glimmer-2"
+REQUEST_VERSION = "glimmer-3"
 # Glimmer reasons before it answers, and its reasoning counts against max_tokens: at 2048 a frame with a
 # dozen coins was cut off mid-JSON (Oct 29). Room for the reasoning plus up to MAX_OBJECTS boxes.
 MAX_TOKENS = int(os.environ.get("NIGHTSHIFT_GLIMMER_MAX_TOKENS", "8192"))
@@ -107,19 +111,28 @@ BOX_SCHEMA = {
 Transport = Callable[[dict], "tuple[bytes, str]"]
 
 
-def user_prompt(prompt: str, size: tuple[int, int]) -> str:
+GRIDS = {
+    "pixels": "Box corners are pixels of this image",
+    "norm1000": "Box corners are on a 0 to 1000 grid over the whole image (x 0 is the left edge and 1000 the "
+                "right edge, y 0 the top edge and 1000 the bottom edge, whatever the image's size)",
+    "norm1": "Box corners are fractions of the image from 0 to 1 (x 0 is the left edge and 1 the right edge, "
+             "y 0 the top edge and 1 the bottom edge)",
+}
+
+
+def user_prompt(prompt: str, size: tuple[int, int], coords: str = "pixels") -> str:
     w, h = size
     return (
         f'This image is {w} by {h} pixels. Find every visible "{prompt}". '
         'Answer with JSON only: {"objects": [{"box": [x0, y0, x1, y1], "confidence": c}]}, one entry per '
-        f"separate {prompt}, at most {MAX_OBJECTS} entries. Box corners are pixels of this image: x0, y0 is the top-left corner and x1, "
+        f"separate {prompt}, at most {MAX_OBJECTS} entries. {GRIDS[coords]}: x0, y0 is the top-left corner and x1, "
         "y1 the bottom-right, with the origin at the top-left and y growing downward. confidence is how "
         'sure you are, from 0 to 1. If none is visible, answer {"objects": []}.'
     )
 
 
 def request_body(prompt: str, image_url: str, size: tuple[int, int], model: str = MODEL,
-                 structured: bool = True) -> dict:
+                 structured: bool = True, coords: str = "pixels") -> dict:
     body = {
         "model": model,
         "temperature": 0,
@@ -127,7 +140,7 @@ def request_body(prompt: str, image_url: str, size: tuple[int, int], model: str 
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": [
-                {"type": "text", "text": user_prompt(prompt, size)},
+                {"type": "text", "text": user_prompt(prompt, size, coords)},
                 {"type": "image_url", "image_url": {"url": image_url}},
             ]},
         ],
@@ -329,7 +342,7 @@ class GlimmerClient(MetaSamClient):
         super().__init__(model=model or MODEL, base=base or API_BASE, transport=transport, retries=retries,
                          timeout=timeout, sleep=sleep)
         self._key = key
-        self.coords = (coords or os.environ.get(COORDS_ENV, "pixels")).strip().lower()
+        self.coords = (coords or os.environ.get(COORDS_ENV, DEFAULT_COORDS)).strip().lower()
         if self.coords not in COORDS:
             raise SamError(f"{COORDS_ENV} must be one of {', '.join(COORDS)}, not {self.coords!r}")
         host = urllib.parse.urlparse(self.base).hostname or self.base
@@ -387,7 +400,7 @@ class GlimmerClient(MetaSamClient):
         url = data_url(png)
         structured = self._structured
         try:
-            raw, _ = self._call(request_body(prompt, url, size, self.model, structured))
+            raw, _ = self._call(request_body(prompt, url, size, self.model, structured, self.coords))
         except SamError as exc:
             # A server that rejects json_schema gets plain JSON mode, once, remembered. Any other
             # 400 (image too large, context length) is a real failure: needs-review.
@@ -396,7 +409,7 @@ class GlimmerClient(MetaSamClient):
                 raise
             with self._flag:
                 self._structured = False
-            raw, _ = self._call(request_body(prompt, url, size, self.model, False))
+            raw, _ = self._call(request_body(prompt, url, size, self.model, False, self.coords))
         return parse_boxes(answer_text(raw), size, self.coords)
 
 

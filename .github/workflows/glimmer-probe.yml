@@ -36,10 +36,10 @@ on:
         description: Look at every Nth frame (probe default 10; verify confirms every frame before a pass)
         default: '10'
       coords:
-        description: How Glimmer's boxes are read (pixels, or a 0-1000 / 0-1 grid if the probe shows that)
+        description: How Glimmer's boxes are asked for and read (a 0-1000 grid, measured Oct 29; or pixels / 0-1)
         type: choice
-        options: [pixels, norm1000, norm1]
-        default: pixels
+        options: [norm1000, pixels, norm1]
+        default: norm1000
       base:
         description: OpenAI-compatible endpoint serving Glimmer
         default: https://api.fireworks.ai/inference/v1
