@@ -85,6 +85,19 @@ goal). The verification check id is the opaque label `player-motion-on-smoke` (n
 `reaches` assertion). Harness smoke uses `MIN_DELTA_X_HARNESS` (slack under the ~485 clean
 measurement); offline fixtures use `MIN_DELTA_X_FIXTURE`. Same predicate for both.
 
+## How the fix matrix runs
+
+`agents/matrix.py`, run by hand through the **Fix matrix** workflow, takes each development
+variant under each condition. Both conditions get the same files: five screenshots of the bugged
+run at fixed frames (0, 30, 60, 90, 119, never chosen by a verdict), the route and the run's log,
+the same three attempts and the same editable globs (`player/**`, `level/**` and
+`game_singleplayer.tscn`, since layering v1 lives in the game scene). The screenshots condition
+gets the expected behaviour in plain English and, after a rejected attempt, only that it did not
+work. The Nightshift condition also gets the repair request (spec, verdict, evidence) and the
+verifier's reasons, and opens a repair only when its own check caught the bug. Every candidate is
+judged by the same verifier with SAM on and the private routes mounted; Muse Code runs only inside
+bubblewrap there. "Existing checks" needs no run: the game has no tests, so it catches nothing.
+
 ## What we report
 
 For each condition, across all variants and clean runs:

@@ -156,6 +156,7 @@ def run_fixer(
     require_sandbox: bool = False,
     prior_reject: dict | None = None,
     plant_poison: bool = False,
+    briefing: dict | None = None,
 ) -> dict:
     """Produce a candidate patch under ``out``.
 
@@ -165,6 +166,13 @@ def run_fixer(
 
     ``plant_poison`` writes the trust-beat poisoned readme into fixer-work after the
     workspace is prepared and before Muse runs, so confinement films see it.
+
+    ``briefing`` replaces what Muse is told, for the benchmark's conditions
+    (agents/matrix.py): ``{"prompt": str, "policy": str, "files": {relpath: Path},
+    "withRequest": bool}``. ``files`` (screenshots, the route, the bugged run's log) are copied
+    into the workspace before the baseline is taken, so they are never part of the candidate.
+    With ``withRequest`` false the repair request is not written into the workspace, so a
+    condition without structured checks never sees the spec or the verdict.
     """
     validate(request, "repair-request")
     out.mkdir(parents=True, exist_ok=True)
@@ -176,6 +184,12 @@ def run_fixer(
         poison_dir = work / "player"
         poison_dir.mkdir(parents=True, exist_ok=True)
         (poison_dir / "readme-extra.txt").write_text(POISON, encoding="utf-8")
+    for rel, src in ((briefing or {}).get("files") or {}).items():
+        dest = work / rel
+        if not dest.resolve().is_relative_to(work.resolve()):
+            raise SystemExit(f"briefing file escapes the workspace: {rel}")
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dest)
     if baseline.exists():
         shutil.rmtree(baseline)
     shutil.copytree(work, baseline, ignore=shutil.ignore_patterns(".godot"))
@@ -201,18 +215,22 @@ def run_fixer(
                     f"Prior attempt rejected: {json.dumps(prior_reject, sort_keys=True)}"
                 ).strip(),
             }
-        rr_work.write_text(json.dumps(rr_doc, indent=2) + "\n", encoding="utf-8")
+        if briefing is None or briefing.get("withRequest", True):
+            rr_work.write_text(json.dumps(rr_doc, indent=2) + "\n", encoding="utf-8")
         (out / "repair-request.json").write_text(
             json.dumps(rr_doc, indent=2) + "\n", encoding="utf-8"
         )
-        prompt = build_muse_prompt(request, rr_relpath="repair-request.json", attempt=attempt)
+        if briefing is not None:
+            prompt = briefing["prompt"]
+        else:
+            prompt = build_muse_prompt(request, rr_relpath="repair-request.json", attempt=attempt)
         if prior_reject:
             prompt += (
                 "\n\n## Prior verification (do not treat as a solution hint)\n"
                 f"{json.dumps(prior_reject, indent=2)}\n"
             )
         prompt_meta = {
-            "promptPolicy": PROMPT_POLICY,
+            "promptPolicy": (briefing or {}).get("policy", PROMPT_POLICY),
             "promptSha256": prompt_sha256(prompt),
         }
         (out / "muse-prompt.txt").write_text(prompt, encoding="utf-8")
