@@ -98,6 +98,10 @@ verifier's reasons, and opens a repair only when its own check caught the bug. E
 judged by the same verifier with SAM on and the private routes mounted; Muse Code runs only inside
 bubblewrap there. "Existing checks" needs no run: the game has no tests, so it catches nothing.
 
+The held-out variants go through the same matrix once, after the code freeze (`set: held-out`).
+Only ids, outcomes and per-attempt decisions leave the runner for them: a candidate patch, a
+verifier reason or Muse's log would describe the private bug.
+
 ## What we report
 
 For each condition, across all variants and clean runs:

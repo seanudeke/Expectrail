@@ -159,5 +159,57 @@ class MatrixTest(unittest.TestCase):
         self.assertIn("| dev/sinking/v1 | nightshift | fail | not-fixed | 3 |", m.markdown(doc))
 
 
+class HeldOutMatrixTest(MatrixTest):
+    """A private case: same loop, but only ids, outcomes and decisions leave the runner."""
+
+    def setUp(self):
+        super().setUp()
+        held = self.root / "held"
+        (held / "bugs" / "sinking").mkdir(parents=True)
+        (held / "routes").mkdir()
+        (held / "routes" / "r.json").write_text("{}\n")
+        (held / "bugs" / "sinking" / "v9.patch").write_text((REPO / "bugs/sinking/v1.patch").read_text())
+        manifest = {"format": "nightshift.held-out-set/v0",
+                    "routes": [{"name": "r", "file": "routes/r.json", "minDeltaX": 300}],
+                    "variants": [
+                        {"family": "sinking", "id": "v9", "patch": "bugs/sinking/v9.patch",
+                         "spec": "player-stays-above-ground", "mechanism": "SECRET-MECHANISM"},
+                        {"family": "sinking", "id": "v8", "patch": "bugs/sinking/v9.patch",
+                         "spec": "player-stays-above-ground", "mechanism": "x", "retired": "published"}]}
+        (held / "manifest.json").write_text(json.dumps(manifest))
+        self.held = held
+        self.env = mock.patch.dict("os.environ", {"NIGHTSHIFT_HELDOUT_DIR": str(held)})
+        self.env.start()
+
+    def tearDown(self):
+        self.env.stop()
+        super().tearDown()
+
+    def test_held_out_set_lists_active_ids_only(self):
+        self.assertEqual(list(m.heldout_cases()), ["sinking/v9"])
+        with self.assertRaises(SystemExit):
+            m.resolve_case("sinking/v8")  # retired
+
+    def test_a_held_out_case_publishes_only_ids_outcomes_and_decisions(self):
+        row = self.case("nightshift", key="sinking/v9")
+        self.assertEqual(row["outcome"], "fixed")
+        self.assertTrue(row["private"])
+        self.assertEqual(self.verifies[0]["request"]["base"]["patch"], str(self.held / "bugs/sinking/v9.patch"))
+        work = self.root / "out" / "sinking_v9" / "nightshift"
+        public = (work / "result.json").read_text()
+        for secret in ("SECRET", "reasons", "checks", "patchSha256", "detail", str(self.held)):
+            self.assertNotIn(secret, public)
+        self.assertEqual([a["decision"] for a in json.loads(public)["attempts"]], ["reject", "reject", "accept"])
+        private = json.loads((work / "result-private.json").read_text())
+        self.assertIn("SECRET-VERIFIER-REASON 1", json.dumps(private))
+
+    def test_a_held_out_crash_keeps_its_message_private(self):
+        with mock.patch.object(m, "detect", side_effect=RuntimeError("SECRET crash text")):
+            row = self.case("screenshots", key="sinking/v9")
+        self.assertEqual(row["outcome"], "error")
+        self.assertNotIn("detail", row)
+        self.assertIn("SECRET crash text", (self.root / "out" / "sinking_v9" / "screenshots" / "result-private.json").read_text())
+
+
 if __name__ == "__main__":
     unittest.main()
