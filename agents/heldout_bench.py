@@ -60,6 +60,9 @@ RESULTS = ("fail", "needs-review", "pass")
 # Which checks decide the verifier's verdict in each mode.
 SAM_ON_CHECKS = ("hybrid", "gameplay")  # plus every SAM spec
 SAM_OFF_CHECKS = ("engine", "gameplay")
+# NIGHTSHIFT_VISION_BACKEND=glimmer-engine: the vision specs on Glimmer checked against the engine, the
+# ground on the position log (the verifier does the same; Glimmer's box is too loose for the hybrid).
+GLIMMER_ENGINE_CHECKS = ("engine", "gameplay")  # plus every vision spec
 ERRORS_FILE = "bench-errors.json"
 
 
@@ -107,9 +110,16 @@ def _render(route: Path, run_dir: Path, patches: list[Path]) -> None:
 
 
 def judge_route(route: Path, min_dx: float, patches: list[Path], run_dir: Path, ground_spec: dict,
-                sam_spec_docs: list[dict], reference: list | None, use_sam: bool) -> dict[str, str]:
-    """Every check's result on one replay. A replay or SAM failure is needs-review, never pass."""
-    names = ["engine", "gameplay"] + (["hybrid"] + [s["id"] for s in sam_spec_docs] if use_sam else [])
+                sam_spec_docs: list[dict], reference: list | None, use_sam: bool,
+                hybrid: bool = True) -> dict[str, str]:
+    """Every check's result on one replay. A replay or SAM failure is needs-review, never pass.
+
+    ``hybrid=False`` (judge glimmer-engine) leaves out the hybrid ground check: the ground is judged
+    on the position log only, as the verifier does under that judge.
+    """
+    hybrid = hybrid and use_sam
+    names = ["engine", "gameplay"] + (["hybrid"] if hybrid else []) + (
+        [s["id"] for s in sam_spec_docs] if use_sam else [])
     try:
         _render(route, run_dir, patches)
         trace = json.loads((run_dir / "trace.json").read_text(encoding="utf-8"))
@@ -127,7 +137,7 @@ def judge_route(route: Path, min_dx: float, patches: list[Path], run_dir: Path, 
         results["engine"] = "needs-review"
         errors.append(f"engine: {exc}")
     results["gameplay"] = judge_trace(trace, min_delta_x=min_dx)["result"]
-    if use_sam:
+    if hybrid:
         try:
             obs, source = _ground_observations(ground_spec, trace, replay_sha, frames, True, reference)
             results["hybrid"] = evaluate(ground_spec, obs)["result"] if source == "hybrid" else "needs-review"
@@ -136,6 +146,7 @@ def judge_route(route: Path, min_dx: float, patches: list[Path], run_dir: Path, 
         except SystemExit as exc:
             results["hybrid"] = "needs-review"
             errors.append(f"hybrid: {exc}")
+    if use_sam:
         for spec, verdict, error in _sam_verdicts(sam_spec_docs, trace, replay_sha, frames, run_dir):
             results[spec["id"]] = verdict["result"] if verdict else "needs-review"
             if error:
@@ -177,6 +188,12 @@ def bench(key: str, out: Path) -> dict:
         expected = matches[0].get("spec")
     use_sam = sam_on()
     sam_before = sam_usage()
+    judge = None
+    if use_sam:
+        from agents.sam_observations import vision_backend
+
+        judge = vision_backend()  # sam, both or glimmer-engine (SamError for anything else)
+    glimmer_engine = judge == "glimmer-engine"
     ground_spec = load(REGRESSION_SPEC, "test-spec")
     sam_spec_docs = sam_specs(ground_spec["id"]) if use_sam else []
     work = out / key.replace("/", "_")
@@ -185,12 +202,19 @@ def bench(key: str, out: Path) -> dict:
     per_route = []
     for name, route, min_dx in _routes(root, manifest):
         per_route.append({"route": name, "checks": judge_route(route, min_dx, patches, work / name, ground_spec,
-                                                               sam_spec_docs, reference, use_sam)})
+                                                               sam_spec_docs, reference, use_sam,
+                                                               hybrid=not glimmer_engine)})
     errors: list[str] = []
     for row in per_route:
         path = work / row["route"] / ERRORS_FILE
         if path.is_file():
             for message in json.loads(path.read_text(encoding="utf-8")):
+                if glimmer_engine:
+                    # The kind only: Glimmer's error text can quote its answer about a held-out frame.
+                    from agents.glimmer_client import error_kind
+
+                    check, _, text = message.partition(": ")
+                    message = f"{check}: {error_kind(text)}"
                 if public_error(message) not in errors:
                     errors.append(public_error(message))
     check_names = list(per_route[0]["checks"])
@@ -200,10 +224,13 @@ def bench(key: str, out: Path) -> dict:
         "format": "nightshift.held-out-bench/v0",
         "variant": key,
         "expectedSpec": expected,
-        "sam": use_sam,
+        "sam": use_sam and not glimmer_engine,
+        "judge": judge or "engine",
         "routes": len(per_route),
         "checks": per_check,
-        "caughtWithSamOn": caught(per_check, sam_on_checks) if use_sam else None,
+        "caughtWithSamOn": caught(per_check, sam_on_checks) if use_sam and not glimmer_engine else None,
+        "caughtWithGlimmerEngine": (caught(per_check, list(GLIMMER_ENGINE_CHECKS) + [s["id"] for s in sam_spec_docs])
+                                    if glimmer_engine else None),
         "caughtWithSamOff": caught(per_check, list(SAM_OFF_CHECKS)),
         "errors": errors[:5],  # distinct, directories stripped: why a check could not decide
         "samImages": sam_images_since(sam_before),  # a count only, for the run's cost
@@ -222,6 +249,8 @@ def annotation(doc: dict) -> str:
         parts.append(f"{check} {', '.join(bits)}")
     label = "false alarm" if doc["variant"] == CLEAN else "caught"
     head = f"{label} with SAM on: {doc['caughtWithSamOn']}; " if doc["sam"] else ""
+    if doc.get("caughtWithGlimmerEngine") is not None:
+        head = f"{label} with Glimmer+engine (no SAM): {doc['caughtWithGlimmerEngine']}; "
     head += f"{label} with SAM off: {doc['caughtWithSamOff']}"
     title = f"{'Dev' if doc['variant'].startswith(DEV_PREFIX) else 'Held-out'} bench {doc['variant']}"
     lines = [f"::notice title={title}::{head}; over {n} routes: " + "; ".join(parts)]
@@ -260,7 +289,8 @@ def main(argv: list[str] | None = None) -> int:
     doc = bench(CLEAN if args.clean else args.variant, args.out)
     print(annotation(doc))
     # A run that decided nothing is not a result: fail, so a green job means the checks ran.
-    decided = doc["caughtWithSamOn"] if doc["sam"] else doc["caughtWithSamOff"]
+    decided = (doc.get("caughtWithGlimmerEngine") or (doc["caughtWithSamOn"] if doc["sam"] else None)
+               or doc["caughtWithSamOff"])
     return 1 if decided == "needs-review" else 0
 
 
