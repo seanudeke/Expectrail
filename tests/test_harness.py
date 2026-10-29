@@ -193,6 +193,20 @@ class HarnessTest(unittest.TestCase):
                     shutil.copytree(REPO / "game" / "platformer", work, ignore=shutil.ignore_patterns(".godot"))
                     apply_patches(work, [patch])
 
+    def test_all_routes_valid_against_schema(self):
+        try:
+            import jsonschema  # noqa: F401
+            import json
+            from nightshift.contracts import validate
+        except ImportError:
+            self.skipTest("jsonschema not installed")
+        routes = sorted((REPO / "harness" / "routes").glob("*.json"))
+        self.assertGreaterEqual(len(routes), 1)
+        for route_path in routes:
+            with self.subTest(route=route_path.name):
+                doc = json.loads(route_path.read_text(encoding="utf-8"))
+                self.assertEqual(validate(doc), "route")
+
 
 if __name__ == "__main__":
     unittest.main()

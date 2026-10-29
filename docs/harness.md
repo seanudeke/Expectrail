@@ -62,3 +62,15 @@ python3 -m harness.check_seeded            # replays every bugs/<family>/v*.patc
 
 Each seeded variant must change at least one frame compared with the clean game; otherwise it is a
 bug nobody could see, and the benchmark would count it as a miss. CI runs this as `seeded-bugs`.
+
+## Routes
+
+Routes (`nightshift.route/v0`) define exact sequences of physics ticks and input actions to replay deterministically across clean and patched builds:
+
+| Route | File | Ticks | Description |
+| :--- | :--- | :--- | :--- |
+| `smoke` | `harness/routes/smoke.json` | 240 | Basic forward movement and two jumps (quick pipeline sanity check). |
+| `coins` | `harness/routes/coins.json` | 240 | Traverses ground coin clusters, jumps into the coin arc, and verifies coin pickup and visibility. |
+| `combat` | `harness/routes/combat.json` | 180 | Forward movement with weapon fire (`shoot`) against the enemy patrol, leap avoidance, and stop. |
+| `traversal` | `harness/routes/traversal.json` | 360 | Vertical traversal across elevated and one-way platforms, exercising camera tracking and player layering. |
+
