@@ -42,6 +42,24 @@ held-out variants (Sean) still come next for the evaluation matrix. See [docs/ne
 
 Known limits and what we would build next: [docs/future-work.md](docs/future-work.md).
 
+## Interactive Hosted Demo
+
+Explore the complete Gate 2 audit vault and interactive defect-fix explorer without spending Meta API credits:
+
+- **Local Preview:**
+  ```sh
+  python3 -m http.server 8000 --directory docs/demo
+  # Open http://localhost:8000 in your browser
+  ```
+- **Live / Static:** Open [`docs/demo/index.html`](docs/demo/index.html) directly in any modern browser.
+- **Features:**
+  - **Case Explorer:** Switch across all 8 development defect variants (physics fall-through, missing textures, layering, sinking) and 4 rejected anti-cheat exploits (freezing player, hiding player, sinking player, lowering the floor).
+  - **Visual & HUD Simulation:** Inspect coordinate traces, floor boundaries, and SAM 3.1 segmentation masks.
+  - **Audit Breakdown:** Complete 4-suite verifier checks (`regression`, `gameplay`, `clean`, `held-out`).
+  - **Benchmark Matrix:** Gate 2 comparison table showing 8/8 fixed with SAM ON vs 3/8 with SAM OFF.
+  - **Security & Trust:** Visualizes "Deny-by-absence" isolation and canary probe denials.
+  - **Morning Report & Release Candidate:** 7:30 AM rollup and Ed25519 signature audit.
+
 ## Try it
 
 Requires Python 3.10+, and for capture, Linux with `xvfb-run` and Mesa (no GPU needed).
@@ -89,6 +107,7 @@ See [agents/README.md](agents/README.md) for Muse API / Muse Code setup (`.env`,
 | [`nightshift/`](nightshift) | Contract helpers, the reference evaluator, and the Muse Spark spec writer | Zayyad, Sean |
 | [`specs/`](specs) | Test specs for the bug families; a person approves each one | Sean |
 | [`bugs/`](bugs) | Seeded bugs as patches against the clean game ([evaluation plan](docs/evaluation.md)) | Sean, Timo |
+| [`docs/demo/`](docs/demo/) | Interactive demo showcase and audit vault web app | Timo |
 | [`game/`](game) | Godot's 2D platformer demo, unmodified (MIT) | prior work |
 | [`agents/`](agents) | Repair requests, Muse Code fixer, verifier, Wonder triage, morning report | Taofeek |
 
