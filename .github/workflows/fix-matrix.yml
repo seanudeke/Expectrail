@@ -10,6 +10,10 @@
 # set=held-out runs the active private variants instead (once, after the code freeze): their
 # results are sanitized to ids, outcomes and per-attempt decisions, and nothing else is printed
 # or kept, since a candidate patch, a reason or Muse's log would describe the bug.
+#
+# bench=judge runs the judge benchmark instead (agents/judge_bench.py): 15 candidate fixes with a
+# known answer (8 that undo a seeded bug, 7 that only look fixed or change nothing), each judged
+# by the verifier with SAM on, with SAM off, and by Muse Code from screenshots (live only).
 name: Fix matrix
 
 on:
@@ -19,6 +23,11 @@ on:
         description: Run Muse Code (spends Meta credit). Off runs the offline path with empty candidates.
         type: boolean
         default: false
+      bench:
+        description: fix (Muse fixes each bug) or judge (who accepts a fix that only looks right)
+        type: choice
+        options: [fix, judge]
+        default: fix
       set:
         description: dev (public development variants) or held-out (private; run once, after the code freeze)
         type: choice
@@ -36,6 +45,7 @@ permissions:
 
 jobs:
   plan:
+    if: ${{ inputs.bench != 'judge' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -207,7 +217,7 @@ jobs:
 
   summary:
     needs: run
-    if: always()
+    if: ${{ always() && inputs.bench != 'judge' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -233,4 +243,160 @@ jobs:
               print(f"::notice title=Fix matrix {c}::fixed {s['fixed']} of {s['cases']}; not fixed {s['notFixed']}; "
                     f"not detected {s['notDetected']}; needs review {s['needsReview']}; errors {s['errors']}; "
                     f"{s['attempts']} attempts; live={s['live']}")
+          PY
+
+  judge-plan:
+    if: ${{ inputs.bench == 'judge' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      cases: ${{ steps.plan.outputs.cases }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Pick the judge cases
+        id: plan
+        env:
+          CASES: ${{ inputs.cases }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from agents.judge_bench import cases
+          every = sorted(cases())
+          picked = [c.strip() for c in os.environ["CASES"].split(",") if c.strip()] or every
+          bad = sorted(set(picked) - set(every))
+          if bad:
+              raise SystemExit(f"unknown judge case: {bad}")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"cases={json.dumps(picked)}\n")
+          print(picked)
+          PY
+
+  judge-run:
+    needs: judge-plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        case: ${{ fromJSON(needs.judge-plan.outputs.cases) }}
+    env:
+      LIVE: ${{ inputs.live }}
+      KEYS_OK: ${{ secrets.META_API_KEY != '' && secrets.MODEL_API_KEY != '' }}
+      HELDOUT_TOKEN_SET: ${{ secrets.HELDOUT_TOKEN != '' }}
+    steps:
+      - name: Require both keys
+        if: env.KEYS_OK != 'true'
+        run: |
+          echo "::error::Set META_API_KEY (Muse) and MODEL_API_KEY (SAM, a different key) first."
+          exit 1
+      - name: Require the held-out token
+        if: env.HELDOUT_TOKEN_SET != 'true'
+        run: |
+          echo "::error::Set HELDOUT_TOKEN so the verifier can mount the private held-out routes."
+          exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Install bubblewrap, xvfb, software OpenGL
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends bubblewrap xvfb libgl1-mesa-dri libglx-mesa0 patch
+      - name: Allow unprivileged user namespaces for bubblewrap
+        run: |
+          if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
+          fi
+          if [ -f /proc/sys/kernel/unprivileged_userns_clone ]; then
+            echo 1 | sudo tee /proc/sys/kernel/unprivileged_userns_clone
+          fi
+      - name: Download Godot 4.7.2 and check its SHA-512
+        run: ./harness/get_godot.sh
+      - name: Fetch the private held-out set (verifier side only)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: seanudeke/Nightshift-heldout
+          token: ${{ secrets.HELDOUT_TOKEN }}
+          path: heldout-set
+          persist-credentials: false
+      - name: Install Muse Code CLI
+        if: env.LIVE == 'true'
+        run: |
+          curl -fsSL https://dev.meta.ai/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Judge the candidate
+        env:
+          META_API_KEY: ${{ inputs.live && secrets.META_API_KEY || '' }}
+          MODEL_API_KEY: ${{ secrets.MODEL_API_KEY }}
+          NIGHTSHIFT_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
+          CASE: ${{ matrix.case }}
+        run: |
+          args=(--case "$CASE" --out runs/judge)
+          # Live: all three judges. Offline: the SAM-off verifier only, a free plumbing check.
+          if [[ "$LIVE" == "true" ]]; then args+=(--live); else args+=(--no-sam); fi
+          set +e
+          python -m agents.judge_bench "${args[@]}" > judge.log 2>&1
+          code=$?
+          set -e
+          tail -n 1 judge.log
+          python - "runs/judge/${CASE//\//_}/result.json" <<'PY'
+          import json, sys
+          r = json.load(open(sys.argv[1]))
+          d = r.get("decisions") or {}
+          print(f"::notice title=Judge {r['case']}::label {r['label']}; SAM on {d.get('nightshiftSam')}; "
+                f"SAM off {d.get('nightshiftNoSam')}; Muse screenshots {d.get('museScreenshots')}; "
+                f"{r['wallClockSeconds']} s; live={r['live']}")
+          if r.get("error"):
+              print(f"::warning title=Judge {r['case']} error::{' '.join(r['error'].split())[:300]}")
+          PY
+          exit "$code"
+      - name: Keep the result, the candidate and the judge's log (no frames, no held-out material)
+        if: always()
+        run: |
+          mkdir -p keep
+          find runs/judge -path '*held-out*' -prune -o -type f \( -name result.json -o -name candidate.patch \
+            -o -name muse-prompt.txt -o -name muse.log -o -name judge.json \) -print \
+            | while read -r f; do mkdir -p "keep/$(dirname "$f")"; cp "$f" "keep/$f"; done
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: judge-${{ strategy.job-index }}
+          path: keep/
+          retention-days: 14
+
+  judge-summary:
+    needs: judge-run
+    if: ${{ always() && inputs.bench == 'judge' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          pattern: judge-*
+          merge-multiple: true
+          path: results
+      - name: Summarize
+        run: |
+          python -m agents.judge_bench --summarize results/runs/judge | tee -a "$GITHUB_STEP_SUMMARY"
+          python - <<'PY'
+          import json
+          doc = json.load(open("results/runs/judge/judge-summary.json"))
+          for j, s in doc["judges"].items():
+              print(f"::notice title=Judge summary {j}::good fixes accepted {s['goodAccepted']} of {s['good']}; "
+                    f"bad fixes accepted {s['badAccepted']} of {s['bad']}; undecided {s['undecided']}")
           PY

@@ -1,0 +1,12 @@
+--- a/level/level.tscn
++++ b/level/level.tscn
+@@ -1339,7 +1339,8 @@
+ 
+ [node name="ParallaxBackground" parent="." unique_id=1950798943 instance=ExtResource("7")]
+ 
+-[node name="Trees" type="Node" parent="." unique_id=558591329]
++[node name="Trees" type="Node2D" parent="." unique_id=558591329]
++visible = false
+ 
+ [node name="T1" type="Sprite2D" parent="Trees" unique_id=1513191053]
+ z_index = 1
