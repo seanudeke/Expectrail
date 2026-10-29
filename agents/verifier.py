@@ -72,6 +72,11 @@ HELDOUT_ENV = "NIGHTSHIFT_HELDOUT_DIR"
 SAM_SPECS = ("specs/player-always-visible.json", "specs/coins-visible.json")
 SAM_SPECS_ENV = "NIGHTSHIFT_SAM_SPECS"  # comma-separated repo paths, to override SAM_SPECS
 
+# The lowest per-frame score SAM may give a prompted object on the CLEAN replay before the drop
+# is reported instead of passed. From the Oct 28 clean probes (runs 40656097298, 40656100304):
+# observed minima 0.644 (player) and 0.688 (coins) over the sampled frames.
+SAM_CLEAN_SCORE_FLOOR = 0.60
+
 
 def sam_on() -> bool:
     """True when SAM should judge the visual specs. An unknown provider fails here, early."""
@@ -94,11 +99,25 @@ def sam_specs(ground_id: str | None = None) -> list[dict]:
     return specs
 
 
+def _min_prompt_score(spec: dict, obs: dict) -> float | None:
+    """The lowest per-frame best-detection score SAM gave any prompted object (None: none detected)."""
+    best = []
+    for frame in obs.get("frames") or []:
+        for name in spec["objects"]:
+            scores = [d["score"] for d in frame["objects"].get(name) or [] if d.get("score") is not None]
+            if scores:
+                best.append(max(scores))
+    return min(best) if best else None
+
+
 def _sam_verdicts(specs: list[dict], trace: dict | None, replay_sha: str, frames_dir: Path | None,
-                  out_dir: Path, prefix: str = "") -> list[tuple[dict, dict | None, str | None]]:
+                  out_dir: Path, prefix: str = "", floor: float | None = None) -> list[tuple[dict, dict | None, str | None]]:
     """SAM's verdict on one replay for each SAM spec: (spec, verdict, None) or (spec, None, error).
 
-    Observations and verdicts are written next to the replay's other evidence. A replay without
+    Observations and verdicts are written next to the replay's other evidence. Every verdict carries
+    ``samMinScore``, the score margin SAM gave the prompted objects. With ``floor`` set (the clean
+    replay), a pass whose margin fell below the floor becomes needs-review: our art got harder for
+    SAM to see, and that is reported instead of passing quietly. A replay without
     frames (offline fixtures, a failed harness run) or a SAM failure gives no verdict, which the
     callers turn into needs-review, never a pass.
     """
@@ -117,6 +136,12 @@ def _sam_verdicts(specs: list[dict], trace: dict | None, replay_sha: str, frames
             else:
                 (out_dir / f"observations-{name}.json").write_text(json.dumps(obs, indent=2) + "\n", encoding="utf-8")
                 verdict = evaluate(spec, obs)
+                verdict["samMinScore"] = _min_prompt_score(spec, obs)
+                if floor is not None and verdict["result"] == "pass" and (
+                        verdict["samMinScore"] is None or verdict["samMinScore"] < floor):
+                    verdict["result"] = "needs-review"
+                    verdict["reason"] = (f"score margin: SAM's lowest frame score for the prompted objects "
+                                         f"({verdict['samMinScore']}) is below the floor ({floor})")
                 (out_dir / f"verdict-{name}.json").write_text(json.dumps(verdict, indent=2) + "\n", encoding="utf-8")
                 results.append((spec, verdict, None))
                 continue
@@ -198,9 +223,9 @@ GROUND_SOURCES = {
 
 
 def _sam_checks(specs: list[dict], kind: str, route_name: str, trace: dict | None, replay_sha: str,
-                frames_dir: Path | None, out: Path, prefix: str = "") -> list[dict]:
+                frames_dir: Path | None, out: Path, prefix: str = "", floor: float | None = None) -> list[dict]:
     checks = []
-    for spec, verdict, _error in _sam_verdicts(specs, trace, replay_sha, frames_dir, out, prefix):
+    for spec, verdict, _error in _sam_verdicts(specs, trace, replay_sha, frames_dir, out, prefix, floor):
         if verdict is None:
             checks.append({"spec": spec["id"], "kind": kind, "route": route_name, "result": "needs-review",
                            "verdictSha256": "0" * 64})
@@ -592,7 +617,7 @@ def verify(
     if use_sam:
         # A fixture clean run has no frames, so SAM's clean checks are needs-review there.
         checks += _sam_checks(sam_spec_docs, "clean", clean_route, clean_trace, clean_replay_sha, clean_frames, out,
-                              "clean-")
+                              "clean-", SAM_CLEAN_SCORE_FLOOR)
 
     # Held-out: private routes when the held-out set is mounted on this (verifier) machine
     # and we are replaying for real; otherwise the labeled interim fixture.

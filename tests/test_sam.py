@@ -637,6 +637,8 @@ class VerifierWithSamTest(unittest.TestCase):
                                                  "player-always-visible": "pass", "coins-visible": "pass"})
         self.assertTrue((out / "observations-player-always-visible.json").is_file())
         self.assertTrue((out / "verdict-clean-coins-visible.json").is_file())
+        self.assertAlmostEqual(
+            json.loads((out / "verdict-clean-coins-visible.json").read_text())["samMinScore"], 0.85)
         self.assertEqual(json.loads((out / "observations.json").read_text())["model"]["name"],
                          "nightshift.trace-synthetic")
         self.assertIn("position log against the clean level's ground line", doc["suite"]["candidate"]["detail"])
@@ -659,6 +661,19 @@ class VerifierWithSamTest(unittest.TestCase):
                                                       "coins-visible": "needs-review"})
         self.assertNotEqual(doc["decision"], "accept")
         self.assertIn("503", (out / "observations-player-always-visible-error.txt").read_text())
+
+    def test_a_clean_run_whose_score_margin_fell_below_the_floor_is_reported_not_passed(self):
+        faint = lambda i: box_token(0, (60, 40, 80, 70), 0.55)  # still above the spec's minScore (0.5)
+        self.scene = Scene(self.root / "scene-faint", extra={"blue robot": faint, "gold coin": COINS})
+        doc, out = self.verify(self.scene.transport)
+        self.assertEqual(self.by(doc, "clean")["player-always-visible"], "needs-review")
+        verdict = json.loads((out / "verdict-clean-player-always-visible.json").read_text())
+        self.assertAlmostEqual(verdict["samMinScore"], 0.55)
+        self.assertIn("below the floor", verdict["reason"])
+        # The floor watches the clean replay only: the candidate's margin is recorded, not gated.
+        self.assertEqual(self.by(doc, "regression")["player-always-visible"], "pass")
+        self.assertAlmostEqual(
+            json.loads((out / "verdict-player-always-visible.json").read_text())["samMinScore"], 0.55)
 
     def test_a_missing_player_fails_the_candidate(self):
         gone = Scene(self.root / "gone", extra={"blue robot": lambda i: ROBOT(i) if i < 30 else "",
