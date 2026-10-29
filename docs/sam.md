@@ -169,9 +169,9 @@ replays, the verifier then judges:
 - every spec in `agents.verifier.SAM_SPECS` (player always visible, coins visible) on SAM's view of
   the same frames. Override the list with `NIGHTSHIFT_SAM_SPECS=specs/a.json,specs/b.json`.
 
-Every check must pass. The suite provenance says which source judged what. The held-out routes
-have not been probed with SAM yet (their frames must not leave the verifier machine), so the
-first SAM-on verifier run there is also their first SAM test.
+Every check must pass. The suite provenance says which source judged what. The held-out routes were
+probed with SAM on October 28: run 40698021243 on the one route the set had then, and runs 40714948968
+to 40714993165 on all four. Their frames never left the runner; only the per-spec verdicts did.
 
 **Prompt sweeps.** `--sweep player="blue robot|robot boy|astronaut"` tries several prompts for one
 object over the same frames; `--set ground=grass` probes one other prompt without editing the spec.
