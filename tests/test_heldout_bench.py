@@ -46,9 +46,12 @@ class HeldOutBenchTest(unittest.TestCase):
         """bench() with every route judged by a scripted ``results`` list (one dict per route)."""
         calls = []
 
-        def fake_judge(route, min_dx, patches, run_dir, ground_spec, sam_docs, reference, use_sam):
-            calls.append((route, min_dx, patches, use_sam))
-            return dict(results[len(calls) - 1])
+        def fake_judge(route, min_dx, patches, run_dir, ground_spec, sam_docs, reference, use_sam, hybrid=True):
+            calls.append((route, min_dx, patches, use_sam, hybrid))
+            if results[len(calls) - 1].get("_error"):
+                (run_dir).mkdir(parents=True, exist_ok=True)
+                (run_dir / hb.ERRORS_FILE).write_text(json.dumps([results[len(calls) - 1]["_error"]]))
+            return {k: v for k, v in results[len(calls) - 1].items() if k != "_error"}
 
         sam_docs = [{"id": "player-always-visible"}, {"id": "coins-visible"}] if sam else []
         with mock.patch.object(hb, "judge_route", fake_judge), \
@@ -126,6 +129,29 @@ class HeldOutBenchTest(unittest.TestCase):
         self.assertEqual(doc["caughtWithSamOn"], "yes")
         self.assertEqual(doc["caughtWithSamOff"], "no")
         self.assertEqual(doc["checks"]["player-always-visible"], {"fail": 1, "needs-review": 0, "pass": 2})
+
+    def test_glimmer_engine_judges_ground_on_the_engine_and_vision_on_glimmer(self):
+        row = {"engine": "pass", "gameplay": "pass", "player-always-visible": "pass", "coins-visible": "pass"}
+        hidden = dict(row, **{"player-always-visible": "fail"})
+        with mock.patch.dict(os.environ, {"NIGHTSHIFT_VISION_BACKEND": "glimmer-engine"}):
+            doc, calls = self.run_bench("fam/v1", [row, hidden, row])
+            sunk, _ = self.run_bench("fam/v1", [dict(row, engine="fail")] * 3)
+            secret = 'glimmer did not answer in JSON: \'{"objects": [{"box": [781, 120, 815, 165]\''
+            leak, _ = self.run_bench("fam/v1", [dict(row, **{"coins-visible": "needs-review",
+                                                            "_error": f"coins-visible: {secret}"})] * 3)
+        self.assertFalse(any(c[4] for c in calls))  # no hybrid under glimmer-engine
+        self.assertEqual(doc["judge"], "glimmer-engine")
+        self.assertEqual(doc["caughtWithGlimmerEngine"], "yes")
+        self.assertIsNone(doc["caughtWithSamOn"])
+        self.assertFalse(doc["sam"])
+        self.assertEqual(sunk["caughtWithGlimmerEngine"], "yes")  # the engine line counts here
+        line = hb.annotation(doc)
+        self.assertIn("caught with Glimmer+engine (no SAM): yes", line)
+        self.assertNotIn("with SAM on", line)
+        self.assertEqual(leak["errors"], ["coins-visible: answer not JSON"])
+        self.assertNotIn("781", hb.annotation(leak))
+        with mock.patch.object(hb, "bench", return_value=doc), redirect_stdout(io.StringIO()):
+            self.assertEqual(hb.main(["--variant", "fam/v1"]), 0)
 
     def test_engine_failure_counts_only_with_sam_off(self):
         # With SAM on the verifier judges the ground spec by the hybrid, not the engine line.

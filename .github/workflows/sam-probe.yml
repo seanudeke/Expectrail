@@ -40,6 +40,11 @@ on:
       candidate:
         description: verify mode only, the candidate patch to verify
         default: agents/fixtures/fix-collision-mask.patch
+      judge:
+        description: heldout-bench / dev-bench only, sam (SAM 3.1) or glimmer-engine (Muse Glimmer checked against the engine, no SAM key passed; GLIMMER_MODEL repo variable)
+        type: choice
+        options: [sam, glimmer-engine]
+        default: sam
 
 permissions:
   contents: read
@@ -290,7 +295,8 @@ jobs:
   heldout-bench:
     needs: heldout-list
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    # Glimmer on one shared replica answers about one frame a second across the parallel jobs.
+    timeout-minutes: ${{ inputs.judge == 'glimmer-engine' && 180 || 90 }}
     strategy:
       fail-fast: false
       max-parallel: 3
@@ -298,12 +304,19 @@ jobs:
         variant: ${{ fromJSON(needs.heldout-list.outputs.variants) }}
     env:
       SAM_KEY_SET: ${{ secrets.MODEL_API_KEY != '' || secrets.META_API_KEY != '' }}
+      FIREWORKS_KEY_SET: ${{ secrets.FIREWORKS_API_KEY != '' }}
+      JUDGE: ${{ inputs.judge }}
+      GLIMMER_MODEL: ${{ vars.GLIMMER_MODEL }}
     steps:
-      - name: Require a Meta Model API key secret
-        if: env.SAM_KEY_SET != 'true'
+      - name: Require the judge's key secret
         run: |
-          echo "::error::Set the MODEL_API_KEY (or META_API_KEY) repository secret first."
-          exit 1
+          if [ "$JUDGE" = "glimmer-engine" ]; then
+            [ "$FIREWORKS_KEY_SET" = "true" ] || { echo "::error::Set the FIREWORKS_API_KEY repository secret first."; exit 1; }
+            [[ "$GLIMMER_MODEL" =~ ^accounts/[A-Za-z0-9_-]+/deployments/[A-Za-z0-9_-]+$ ]] || { echo "::error::Set the GLIMMER_MODEL repo variable to accounts/<account>/deployments/<id>."; exit 1; }
+          elif [ "$SAM_KEY_SET" != "true" ]; then
+            echo "::error::Set the MODEL_API_KEY (or META_API_KEY) repository secret first."
+            exit 1
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -321,9 +334,20 @@ jobs:
           token: ${{ secrets.HELDOUT_TOKEN }}
           path: heldout-set
           persist-credentials: false
+      - name: Glimmer - restore the deployment's scaling if needed, and wake it
+        if: inputs.judge == 'glimmer-engine'
+        env:
+          NIGHTSHIFT_GLIMMER_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
+          NIGHTSHIFT_GLIMMER_MODEL: ${{ vars.GLIMMER_MODEL }}
+        run: |
+          python -m agents.fireworks_deployment --restore --model "$NIGHTSHIFT_GLIMMER_MODEL"
+          python -m agents.glimmer_client --warm --timeout 900
       - name: Render and judge the variant (output kept on the runner)
         env:
-          MODEL_API_KEY: ${{ secrets.MODEL_API_KEY || secrets.META_API_KEY }}
+          MODEL_API_KEY: ${{ inputs.judge != 'glimmer-engine' && (secrets.MODEL_API_KEY || secrets.META_API_KEY) || '' }}
+          NIGHTSHIFT_GLIMMER_API_KEY: ${{ inputs.judge == 'glimmer-engine' && secrets.FIREWORKS_API_KEY || '' }}
+          NIGHTSHIFT_GLIMMER_MODEL: ${{ vars.GLIMMER_MODEL }}
+          NIGHTSHIFT_VISION_BACKEND: ${{ inputs.judge == 'glimmer-engine' && 'glimmer-engine' || 'sam' }}
           NIGHTSHIFT_OBS_PROVIDER: sam
           NIGHTSHIFT_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
           VARIANT: ${{ matrix.variant }}
