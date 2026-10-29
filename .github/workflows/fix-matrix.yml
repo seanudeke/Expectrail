@@ -163,6 +163,24 @@ jobs:
           print(f"::notice title=Fix matrix {r['case']} {r['condition']}::detected {r.get('detected')}; "
                 f"outcome {r['outcome']}; attempts {r['attemptsUsed']} ({tries}); {r['wallClockSeconds']} s; live={r['live']}")
           PY
+          if [[ "$SET" == "dev" ]]; then
+            # Public cases only: what Muse did on each attempt, so an empty attempt has a visible cause.
+            for d in "$dir"/attempt-*; do
+              [[ -d "$d" ]] || continue
+              python - "$d" <<'PY'
+          import json, re, sys
+          from pathlib import Path
+          d = Path(sys.argv[1])
+          meta = json.loads((d / "candidate.json").read_text()) if (d / "candidate.json").is_file() else {}
+          box = json.loads((d / "sandbox.json").read_text()) if (d / "sandbox.json").is_file() else {}
+          log = (d / "muse.log").read_text(errors="replace") if (d / "muse.log").is_file() else ""
+          log = re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", log)
+          tail = " | ".join(line.strip() for line in log.strip().splitlines()[-8:] if line.strip())[-700:]
+          print(f"::notice title=Muse {d.name}::source {meta.get('source')}; empty {meta.get('empty')}; "
+                f"exit {meta.get('museExit')}; sandbox {box.get('kind')}; log: {tail or '(empty)'}")
+          PY
+            done
+          fi
           exit "$code"
       - name: Keep the result, the candidates, the prompts and Muse's logs (no frames, no held-out material)
         if: always()
