@@ -15,7 +15,8 @@ A variant is caught when a check fails on at least one route. ``--clean`` runs t
 the unpatched game: any failure there is a false alarm.
 
 Only the variant id, counts and verdicts are printed. The manifest's descriptions, route names,
-frames and traces stay in the output directory, which callers must not publish.
+frames and traces stay in the output directory, which callers must not publish. Exit is 1 when the
+run decided nothing, so a green job always means the checks ran.
 
     NIGHTSHIFT_HELDOUT_DIR=../Nightshift-heldout python3 -m agents.heldout_bench --list
     NIGHTSHIFT_HELDOUT_DIR=... NIGHTSHIFT_OBS_PROVIDER=sam MODEL_API_KEY=... \\
@@ -191,7 +192,7 @@ def annotation(doc: dict) -> str:
     head += f"{label} with SAM off: {doc['caughtWithSamOff']}"
     title = f"Held-out bench {doc['variant']}"
     lines = [f"::notice title={title}::{head}; over {n} routes: " + "; ".join(parts)]
-    lines += [f"::warning title={title} error::{public_error(e)}" for e in doc.get("errors") or []]
+    lines += [f"::error title={title} error::{public_error(e)}" for e in doc.get("errors") or []]
     return "\n".join(lines)
 
 
@@ -221,7 +222,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     doc = bench(CLEAN if args.clean else args.variant, args.out)
     print(annotation(doc))
-    return 0
+    # A run that decided nothing is not a result: fail, so a green job means the checks ran.
+    decided = doc["caughtWithSamOn"] if doc["sam"] else doc["caughtWithSamOff"]
+    return 1 if decided == "needs-review" else 0
 
 
 if __name__ == "__main__":

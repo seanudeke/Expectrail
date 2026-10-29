@@ -113,6 +113,21 @@ class HeldOutBenchTest(unittest.TestCase):
         doc, _ = self.run_bench("fam/v1", [row] * 3)
         self.assertEqual(doc["caughtWithSamOn"], "needs-review")
 
+    def test_a_run_that_decided_nothing_fails_the_job(self):
+        blind = {"engine": "pass", "gameplay": "pass", "hybrid": "needs-review",
+                 "player-always-visible": "needs-review", "coins-visible": "needs-review"}
+        doc, _ = self.run_bench("fam/v1", [blind] * 3)
+        with mock.patch.object(hb, "bench", return_value=doc), redirect_stdout(io.StringIO()):
+            self.assertEqual(hb.main(["--variant", "fam/v1"]), 1)
+        doc, _ = self.run_bench("fam/v1", [{"engine": "needs-review", "gameplay": "pass"}] * 3, sam=False)
+        with mock.patch.object(hb, "bench", return_value=doc), redirect_stdout(io.StringIO()):
+            self.assertEqual(hb.main(["--variant", "fam/v1"]), 1)  # SAM off: the engine line decides
+        seen = {"engine": "pass", "gameplay": "pass", "hybrid": "pass", "player-always-visible": "pass",
+                "coins-visible": "pass"}
+        doc, _ = self.run_bench("fam/v1", [seen] * 3)
+        with mock.patch.object(hb, "bench", return_value=doc), redirect_stdout(io.StringIO()):
+            self.assertEqual(hb.main(["--variant", "fam/v1"]), 0)  # a measured miss is a result too
+
     def test_annotation_carries_no_private_text(self):
         row = {"engine": "fail", "gameplay": "pass", "hybrid": "fail", "player-always-visible": "pass",
                "coins-visible": "pass"}
@@ -146,7 +161,7 @@ class PublicErrorTest(unittest.TestCase):
                "caughtWithSamOff": "no", "checks": {"hybrid": {"fail": 0, "needs-review": 1, "pass": 0}},
                "errors": ["hybrid: sam observations unavailable: HTTP 401"]}
         lines = hb.annotation(doc).splitlines()
-        self.assertEqual(lines[1], "::warning title=Held-out bench fam/v1 error::hybrid: sam observations unavailable: HTTP 401")
+        self.assertEqual(lines[1], "::error title=Held-out bench fam/v1 error::hybrid: sam observations unavailable: HTTP 401")
 
 
 class JudgeRouteTest(unittest.TestCase):

@@ -328,10 +328,16 @@ jobs:
         run: |
           [[ "$VARIANT" =~ ^[a-z0-9_-]+(/[a-z0-9_-]+)?$ ]] || { echo "::error::unexpected variant id"; exit 1; }
           start=$(date +%s)
-          if python -m agents.heldout_bench --variant "$VARIANT" --out runs/bench > bench.log 2>&1; then
-            python -m agents.heldout_bench --annotate "runs/bench/${VARIANT//\//_}/bench.json"
-            echo "::notice title=Held-out bench time ${VARIANT}::$(( $(date +%s) - start )) s"
-          else
-            echo "::error title=Held-out bench ${VARIANT}::the benchmark run failed (exit $?); its log stays on the runner"
-            exit 1
+          # The benchmark exits non-zero when it decided nothing, so the counts are still published
+          # and the job is red: a green run always means the checks ran.
+          set +e
+          python -m agents.heldout_bench --variant "$VARIANT" --out runs/bench > bench.log 2>&1
+          code=$?
+          set -e
+          bench_json="runs/bench/${VARIANT//\//_}/bench.json"
+          [[ -f "$bench_json" ]] && python -m agents.heldout_bench --annotate "$bench_json"
+          echo "::notice title=Held-out bench time ${VARIANT}::$(( $(date +%s) - start )) s"
+          if [[ "$code" -ne 0 ]]; then
+            echo "::error title=Held-out bench ${VARIANT}::the benchmark decided nothing or failed (exit $code); its log stays on the runner"
+            exit "$code"
           fi
