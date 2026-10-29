@@ -1,0 +1,36 @@
+# Stories in build order. Table order is build order; ids are permanent.
+
+[[entry]]
+id = 1
+type = "story"
+title = "The minimum clean score is recorded per SAM spec"
+description = "Writes the lowest score SAM gave each spec's object on the clean replay into the verifier's own verdict file for that spec, and reports a later clean run below the agreed floor instead of passing it quietly. Verifier-side, so the adapter stays epic-video-tracking's, and no approved spec is edited."
+verify = "A clean replay's verdict-<spec>.json names the minimum score per SAM spec, and an offline test with a lowered score shows the drop reported rather than passed."
+covers = ["R8"]
+after = []
+hitl = true
+risk = "medium"
+unknown = "Where the margin is reported and against what floor: the spec's own minScore (0.5 today), a recorded minimum from the last clean run, or a new approved number. Sean decides; the observations schema already allows the field."
+
+[[entry]]
+id = 2
+type = "story"
+title = "The docs say what the runs show"
+description = "Corrects the two stale claims: docs/sam.md's line that the held-out routes have not been probed with SAM, and docs/evaluation.md's line asking to decide a sample rate that was decided on Oct 28. Adds only the results already measured, with the runs they came from."
+verify = "Neither stale claim is in the docs, and each corrected line names the run or the date it came from."
+covers = []
+after = []
+hitl = false
+risk = "low"
+
+[[entry]]
+id = 3
+type = "story"
+title = "The gate is reproduced end to end on main"
+description = "Dispatches the sam-probe verify mode on main with SAM on for both fixtures: the real fix accepted with every SAM check decided on the candidate, the clean game and every private route, and the hide-the-player fixture rejected by player-always-visible."
+verify = "Two dispatched runs: fix-collision-mask.patch accepts with no needs-review anywhere, and fix-but-hide-player.patch rejects on player-always-visible on the candidate and on a held-out route; tests/test_sam.py still shows a SAM failure as needs-review."
+covers = ["R1", "R2", "R3", "R4", "R5", "R6", "R7"]
+after = []
+hitl = false
+risk = "high"
+unknown = "The SAM key returns HTTP 402 billing_not_configured, and epic-held-out-bench owns the fix; this run waits on that, not on the epic."

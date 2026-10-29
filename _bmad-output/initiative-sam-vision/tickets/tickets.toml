@@ -1,0 +1,22 @@
+# Epics in build order. Table order is build order; ids are permanent.
+
+[[epic]]
+id = 1
+slug = "epic-held-out-bench"
+title = "Detection on the private held-out variants is measured"
+description = "Every active private held-out variant, and the clean game as a false-alarm control, has a caught or not-caught result over the smoke route and every private route, published as ids, counts and verdicts only. This epic owns the SAM key and the sam-probe workflow's mode set, which the later epics reuse."
+covers = ["R7"]
+
+[[epic]]
+id = 2
+slug = "epic-verifier-gate"
+title = "The verdict with SAM on is one SAM saw on every frame"
+description = "Candidate, clean and held-out replays are judged on SAM's observations with the ground line from the unpatched level, any SAM failure is needs-review, and each SAM spec carries its score margin recorded in the verdict; the docs say what the runs show. Its live end-to-end story runs through the sam-probe workflow and with the SAM key epic-held-out-bench established."
+covers = ["R1", "R2", "R3", "R4", "R5", "R6", "R9", "R10"]
+
+[[epic]]
+id = 3
+slug = "epic-video-tracking"
+title = "Video tracking earns its place or stays out"
+description = "The clip path and the per-frame path already on main are measured on the same runs for cost, latency and tracking stability, and a dated decision says which the adapter sends. Its measurement runs with the SAM key epic-held-out-bench established."
+covers = ["R8"]
