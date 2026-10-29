@@ -10,8 +10,9 @@
 The verifier's vision checks (the visibility specs and the hybrid ground check) ask one question per
 frame and object: where is "<noun phrase>" drawn? ``agents.sam_observations`` asks SAM 3.1 through
 the Meta Model API. With ``NIGHTSHIFT_VISION_BACKEND=glimmer`` the same question goes to Muse
-Glimmer 30B (Apache 2.0) on any OpenAI-compatible endpoint: Fireworks serverless by default
-(``accounts/fireworks/models/muse-glimmer-30b``), or our own vLLM/SGLang server
+Glimmer 30B (Apache 2.0) on any OpenAI-compatible endpoint: a Fireworks on-demand deployment by
+default (``NIGHTSHIFT_GLIMMER_MODEL=accounts/<account>/deployments/<id>``; Glimmer left Fireworks
+serverless on Sep 25, 2026), or our own vLLM/SGLang server
 (``NIGHTSHIFT_GLIMMER_API_BASE=http://<host>:8000/v1``,
 ``NIGHTSHIFT_GLIMMER_MODEL=meta-models/Muse-Glimmer-30B``). Everything around the call stays the
 same: sampling, refining to the first bad frame, confirming every frame before a pass, the cache,
@@ -55,7 +56,11 @@ from typing import Callable
 from agents.sam_observations import MetaSamClient, SamError, data_url, png_size
 
 API_BASE = os.environ.get("NIGHTSHIFT_GLIMMER_API_BASE", "https://api.fireworks.ai/inference/v1")
-MODEL = os.environ.get("NIGHTSHIFT_GLIMMER_MODEL", "accounts/fireworks/models/muse-glimmer-30b")
+# Fireworks retired Glimmer from serverless on Sep 25, 2026: it runs on an on-demand deployment,
+# addressed as accounts/<account>/deployments/<id>. Set NIGHTSHIFT_GLIMMER_MODEL to that. The base
+# model id below is what the deployment is created from, and what a self-hosted server may serve.
+BASE_MODEL = "accounts/fireworks/models/muse-glimmer-30b"
+MODEL = os.environ.get("NIGHTSHIFT_GLIMMER_MODEL", BASE_MODEL)
 KEY_ENVS = ("NIGHTSHIFT_GLIMMER_API_KEY", "FIREWORKS_API_KEY")
 COORDS_ENV = "NIGHTSHIFT_GLIMMER_COORDS"
 COORDS = ("pixels", "norm1000", "norm1")
@@ -214,6 +219,48 @@ def _parse_boxes(text: str, size: tuple[int, int], coords: str) -> list[dict]:
     return sorted(out, key=lambda d: (-d["score"], d["box"]))
 
 
+def warm(*, base: str | None = None, model: str | None = None, key: str | None = None,
+         timeout_s: float = 900.0, every_s: float = 15.0, opener=urllib.request.urlopen,
+         sleep: Callable[[float], None] = time.sleep, clock: Callable[[], float] = time.monotonic) -> float:
+    """Wake a scaled-to-zero deployment before the frames go out; returns seconds waited.
+
+    An on-demand deployment at zero replicas answers 503 (or 429) while it starts. Keep asking with a
+    tiny text-only request until it answers 200. A 401, 403 or 404 is a setup error and stops at once.
+    """
+    base = (base or API_BASE).rstrip("/")
+    model = model or MODEL
+    key = key or api_key()
+    if not key:
+        raise SamError(f"set one of {', '.join(KEY_ENVS)} for {base}")
+    body = json.dumps({"model": model, "max_tokens": 4, "temperature": 0,
+                       "messages": [{"role": "user", "content": "Reply with OK."}]}).encode()
+    started = clock()
+    last = ""
+    while True:
+        req = urllib.request.Request(f"{base}/chat/completions", data=body, method="POST",
+                                     headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
+        try:
+            with opener(req, timeout=120) as resp:
+                resp.read()
+                return round(clock() - started, 1)
+        except urllib.error.HTTPError as err:
+            try:
+                detail = err.read().decode(errors="replace")[:300]
+            except (OSError, http.client.HTTPException):
+                detail = ""
+            if err.code not in RETRY_STATUS:
+                hint = (" (the model id is not a deployment this key can reach: create an on-demand "
+                        f"deployment of {BASE_MODEL} and use accounts/<account>/deployments/<id>)"
+                        if err.code == 404 else "")
+                raise SamError(f"glimmer HTTP {err.code}: {detail}{hint}") from err
+            last = f"HTTP {err.code}"
+        except (OSError, http.client.HTTPException) as err:
+            last = f"{type(err).__name__}: {err}"
+        if clock() - started > timeout_s:
+            raise SamError(f"glimmer deployment did not wake within {int(timeout_s)} s (last: {last})")
+        sleep(every_s)
+
+
 def api_key() -> str | None:
     for name in KEY_ENVS:
         value = os.environ.get(name, "").strip()
@@ -336,3 +383,27 @@ class BothClient:
         if not seen:
             return []  # Glimmer does not see it: not found, whatever SAM says
         return self.sam.segment(png, prompt)
+
+
+def main(argv: list[str] | None = None) -> int:
+    import argparse
+    import sys
+
+    from agents.keys import load_dotenv
+
+    p = argparse.ArgumentParser(description="Wake Muse Glimmer's deployment before a probe or a verify run.")
+    p.add_argument("--warm", action="store_true", required=True, help="send tiny requests until it answers")
+    p.add_argument("--timeout", type=float, default=900.0, help="seconds to wait (default 900)")
+    args = p.parse_args(argv)
+    load_dotenv()
+    try:
+        waited = warm(timeout_s=args.timeout)
+    except SamError as exc:
+        print(f"::error title=Glimmer not reachable::{' '.join(str(exc).split()).replace('::', ': :')[:400]}")
+        return 1
+    print(f"::notice title=Glimmer awake::{MODEL} at {API_BASE} answered after {waited} s")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
