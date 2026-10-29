@@ -176,6 +176,18 @@ jobs:
           for name in sorted(p.name for p in out.glob("observations-*-error.txt")):
               text = " ".join((out / name).read_text().split()).replace("::", ": :")[:300]
               print(f"::warning title=Glimmer verify error::{name}: {text}")
+          # Held-out routes: the kind of error only, counted per spec. The text can quote Glimmer's
+          # answer about a held-out frame, and nothing from the held-out set is published.
+          from agents.glimmer_client import error_kind
+          kinds = {}
+          for p in (out / "held-out").glob("*/observations-*-error.txt"):
+              spec = p.name[len("observations-"):-len("-error.txt")]
+              key = (spec, error_kind(p.read_text(encoding="utf-8", errors="replace")))
+              kinds[key] = kinds.get(key, 0) + 1
+          for p in (out / "held-out").glob("*/harness-error.txt"):
+              kinds[("harness", "harness run failed")] = kinds.get(("harness", "harness run failed"), 0) + 1
+          for (spec, kind), n in sorted(kinds.items()):
+              print(f"::warning title=Glimmer verify held-out error::{spec}: {kind}, {n} route(s)")
           PY
       - name: Show the probe in the run summary
         if: always() && inputs.mode == 'probe'
