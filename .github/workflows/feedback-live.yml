@@ -15,6 +15,11 @@ on:
         type: boolean
         required: true
         default: false
+      sorter:
+        description: "meta: Muse Spark on Meta's API. open: Muse Spark Open (open weights) on Baseten, needs the BASETEN_API_KEY secret"
+        type: choice
+        options: [meta, open]
+        default: meta
 
 permissions:
   contents: read
@@ -26,8 +31,10 @@ jobs:
     # secrets is not allowed in a job-level if; check it in the first step instead.
     env:
       META_API_KEY_SET: ${{ secrets.META_API_KEY != '' }}
+      BASETEN_API_KEY_SET: ${{ secrets.BASETEN_API_KEY != '' }}
       CONSENT: ${{ inputs.consent }}
       AUDIO: ${{ inputs.audio }}
+      SORTER: ${{ inputs.sorter }}
     steps:
       - name: Require consent and the META_API_KEY secret
         run: |
@@ -39,6 +46,10 @@ jobs:
             echo "::error::Set the META_API_KEY repository secret before running the live feedback job."
             exit 1
           fi
+          if [ "$SORTER" = "open" ] && [ "$BASETEN_API_KEY_SET" != "true" ]; then
+            echo "::error::sorter=open needs the BASETEN_API_KEY repository secret."
+            exit 1
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -48,13 +59,14 @@ jobs:
       - run: python -m pip install -r requirements-dev.txt
       - name: Transcribe, sort, draft
         env:
-          MODEL_API_KEY: ${{ secrets.META_API_KEY }}
+          MODEL_API_KEY: ${{ secrets.MODEL_API_KEY || secrets.META_API_KEY }}
+          BASETEN_API_KEY: ${{ secrets.BASETEN_API_KEY }}
         run: |
           if [ ! -f "$AUDIO" ]; then
             echo "::error::$AUDIO is not in the repo. Commit the recording (see docs/feedback-recording.md) or run agents.feedback locally."
             exit 1
           fi
-          python -m agents.feedback --audio "$AUDIO" --consent --out runs/feedback-live/feedback
+          python -m agents.feedback --audio "$AUDIO" --consent --sorter "$SORTER" --out runs/feedback-live/feedback
           python -m agents.loop --mode offline --runs 1 \
             --feedback runs/feedback-live/feedback/feedback-intake.json --out runs/feedback-live/loop
           python - <<'PY'

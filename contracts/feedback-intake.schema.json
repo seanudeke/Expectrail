@@ -147,6 +147,13 @@
             "null"
           ],
           "description": "why the model classifier was not used, when it failed"
+        },
+        "endpoint": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "host that served the model (api.meta.ai, or a partner such as inference.baseten.co for open weights)"
         }
       }
     },

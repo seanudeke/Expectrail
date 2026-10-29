@@ -49,6 +49,11 @@ from nightshift.contracts import ContractError, validate
 
 TRANSCRIBE_MODEL = os.environ.get("NIGHTSHIFT_TRANSCRIBE_MODEL", "muse-voice-transcribe-1.0")
 CLASSIFY_MODEL = os.environ.get("NIGHTSHIFT_FEEDBACK_MODEL", spec_writer.DEFAULT_MODEL)
+# Open weights: Muse Spark Open through a partner's OpenAI-compatible endpoint (Baseten by default;
+# the hackathon names this model id). Used with --sorter open; transcription stays on Meta's API.
+OPEN_API_BASE = os.environ.get("NIGHTSHIFT_OPEN_API_BASE", "https://inference.baseten.co/v1")
+OPEN_MODEL = os.environ.get("NIGHTSHIFT_OPEN_MODEL", "meta-models/muse-spark-open-1026")
+OPEN_KEY_ENVS = ("NIGHTSHIFT_OPEN_API_KEY", "BASETEN_API_KEY")
 MAX_AUDIO_BYTES = 32 * 1024 * 1024
 MAX_AUDIO_MS = 10 * 60 * 1000
 SAMPLE_RATES = (24000, 16000)
@@ -390,6 +395,35 @@ def decide(turn_index: int, turn: dict, model_item: dict | None, model_label: st
     }
 
 
+def open_key() -> str | None:
+    for name in OPEN_KEY_ENVS:
+        if os.environ.get(name):
+            return os.environ[name]
+    return None
+
+
+def openai_transport(base: str, key: str, timeout: int = 120) -> Transport:
+    """POST to any OpenAI-compatible /chat/completions (e.g. Muse Spark Open on Baseten)."""
+    url = f"{base.rstrip('/')}/chat/completions"
+
+    def transport(body: dict) -> dict:
+        req = urllib.request.Request(url, data=json.dumps(body).encode(), method="POST",
+                                     headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                return json.loads(resp.read())
+        except urllib.error.HTTPError as err:
+            detail = err.read().decode(errors="replace")[:500]
+            # Same error type as the Meta transport, so the json_schema → json_object fallback applies.
+            raise spec_writer.SpecDraftError(f"HTTP {err.code}: {detail}") from err
+
+    return transport
+
+
+def host_of(base: str) -> str:
+    return urllib.parse.urlparse(base).hostname or base
+
+
 # ---------------------------------------------------------------- fixtures
 
 def fixture_transport(fixture: dict) -> Transport:
@@ -411,7 +445,7 @@ def fixture_transport(fixture: dict) -> Transport:
 # ---------------------------------------------------------------- intake
 
 def intake(turns: list[dict], *, out: Path, intake_id: str, source: dict, transport: Transport | None,
-           classifier_label: str, model: str = CLASSIFY_MODEL) -> dict:
+           classifier_label: str, model: str = CLASSIFY_MODEL, endpoint: str | None = None) -> dict:
     """Classify, draft specs for bug reports, write feedback-intake.json. transport=None means rules only."""
     out.mkdir(parents=True, exist_ok=True)
     model_items: dict[int, dict] = {}
@@ -421,6 +455,8 @@ def intake(turns: list[dict], *, out: Path, intake_id: str, source: dict, transp
             model_items = classify_model(turns, transport, model)
             classifier = {"provenance": classifier_label, "model": model if classifier_label == "model" else None,
                           "error": None}
+            if classifier_label == "model" and endpoint:
+                classifier["endpoint"] = endpoint
         except Exception as err:  # noqa: BLE001 — no usable model answer: rules only, said out loud
             classifier = {"provenance": "rules-only", "model": None, "error": _one_line(err)}
     label = "model" if classifier["provenance"] == "model" else "fixture"
@@ -490,8 +526,13 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--offline", action="store_true", help="no Meta calls: rules, plus --fixture if given")
     p.add_argument("--fixture", type=Path, help="canned Muse Spark answers (offline only)")
     p.add_argument("--keyword", action="append", default=[], help="extra word for the transcriber")
-    p.add_argument("--model", default=CLASSIFY_MODEL, help="Muse Spark model for sorting and drafting")
+    p.add_argument("--sorter", choices=("meta", "open"), default="meta",
+                   help="meta: Muse Spark on Meta's Model API; open: Muse Spark Open (open weights) on a "
+                        "partner endpoint, NIGHTSHIFT_OPEN_API_BASE (default Baseten) with BASETEN_API_KEY")
+    p.add_argument("--model", help=f"model for sorting and drafting (default {CLASSIFY_MODEL}, or "
+                                   f"{OPEN_MODEL} with --sorter open)")
     args = p.parse_args(argv)
+    model = args.model or (OPEN_MODEL if args.sorter == "open" else CLASSIFY_MODEL)
 
     try:
         if args.fixture and not args.offline:
@@ -502,8 +543,12 @@ def main(argv: list[str] | None = None) -> int:
         intake_id = args.id or spec_writer.slug(f"fb-{source_path.stem}")
         keywords = game_keywords(extra=args.keyword)
         if not args.offline and not args.consent:
-            raise FeedbackError("pass --consent to confirm the people quoted agreed to their words being sent "
-                                "to Meta's API (or use --offline)")
+            where = "Meta's API" if args.sorter == "meta" else f"Meta's API and {host_of(OPEN_API_BASE)}"
+            raise FeedbackError(f"pass --consent to confirm the people quoted agreed to their words being sent "
+                                f"to {where} (or use --offline)")
+        if not args.offline and args.sorter == "open" and not open_key():
+            raise FeedbackError(f"--sorter open needs one of {', '.join(OPEN_KEY_ENVS)} "
+                                f"(a key for {host_of(OPEN_API_BASE)})")
         if args.audio:
             info = check_wav(args.audio)
             resp = transcribe(args.audio, keywords=keywords)
@@ -524,15 +569,18 @@ def main(argv: list[str] | None = None) -> int:
         if not isinstance(resp, dict):
             raise FeedbackError("the transcript is not a JSON object")
         turns = turns_from_response(resp)
+        endpoint = None
         if args.offline:
             transport = fixture_transport(json.loads(args.fixture.read_text(encoding="utf-8"))) if args.fixture else None
             label = "fixture"
+        elif args.sorter == "open":
+            transport, label, endpoint = openai_transport(OPEN_API_BASE, open_key()), "model", host_of(OPEN_API_BASE)
         else:
             if not os.environ.get("MODEL_API_KEY"):
                 raise FeedbackError("set MODEL_API_KEY, or pass --offline")
-            transport, label = spec_writer.http_transport, "model"
+            transport, label, endpoint = spec_writer.http_transport, "model", host_of(spec_writer.API_BASE)
         doc = intake(turns, out=args.out, intake_id=intake_id, source=source, transport=transport,
-                     classifier_label=label, model=args.model)
+                     classifier_label=label, model=model, endpoint=endpoint)
     except (FeedbackError, ContractError, spec_writer.SpecDraftError) as err:
         print(f"error: {err}", file=sys.stderr)
         return 1
