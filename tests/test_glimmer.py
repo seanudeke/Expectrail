@@ -109,6 +109,21 @@ class ParseTest(unittest.TestCase):
         with self.assertRaises(sam.SamError):
             gl.GlimmerClient(key="k", coords="inches")  # checked before any request is spent
 
+    def test_cut_off_answers_say_so(self):
+        cut = json.dumps({"choices": [{"finish_reason": "length",
+                                       "message": {"content": '{"objects": [{"box": [1, 2, 3, 4], "confidence": 0.9}, {"box":'}}]}).encode()
+        with self.assertRaisesRegex(sam.SamError, "cut off at max_tokens"):
+            gl.answer_text(cut)
+
+    def test_answer_budget_and_reasoning_setting(self):
+        body = gl.request_body("gold coin", "data:image/png;base64,AAAA", (W, H))
+        self.assertGreaterEqual(body["max_tokens"], 8192)
+        self.assertNotIn("reasoning_effort", body)
+        self.assertEqual(body["response_format"]["json_schema"]["schema"]["properties"]["objects"]["maxItems"], 30)
+        self.assertIn("at most 30 entries", body["messages"][1]["content"][0]["text"])
+        with mock.patch.dict(os.environ, {"NIGHTSHIFT_GLIMMER_REASONING": "low"}):
+            self.assertEqual(gl.request_body("gold coin", "u", (W, H))["reasoning_effort"], "low")
+
     def test_answer_text_unwraps_fences_and_parts(self):
         fenced = json.dumps({"choices": [{"message": {"content": "```json\n{\"objects\": []}\n```"}}]}).encode()
         self.assertEqual(gl.answer_text(fenced), '{"objects": []}')

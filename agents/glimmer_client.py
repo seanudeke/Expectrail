@@ -65,7 +65,13 @@ KEY_ENVS = ("NIGHTSHIFT_GLIMMER_API_KEY", "FIREWORKS_API_KEY")
 COORDS_ENV = "NIGHTSHIFT_GLIMMER_COORDS"
 COORDS = ("pixels", "norm1000", "norm1")
 # Bump when the prompt or the parsing changes, so cached answers to an older question are not reused.
-REQUEST_VERSION = "glimmer-1"
+REQUEST_VERSION = "glimmer-2"
+# Glimmer reasons before it answers, and its reasoning counts against max_tokens: at 2048 a frame with a
+# dozen coins was cut off mid-JSON (Oct 29). Room for the reasoning plus up to MAX_OBJECTS boxes.
+MAX_TOKENS = int(os.environ.get("NIGHTSHIFT_GLIMMER_MAX_TOKENS", "8192"))
+MAX_OBJECTS = 30
+# Optional: e.g. "low", sent as reasoning_effort, for servers that accept it. Unset sends nothing.
+REASONING_ENV = "NIGHTSHIFT_GLIMMER_REASONING"
 RETRY_STATUS = frozenset({429, 500, 502, 503, 504})
 # A corner more than 2% of the frame outside the image is a format error (another grid, or not a box).
 OUT_OF_FRAME = 0.02
@@ -84,6 +90,7 @@ BOX_SCHEMA = {
     "properties": {
         "objects": {
             "type": "array",
+            "maxItems": MAX_OBJECTS,
             "items": {
                 "type": "object",
                 "additionalProperties": False,
@@ -105,7 +112,7 @@ def user_prompt(prompt: str, size: tuple[int, int]) -> str:
     return (
         f'This image is {w} by {h} pixels. Find every visible "{prompt}". '
         'Answer with JSON only: {"objects": [{"box": [x0, y0, x1, y1], "confidence": c}]}, one entry per '
-        f"separate {prompt}. Box corners are pixels of this image: x0, y0 is the top-left corner and x1, "
+        f"separate {prompt}, at most {MAX_OBJECTS} entries. Box corners are pixels of this image: x0, y0 is the top-left corner and x1, "
         "y1 the bottom-right, with the origin at the top-left and y growing downward. confidence is how "
         'sure you are, from 0 to 1. If none is visible, answer {"objects": []}.'
     )
@@ -116,7 +123,7 @@ def request_body(prompt: str, image_url: str, size: tuple[int, int], model: str 
     body = {
         "model": model,
         "temperature": 0,
-        "max_tokens": 2048,
+        "max_tokens": MAX_TOKENS,
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": [
@@ -125,6 +132,9 @@ def request_body(prompt: str, image_url: str, size: tuple[int, int], model: str 
             ]},
         ],
     }
+    reasoning = os.environ.get(REASONING_ENV, "").strip()
+    if reasoning:
+        body["reasoning_effort"] = reasoning
     if structured:
         body["response_format"] = {"type": "json_schema",
                                    "json_schema": {"name": "nightshift_boxes", "schema": BOX_SCHEMA}}
@@ -136,9 +146,13 @@ def request_body(prompt: str, image_url: str, size: tuple[int, int], model: str 
 def answer_text(raw: bytes) -> str:
     try:
         doc = json.loads(raw)
-        content = doc["choices"][0]["message"]["content"]
+        choice = doc["choices"][0]
+        content = choice["message"]["content"]
     except (ValueError, KeyError, IndexError, TypeError, RecursionError) as exc:
         raise SamError(f"glimmer reply is not a chat completion: {raw[:160]!r}") from exc
+    if isinstance(choice, dict) and choice.get("finish_reason") == "length":
+        raise SamError("glimmer's answer was cut off at max_tokens (finish_reason length); raise "
+                       "NIGHTSHIFT_GLIMMER_MAX_TOKENS or set NIGHTSHIFT_GLIMMER_REASONING=low")
     if isinstance(content, list):  # content parts
         texts = [p.get("text", "") for p in content if isinstance(p, dict)]
         if not all(isinstance(t, str) for t in texts):

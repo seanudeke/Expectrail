@@ -117,6 +117,12 @@ jobs:
       - name: Point the verifier at the held-out set
         if: env.HELDOUT_TOKEN_SET == 'true' && inputs.mode == 'verify'
         run: echo "NIGHTSHIFT_HELDOUT_DIR=$GITHUB_WORKSPACE/heldout-set" >> "$GITHUB_ENV"
+      - name: Wake the Glimmer deployment (its own step, so its notice does not crowd out results)
+        env:
+          NIGHTSHIFT_GLIMMER_API_KEY: ${{ secrets.GLIMMER_API_KEY || secrets.FIREWORKS_API_KEY }}
+        run: |
+          export NIGHTSHIFT_GLIMMER_API_BASE="$BASE" NIGHTSHIFT_GLIMMER_MODEL="$MODEL"
+          python -m agents.glimmer_client --warm --timeout 900
       - name: Probe - render the clean game and every seeded bug (no key in this step)
         if: inputs.mode == 'probe'
         run: python -m harness.check_seeded --out runs/seeded
@@ -128,7 +134,6 @@ jobs:
         run: |
           [ -f "$SPEC" ] || { echo "::error::no spec $SPEC"; exit 1; }
           export NIGHTSHIFT_GLIMMER_API_BASE="$BASE" NIGHTSHIFT_GLIMMER_MODEL="$MODEL" NIGHTSHIFT_GLIMMER_COORDS="$COORDS"
-          python -m agents.glimmer_client --warm --timeout 900
           python -m agents.sam_probe --spec "$SPEC" --every "$EVERY" --out runs/glimmer-probe --runs runs/seeded/*/
       - name: Verify - Gate 1 path with Glimmer in the vision checks
         if: inputs.mode == 'verify'
@@ -140,7 +145,6 @@ jobs:
           [ -f "$CANDIDATE" ] || { echo "::error::no candidate $CANDIDATE"; exit 1; }
           export NIGHTSHIFT_GLIMMER_API_BASE="$BASE" NIGHTSHIFT_GLIMMER_MODEL="$MODEL" NIGHTSHIFT_GLIMMER_COORDS="$COORDS"
           export NIGHTSHIFT_SAM_EVERY="$EVERY"
-          python -m agents.glimmer_client --warm --timeout 900
           if [ "$JUDGE" = "glimmer" ]; then
             # Measurement on a known fixture only: Glimmer alone never decides a real verdict.
             export NIGHTSHIFT_VISION_BACKEND=glimmer NIGHTSHIFT_GLIMMER_ALONE=1
