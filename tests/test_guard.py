@@ -189,6 +189,28 @@ class BwrapGuardTest(unittest.TestCase):
             self.assertEqual(len(guard.read_log(work / guard.LOG_REL)), 1)
 
 
+class GuardEvidenceTest(unittest.TestCase):
+    def test_notices_and_warnings(self):
+        from agents.guard_evidence import lines_for
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertIn("::warning", lines_for([root])[0])  # nothing ran with the guard
+            (root / "a").mkdir()
+            (root / "a" / "guard.json").write_text(json.dumps({
+                "installed": True, "loaded": True, "calls": 14, "source": "muse",
+                "tools": {"edit_file": 2, "read_file": 11, "evil::\nset-env": 1},
+                "blocked": [{"tool": "web_fetch"}]}))
+            (root / "b").mkdir()
+            (root / "b" / "guard.json").write_text(json.dumps({"installed": True, "loaded": False, "calls": 0}))
+            out = lines_for([root])
+            self.assertTrue(out[0].startswith("::notice title=Fixer guard::"))
+            self.assertIn("loaded=True calls=14 blocked=1 (web_fetch)", out[0])
+            self.assertEqual(sum(1 for l in out if l.startswith("::")), len(out))
+            self.assertTrue(all("\n" not in l and "::set-env" not in l for l in out))
+            self.assertIn("not have loaded", out[-1])
+
+
 class HookSourceTest(unittest.TestCase):
     def test_hook_is_stdlib_only(self):
         tree = ast.parse(HOOK.read_text())

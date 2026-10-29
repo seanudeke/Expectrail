@@ -25,6 +25,11 @@ from nightshift.contracts import ContractError, schema, validate
 
 API_BASE = os.environ.get("NIGHTSHIFT_MODEL_API_BASE", "https://api.meta.ai/v1")
 DEFAULT_MODEL = os.environ.get("NIGHTSHIFT_SPEC_MODEL", "muse-spark-1.3")
+# Open weights: Muse Spark Open on a partner's OpenAI-compatible endpoint (draft --endpoint open).
+# Baseten by default, with the model id the hackathon guide gives for it.
+OPEN_API_BASE = os.environ.get("NIGHTSHIFT_OPEN_API_BASE", "https://inference.baseten.co/v1")
+OPEN_MODEL = os.environ.get("NIGHTSHIFT_OPEN_MODEL", "meta-models/muse-spark-open-1026")
+OPEN_KEY_ENVS = ("NIGHTSHIFT_OPEN_API_KEY", "BASETEN_API_KEY")
 # Words that describe position. SAM 3.1 finds things; where they are is the evaluator's job.
 POSITIONAL = re.compile(r"\b(left|right|above|below|under|over|top|bottom|behind|in front|near|beside|"
                         r"next to|inside|outside|on top|underneath|between)\b", re.I)
@@ -97,6 +102,26 @@ def http_transport(body: dict) -> dict:
     except urllib.error.HTTPError as err:
         detail = err.read().decode(errors="replace")[:500]
         raise SpecDraftError(f"HTTP {err.code}: {detail}") from err
+
+
+def open_transport(base: str | None = None, key: str | None = None):
+    """POST to an OpenAI-compatible /chat/completions serving Muse Spark Open (open weights)."""
+    base = (base or OPEN_API_BASE).rstrip("/")
+    key = key or next((os.environ[n] for n in OPEN_KEY_ENVS if os.environ.get(n)), None)
+    if not key:
+        raise SpecDraftError(f"set one of {', '.join(OPEN_KEY_ENVS)} for {base}")
+
+    def transport(body: dict) -> dict:
+        req = urllib.request.Request(f"{base}/chat/completions", data=json.dumps(body).encode(), method="POST",
+                                     headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                return json.loads(resp.read())
+        except urllib.error.HTTPError as err:
+            detail = err.read().decode(errors="replace")[:500]
+            raise SpecDraftError(f"HTTP {err.code}: {detail}") from err
+
+    return transport
 
 
 def lint(spec: dict) -> list[str]:
@@ -188,7 +213,10 @@ def main(argv=None) -> int:
     d.add_argument("instruction")
     d.add_argument("--id")
     d.add_argument("--out", type=Path)
-    d.add_argument("--model", default=DEFAULT_MODEL)
+    d.add_argument("--endpoint", choices=("meta", "open"), default="meta",
+                   help="meta: Muse Spark on Meta's Model API; open: Muse Spark Open (open weights) on "
+                        "NIGHTSHIFT_OPEN_API_BASE (default Baseten) with BASETEN_API_KEY")
+    d.add_argument("--model", help=f"default {DEFAULT_MODEL}, or {OPEN_MODEL} with --endpoint open")
     d.add_argument("--allow-training", action="store_true", help="allow a contributor-tier model")
     a = sub.add_parser("approve", help="a person approves a draft")
     a.add_argument("path", type=Path)
@@ -196,7 +224,14 @@ def main(argv=None) -> int:
     args = p.parse_args(argv)
     try:
         if args.cmd == "draft":
-            spec, problems = draft(args.instruction, args.id, args.model, allow_training=args.allow_training)
+            if args.endpoint == "open":
+                model, transport = args.model or OPEN_MODEL, open_transport()
+            else:
+                model, transport = args.model or DEFAULT_MODEL, http_transport
+            spec, problems = draft(args.instruction, args.id, model, transport=transport,
+                                   allow_training=args.allow_training)
+            print(f"drafted by {model} ({'open weights, ' + OPEN_API_BASE if args.endpoint == 'open' else API_BASE})",
+                  file=sys.stderr)
             if spec is None:
                 print("needs review: " + "; ".join(problems), file=sys.stderr)
                 return 2

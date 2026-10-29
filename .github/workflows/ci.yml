@@ -623,6 +623,9 @@ jobs:
           privates = list(Path("runs/oct29-film").rglob(".nightshift-signing-key"))
           assert privates == [], privates
           PY
+      - name: Fixer guard evidence under bubblewrap (notices; warns, does not fail)
+        if: always()
+        run: python -m agents.guard_evidence runs/oct29-film
       - name: Keep Oct29 film artifacts
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -669,22 +672,9 @@ jobs:
           command -v muse
           python -m agents.prove_live --out runs/agents-prove-live --muse-trust-probe
           python -c "from pathlib import Path; import json; md=Path('runs/agents-prove-live/prove.md').read_text(); assert 'Overall: PASS' in md, md; meta=json.load(open('runs/agents-prove-live/muse-gate/fix/candidate.json')); assert meta['source']=='muse', meta; v=json.load(open('runs/agents-prove-live/muse-gate/verify/verification.json')); assert v['decision']=='accept', v"
-      - name: Fixer guard evidence (warns, does not fail, until the hook is proven live)
+      - name: Fixer guard evidence (notices; warns, does not fail)
         if: always()
-        run: |
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          found = sorted(Path("runs/agents-prove-live").rglob("guard.json"))
-          if not found:
-              print("::warning::no guard.json: Muse Code did not run with the fixer guard installed")
-          for path in found:
-              g = json.loads(path.read_text())
-              print(f"{path}: installed={g.get('installed')} loaded={g.get('loaded')} calls={g.get('calls')} "
-                    f"blocked={len(g.get('blocked') or [])} tools={g.get('tools')}")
-              if g.get("installed") and not g.get("loaded"):
-                  print(f"::warning::{path}: guard installed but no tool calls logged; Muse may not have loaded .muse/hooks.json")
-          PY
+        run: python -m agents.guard_evidence runs/agents-prove-live
       - name: Keep live Muse prove artifacts
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

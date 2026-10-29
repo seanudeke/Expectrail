@@ -24,6 +24,13 @@ DOTENV_KEYS = frozenset({
     "NIGHTSHIFT_OPEN_API_KEY",
     "NIGHTSHIFT_OPEN_API_BASE",
     "NIGHTSHIFT_OPEN_MODEL",
+    # Open weights: Muse Glimmer as the vision backend (agents.glimmer_client)
+    "NIGHTSHIFT_VISION_BACKEND",
+    "FIREWORKS_API_KEY",
+    "NIGHTSHIFT_GLIMMER_API_KEY",
+    "NIGHTSHIFT_GLIMMER_API_BASE",
+    "NIGHTSHIFT_GLIMMER_MODEL",
+    "NIGHTSHIFT_GLIMMER_COORDS",
 })
 
 # Muse Code subprocess: model key + runtime/TLS/temp/proxy hygiene — not a sandbox.
@@ -227,8 +234,25 @@ def require_separate_sam_key() -> None:
 
     if resolve_provider() != "sam":
         return
-    sam_key = os.environ.get("MODEL_API_KEY", "").strip()
+    from agents.sam_observations import SamError, vision_backend
+
     muse_key = os.environ.get("META_API_KEY", "").strip()
+    try:
+        backend = vision_backend()
+    except SamError as exc:
+        raise SystemExit(str(exc)) from None
+    if backend in ("glimmer", "both"):
+        from agents.glimmer_client import KEY_ENVS, api_key
+
+        glimmer = api_key()
+        if not glimmer:
+            raise SystemExit(f"NIGHTSHIFT_VISION_BACKEND={backend} needs one of {', '.join(KEY_ENVS)}")
+        if muse_key and glimmer == muse_key:
+            raise SystemExit("the Glimmer key is the same as META_API_KEY, which Muse Code (the fixer) "
+                             "receives; the verifier's vision key must be its own")
+        if backend == "glimmer":
+            return
+    sam_key = os.environ.get("MODEL_API_KEY", "").strip()
     if not sam_key:
         raise SystemExit("NIGHTSHIFT_OBS_PROVIDER=sam needs MODEL_API_KEY (a Meta Model API key for SAM)")
     if muse_key and sam_key == muse_key:

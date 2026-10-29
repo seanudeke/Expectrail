@@ -1,0 +1,186 @@
+# Run by hand: Muse Glimmer (open weights) as the frame-vision backend, measured on the same frames
+# SAM 3.1 was measured on. See docs/open-weights.md.
+#
+#   probe:  render the clean game and every seeded bug, ask Glimmer where the spec's objects are on
+#           a sample of frames, and post per-run results (annotations + run summary + artifact).
+#   verify: the Gate 1 path with the vision checks judged by `both` (SAM's boxes count only where
+#           Glimmer also sees the object; needs the SAM key too) or by Glimmer alone (measurement on
+#           known fixtures only). The real fix should be accepted and the hide-the-robot fix rejected.
+#           With HELDOUT_TOKEN set it includes the private held-out routes: their frames are sent to
+#           the vision endpoints as images, as SAM's are to Meta's API, and nothing from the held-out
+#           set is published (no artifact in this mode, only check results as annotations).
+#
+# Glimmer left Fireworks serverless on Sep 25, 2026, so it runs on an on-demand deployment: put its
+# accounts/<account>/deployments/<id> in the GLIMMER_MODEL repo variable (or the model input). A
+# deployment scaled to zero is woken first and may take a few minutes. See docs/open-weights.md.
+#
+# Needs the FIREWORKS_API_KEY repo secret (Glimmer on Fireworks), or GLIMMER_API_KEY with
+# `base` on our own vLLM / SGLang server, whose host must be in the GLIMMER_ALLOWED_HOST repo
+# variable. https only, so the key never travels in clear. Never runs on pull requests.
+name: Glimmer probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: probe (look at frames) or verify (Gate 1 path with Glimmer as the eyes)
+        type: choice
+        options: [probe, verify]
+        default: probe
+      spec:
+        description: probe mode, the test spec to probe with
+        default: specs/player-always-visible.json
+      every:
+        description: Look at every Nth frame (probe default 10; verify confirms every frame before a pass)
+        default: '10'
+      coords:
+        description: How Glimmer's boxes are read (pixels, or a 0-1000 / 0-1 grid if the probe shows that)
+        type: choice
+        options: [pixels, norm1000, norm1]
+        default: pixels
+      base:
+        description: OpenAI-compatible endpoint serving Glimmer
+        default: https://api.fireworks.ai/inference/v1
+      model:
+        description: "Model id at that endpoint, e.g. accounts/<account>/deployments/<id> (default: the GLIMMER_MODEL repo variable)"
+        default: ''
+      candidate:
+        description: verify mode, the candidate patch to verify
+        default: agents/fixtures/fix-collision-mask.patch
+      judge:
+        description: verify mode, both (SAM boxes counted only where Glimmer agrees) or glimmer alone (measurement only)
+        type: choice
+        options: [both, glimmer]
+        default: both
+
+permissions:
+  contents: read
+
+jobs:
+  glimmer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      GLIMMER_KEY_SET: ${{ secrets.FIREWORKS_API_KEY != '' || secrets.GLIMMER_API_KEY != '' }}
+      SAM_KEY_SET: ${{ secrets.MODEL_API_KEY != '' || secrets.META_API_KEY != '' }}
+      HELDOUT_TOKEN_SET: ${{ secrets.HELDOUT_TOKEN != '' }}
+      ALLOWED_HOST: ${{ vars.GLIMMER_ALLOWED_HOST }}
+      JUDGE: ${{ inputs.judge }}
+      MODE: ${{ inputs.mode }}
+      SPEC: ${{ inputs.spec }}
+      EVERY: ${{ inputs.every }}
+      COORDS: ${{ inputs.coords }}
+      BASE: ${{ inputs.base }}
+      MODEL: ${{ inputs.model || vars.GLIMMER_MODEL }}
+      CANDIDATE: ${{ inputs.candidate }}
+    steps:
+      - name: Require a Glimmer key secret and check the inputs
+        run: |
+          if [ "$GLIMMER_KEY_SET" != "true" ]; then
+            echo "::error::Set the FIREWORKS_API_KEY (or GLIMMER_API_KEY) repository secret first."
+            exit 1
+          fi
+          [[ "$EVERY" =~ ^[0-9]+$ ]] || { echo "::error::every must be a number"; exit 1; }
+          [[ "$BASE" =~ ^https://([A-Za-z0-9.-]+)(:[0-9]+)?(/[A-Za-z0-9._-]+)*/?$ ]] || { echo "::error::base must be an https URL"; exit 1; }
+          host="${BASH_REMATCH[1]}"
+          if [ "$host" != "api.fireworks.ai" ] && { [ -z "$ALLOWED_HOST" ] || [ "$host" != "$ALLOWED_HOST" ]; }; then
+            echo "::error::$host is not api.fireworks.ai or the GLIMMER_ALLOWED_HOST repo variable; the key is only sent to those"
+            exit 1
+          fi
+          if [ "$MODE" = "verify" ] && [ "$JUDGE" = "both" ] && [ "$SAM_KEY_SET" != "true" ]; then
+            echo "::error::judge=both needs the MODEL_API_KEY (or META_API_KEY) secret for SAM."
+            exit 1
+          fi
+          [ -n "$MODEL" ] || { echo "::error::set the GLIMMER_MODEL repo variable (accounts/<account>/deployments/<id>) or the model input"; exit 1; }
+          [[ "$MODEL" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "::error::model must be a model id"; exit 1; }
+          [[ "$SPEC" =~ ^specs/[A-Za-z0-9._-]+\.json$ ]] || { echo "::error::spec must be a file under specs/"; exit 1; }
+          [[ "$CANDIDATE" =~ ^agents/fixtures/[A-Za-z0-9._-]+\.patch$ ]] || { echo "::error::candidate must be a patch under agents/fixtures/"; exit 1; }
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt pillow==12.3.0
+      - name: Install a virtual display and software OpenGL
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri libglx-mesa0 patch
+      - name: Download Godot 4.7.2 and check its SHA-512
+        run: ./harness/get_godot.sh
+      - name: Fetch the private held-out set (verify mode, verifier side only)
+        if: env.HELDOUT_TOKEN_SET == 'true' && inputs.mode == 'verify'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: seanudeke/Nightshift-heldout
+          token: ${{ secrets.HELDOUT_TOKEN }}
+          path: heldout-set
+          persist-credentials: false
+      - name: Point the verifier at the held-out set
+        if: env.HELDOUT_TOKEN_SET == 'true' && inputs.mode == 'verify'
+        run: echo "NIGHTSHIFT_HELDOUT_DIR=$GITHUB_WORKSPACE/heldout-set" >> "$GITHUB_ENV"
+      - name: Probe - render the clean game and every seeded bug (no key in this step)
+        if: inputs.mode == 'probe'
+        run: python -m harness.check_seeded --out runs/seeded
+      - name: Probe - ask Glimmer what it sees
+        if: inputs.mode == 'probe'
+        env:
+          NIGHTSHIFT_VISION_BACKEND: glimmer
+          NIGHTSHIFT_GLIMMER_API_KEY: ${{ secrets.GLIMMER_API_KEY || secrets.FIREWORKS_API_KEY }}
+        run: |
+          [ -f "$SPEC" ] || { echo "::error::no spec $SPEC"; exit 1; }
+          export NIGHTSHIFT_GLIMMER_API_BASE="$BASE" NIGHTSHIFT_GLIMMER_MODEL="$MODEL" NIGHTSHIFT_GLIMMER_COORDS="$COORDS"
+          python -m agents.glimmer_client --warm --timeout 900
+          python -m agents.sam_probe --spec "$SPEC" --every "$EVERY" --out runs/glimmer-probe --runs runs/seeded/*/
+      - name: Verify - Gate 1 path with Glimmer in the vision checks
+        if: inputs.mode == 'verify'
+        env:
+          NIGHTSHIFT_OBS_PROVIDER: sam
+          NIGHTSHIFT_GLIMMER_API_KEY: ${{ secrets.GLIMMER_API_KEY || secrets.FIREWORKS_API_KEY }}
+          MODEL_API_KEY: ${{ secrets.MODEL_API_KEY || secrets.META_API_KEY }}
+        run: |
+          [ -f "$CANDIDATE" ] || { echo "::error::no candidate $CANDIDATE"; exit 1; }
+          export NIGHTSHIFT_GLIMMER_API_BASE="$BASE" NIGHTSHIFT_GLIMMER_MODEL="$MODEL" NIGHTSHIFT_GLIMMER_COORDS="$COORDS"
+          export NIGHTSHIFT_SAM_EVERY="$EVERY"
+          python -m agents.glimmer_client --warm --timeout 900
+          if [ "$JUDGE" = "glimmer" ]; then
+            # Measurement on a known fixture only: Glimmer alone never decides a real verdict.
+            export NIGHTSHIFT_VISION_BACKEND=glimmer NIGHTSHIFT_GLIMMER_ALONE=1
+          else
+            export NIGHTSHIFT_VISION_BACKEND=both
+          fi
+          set +e
+          python -m agents.gate1 --out runs/glimmer-verify --candidate-patch "$CANDIDATE"
+          echo "gate1 exit $?"
+          set -e
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          out = Path("runs/glimmer-verify/verify")
+          doc = json.loads((out / "verification.json").read_text())
+          rows = ", ".join(f"{c['kind']} {c['spec']} {c['result']}" for c in doc["checks"])
+          import os
+          print(f"::notice title=Glimmer verify decision::{doc['decision']} (judge {os.environ['NIGHTSHIFT_VISION_BACKEND']})")
+          print(f"::notice title=Glimmer verify checks::{rows}")
+          held = out / "verdict-held-out.json"
+          if held.is_file():
+              routes = json.loads(held.read_text()).get("routes", [])
+              per_spec = {}
+              for r in routes:
+                  for spec, result in (r.get("visuals") or {}).items():
+                      per_spec.setdefault(spec, []).append(result)
+              summary = "; ".join(f"{s}: {v.count('pass')}/{len(v)} routes pass" for s, v in per_spec.items())
+              print(f"::notice title=Glimmer verify held-out::{summary}")
+          for name in sorted(p.name for p in out.glob("observations-*-error.txt")):
+              text = " ".join((out / name).read_text().split()).replace("::", ": :")[:300]
+              print(f"::warning title=Glimmer verify error::{name}: {text}")
+          PY
+      - name: Show the probe in the run summary
+        if: always() && inputs.mode == 'probe'
+        run: |
+          if [ -f runs/glimmer-probe/probe.md ]; then cat runs/glimmer-probe/probe.md >> "$GITHUB_STEP_SUMMARY"; fi
+      - name: Keep the probe (probe mode only; verify mode publishes nothing from the held-out set)
+        if: always() && inputs.mode == 'probe'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: glimmer-probe
+          path: runs/glimmer-probe/
+          retention-days: 14
