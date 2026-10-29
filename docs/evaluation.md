@@ -97,5 +97,6 @@ screen comes from `bench/` and reruns with one command.
 ## Budget
 
 Twelve variants and three clean runs, three conditions, up to three repair attempts each. Each run
-renders 120 frames; SAM 3.1 sees a sample (for example every fourth frame, plus frames where the
-picture changes), not every frame. Decide the sample rate after Zayyad's first measurements.
+renders 120 frames; SAM 3.1 sees a sample — every fourth frame by default (`NIGHTSHIFT_SAM_EVERY`),
+refined to the exact frame when a sample fails, and every remaining frame confirmed before a pass, so
+a pass still rests on all 120. Decided October 28, after the first live measurements.
