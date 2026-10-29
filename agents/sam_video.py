@@ -211,10 +211,18 @@ def main(argv: list[str] | None = None) -> int:
     from agents.keys import load_dotenv
 
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    p.add_argument("runs", nargs="+", type=Path, help="public run directories with frames/")
-    p.add_argument("--spec", action="append", type=Path, required=True)
+    p.add_argument("runs", nargs="*", type=Path, help="public run directories with frames/")
+    p.add_argument("--spec", action="append", type=Path, default=[])
     p.add_argument("--out", type=Path, default=Path("runs/sam-video"))
+    p.add_argument("--summarize", nargs="+", type=Path, metavar="VIDEO_JSON",
+                   help="print one table from earlier runs' video.json files instead of sending anything")
     args = p.parse_args(argv)
+    if args.summarize:
+        rows = [row for path in args.summarize for row in json.loads(path.read_text(encoding="utf-8"))]
+        print(markdown(rows), end="")
+        return 0
+    if not args.runs or not args.spec:
+        p.error("give run directories and at least one --spec (or --summarize)")
     load_dotenv()
     specs = [load(s, "test-spec") for s in args.spec]
     args.out.mkdir(parents=True, exist_ok=True)
