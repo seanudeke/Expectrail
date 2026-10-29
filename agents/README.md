@@ -133,11 +133,20 @@ python3 -m agents.film_oct29 --out runs/oct29-film
 # CI job: agents-oct29-film (workflow_dispatch)
 ```
 
-## Gate 2 bench compare (scaffold)
+## Gate 2 bench compare (Muse screenshots vs Nightshift)
 
 ```sh
-# Nightshift arm + empty Muse-screenshots slot (no Meta spend)
+# Nightshift arm + Muse skipped (no Meta spend)
 python3 -m agents.bench_compare --out runs/bench-compare
+
+# Replay canned Muse transcript (CI / tests)
+python3 -m agents.bench_compare --out runs/bench-compare \
+  --fixture-muse agents/fixtures/muse-judge-accept.log
+
+# Live Muse Code screenshot judge (spends Meta credit)
+export META_API_KEY=LLM_…
+python3 -m agents.bench_compare --out runs/bench-compare --live-muse
+# → agreement agree|disagree in bench-compare.md; CI job agents-bench-compare-live
 ```
 
 ## Daily E2E (from Oct 28)
