@@ -338,7 +338,7 @@ jobs:
           set -e
           bench_json="runs/bench/${VARIANT//\//_}/bench.json"
           [[ -f "$bench_json" ]] && python -m agents.heldout_bench --annotate "$bench_json"
-          echo "::notice title=Held-out bench time ${VARIANT}::$(( $(date +%s) - start )) s"
+          echo "::notice title=Bench time ${VARIANT}::$(( $(date +%s) - start )) s"
           if [[ "$code" -ne 0 ]]; then
             echo "::error title=Held-out bench ${VARIANT}::the benchmark decided nothing or failed (exit $code); its log stays on the runner"
             exit "$code"
