@@ -1,0 +1,16 @@
+{
+  "format": "nightshift.route/v0",
+  "name": "coins",
+  "description": "Walk right through ground coins, jump through the coin arc, clear the enemy, and collect the second coin group. Four seconds at 60 ticks per second.",
+  "ticks": 240,
+  "seed": 1,
+  "events": [
+    {"tick": 10, "action": "move_right", "pressed": true},
+    {"tick": 45, "action": "jump", "pressed": true},
+    {"tick": 65, "action": "jump", "pressed": false},
+    {"tick": 110, "action": "jump", "pressed": true},
+    {"tick": 130, "action": "jump", "pressed": false},
+    {"tick": 200, "action": "move_right", "pressed": false}
+  ]
+}
+

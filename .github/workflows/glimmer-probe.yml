@@ -4,8 +4,10 @@
 #   probe:  render the clean game and every seeded bug, ask Glimmer where the spec's objects are on
 #           a sample of frames, and post per-run results (annotations + run summary + artifact).
 #   verify: the Gate 1 path with the vision checks judged by `both` (SAM's boxes count only where
-#           Glimmer also sees the object; needs the SAM key too) or by Glimmer alone (measurement on
-#           known fixtures only). The real fix should be accepted and the hide-the-robot fix rejected.
+#           Glimmer also sees the object; needs the SAM key too), by `glimmer-engine` (Glimmer's boxes
+#           count only where the game engine put that object; no SAM, its key is not passed), or by
+#           Glimmer alone (measurement on known fixtures only). The real fix should be accepted and
+#           the hide-the-robot fix rejected.
 #           With HELDOUT_TOKEN set it includes the private held-out routes: their frames are sent to
 #           the vision endpoints as images, as SAM's are to Meta's API, and nothing from the held-out
 #           set is published (no artifact in this mode, only check results as annotations).
@@ -34,10 +36,10 @@ on:
         description: Look at every Nth frame (probe default 10; verify confirms every frame before a pass)
         default: '10'
       coords:
-        description: How Glimmer's boxes are read (pixels, or a 0-1000 / 0-1 grid if the probe shows that)
+        description: How Glimmer's boxes are asked for and read (a 0-1000 grid, measured Oct 29; or pixels / 0-1)
         type: choice
-        options: [pixels, norm1000, norm1]
-        default: pixels
+        options: [norm1000, pixels, norm1]
+        default: norm1000
       base:
         description: OpenAI-compatible endpoint serving Glimmer
         default: https://api.fireworks.ai/inference/v1
@@ -48,9 +50,9 @@ on:
         description: verify mode, the candidate patch to verify
         default: agents/fixtures/fix-collision-mask.patch
       judge:
-        description: verify mode, both (SAM boxes counted only where Glimmer agrees) or glimmer alone (measurement only)
+        description: both (SAM boxes counted only where Glimmer agrees), glimmer-engine (Glimmer checked against the engine, no SAM; probe too), or glimmer alone (verify, measurement only)
         type: choice
-        options: [both, glimmer]
+        options: [both, glimmer-engine, glimmer]
         default: both
 
 permissions:
@@ -117,6 +119,15 @@ jobs:
       - name: Point the verifier at the held-out set
         if: env.HELDOUT_TOKEN_SET == 'true' && inputs.mode == 'verify'
         run: echo "NIGHTSHIFT_HELDOUT_DIR=$GITHUB_WORKSPACE/heldout-set" >> "$GITHUB_ENV"
+      - name: Check the Glimmer deployment, and restore its scaling after a suspension
+        # A suspended account (out of credits) comes back with the deployment at 0-0 replicas and a
+        # 60-minute scale-to-zero window. This puts back min 0 / max 1 / 15 minutes through Fireworks'
+        # API (only those fields), so a run after a top-up does not need a dashboard edit first.
+        env:
+          NIGHTSHIFT_GLIMMER_API_KEY: ${{ secrets.GLIMMER_API_KEY || secrets.FIREWORKS_API_KEY }}
+        run: |
+          [[ "$BASE" =~ ^https://api\.fireworks\.ai(/|$) ]] || { echo "not Fireworks: nothing to check"; exit 0; }
+          python -m agents.fireworks_deployment --restore --model "$MODEL"
       - name: Wake the Glimmer deployment (its own step, so its notice does not crowd out results)
         env:
           NIGHTSHIFT_GLIMMER_API_KEY: ${{ secrets.GLIMMER_API_KEY || secrets.FIREWORKS_API_KEY }}
@@ -129,7 +140,8 @@ jobs:
       - name: Probe - ask Glimmer what it sees
         if: inputs.mode == 'probe'
         env:
-          NIGHTSHIFT_VISION_BACKEND: glimmer
+          # judge glimmer-engine: report how many of Glimmer's boxes agree with the engine (and judge by those)
+          NIGHTSHIFT_VISION_BACKEND: ${{ inputs.judge == 'glimmer-engine' && 'glimmer-engine' || 'glimmer' }}
           NIGHTSHIFT_GLIMMER_API_KEY: ${{ secrets.GLIMMER_API_KEY || secrets.FIREWORKS_API_KEY }}
         run: |
           [ -f "$SPEC" ] || { echo "::error::no spec $SPEC"; exit 1; }
@@ -148,6 +160,11 @@ jobs:
           if [ "$JUDGE" = "glimmer" ]; then
             # Measurement on a known fixture only: Glimmer alone never decides a real verdict.
             export NIGHTSHIFT_VISION_BACKEND=glimmer NIGHTSHIFT_GLIMMER_ALONE=1
+          elif [ "$JUDGE" = "glimmer-engine" ]; then
+            # Open weights only: Glimmer checked against the engine. SAM's key is not passed, so
+            # nothing in this run can have used SAM.
+            export NIGHTSHIFT_VISION_BACKEND=glimmer-engine
+            unset MODEL_API_KEY
           else
             export NIGHTSHIFT_VISION_BACKEND=both
           fi
@@ -188,6 +205,19 @@ jobs:
               kinds[("harness", "harness run failed")] = kinds.get(("harness", "harness run failed"), 0) + 1
           for (spec, kind), n in sorted(kinds.items()):
               print(f"::warning title=Glimmer verify held-out error::{spec}: {kind}, {n} route(s)")
+          # glimmer-engine: how many of Glimmer's boxes the engine check kept and dropped (counts only;
+          # held-out routes summed, so nothing about a single held-out frame is published).
+          tally = {}
+          docs = [(p.stem.removeprefix("observations-"), p) for p in out.glob("observations-*.json")]
+          docs += [("held-out", p) for p in (out / "held-out").glob("*/observations-*.json")]
+          for where, p in docs:
+              ec = json.loads(p.read_text(encoding="utf-8")).get("model", {}).get("engineCheck")
+              for name in (ec or {}).get("kept", {}):
+                  k, d = tally.get((where, name), (0, 0))
+                  tally[(where, name)] = (k + ec["kept"][name], d + ec["dropped"][name])
+          if tally:
+              print("::notice title=Glimmer engine check::" + "; ".join(
+                  f"{where} {name} kept {k} dropped {d}" for (where, name), (k, d) in sorted(tally.items())))
           PY
       - name: Show the probe in the run summary
         if: always() && inputs.mode == 'probe'

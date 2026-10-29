@@ -1,0 +1,20 @@
+{
+  "format": "nightshift.route/v0",
+  "name": "traversal",
+  "description": "Ascend onto elevated platforms, cross upper terrain with layering checks, and stop. Six seconds at 60 ticks per second.",
+  "ticks": 360,
+  "seed": 1,
+  "events": [
+    {"tick": 10, "action": "move_right", "pressed": true},
+    {"tick": 30, "action": "jump", "pressed": true},
+    {"tick": 55, "action": "jump", "pressed": false},
+    {"tick": 80, "action": "jump", "pressed": true},
+    {"tick": 105, "action": "jump", "pressed": false},
+    {"tick": 150, "action": "jump", "pressed": true},
+    {"tick": 175, "action": "jump", "pressed": false},
+    {"tick": 240, "action": "move_right", "pressed": false},
+    {"tick": 260, "action": "move_left", "pressed": true},
+    {"tick": 310, "action": "move_left", "pressed": false}
+  ]
+}
+

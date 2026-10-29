@@ -35,6 +35,12 @@ def find_godot() -> Path:
     env = os.environ.get("NIGHTSHIFT_GODOT")
     if env:
         return Path(env)
+    if sys.platform == "darwin":
+        mac_binary = REPO / "tools" / "godot_mac" / "Godot.app" / "Contents" / "MacOS" / "Godot"
+        if mac_binary.is_file():
+            return mac_binary
+        out = subprocess.run([str(REPO / "harness" / "macos" / "get_godot_mac.sh")], check=True, capture_output=True, text=True)
+        return Path(out.stdout.strip().splitlines()[-1])
     out = subprocess.run([str(REPO / "harness" / "get_godot.sh")], check=True, capture_output=True, text=True)
     return Path(out.stdout.strip().splitlines()[-1])
 
@@ -146,7 +152,7 @@ def prepare(game: Path, work: Path, patch: Path | None = None, patches: list[Pat
 
 def godot_cmd(godot: Path, display: bool) -> list[str]:
     cmd = [str(godot)]
-    if not display:
+    if not display and sys.platform != "darwin":
         cmd = ["xvfb-run", "-a", "-s", "-screen 0 1920x1080x24"] + cmd
     return cmd
 

@@ -241,7 +241,7 @@ def require_separate_sam_key() -> None:
         backend = vision_backend()
     except SamError as exc:
         raise SystemExit(str(exc)) from None
-    if backend in ("glimmer", "both"):
+    if backend in ("glimmer", "both", "glimmer-engine"):
         from agents.glimmer_client import KEY_ENVS, api_key
 
         glimmer = api_key()
@@ -250,7 +250,7 @@ def require_separate_sam_key() -> None:
         if muse_key and glimmer == muse_key:
             raise SystemExit("the Glimmer key is the same as META_API_KEY, which Muse Code (the fixer) "
                              "receives; the verifier's vision key must be its own")
-        if backend == "glimmer":
+        if backend in ("glimmer", "glimmer-engine"):
             return
     sam_key = os.environ.get("MODEL_API_KEY", "").strip()
     if not sam_key:

@@ -173,6 +173,40 @@ def engine_objects_for(run: Path, name: str, frames: dict, chosen: list[int],
     return {i: {name: by_frame.get(i, {}).get("ground", [])} for i in chosen}
 
 
+def engine_fit(raw: dict[int, dict], refs: dict[int, dict], name: str = "player") -> dict | None:
+    """How Glimmer's coordinates map onto the engine's, from frames with one engine box and an answer.
+
+    Least squares per axis on box centres (engine = a * glimmer + b), plus the median size ratio.
+    a = 1, b = 0 means Glimmer answers in frame pixels; a = 1.6 on x and 0.96 on y (for a 1600x960
+    frame), b = 0, means a 0-1000 grid. Calibration only: nothing here changes a verdict.
+    """
+    pairs = []
+    for i, objects in sorted(raw.items()):
+        answers, placed = objects.get(name) or [], (refs.get(i) or {}).get(name) or []
+        if len(placed) != 1 or not answers:
+            continue
+        g = max(answers, key=lambda d: d["score"])["box"]
+        pairs.append((i, g, placed[0]))
+    if len(pairs) < 3:
+        return None
+
+    def axis(k: int) -> dict:
+        xs = [(g[k] + g[k + 2]) / 2 for _, g, _ in pairs]
+        ys = [(e[k] + e[k + 2]) / 2 for _, _, e in pairs]
+        mx, my = statistics.fmean(xs), statistics.fmean(ys)
+        var = sum((x - mx) ** 2 for x in xs)
+        a = sum((x - mx) * (y - my) for x, y in zip(xs, ys)) / var if var > 1e-9 else float("nan")
+        b = my - a * mx if var > 1e-9 else my - mx
+        worst = max(abs(y - (a * x + b)) for x, y in zip(xs, ys)) if var > 1e-9 else None
+        return {"a": round(a, 3), "b": round(b, 1), "worstResidual": None if worst is None else round(worst, 1),
+                "meanOffset": round(my - mx, 1), "meanRatio": round(my / mx, 3) if mx else None}
+
+    ratio = lambda k: statistics.median((e[k + 2] - e[k]) / max(g[k + 2] - g[k], 1e-9) for _, g, e in pairs)  # noqa: E731
+    return {"object": name, "frames": len(pairs), "x": axis(0), "y": axis(1),
+            "sizeRatio": {"w": round(ratio(0), 2), "h": round(ratio(1), 2)},
+            "examples": [{"frame": i, "glimmer": g, "engine": e} for i, g, e in pairs[:3]]}
+
+
 def probe_run(run: Path, spec: dict, picked: list[int] | None, every: int, client, cache, workers: int,
               out: Path | None, engine_ground: str | None = None, reference: list | None = None) -> dict:
     frames = frame_files(run / "frames")
@@ -183,14 +217,31 @@ def probe_run(run: Path, spec: dict, picked: list[int] | None, every: int, clien
     engine = engine_objects_for(run, engine_ground, frames, chosen, reference) if engine_ground else {}
     prompts = {name: obj["prompt"] for name, obj in spec["objects"].items() if not (engine and name == engine_ground)}
     observed = observe(frames, chosen, prompts, client, cache, workers)
+    check = None
+    if getattr(client, "engine_checked", False):
+        # As in the verifier: Glimmer's boxes count only where the engine placed that object.
+        from agents.engine_check import check_for_trace
+
+        try:
+            trace = json.loads((run / "trace.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            raise SamError(f"{run.name}: the engine check needs trace.json ({type(exc).__name__})") from exc
+        check = check_for_trace(trace, chosen)
+        fit = engine_fit(observed, check.refs)
+        observed = check(observed)
     for i, objs in engine.items():
         observed[i].update(objs)
     replay = run / "replay.json"
     doc = _document(observed, prompts, client.model, sha256_bytes(replay) if replay.is_file() else "0" * 64,
-                    len(frames), len(indices), every, [], 0, engine, getattr(client, "provider", "meta-model-api"))
+                    len(frames), len(indices), every, [], 0, engine, getattr(client, "provider", "meta-model-api"),
+                    check.summary() if check is not None else None)
     verdict = evaluate(spec, doc)
     result = {"run": run.name, "framesProbed": chosen, "verdict": {k: verdict[k] for k in ("result", "reason")},
               "objects": object_metrics(spec, observed), "observations": doc}
+    if check is not None:
+        result["engineCheck"] = check.summary()
+        if fit is not None:
+            result["engineFit"] = fit
     if spec["assertion"]["type"] == "never-crosses":
         floor = on_floor_by_frame(run)
         gaps = []
@@ -253,9 +304,9 @@ def markdown(spec: dict, runs: list[dict], hint: dict | None, model: str, stats:
 
 
 def _label() -> str:
-    """Which model the probe is about, for titles: SAM, or Glimmer with NIGHTSHIFT_VISION_BACKEND=glimmer."""
+    """Which model the probe is about, for titles: SAM, Glimmer, or Glimmer checked against the engine."""
     try:
-        return "Glimmer" if vision_backend() == "glimmer" else "SAM"
+        return {"glimmer": "Glimmer", "glimmer-engine": "Glimmer+engine"}.get(vision_backend(), "SAM")
     except SamError:
         return "SAM"
 
@@ -285,6 +336,19 @@ def annotations(report: dict) -> list[str]:
                             if s else ""))
         if run.get("gaps"):
             parts.append("gaps " + " ".join(f"{g['frame']}:{_num(g['gap'])}" for g in run["gaps"]))
+        if run.get("engineCheck"):
+            ec = run["engineCheck"]
+            parts.append("engine check " + " ".join(f"{n} kept {ec['kept'][n]} dropped {ec['dropped'][n]}"
+                                                    for n in ec["kept"]))
+        fit = run.get("engineFit")
+        if fit:
+            parts.append(f"fit {fit['object']} over {fit['frames']} frames: engine x = {fit['x']['a']} * glimmer x + "
+                         f"{fit['x']['b']} (worst {_num(fit['x']['worstResidual'])}), engine y = {fit['y']['a']} * "
+                         f"glimmer y + {fit['y']['b']} (worst {_num(fit['y']['worstResidual'])}); mean offset "
+                         f"{fit['x']['meanOffset']},{fit['y']['meanOffset']}; mean ratio "
+                         f"{_num(fit['x']['meanRatio'])},{_num(fit['y']['meanRatio'])}; size ratio engine/glimmer "
+                         f"{fit['sizeRatio']['w']}x{fit['sizeRatio']['h']}; e.g. "
+                         + " ".join(f"f{e['frame']} glimmer {e['glimmer']} engine {e['engine']}" for e in fit["examples"]))
         lines.append(f"::notice title={_label()} probe {run['run']}::{_escape('; '.join(parts))}")
     hint, stats = report.get("tolerance") or {}, report.get("stats", {})
     calls = stats.get("calls") or 0
