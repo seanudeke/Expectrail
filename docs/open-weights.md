@@ -115,8 +115,9 @@ measured on (docs/sam.md, SAM every 4th frame):
 | `coins-visible` (gold coin) | pass, 13/13, 10 to 14 coins a frame | missing-texture v1, v2: fail (0/13); every robot bug: pass | 11 to 16 coins a frame; missing-texture 0/13 |
 
 Runs 40904213270 (robot) and 40915470775 (coins). Glimmer misses the robot in about the same share
-of frames as SAM on each bug, and raised no false alarm on the clean run. Its robot box is about
-70x140 pixels against SAM's 95x118, so it answers in pixels (`coords=pixels`).
+of frames as SAM on each bug, and raised no false alarm on the clean run. These runs read its boxes
+as pixels, which was wrong (see "Coordinates" below); under `both` only whether Glimmer saw the
+object counted, not where, so the verdicts above stand.
 
 Verify mode, judge `both`, every 4th frame, with the four private held-out routes:
 
@@ -144,12 +145,16 @@ passes a check: it stops at needs-review, so the cost of one is a re-run, not a 
   to that number, but it is not a margin the way SAM's scores are. Another reason `both` is the judge.
 - **Speed.** 3.2 s a call with one run on the deployment, 12.2 s with three runs sharing one replica.
   A verify run with `both` took about 35 to 40 minutes, alone or shared.
-- **Coordinates.** The prompt asks for pixels of the image. If the probe shows Glimmer answering on
-  a 0-1000 grid, set `NIGHTSHIFT_GLIMMER_COORDS=norm1000`. Boxes with corners in the wrong order, or
-  more than 2% of the frame outside it, are refused (needs-review); a box a few pixels past an edge
-  is clipped to it. A grid mismatch is not always detectable from one answer (on a 1600x960 frame, a
-  0-1000 box also looks like pixels), which is why the probe compares Glimmer's boxes with SAM's on
-  the same frames first.
+- **Coordinates (measured, Oct 29).** Glimmer answers on a 0-1000 grid over the image even when the
+  prompt asks for pixels. Fitting its robot boxes against the engine's position on every probed
+  frame (run 40936605897), its x came out 1.58 to 1.60 times smaller than the frame's pixels and its
+  y 0.95 to 0.99 times: 1600/1000 and 960/1000. Converted, clean frame 0 reads [752, 662, 856, 797]
+  against the engine's [760, 660, 840, 780]. Size alone had not shown it (on a 1600x960 frame a
+  0-1000 box looks like pixels), which is how the earlier probes got it wrong. The prompt now asks for
+  the 0-1000 grid and `NIGHTSHIFT_GLIMMER_COORDS` defaults to `norm1000`. Boxes with corners in the
+  wrong order, or more than 2% of the frame outside it, are refused (needs-review); read as pixels,
+  a 0-1000 box near the bottom edge (y up to 1000 on a 960-pixel frame) was refused this way, which
+  may be what stopped the one held-out coins check in run 40915475383.
 
 ## What is not built yet
 
