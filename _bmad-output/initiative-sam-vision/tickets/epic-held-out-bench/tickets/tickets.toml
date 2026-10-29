@@ -21,7 +21,7 @@ covers = ["R1", "R2"]
 after = [1]
 hitl = true
 risk = "high"
-unknown = "Who owns the Meta billing fix for HTTP 402 billing_not_configured, and does the job resolve MODEL_API_KEY or fall back to META_API_KEY?"
+unknown = "Only a human with access to the Meta team can fix this: both secrets were probed on Oct 29 (runs 40800572513 MODEL_API_KEY-first, 40800924166 META_API_KEY-only) and both return the identical HTTP 402 billing_not_configured for team_id 1548138767354037. The fix is https://dev.meta.ai/billing/?team_id=1548138767354037 — resolve the team's billing issue there, then rerun."
 
 [[entry]]
 id = 4
@@ -44,7 +44,7 @@ covers = ["R1", "R2"]
 after = [2, 4]
 hitl = false
 risk = "medium"
-unknown = "About 32k sam-3.1 requests with no cache carried between dispatches: is that spend approved, and at what concurrency?"
+unknown = "Spend is approved (user, Oct 28); concurrency was not stated, so the workflow's own matrix defaults stand. What remains is the SAM key: HTTP 402 billing_not_configured until the Meta team's billing is fixed (see 1.2)."
 
 [[entry]]
 id = 5
