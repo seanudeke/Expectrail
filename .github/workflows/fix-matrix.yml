@@ -154,10 +154,14 @@ jobs:
           from pathlib import Path
           from agents.sandbox import _bwrap_cmd
           from agents.keys import muse_subprocess_env
+          from agents.guard import install_guard
           work = Path("/tmp/diag-work")
-          for label, with_muse_dir in (("with .muse", True), ("without .muse", False)):
-              if not with_muse_dir and (work / ".muse").exists():
-                  import shutil; shutil.rmtree(work / ".muse")
+          for label, with_muse_dir in (("with the real guard", True), ("without .muse", False)):
+              import shutil
+              if (work / ".muse").exists():
+                  shutil.rmtree(work / ".muse")
+              if with_muse_dir:
+                  install_guard(work, ["player/**"], root_as_muse_sees_it="/fixer")
               cmd = _bwrap_cmd(work, ["muse", "exec", "--disable-approval", "--trust-workspace", "Reply with the word ok."], network=True)
               st = Path(f"/tmp/st-{with_muse_dir}.txt")
               proc = subprocess.run(["strace", "-f", "-e", "trace=mkdir,mkdirat,openat,rename,renameat2", "-o", str(st)] + cmd,
