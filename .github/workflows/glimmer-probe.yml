@@ -218,6 +218,16 @@ jobs:
           if tally:
               print("::notice title=Glimmer engine check::" + "; ".join(
                   f"{where} {name} kept {k} dropped {d}" for (where, name), (k, d) in sorted(tally.items())))
+          gaps = {}
+          for where, p in docs:
+              ec = json.loads(p.read_text(encoding="utf-8")).get("model", {}).get("engineCheck") or {}
+              for name, q in (ec.get("droppedGap") or {}).items():
+                  if where != "held-out":  # quantiles only from the dev routes; held-out frames stay private
+                      gaps[(where, name)] = q
+          if gaps:
+              print("::notice title=Glimmer engine check misses::" + "; ".join(
+                  f"{where} {name} p50 {q['p50']} p75 {q['p75']} p90 {q['p90']} (object sizes), at centre {q['atCentre']}"
+                  for (where, name), q in sorted(gaps.items())))
           PY
       - name: Show the probe in the run summary
         if: always() && inputs.mode == 'probe'

@@ -36,6 +36,29 @@ def agrees(box: list[float], ref: list[float], max_ratio: float = MAX_SIZE_RATIO
     return (box[2] - box[0]) <= max_ratio * (ref[2] - ref[0]) and (box[3] - box[1]) <= max_ratio * (ref[3] - ref[1])
 
 
+def miss_gap(box: list[float], refs: list[list[float]]) -> float:
+    """How far a box missed the nearest engine object, in that object's sizes; inf with no object.
+
+    0 means it contains the centre (it was dropped for its size); 0.5 means the centre is half the
+    object's width or height outside the box. Calibration only: the rule itself is agrees().
+    """
+    best = float("inf")
+    for ref in refs:
+        cx, cy = (ref[0] + ref[2]) / 2, (ref[1] + ref[3]) / 2
+        w, h = max(ref[2] - ref[0], 1e-9), max(ref[3] - ref[1], 1e-9)
+        gx = max(box[0] - cx, 0.0, cx - box[2]) / w
+        gy = max(box[1] - cy, 0.0, cy - box[3]) / h
+        best = min(best, max(gx, gy))
+    return best
+
+
+def _quantiles(values: list[float]) -> dict:
+    finite = sorted(v for v in values if v != float("inf"))
+    pick = lambda q: round(finite[min(len(finite) - 1, int(q * len(finite)))], 2) if finite else None  # noqa: E731
+    return {"n": len(values), "noObject": len(values) - len(finite), "p25": pick(0.25), "p50": pick(0.5),
+            "p75": pick(0.75), "p90": pick(0.9), "atCentre": sum(1 for v in finite if v == 0.0)}
+
+
 class EngineCheck:
     """Filters {frame: {object: detections}} against {frame: {object: engine boxes}}; counts what it drops.
 
@@ -47,6 +70,7 @@ class EngineCheck:
         self.refs = refs
         self.kept: dict[str, int] = {}
         self.dropped: dict[str, int] = {}
+        self.gaps: dict[str, list[float]] = {}  # per dropped box: how far it missed, in object sizes
 
     def __call__(self, observed: dict[int, dict]) -> dict[int, dict]:
         out: dict[int, dict] = {}
@@ -61,6 +85,9 @@ class EngineCheck:
                                    "so Glimmer's boxes for it cannot be checked")
                 refs = self.refs[i][name]
                 keep = [d for d in detections if any(agrees(d["box"], r) for r in refs)]
+                for d in detections:
+                    if d not in keep:
+                        self.gaps.setdefault(name, []).append(miss_gap(d["box"], refs))
                 out[i][name] = keep
                 self.kept[name] = self.kept.get(name, 0) + len(keep)
                 self.dropped[name] = self.dropped.get(name, 0) + len(detections) - len(keep)
@@ -68,8 +95,12 @@ class EngineCheck:
 
     def summary(self) -> dict:
         names = sorted(set(self.kept) | set(self.dropped))
-        return {"rule": RULE, "kept": {n: self.kept.get(n, 0) for n in names},
-                "dropped": {n: self.dropped.get(n, 0) for n in names}}
+        out = {"rule": RULE, "kept": {n: self.kept.get(n, 0) for n in names},
+               "dropped": {n: self.dropped.get(n, 0) for n in names}}
+        gaps = {n: _quantiles(g) for n, g in sorted(self.gaps.items()) if g}
+        if gaps:
+            out["droppedGap"] = gaps
+        return out
 
 
 def check_for_trace(trace: dict | None, frames: list[int], fps: int = 60) -> EngineCheck:
