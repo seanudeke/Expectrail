@@ -1,0 +1,276 @@
+{
+  "format": "nightshift.fix-matrix-bench/v0",
+  "set": "dev",
+  "runs": [
+    {
+      "run": 40916077549,
+      "runUrl": "https://github.com/seanudeke/Nightshift/actions/runs/40916077549",
+      "commit": "7cca77a30a38f0d92e6fa4918bc38d4bfb9a775b",
+      "date": "2026-10-29T16:54:01Z"
+    },
+    {
+      "run": 40927304209,
+      "runUrl": "https://github.com/seanudeke/Nightshift/actions/runs/40927304209",
+      "commit": "444e9c833d3b98ad7482c47dfd81e1fd1fb8ac42",
+      "date": "2026-10-29T18:04:17Z"
+    },
+    {
+      "run": 40927316337,
+      "runUrl": "https://github.com/seanudeke/Nightshift/actions/runs/40927316337",
+      "commit": "444e9c833d3b98ad7482c47dfd81e1fd1fb8ac42",
+      "date": "2026-10-29T18:04:21Z"
+    }
+  ],
+  "conditions": {
+    "screenshots": {
+      "fixed": 8,
+      "not-fixed": 0,
+      "not-detected": 0,
+      "needs-review": 0,
+      "error": 0,
+      "cases": 8,
+      "firstAttemptFixes": 8
+    },
+    "nightshift": {
+      "fixed": 8,
+      "not-fixed": 0,
+      "not-detected": 0,
+      "needs-review": 0,
+      "error": 0,
+      "cases": 8,
+      "firstAttemptFixes": 7
+    }
+  },
+  "rows": [
+    {
+      "case": "dev/layering/v1",
+      "condition": "nightshift",
+      "run": 40916077549,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 970.6,
+      "live": true
+    },
+    {
+      "case": "dev/layering/v1",
+      "condition": "screenshots",
+      "run": 40916077549,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 1064.9,
+      "live": true
+    },
+    {
+      "case": "dev/layering/v2",
+      "condition": "nightshift",
+      "run": 40927316337,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 592.8,
+      "live": true,
+      "replaces": {
+        "run": 40916077549,
+        "outcome": "error"
+      }
+    },
+    {
+      "case": "dev/layering/v2",
+      "condition": "screenshots",
+      "run": 40916077549,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 1382.7,
+      "live": true
+    },
+    {
+      "case": "dev/missing-texture/v1",
+      "condition": "nightshift",
+      "run": 40916077549,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 1003.4,
+      "live": true
+    },
+    {
+      "case": "dev/missing-texture/v1",
+      "condition": "screenshots",
+      "run": 40916077549,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 557.4,
+      "live": true
+    },
+    {
+      "case": "dev/missing-texture/v2",
+      "condition": "nightshift",
+      "run": 40916077549,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 1181.2,
+      "live": true
+    },
+    {
+      "case": "dev/missing-texture/v2",
+      "condition": "screenshots",
+      "run": 40916077549,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 523.3,
+      "live": true
+    },
+    {
+      "case": "dev/physics-fall-through/v1",
+      "condition": "nightshift",
+      "run": 40916077549,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 747.2,
+      "live": true
+    },
+    {
+      "case": "dev/physics-fall-through/v1",
+      "condition": "screenshots",
+      "run": 40916077549,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 615.1,
+      "live": true
+    },
+    {
+      "case": "dev/physics-fall-through/v2",
+      "condition": "nightshift",
+      "run": 40916077549,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 758.9,
+      "live": true
+    },
+    {
+      "case": "dev/physics-fall-through/v2",
+      "condition": "screenshots",
+      "run": 40916077549,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 925.9,
+      "live": true
+    },
+    {
+      "case": "dev/sinking/v1",
+      "condition": "nightshift",
+      "run": 40927304209,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 2,
+      "attempts": [
+        "timeout",
+        "accept"
+      ],
+      "seconds": 2163.2,
+      "live": true,
+      "replaces": {
+        "run": 40916077549,
+        "outcome": "error"
+      }
+    },
+    {
+      "case": "dev/sinking/v1",
+      "condition": "screenshots",
+      "run": 40927304209,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 1338.3,
+      "live": true,
+      "replaces": {
+        "run": 40916077549,
+        "outcome": "error"
+      }
+    },
+    {
+      "case": "dev/sinking/v2",
+      "condition": "nightshift",
+      "run": 40927304209,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 1400.2,
+      "live": true,
+      "replaces": {
+        "run": 40916077549,
+        "outcome": "error"
+      }
+    },
+    {
+      "case": "dev/sinking/v2",
+      "condition": "screenshots",
+      "run": 40927304209,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 1350.1,
+      "live": true,
+      "replaces": {
+        "run": 40916077549,
+        "outcome": "error"
+      }
+    }
+  ],
+  "rule": "first non-error result per case and condition, in run order"
+}
