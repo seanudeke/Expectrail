@@ -1,12 +1,12 @@
 ---
 title: "The docs say what the runs show"
 ticket: 2
-status: built
+status: in-review
 ---
 
 ## Built
 
-On `main`:
+On branches `docs/sam-run-truth` (PR #41) and `bmad/sam-vision-plan` (PR #42):
 
 - `docs/sam.md`: the claim that the held-out routes have not been probed with SAM is replaced by the
   runs that did it (40698021243 on one route, 40714948968 to 40714993165 on all four), and says the

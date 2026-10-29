@@ -1,12 +1,12 @@
 ---
 title: "A benchmark run that decided nothing fails the job"
 ticket: 1
-status: built
+status: in-review
 ---
 
 ## Built
 
-On branch `bench/heldout-detection`, commit `71f7042` (local, not pushed):
+On branch `bench/heldout-detection`, commit `71f7042`, pushed to PR #39:
 
 - `agents/heldout_bench.py`: `main()` exits 1 when the decisive verdict is needs-review (SAM on:
   `caughtWithSamOn`; SAM off: `caughtWithSamOff`), and `annotation()` reports each reason as `::error`
@@ -19,5 +19,4 @@ On branch `bench/heldout-detection`, commit `71f7042` (local, not pushed):
 ## Not verified
 
 The story's dispatch check needs a `heldout-bench` run with a set-but-garbage `MODEL_API_KEY`, which
-needs write access to the `seanudeke/Nightshift` secrets. Nothing was pushed and nothing was
-dispatched.
+needs write access to the `seanudeke/Nightshift` secrets. Nothing was dispatched.
