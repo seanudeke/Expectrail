@@ -132,6 +132,26 @@ class MatrixTest(unittest.TestCase):
         row = self.case("screenshots")  # the screenshots condition is told about the bug regardless
         self.assertEqual(row["outcome"], "fixed")
 
+    def test_a_timed_out_attempt_is_an_attempt_and_its_edits_are_verified(self):
+        calls = []
+
+        def slow_muse(prompt, *, work, **_kw):
+            calls.append(prompt)
+            if len(calls) == 1:  # ran out of time before changing anything
+                raise subprocess.TimeoutExpired(["muse"], 900, output=b"thinking", stderr=b"")
+            scene = work / "player" / "player.tscn"
+            scene.write_text(scene.read_text() + "\n; edited before the clock ran out\n")
+            raise subprocess.TimeoutExpired(["muse"], 900, output="partial", stderr=None)
+
+        self.verdicts = ["accept"]
+        with mock.patch.object(fixer, "run_muse_sandboxed", side_effect=slow_muse):
+            row = self.case("nightshift")
+        self.assertEqual(row["outcome"], "fixed")
+        self.assertEqual([a["decision"] for a in row["attempts"]], ["timeout", "accept"])
+        self.assertTrue(all(a.get("timedOut") for a in row["attempts"]))
+        self.assertIn("edited before the clock ran out", self.verifies[0]["patch"])
+        self.assertIn("ran out of time", calls[1])  # the reason reaches the next attempt (Nightshift)
+
     def test_budget_runs_out_without_an_accept(self):
         self.verdicts = ["reject", "reject", "reject"]
         row = self.case("nightshift")

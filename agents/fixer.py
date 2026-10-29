@@ -17,6 +17,7 @@ import argparse
 import hashlib
 import json
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -82,6 +83,12 @@ build is already applied in this workspace.
 
 Attempt {attempt} of {request['budget']['attempts']}.
 """
+
+
+def _text(value: str | bytes | None) -> str:
+    if value is None:
+        return ""
+    return value.decode("utf-8", errors="replace") if isinstance(value, bytes) else value
 
 
 def prompt_sha256(prompt: str) -> str:
@@ -199,6 +206,7 @@ def run_fixer(
     sandbox_meta: dict | None = None
     guard_meta: dict | None = None
     muse_exit: int | None = None
+    timed_out = False
     empty = False
     if candidate_patch is not None:
         text = candidate_patch.read_text(encoding="utf-8")
@@ -248,14 +256,22 @@ def run_fixer(
                 work, request["editable"],
                 root_as_muse_sees_it=muse_workspace_root(work, muse_kind_for(detected)),
             )
-        proc, sandbox_meta = run_muse_sandboxed(
-            prompt,
-            work=work,
-            env=env,
-            timeout=timeout,
-            require_sandbox=require_sandbox,
-            detected=detected,
-        )
+        try:
+            proc, sandbox_meta = run_muse_sandboxed(
+                prompt,
+                work=work,
+                env=env,
+                timeout=timeout,
+                require_sandbox=require_sandbox,
+                detected=detected,
+            )
+        except subprocess.TimeoutExpired as exc:
+            # The attempt's time is up. Whatever Muse already changed is still diffed below and
+            # verified like any candidate; the caller counts the attempt either way.
+            timed_out = True
+            proc = subprocess.CompletedProcess(exc.cmd, None, _text(exc.stdout), _text(exc.stderr))
+            sandbox_meta = {"kind": muse_kind_for(detected), "requireSandbox": require_sandbox,
+                            "detect": detected, "timedOut": True, "timeoutSeconds": timeout}
         (out / "muse.log").write_text(proc.stdout + "\n" + proc.stderr, encoding="utf-8")
         muse_exit = proc.returncode
         (out / "sandbox.json").write_text(json.dumps(sandbox_meta, indent=2) + "\n", encoding="utf-8")
@@ -298,6 +314,8 @@ def run_fixer(
         meta.update(prompt_meta)
     if muse_exit is not None:
         meta["museExit"] = muse_exit
+    if timed_out:
+        meta["timedOut"] = True
     if sandbox_meta:
         meta["sandbox"] = sandbox_meta
     if guard_meta is not None:
