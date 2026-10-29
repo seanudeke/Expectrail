@@ -159,6 +159,45 @@ class BwrapGuardTest(unittest.TestCase):
             self.assertEqual(cmd[i:i + 3], ["--ro-bind", str((work / ".muse").resolve()), "/fixer/.muse"])
             self.assertLess(cmd.index("--bind"), i)  # the read-only mount lands on top of the workspace
 
+    def test_bwrap_never_mounts_the_hosts_local_dirs(self):
+        # Muse Code 1.4 writes its sessions under ~/.local/share/muse; once Godot has created the
+        # host's ~/.local/share, a read-only bind of it made every Muse run fail (fix-matrix pilot).
+        from agents.sandbox import _bwrap_cmd
+
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp) / "home"
+            for sub in (".local/share/godot", ".local/lib"):
+                (home / sub).mkdir(parents=True)
+            work = Path(tmp) / "fixer-work"
+            work.mkdir()
+            with mock.patch("pathlib.Path.home", return_value=home):
+                cmd = _bwrap_cmd(work, ["true"], network=False)
+            mounted = [cmd[i + 1] for i, a in enumerate(cmd) if a in ("--bind", "--ro-bind")]
+            self.assertFalse([m for m in mounted if m.startswith(str(home / ".local"))], cmd)
+            i = cmd.index("--tmpfs", cmd.index("/tmp") + 1)
+            self.assertEqual(cmd[i + 1], str(home))  # a fresh, writable home
+
+    def test_muse_can_create_its_session_dir_under_bwrap(self):
+        from agents.sandbox import _bwrap_cmd, _bwrap_usable
+
+        if not _bwrap_usable():
+            if os.environ.get("NIGHTSHIFT_REQUIRE_BWRAP") == "1":
+                self.fail("bubblewrap is required here but not usable")
+            self.skipTest("bubblewrap not usable here")
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp) / "home"
+            (home / ".local" / "share" / "godot").mkdir(parents=True)
+            (home / ".local" / "share" / "godot" / "secret.txt").write_text("host data\n")
+            work = Path(tmp) / "fixer-work"
+            work.mkdir()
+            script = ('mkdir -p "$HOME/.local/share/muse/sessions/2026/10/29/x" && echo session=ok; '
+                      'cat "$HOME/.local/share/godot/secret.txt" 2>/dev/null || echo host=hidden')
+            with mock.patch("pathlib.Path.home", return_value=home):
+                cmd = _bwrap_cmd(work, ["sh", "-c", script], network=False)
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60, env={"PATH": "/usr/bin:/bin"})
+            self.assertIn("session=ok", proc.stdout, proc.stdout + proc.stderr)
+            self.assertIn("host=hidden", proc.stdout, proc.stdout + proc.stderr)
+
     def test_shell_cannot_rewrite_guard_under_bwrap(self):
         from agents.sandbox import _bwrap_cmd, _bwrap_usable
 
