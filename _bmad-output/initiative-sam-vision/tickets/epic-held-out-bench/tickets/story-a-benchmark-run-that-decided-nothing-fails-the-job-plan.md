@@ -1,7 +1,7 @@
 ---
 title: "A benchmark run that decided nothing fails the job"
 ticket: 1
-status: in-review
+status: done
 ---
 
 ## Built
@@ -20,3 +20,9 @@ On branch `bench/heldout-detection`, commit `71f7042`, pushed to PR #39:
 
 The story's dispatch check needs a `heldout-bench` run with a set-but-garbage `MODEL_API_KEY`, which
 needs write access to the `seanudeke/Nightshift` secrets. Nothing was dispatched.
+
+## Done
+
+Merged to main with PR #39 (Oct 29). The garbage-key dispatch its verify asked for was never run —
+billing was fixed first; the decided path ran live and green in run 40805529944, and the offline
+exit-code tests cover the blind path.

@@ -21,7 +21,6 @@ covers = ["R1", "R2"]
 after = [1]
 hitl = true
 risk = "high"
-unknown = "Only a human with access to the Meta team can fix this: both secrets were probed on Oct 29 (runs 40800572513 MODEL_API_KEY-first, 40800924166 META_API_KEY-only) and both return the identical HTTP 402 billing_not_configured for team_id 1548138767354037. The fix is https://dev.meta.ai/billing/?team_id=1548138767354037 — resolve the team's billing issue there, then rerun."
 
 [[entry]]
 id = 4
@@ -44,7 +43,7 @@ covers = ["R1", "R2"]
 after = [2, 4]
 hitl = false
 risk = "medium"
-unknown = "Spend is approved (user, Oct 28); concurrency was not stated, so the workflow's own matrix defaults stand. What remains is the SAM key: HTTP 402 billing_not_configured until the Meta team's billing is fixed (see 1.2)."
+unknown = "Run 40805529944 already measured every variant and the clean control (table in docs/sam.md); what this story still owes is the benchmark counting its sam-3.1 requests and wall clock in the annotation, which the run's own note admits it does not do yet."
 
 [[entry]]
 id = 5

@@ -1,7 +1,7 @@
 ---
 title: "The docs say what the runs show"
 ticket: 2
-status: in-review
+status: done
 ---
 
 ## Built
@@ -17,3 +17,7 @@ On branches `docs/sam-run-truth` (PR #41) and `bmad/sam-vision-plan` (PR #42):
 ## Not verified
 
 No dispatch was needed; both lines are checkable by reading the runs named.
+
+## Done
+
+Merged to main with PRs #41 and #42 (Oct 29).

@@ -1,7 +1,7 @@
 ---
 title: "The minimum clean score is recorded per SAM spec"
 ticket: 1
-status: in-review
+status: done
 ---
 
 ## Built
@@ -25,3 +25,9 @@ On branch `verifier/clean-score-floor`, PR #43:
 No live clean run has been judged with the floor yet: the SAM key still returns
 HTTP 402 billing_not_configured (confirmed again by run 40800572513, dispatched today). The first
 live verify run with SAM on exercises it.
+
+## Done
+
+Merged to main with PR #43 (Oct 29 02:21 UTC). Note: run 40805529944's branch merged main one minute
+before that (e60d407, 02:20:54), so the first full bench ran WITHOUT the floor — the floor still has
+no live proof; 2.3's end-to-end run will exercise it first.
