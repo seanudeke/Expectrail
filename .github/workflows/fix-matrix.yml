@@ -138,41 +138,6 @@ jobs:
         run: |
           curl -fsSL https://dev.meta.ai/install.sh | bash
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-      - name: TEMPORARY diagnostic, where Muse writes under bubblewrap
-        if: env.LIVE == 'true'
-        env:
-          META_API_KEY: ${{ secrets.META_API_KEY }}
-        run: |
-          sudo apt-get install -y --no-install-recommends strace >/dev/null 2>&1 || true
-          echo "::notice title=diag muse version::$(muse --version 2>&1 | head -1)"
-          echo "::notice title=diag local share::$(ls -la ~/.local/share 2>&1 | tr '\n' ' ' | cut -c1-600)"
-          echo "::notice title=diag local lib::$(ls -la ~/.local/lib 2>&1 | tr '\n' ' ' | cut -c1-300)"
-          echo "::notice title=diag dot muse home::$(ls -la ~/.muse 2>&1 | tr '\n' ' ' | cut -c1-300)"
-          mkdir -p /tmp/diag-work/.muse && echo '{}' > /tmp/diag-work/.muse/hooks.json
-          python - <<'PY'
-          import os, subprocess
-          from pathlib import Path
-          from agents.sandbox import _bwrap_cmd
-          from agents.keys import muse_subprocess_env
-          from agents.guard import install_guard
-          work = Path("/tmp/diag-work")
-          (work / "hooks-probe.txt").write_text("banana split\n")
-          for label, with_muse_dir in (("with the real guard", True), ("without .muse", False)):
-              import shutil
-              if (work / ".muse").exists():
-                  shutil.rmtree(work / ".muse")
-              if with_muse_dir:
-                  install_guard(work, ["player/**"], root_as_muse_sees_it="/fixer")
-              cmd = _bwrap_cmd(work, ["muse", "exec", "--disable-approval", "--trust-workspace", "Use your file tool to read hooks-probe.txt in this workspace, then reply with its first word."], network=True)
-              st = Path(f"/tmp/st-{with_muse_dir}.txt")
-              proc = subprocess.run(["strace", "-f", "-e", "trace=mkdir,mkdirat,openat,rename,renameat2", "-o", str(st)] + cmd,
-                                    capture_output=True, text=True, env=muse_subprocess_env(), timeout=180)
-              erofs = [l.strip() for l in st.read_text(errors="replace").splitlines() if "EROFS" in l][:6] if st.exists() else []
-              tail = " | ".join((proc.stdout + proc.stderr).strip().splitlines()[-4:])[-500:]
-              eacces = [l.strip() for l in st.read_text(errors="replace").splitlines() if "session" in l and "= -1" in l][:4] if st.exists() else []
-              tail += " || session syscalls failing: " + " || ".join(eacces)[:600]
-              print(f"::notice title=diag {label}::exit {proc.returncode}; EROFS: {' || '.join(erofs)[:900] or 'none'}; out: {tail}")
-          PY
       - name: Run the case
         env:
           META_API_KEY: ${{ inputs.live && secrets.META_API_KEY || '' }}
