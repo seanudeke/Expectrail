@@ -106,12 +106,15 @@ Verify mode, judge `both`, every 4th frame, with the four private held-out route
 
 | Candidate | Decision | Checks |
 | --- | --- | --- |
-| `fix-collision-mask.patch` (the real fix) | needs-review | all 7 candidate and clean checks pass; held-out ground and robot pass on 4/4 routes, coins on 3/4 (run 40915475383) |
+| `fix-collision-mask.patch` (the real fix) | **accept** | all 8 checks pass; ground, robot and coins pass on 4/4 held-out routes (run 40924660911) |
+| `fix-collision-mask.patch`, earlier run | needs-review | as above, except coins on one held-out route had no verdict (run 40915475383) |
 | `fix-but-hide-player.patch` | **reject** | player-always-visible fails on the candidate and passes on 0/4 held-out routes; coins pass (run 40915479861) |
 
-The real fix's one open item is a held-out route where the coins check produced no verdict. Glimmer
-seeing no coins would have been a fail, so this was an observations error; which kind is now
-reported by the workflow (kind only, see "Glimmer verify held-out error").
+The earlier needs-review was an observations error on one held-out route (Glimmer seeing no coins
+would have been a fail), in a run that shared the one replica with two others. It did not recur
+when the run had the deployment to itself, so its kind is unknown; the workflow now reports the
+kind of any held-out error (kind only, see "Glimmer verify held-out error"). An error never
+passes a check: it stops at needs-review, so the cost of one is a re-run, not a wrong accept.
 
 ## What is not measured yet
 
@@ -124,7 +127,7 @@ reported by the workflow (kind only, see "Glimmer verify held-out error").
   every coin on every frame. The evaluator's 0.5 threshold and the verifier's clean-score floor apply
   to that number, but it is not a margin the way SAM's scores are. Another reason `both` is the judge.
 - **Speed.** 3.2 s a call with one run on the deployment, 12.2 s with three runs sharing one replica.
-  A verify run with `both` took about 40 minutes.
+  A verify run with `both` took about 35 to 40 minutes, alone or shared.
 - **Coordinates.** The prompt asks for pixels of the image. If the probe shows Glimmer answering on
   a 0-1000 grid, set `NIGHTSHIFT_GLIMMER_COORDS=norm1000`. Boxes with corners in the wrong order, or
   more than 2% of the frame outside it, are refused (needs-review); a box a few pixels past an edge
