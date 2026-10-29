@@ -271,6 +271,50 @@ def engine_ground_by_frame(trace: dict, frame_size: tuple[int, int], frames: lis
     return out
 
 
+# Half the size of a coin as the game draws it, in world pixels: one 32x32 cell of coin.webp at the
+# coin sprite's 0.65 scale, measured on the clean game. A constant, like FEET_OFFSET, so a candidate
+# that resizes its coins does not move the yardstick its coins are checked against.
+COIN_HALF = 10.4
+
+
+def engine_refs_by_frame(trace: dict, frame_size: tuple[int, int], frames: list[int],
+                         fps: int = 60) -> dict[int, dict[str, list[list[float]]]]:
+    """Where the engine put each checkable object on each captured frame, as boxes in frame pixels.
+
+    ``player``: the robot's body (origin to feet, as from_trace_synthetic draws it), from the
+    position log. ``coin``: every coin still in the level, from the harness's ``coins`` rows. Both
+    use the camera of that frame (``view``). A frame the trace cannot place (no row, no camera) is
+    left out, so a caller can tell "the engine has nothing here" from "no coins here". The frame
+    size is accepted for symmetry with engine_ground_by_frame; boxes may lie off the frame.
+    """
+    del frame_size
+    rows = list(trace.get("rows") or [])
+    step = max(int(trace.get("physicsTicksPerSecond") or 120) // fps, 1)
+    out: dict[int, dict[str, list[list[float]]]] = {}
+    for n in frames:
+        tick = _frame_tick(n, step)
+        if tick >= len(rows):
+            continue
+        row, view = rows[tick], _view_at(rows, tick)
+        if not view:
+            continue
+        player = row.get("player")
+        refs: dict[str, list[list[float]]] = {"player": [], "coin": []}
+        if player is not None:
+            x, y = float(player[0]), float(player[1])
+            refs["player"] = [_frame_box(view, _player_box(x, y + FEET_OFFSET))]
+        for cx, cy in row.get("coins") or []:
+            refs["coin"].append(_frame_box(view, [float(cx) - COIN_HALF, float(cy) - COIN_HALF,
+                                                  float(cx) + COIN_HALF, float(cy) + COIN_HALF]))
+        out[n] = refs
+    return out
+
+
+def has_engine_refs(trace: dict) -> bool:
+    """Whether the trace can place objects in frame pixels (it logs the camera)."""
+    return any(r.get("view") for r in trace.get("rows") or [])
+
+
 def has_engine_ground(trace: dict) -> bool:
     return any(r.get("ground") is not None and r.get("view") for r in trace.get("rows") or [])
 
