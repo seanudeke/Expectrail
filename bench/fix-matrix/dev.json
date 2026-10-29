@@ -6,19 +6,37 @@
       "run": 40916077549,
       "runUrl": "https://github.com/seanudeke/Nightshift/actions/runs/40916077549",
       "commit": "7cca77a30a38f0d92e6fa4918bc38d4bfb9a775b",
-      "date": "2026-10-29T16:54:01Z"
+      "date": "2026-10-29T16:54:01Z",
+      "spend": {
+        "samImages": null,
+        "samUsd": null,
+        "museCalls": 11,
+        "jobMinutes": 240.5
+      }
     },
     {
       "run": 40927304209,
       "runUrl": "https://github.com/seanudeke/Nightshift/actions/runs/40927304209",
       "commit": "444e9c833d3b98ad7482c47dfd81e1fd1fb8ac42",
-      "date": "2026-10-29T18:04:17Z"
+      "date": "2026-10-29T18:04:17Z",
+      "spend": {
+        "samImages": null,
+        "samUsd": null,
+        "museCalls": 5,
+        "jobMinutes": 104.2
+      }
     },
     {
       "run": 40927316337,
       "runUrl": "https://github.com/seanudeke/Nightshift/actions/runs/40927316337",
       "commit": "444e9c833d3b98ad7482c47dfd81e1fd1fb8ac42",
-      "date": "2026-10-29T18:04:21Z"
+      "date": "2026-10-29T18:04:21Z",
+      "spend": {
+        "samImages": null,
+        "samUsd": null,
+        "museCalls": 1,
+        "jobMinutes": 9.9
+      }
     }
   ],
   "conditions": {
@@ -53,7 +71,8 @@
         "accept"
       ],
       "seconds": 970.6,
-      "live": true
+      "live": true,
+      "samImages": null
     },
     {
       "case": "dev/layering/v1",
@@ -66,7 +85,8 @@
         "accept"
       ],
       "seconds": 1064.9,
-      "live": true
+      "live": true,
+      "samImages": null
     },
     {
       "case": "dev/layering/v2",
@@ -80,6 +100,7 @@
       ],
       "seconds": 592.8,
       "live": true,
+      "samImages": null,
       "replaces": {
         "run": 40916077549,
         "outcome": "error"
@@ -96,7 +117,8 @@
         "accept"
       ],
       "seconds": 1382.7,
-      "live": true
+      "live": true,
+      "samImages": null
     },
     {
       "case": "dev/missing-texture/v1",
@@ -109,7 +131,8 @@
         "accept"
       ],
       "seconds": 1003.4,
-      "live": true
+      "live": true,
+      "samImages": null
     },
     {
       "case": "dev/missing-texture/v1",
@@ -122,7 +145,8 @@
         "accept"
       ],
       "seconds": 557.4,
-      "live": true
+      "live": true,
+      "samImages": null
     },
     {
       "case": "dev/missing-texture/v2",
@@ -135,7 +159,8 @@
         "accept"
       ],
       "seconds": 1181.2,
-      "live": true
+      "live": true,
+      "samImages": null
     },
     {
       "case": "dev/missing-texture/v2",
@@ -148,7 +173,8 @@
         "accept"
       ],
       "seconds": 523.3,
-      "live": true
+      "live": true,
+      "samImages": null
     },
     {
       "case": "dev/physics-fall-through/v1",
@@ -161,7 +187,8 @@
         "accept"
       ],
       "seconds": 747.2,
-      "live": true
+      "live": true,
+      "samImages": null
     },
     {
       "case": "dev/physics-fall-through/v1",
@@ -174,7 +201,8 @@
         "accept"
       ],
       "seconds": 615.1,
-      "live": true
+      "live": true,
+      "samImages": null
     },
     {
       "case": "dev/physics-fall-through/v2",
@@ -187,7 +215,8 @@
         "accept"
       ],
       "seconds": 758.9,
-      "live": true
+      "live": true,
+      "samImages": null
     },
     {
       "case": "dev/physics-fall-through/v2",
@@ -200,7 +229,8 @@
         "accept"
       ],
       "seconds": 925.9,
-      "live": true
+      "live": true,
+      "samImages": null
     },
     {
       "case": "dev/sinking/v1",
@@ -215,6 +245,7 @@
       ],
       "seconds": 2163.2,
       "live": true,
+      "samImages": null,
       "replaces": {
         "run": 40916077549,
         "outcome": "error"
@@ -232,6 +263,7 @@
       ],
       "seconds": 1338.3,
       "live": true,
+      "samImages": null,
       "replaces": {
         "run": 40916077549,
         "outcome": "error"
@@ -249,6 +281,7 @@
       ],
       "seconds": 1400.2,
       "live": true,
+      "samImages": null,
       "replaces": {
         "run": 40916077549,
         "outcome": "error"
@@ -266,6 +299,7 @@
       ],
       "seconds": 1350.1,
       "live": true,
+      "samImages": null,
       "replaces": {
         "run": 40916077549,
         "outcome": "error"

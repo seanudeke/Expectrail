@@ -152,6 +152,21 @@ class MatrixTest(unittest.TestCase):
         self.assertIn("edited before the clock ran out", self.verifies[0]["patch"])
         self.assertIn("ran out of time", calls[1])  # the reason reaches the next attempt (Nightshift)
 
+    def test_each_case_records_the_sam_images_it_used(self):
+        import agents.sam_observations as sam
+
+        def fake_verify_with_sam(request, candidate, out, attempt=1, **kw):
+            with sam._usage_lock:
+                sam._usage["images"] += 7  # what a verification with SAM on would have sent
+            return self.fake_verify(request, candidate, out, attempt=attempt, **kw)
+
+        with mock.patch.object(m, "verify", side_effect=fake_verify_with_sam):
+            row = m.run_case("dev/physics-fall-through/v1", "nightshift", self.root / "out", live=True, use_sam=False)
+        self.assertEqual(row["samImages"], 21)  # three verifications
+        self.assertNotIn("_samBefore", row)
+        saved = json.loads((self.root / "out" / "dev_physics-fall-through_v1" / "nightshift" / "result.json").read_text())
+        self.assertEqual(saved["samImages"], 21)
+
     def test_budget_runs_out_without_an_accept(self):
         self.verdicts = ["reject", "reject", "reject"]
         row = self.case("nightshift")
@@ -220,6 +235,7 @@ class HeldOutMatrixTest(MatrixTest):
         for secret in ("SECRET", "reasons", "checks", "patchSha256", "detail", str(self.held)):
             self.assertNotIn(secret, public)
         self.assertEqual([a["decision"] for a in json.loads(public)["attempts"]], ["reject", "reject", "accept"])
+        self.assertEqual(json.loads(public)["samImages"], 0)  # a count, not a description of the bug
         private = json.loads((work / "result-private.json").read_text())
         self.assertIn("SECRET-VERIFIER-REASON 1", json.dumps(private))
 

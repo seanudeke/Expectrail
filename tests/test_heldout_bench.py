@@ -163,6 +163,9 @@ class HeldOutBenchTest(unittest.TestCase):
         self.assertTrue(line.startswith("::notice title=Held-out bench fam/v1::caught with SAM on: yes"))
         for private in (SECRET, "private-route-one", "private-route-two", "bugs/fam", "routes/"):
             self.assertNotIn(private, line)
+        # The run's SAM spend is published as a bare count, in its own annotation.
+        self.assertEqual(doc["samImages"], 0)
+        self.assertEqual(line.splitlines()[-1], "::notice title=Bench SAM images fam/v1::0")
         saved = json.loads((Path(self.tmp.name) / "out" / "fam_v1" / "bench.json").read_text())
         self.assertNotIn(SECRET, json.dumps(saved))  # the description is never copied out of the set
 

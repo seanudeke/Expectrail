@@ -15,6 +15,18 @@ Every number the README or the video quotes comes from a file here and reruns wi
 The detection files are written by `python3 -m agents.bench_collect --run <id> --set dev|held-out`
 from the run's own annotations, so they carry the run, commit and date they came from.
 
+## Cost
+
+Each result counts the images it sent to sam-3.1 (`agents.sam_observations.sam_usage`): detection per
+variant, the fix matrix per case and condition, the judge benchmark per case. The collectors add them up
+per run and price them at $2.50 per 1,000 images, the image segmentation price on the
+[Meta Model API pricing page](https://dev.meta.ai/docs/pricing-rate-limits) (read Oct 29, 2026). Runs
+from before the count existed say "not counted"; nothing is estimated.
+
+Muse Code does not report its token use, so its spend is counted as calls (fix attempts, judge calls) and
+priced from the usage page on dev.meta.ai for the `META_API_KEY` that only CI uses. The Actions jobs
+themselves are free on a public repository; job minutes are listed for scale.
+
 ## Offline demo-path stub (agents lane)
 
 `overnight-offline.json` is regenerated from an overnight `summary.json` by:

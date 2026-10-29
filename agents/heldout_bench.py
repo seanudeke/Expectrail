@@ -40,6 +40,7 @@ from pathlib import Path
 
 from agents.gameplay import MIN_DELTA_X_HARNESS, judge_trace
 from agents.patchutil import sha256_file
+from agents.sam_observations import sam_images_since, sam_usage
 from agents.verifier import (
     REGRESSION_SPEC, _ground_observations, _sam_verdicts, held_out_set, reference_surfaces, sam_on, sam_specs,
 )
@@ -175,6 +176,7 @@ def bench(key: str, out: Path) -> dict:
         patches = [root / matches[0]["patch"]]
         expected = matches[0].get("spec")
     use_sam = sam_on()
+    sam_before = sam_usage()
     ground_spec = load(REGRESSION_SPEC, "test-spec")
     sam_spec_docs = sam_specs(ground_spec["id"]) if use_sam else []
     work = out / key.replace("/", "_")
@@ -204,6 +206,7 @@ def bench(key: str, out: Path) -> dict:
         "caughtWithSamOn": caught(per_check, sam_on_checks) if use_sam else None,
         "caughtWithSamOff": caught(per_check, list(SAM_OFF_CHECKS)),
         "errors": errors[:5],  # distinct, directories stripped: why a check could not decide
+        "samImages": sam_images_since(sam_before),  # a count only, for the run's cost
         "perRoute": per_route,  # route names: private, never printed
     }
     (work / "bench.json").write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
@@ -223,6 +226,8 @@ def annotation(doc: dict) -> str:
     title = f"{'Dev' if doc['variant'].startswith(DEV_PREFIX) else 'Held-out'} bench {doc['variant']}"
     lines = [f"::notice title={title}::{head}; over {n} routes: " + "; ".join(parts)]
     lines += [f"::error title={title} error::{public_error(e)}" for e in doc.get("errors") or []]
+    if doc.get("samImages") is not None:
+        lines.append(f"::notice title=Bench SAM images {doc['variant']}::{doc['samImages']}")
     return "\n".join(lines)
 
 

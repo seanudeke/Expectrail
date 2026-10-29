@@ -36,13 +36,38 @@ MATRIX_DIR = REPO / "bench" / "fix-matrix"
 JUDGE_DIR = REPO / "bench" / "judge"
 JUDGE_TITLE = re.compile(r"^Judge (?P<case>(?:good|bad)/\S+)$")
 JUDGE_MSG = re.compile(r"^label (?P<label>good|bad); SAM on (?P<sam>\S+); SAM off (?P<nosam>\S+); "
-                       r"Muse screenshots (?P<muse>\S+); (?P<seconds>[\d.]+) s; live=(?P<live>True|False)$")
+                       r"Muse screenshots (?P<muse>\S+); (?P<seconds>[\d.]+) s; live=(?P<live>True|False)"
+                       r"(?:; SAM images (?P<samImages>\d+))?$")
 MATRIX_TITLE = re.compile(r"^Fix matrix (?P<case>\S+/\S+) (?P<condition>screenshots|nightshift)$")
 MATRIX_MSG = re.compile(r"^detected (?P<detected>[a-z-]+); outcome (?P<outcome>[a-z-]+); attempts (?P<n>\d+) "
-                        r"\((?P<tries>[^)]*)\); (?P<seconds>[\d.]+) s; live=(?P<live>True|False)$")
+                        r"\((?P<tries>[^)]*)\); (?P<seconds>[\d.]+) s; live=(?P<live>True|False)"
+                        r"(?:; SAM images (?P<sam>\d+))?$")
 REPO_SLUG = "seanudeke/Nightshift"
+# sam-3.1 image segmentation, $2.50 per 1,000 images (https://dev.meta.ai/docs/pricing-rate-limits, Oct 29, 2026).
+SAM_USD_PER_IMAGE = 2.50 / 1000
+
+
+def spend(rows: list[dict], *, muse_key: str) -> dict:
+    """What a set of results cost: SAM images (and dollars), Muse Code calls and job minutes.
+
+    SAM images are counted only by runs from Oct 29 evening on; a run whose results carry no count
+    reports None, never an estimate.
+    """
+    counted = [r["samImages"] for r in rows if r.get("samImages") is not None]
+    images = sum(counted) if rows and len(counted) == len(rows) else None
+    return {"samImages": images,
+            "samUsd": round(images * SAM_USD_PER_IMAGE, 2) if images is not None else None,
+            "museCalls": sum(int(r.get(muse_key) or 0) for r in rows),
+            "jobMinutes": round(sum(r.get("seconds") or 0 for r in rows) / 60, 1)}
+
+
+def _money(s: dict) -> str:
+    if s["samImages"] is None:
+        return "not counted"
+    return f"{s['samImages']:,} (${s['samUsd']:.2f})"
 TITLE = re.compile(r"^(?:Dev|Held-out) bench (?P<id>\S+)$")
 TIME = re.compile(r"^(?:Bench|Held-out bench) time (?P<id>\S+)$")
+SAM_IMAGES = re.compile(r"^Bench SAM images (?P<id>\S+)$")
 CAUGHT = re.compile(r"(?P<label>caught|false alarm) with SAM (?P<mode>on|off): (?P<value>[a-z-]+)")
 CHECK = re.compile(r"^(?P<name>[a-z0-9-]+) (?P<counts>\d+ [a-z-]+(?:, \d+ [a-z-]+)*)$")
 
@@ -86,16 +111,21 @@ def collect(run_id: int, which: str, fetch=gh_json) -> dict:
     run, notes = run_annotations(run_id, fetch)
     rows: dict[str, dict] = {}
     seconds: dict[str, int] = {}
+    images: dict[str, int] = {}
     for note in notes:
         title, message = note.get("title") or "", note.get("message") or ""
         if m := TITLE.match(title):
             rows[m["id"]] = parse_message(message)
         elif m := TIME.match(title):
             seconds[m["id"]] = int(message.split()[0])
+        elif m := SAM_IMAGES.match(title):
+            images[m["id"]] = int(message.split()[0])
     if "clean" not in rows or len(rows) < 2:
         raise SystemExit(f"run {run_id}: no clean control or no variants among its annotations")
     for vid, row in rows.items():
         row["seconds"] = seconds.get(vid)
+        row["samImages"] = images.get(vid)
+    run_spend = spend(list(rows.values()), muse_key="none")
     clean = rows.pop("clean")
     variants = [{"id": k, **v} for k, v in sorted(rows.items())]
 
@@ -116,6 +146,7 @@ def collect(run_id: int, which: str, fetch=gh_json) -> dict:
         "clean": clean,
         "variants": variants,
         "rerun": f"bench/rerun-detection.sh {which}",
+        "spend": run_spend,
     }
 
 
@@ -129,7 +160,8 @@ def parse_matrix_message(message: str) -> dict:
         raise ValueError(f"unrecognised fix-matrix annotation: {message!r}")
     tries = [t.split(": ", 1)[1] for t in m["tries"].split("; ") if ": " in t]
     return {"detected": m["detected"], "outcome": m["outcome"], "attemptsUsed": int(m["n"]), "attempts": tries,
-            "seconds": float(m["seconds"]), "live": m["live"] == "True"}
+            "seconds": float(m["seconds"]), "live": m["live"] == "True",
+            "samImages": int(m["sam"]) if m["sam"] is not None else None}
 
 
 def collect_matrix(run_ids: list[int], which: str, fetch=gh_json) -> dict:
@@ -140,17 +172,21 @@ def collect_matrix(run_ids: list[int], which: str, fetch=gh_json) -> dict:
         run, notes = run_annotations(run_id, fetch, prefix="run (")
         runs.append({"run": run_id, "runUrl": run.get("html_url"), "commit": run.get("head_sha"),
                      "date": run.get("created_at")})
+        everything = []
         for note in notes:
             m = MATRIX_TITLE.match(note.get("title") or "")
             if not m:
                 continue
             key = (m["case"], m["condition"])
             row = {"case": key[0], "condition": key[1], "run": run_id, **parse_matrix_message(note["message"])}
+            everything.append(row)
             earlier = rows.get(key)
             if earlier is None or earlier["outcome"] == "error":
                 if earlier is not None:
                     row["replaces"] = {"run": earlier["run"], "outcome": earlier["outcome"]}
                 rows[key] = row
+        # Spend counts every result the run produced, errors and later-replaced ones included.
+        runs[-1]["spend"] = spend(everything, muse_key="attemptsUsed")
     if not rows:
         raise SystemExit(f"runs {run_ids}: no fix-matrix results among their annotations")
     if not all(r["live"] for r in rows.values()):
@@ -202,6 +238,8 @@ def collect_judge_run(run_id: int, fetch=gh_json) -> dict:
             raise ValueError(f"unrecognised judge annotation: {note.get('message')!r}")
         rows.append({"case": m["case"], "label": msg["label"], "seconds": float(msg["seconds"]),
                      "live": msg["live"] == "True",
+                     "samImages": int(msg["samImages"]) if msg["samImages"] is not None else None,
+                     "museCalls": 1 if msg["muse"] in ("accept", "reject", "needs-review", "None") else 0,
                      "decisions": {"nightshiftSam": decided(msg["sam"]), "nightshiftNoSam": decided(msg["nosam"]),
                                    "museScreenshots": decided(msg["muse"])}})
     if not rows:
@@ -218,7 +256,8 @@ def collect_judge_run(run_id: int, fetch=gh_json) -> dict:
                   "badAccepted": sum(r["decisions"][j] == "accept" for r in bad), "bad": len(bad),
                   "undecided": sum(r["decisions"][j] is None for r in rows)} for j in JUDGES}
     return {"run": run_id, "runUrl": run.get("html_url"), "commit": run.get("head_sha"),
-            "date": run.get("created_at"), "judges": judges, "rows": rows}
+            "date": run.get("created_at"), "judges": judges, "rows": rows,
+            "spend": spend(rows, muse_key="museCalls")}
 
 
 def collect_judge(run_ids, fetch=gh_json) -> dict:
@@ -244,6 +283,9 @@ def judge_markdown(doc: dict) -> str:
             s = r["judges"][j]
             lines.append(f"| {name} | {r['run']} | {s['goodAccepted']} of {s['good']} | "
                          f"{s['badAccepted']} of {s['bad']} | {s['undecided']} |")
+    lines += ["", "Spend per run: " + "; ".join(
+        f"{r['run']}: {r['spend']['museCalls']} Muse Code judge calls, SAM images {_money(r['spend'])}, "
+        f"{r['spend']['jobMinutes']:.0f} job minutes" for r in runs) + "."]
     if len(runs) > 1:
         lines += ["", "Cases whose decision changed between runs: "
                   + "; ".join(f"{name}: {', '.join(doc['changedBetweenRuns'][j]) or 'none'}"
@@ -277,6 +319,13 @@ def matrix_markdown(doc: dict) -> str:
     for c, s in doc["conditions"].items():
         lines.append(f"| {c} | {s['fixed']} of {s['cases']} | {s['not-fixed']} | {s['not-detected']} | "
                      f"{s['needs-review']} | {s['error']} |")
+    lines += ["", ("Spend per run, every case it ran. An error records no attempts even when Muse Code ran before it, "
+                   "so attempts are a floor for a run with errors."), "",
+              "| Run | Muse Code attempts | SAM images (USD) | Job minutes |", "| --- | --- | --- | --- |"]
+    for r in doc["runs"]:
+        s = r.get("spend")
+        if s:
+            lines.append(f"| {r['run']} | {s['museCalls']} | {_money(s)} | {s['jobMinutes']:.0f} |")
     lines += ["", "| Case | Condition | Outcome | Attempts | Minutes | Run |", "| --- | --- | --- | --- | --- | --- |"]
     for r in doc["rows"]:
         note = f" (replaces an error in {r['replaces']['run']})" if r.get("replaces") else ""
@@ -295,8 +344,10 @@ def markdown(docs: list[dict]) -> str:
         lines += [f"## {d['set']} (run [{d['run']}]({d['runUrl']}), {d['date'][:10]}, commit {d['commit'][:7]})", "",
                   (f"Caught with SAM: **{on['yes']} of {on['of']}**. Without SAM: **{off['yes']} of {off['of']}**. "
                    f"False alarms on the clean game ({fa['cleanRoutes']} routes): {_alarm(fa['withSamOn'])} with SAM, "
-                   f"{_alarm(fa['withSamOff'])} without."), "",
-                  "| Variant | Caught, SAM on | Caught, SAM off | Failing checks (routes) |",
+                   f"{_alarm(fa['withSamOff'])} without."), ""]
+        if d.get("spend"):
+            lines += [f"Spend: SAM images {_money(d['spend'])}; {d['spend']['jobMinutes']:.0f} job minutes.", ""]
+        lines += ["| Variant | Caught, SAM on | Caught, SAM off | Failing checks (routes) |",
                   "| --- | --- | --- | --- |"]
         for v in d["variants"]:
             failing = ", ".join(f"{name} {c['fail']}" for name, c in v["checks"].items() if c["fail"]) or "none"

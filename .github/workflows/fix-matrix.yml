@@ -171,7 +171,8 @@ jobs:
           r = json.load(open(sys.argv[1]))
           tries = "; ".join(f"{a['attempt']}: {a.get('decision')}" for a in r["attempts"])
           print(f"::notice title=Fix matrix {r['case']} {r['condition']}::detected {r.get('detected')}; "
-                f"outcome {r['outcome']}; attempts {r['attemptsUsed']} ({tries}); {r['wallClockSeconds']} s; live={r['live']}")
+                f"outcome {r['outcome']}; attempts {r['attemptsUsed']} ({tries}); {r['wallClockSeconds']} s; live={r['live']}"
+                + (f"; SAM images {r['samImages']}" if r.get("samImages") is not None else ""))
           if r.get("detail") and not r.get("private"):  # public cases only: why it errored or was not detected
               print(f"::warning title=Fix matrix {r['case']} {r['condition']} detail::{' '.join(r['detail'].split())[:300]}")
           PY
@@ -353,7 +354,8 @@ jobs:
           d = r.get("decisions") or {}
           print(f"::notice title=Judge {r['case']}::label {r['label']}; SAM on {d.get('nightshiftSam')}; "
                 f"SAM off {d.get('nightshiftNoSam')}; Muse screenshots {d.get('museScreenshots')}; "
-                f"{r['wallClockSeconds']} s; live={r['live']}")
+                f"{r['wallClockSeconds']} s; live={r['live']}"
+                + (f"; SAM images {r['samImages']}" if r.get("samImages") is not None else ""))
           # Every judge case is built from public development variants, so its reasons can be shown.
           names = {"nightshiftSam": "SAM on", "nightshiftNoSam": "SAM off", "museScreenshots": "Muse screenshots"}
           why = [f"{names[k]}: " + " | ".join(" ".join(str(x).split())[:200] for x in (v or [])[:3])

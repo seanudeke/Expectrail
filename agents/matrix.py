@@ -45,6 +45,7 @@ from agents.fixer import build_muse_prompt, run_fixer
 from agents.observations import from_trace
 from agents.orchestrator import build_repair_request
 from agents.patchutil import sha256_file
+from agents.sam_observations import sam_images_since, sam_usage
 from agents.verifier import (
     REGRESSION_SPEC, _ground_observations, held_out_set, reference_surfaces, sam_on, verify,
 )
@@ -76,7 +77,7 @@ SPEC_FILES = {
 }
 SETS = ("dev", "held-out")
 PUBLIC_KEYS = ("format", "case", "condition", "live", "sam", "private", "detected", "outcome", "attemptsUsed",
-               "wallClockSeconds")
+               "wallClockSeconds", "samImages")
 
 
 def dev_variants() -> dict[str, Path]:
@@ -211,7 +212,7 @@ def run_case(key: str, condition: str, out: Path, *, live: bool, use_sam: bool |
     work.mkdir(parents=True, exist_ok=True)
     t0 = time.perf_counter()
     row: dict = {"case": key, "condition": condition, "live": live, "sam": use_sam, "private": private,
-                 "attempts": []}
+                 "attempts": [], "_samBefore": sam_usage()}
     try:
         reference = reference_surfaces(work)
         detection = detect(patch, spec, work, use_sam=use_sam, reference=reference)
@@ -282,6 +283,10 @@ def run_case(key: str, condition: str, out: Path, *, live: bool, use_sam: bool |
 def _finish(row: dict, work: Path, t0: float) -> dict:
     row["format"] = FORMAT
     row["wallClockSeconds"] = round(time.perf_counter() - t0, 1)
+    # Images sent to sam-3.1 for this case (detection and every verification), for its cost.
+    before = row.pop("_samBefore", None)
+    if before is not None:
+        row["samImages"] = sam_images_since(before)
     row["attemptsUsed"] = len(row["attempts"])
     if row.get("private"):
         # The full row (reasons, checks, error detail) can describe a private bug: it stays here.
