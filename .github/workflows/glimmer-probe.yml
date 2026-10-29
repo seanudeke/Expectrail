@@ -119,6 +119,15 @@ jobs:
       - name: Point the verifier at the held-out set
         if: env.HELDOUT_TOKEN_SET == 'true' && inputs.mode == 'verify'
         run: echo "NIGHTSHIFT_HELDOUT_DIR=$GITHUB_WORKSPACE/heldout-set" >> "$GITHUB_ENV"
+      - name: Check the Glimmer deployment, and restore its scaling after a suspension
+        # A suspended account (out of credits) comes back with the deployment at 0-0 replicas and a
+        # 60-minute scale-to-zero window. This puts back min 0 / max 1 / 15 minutes through Fireworks'
+        # API (only those fields), so a run after a top-up does not need a dashboard edit first.
+        env:
+          NIGHTSHIFT_GLIMMER_API_KEY: ${{ secrets.GLIMMER_API_KEY || secrets.FIREWORKS_API_KEY }}
+        run: |
+          [[ "$BASE" =~ ^https://api\.fireworks\.ai(/|$) ]] || { echo "not Fireworks: nothing to check"; exit 0; }
+          python -m agents.fireworks_deployment --restore --model "$MODEL"
       - name: Wake the Glimmer deployment (its own step, so its notice does not crowd out results)
         env:
           NIGHTSHIFT_GLIMMER_API_KEY: ${{ secrets.GLIMMER_API_KEY || secrets.FIREWORKS_API_KEY }}

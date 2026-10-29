@@ -316,9 +316,12 @@ def warm(*, base: str | None = None, model: str | None = None, key: str | None =
             except (OSError, http.client.HTTPException):
                 detail = ""
             if err.code not in RETRY_STATUS:
-                hint = (" (the model id is not a deployment this key can reach: create an on-demand "
-                        f"deployment of {BASE_MODEL} and use accounts/<account>/deployments/<id>)"
-                        if err.code == 404 else "")
+                hint = {
+                    404: (" (the deployment is not serving: after a suspension Fireworks sets its replicas to "
+                          "0-0, which python -m agents.fireworks_deployment --restore puts back; or the model id "
+                          f"is not an on-demand deployment of {BASE_MODEL} this key can reach)"),
+                    412: " (the Fireworks account is suspended, usually out of credits: add credits, then run again)",
+                }.get(err.code, "")
                 raise SamError(f"glimmer HTTP {err.code}: {detail}{hint}") from err
             last = f"HTTP {err.code}"
         except (OSError, http.client.HTTPException) as err:

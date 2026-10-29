@@ -38,6 +38,20 @@ a replica is up, and able to scale to zero when idle.
    that has had no traffic for 7 days. Check the GPU price for the shape it picks before leaving it up, and
    recreate it for the judging window (Nov 4 to 9) if the partner needs to see it run.
 
+### If the account is suspended
+
+Fireworks suspends the account when its prepaid credits run out (twice on Oct 29: auto-reload did
+not fire). Requests then fail with HTTP 412 mid-run, and the deployment comes back with its replicas
+at 0-0 and its scale-to-zero window at 60 minutes, with Re-enable greyed out on the dashboard. After
+adding credits, nothing else is needed: the Glimmer workflow's first step,
+`python -m agents.fireworks_deployment --restore`, reads the deployment through Fireworks' API and
+puts back min 0, max 1 and a 15-minute scale-to-zero window (only those fields), then reads it back
+to confirm. Without `--restore` it only reports. By hand: Edit Deployment, Deployment Scaling, Max
+Replicas 1, Advanced Options, Scale to Zero Window 15 min, Save.
+
+Each full verify run keeps one H200 up for about 35 to 40 minutes plus the 15-minute tail, about $7
+at $8 an hour; a probe about $1 to $3. Keep at least $15 of credit before starting runs.
+
 ## How Glimmer fits
 
 The verifier asks one question per frame and object: where is "blue robot" (or "gold coin") drawn?
