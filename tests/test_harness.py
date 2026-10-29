@@ -12,7 +12,9 @@ from harness.run import (
     apply_patches,
     cache_key,
     ensure_import_cache,
+    find_godot,
     get_cache_dir,
+    godot_cmd,
     prepare,
     tree_digest,
 )
@@ -44,6 +46,21 @@ class HarnessTest(unittest.TestCase):
             self.assertEqual(get_cache_dir(), Path("/custom/path/.godot"))
         with mock.patch.dict(os.environ, {"NIGHTSHIFT_GODOT_CACHE": "/custom/path/.godot"}):
             self.assertEqual(get_cache_dir(), Path("/custom/path/.godot"))
+
+    def test_find_godot_env_override(self):
+        with mock.patch.dict(os.environ, {"NIGHTSHIFT_GODOT": "/custom/godot"}):
+            self.assertEqual(find_godot(), Path("/custom/godot"))
+
+    def test_godot_cmd_display_and_platform(self):
+        fake_binary = Path("/bin/godot")
+        self.assertEqual(godot_cmd(fake_binary, display=True), [str(fake_binary)])
+        with mock.patch("sys.platform", "linux"):
+            cmd = godot_cmd(fake_binary, display=False)
+            self.assertEqual(cmd[0], "xvfb-run")
+            self.assertIn(str(fake_binary), cmd)
+        with mock.patch("sys.platform", "darwin"):
+            cmd = godot_cmd(fake_binary, display=False)
+            self.assertEqual(cmd, [str(fake_binary)])
 
     def test_prepare_with_cache(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -192,6 +209,20 @@ class HarnessTest(unittest.TestCase):
                     work = Path(tmp) / "game"
                     shutil.copytree(REPO / "game" / "platformer", work, ignore=shutil.ignore_patterns(".godot"))
                     apply_patches(work, [patch])
+
+    def test_all_routes_valid_against_schema(self):
+        try:
+            import jsonschema  # noqa: F401
+            import json
+            from nightshift.contracts import validate
+        except ImportError:
+            self.skipTest("jsonschema not installed")
+        routes = sorted((REPO / "harness" / "routes").glob("*.json"))
+        self.assertGreaterEqual(len(routes), 1)
+        for route_path in routes:
+            with self.subTest(route=route_path.name):
+                doc = json.loads(route_path.read_text(encoding="utf-8"))
+                self.assertEqual(validate(doc), "route")
 
 
 if __name__ == "__main__":

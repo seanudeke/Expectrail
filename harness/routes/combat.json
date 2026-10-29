@@ -1,0 +1,20 @@
+{
+  "format": "nightshift.route/v0",
+  "name": "combat",
+  "description": "Walk right, fire three shots at the enemy patrol, jump over the encounter point, and stop. Three seconds at 60 ticks per second.",
+  "ticks": 180,
+  "seed": 1,
+  "events": [
+    {"tick": 10, "action": "move_right", "pressed": true},
+    {"tick": 50, "action": "shoot", "pressed": true},
+    {"tick": 55, "action": "shoot", "pressed": false},
+    {"tick": 65, "action": "shoot", "pressed": true},
+    {"tick": 70, "action": "shoot", "pressed": false},
+    {"tick": 80, "action": "shoot", "pressed": true},
+    {"tick": 85, "action": "shoot", "pressed": false},
+    {"tick": 100, "action": "jump", "pressed": true},
+    {"tick": 120, "action": "jump", "pressed": false},
+    {"tick": 150, "action": "move_right", "pressed": false}
+  ]
+}
+
