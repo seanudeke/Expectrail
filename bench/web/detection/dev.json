@@ -1,0 +1,355 @@
+{
+  "format": "expectrail.detection-bench/v0",
+  "set": "dev",
+  "judge": "sam",
+  "run": 41088369464,
+  "runUrl": "https://github.com/seanudeke/Expectrail/actions/runs/41088369464",
+  "commit": "67d3079b0cd44ec6b97bbff2c285eb04c3690262",
+  "date": "2026-10-30T16:16:28Z",
+  "caughtWithSamOn": {
+    "yes": 8,
+    "of": 8
+  },
+  "caughtWithSamOff": {
+    "yes": 4,
+    "of": 8
+  },
+  "falseAlarm": {
+    "withSamOn": "no",
+    "withSamOff": "no",
+    "cleanRoutes": 2
+  },
+  "clean": {
+    "caughtWithSamOn": "no",
+    "caughtWithSamOff": "no",
+    "checks": {
+      "layout": {
+        "fail": 0,
+        "needs-review": 0,
+        "pass": 2
+      },
+      "behaviour": {
+        "fail": 0,
+        "needs-review": 0,
+        "pass": 2
+      },
+      "hybrid": {
+        "fail": 0,
+        "needs-review": 0,
+        "pass": 2
+      },
+      "checkout-button-visible": {
+        "fail": 0,
+        "needs-review": 0,
+        "pass": 2
+      },
+      "logo-visible": {
+        "fail": 0,
+        "needs-review": 0,
+        "pass": 2
+      }
+    },
+    "routes": 2,
+    "seconds": 20,
+    "samImages": 55,
+    "run": 41088369464
+  },
+  "variants": [
+    {
+      "id": "dev/fall-through/v1",
+      "caughtWithSamOn": "yes",
+      "caughtWithSamOff": "yes",
+      "checks": {
+        "layout": {
+          "fail": 2,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "behaviour": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        },
+        "hybrid": {
+          "fail": 0,
+          "needs-review": 2,
+          "pass": 0
+        },
+        "checkout-button-visible": {
+          "fail": 2,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "logo-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        }
+      },
+      "routes": 2,
+      "seconds": 14,
+      "samImages": 38,
+      "run": 41088369464
+    },
+    {
+      "id": "dev/fall-through/v2",
+      "caughtWithSamOn": "yes",
+      "caughtWithSamOff": "yes",
+      "checks": {
+        "layout": {
+          "fail": 2,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "behaviour": {
+          "fail": 2,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "hybrid": {
+          "fail": 0,
+          "needs-review": 2,
+          "pass": 0
+        },
+        "checkout-button-visible": {
+          "fail": 2,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "logo-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        }
+      },
+      "routes": 2,
+      "seconds": 20,
+      "samImages": 37,
+      "run": 41088369464
+    },
+    {
+      "id": "dev/layering/v1",
+      "caughtWithSamOn": "yes",
+      "caughtWithSamOff": "yes",
+      "checks": {
+        "layout": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        },
+        "behaviour": {
+          "fail": 2,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "hybrid": {
+          "fail": 0,
+          "needs-review": 2,
+          "pass": 0
+        },
+        "checkout-button-visible": {
+          "fail": 2,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "logo-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        }
+      },
+      "routes": 2,
+      "seconds": 26,
+      "samImages": 37,
+      "run": 41088369464
+    },
+    {
+      "id": "dev/layering/v2",
+      "caughtWithSamOn": "yes",
+      "caughtWithSamOff": "no",
+      "checks": {
+        "layout": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        },
+        "behaviour": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        },
+        "hybrid": {
+          "fail": 0,
+          "needs-review": 2,
+          "pass": 0
+        },
+        "checkout-button-visible": {
+          "fail": 2,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "logo-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        }
+      },
+      "routes": 2,
+      "seconds": 15,
+      "samImages": 38,
+      "run": 41088369464
+    },
+    {
+      "id": "dev/missing-texture/v1",
+      "caughtWithSamOn": "yes",
+      "caughtWithSamOff": "no",
+      "checks": {
+        "layout": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        },
+        "behaviour": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        },
+        "hybrid": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        },
+        "checkout-button-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        },
+        "logo-visible": {
+          "fail": 2,
+          "needs-review": 0,
+          "pass": 0
+        }
+      },
+      "routes": 2,
+      "seconds": 14,
+      "samImages": 38,
+      "run": 41088369464
+    },
+    {
+      "id": "dev/missing-texture/v2",
+      "caughtWithSamOn": "yes",
+      "caughtWithSamOff": "no",
+      "checks": {
+        "layout": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        },
+        "behaviour": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        },
+        "hybrid": {
+          "fail": 0,
+          "needs-review": 2,
+          "pass": 0
+        },
+        "checkout-button-visible": {
+          "fail": 2,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "logo-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        }
+      },
+      "routes": 2,
+      "seconds": 15,
+      "samImages": 36,
+      "run": 41088369464
+    },
+    {
+      "id": "dev/sinking/v1",
+      "caughtWithSamOn": "yes",
+      "caughtWithSamOff": "yes",
+      "checks": {
+        "layout": {
+          "fail": 2,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "behaviour": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        },
+        "hybrid": {
+          "fail": 2,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "checkout-button-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        },
+        "logo-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        }
+      },
+      "routes": 2,
+      "seconds": 21,
+      "samImages": 55,
+      "run": 41088369464
+    },
+    {
+      "id": "dev/sinking/v2",
+      "caughtWithSamOn": "yes",
+      "caughtWithSamOff": "no",
+      "checks": {
+        "layout": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        },
+        "behaviour": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        },
+        "hybrid": {
+          "fail": 2,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "checkout-button-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        },
+        "logo-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        }
+      },
+      "routes": 2,
+      "seconds": 19,
+      "samImages": 53,
+      "run": 41088369464
+    }
+  ],
+  "rerun": "bench/rerun-detection.sh dev",
+  "spend": {
+    "samImages": 387,
+    "samUsd": 0.97,
+    "museCalls": 0,
+    "jobMinutes": 2.7
+  },
+  "app": "checkout"
+}

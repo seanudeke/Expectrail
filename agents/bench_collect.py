@@ -416,10 +416,13 @@ def matrix_markdown(doc: dict) -> str:
 
 
 def markdown(docs: list[dict]) -> str:
-    lines = ["# Detection benchmark", "",
+    web = any(d.get("app") == "checkout" for d in docs)
+    rerun = ("dispatching `web-bench.yml` (bench detection) and collecting with "
+             "`python3 -m agents.bench_collect --app checkout --run <id> --out bench/web/detection`." if web else
+             "`bench/rerun-detection.sh dev` or `bench/rerun-detection.sh held-out`.")
+    lines = ["# Detection benchmark" + (": the checkout page" if web else ""), "",
              "Written by `python3 -m agents.bench_collect` from the run's own annotations; do not edit by hand.",
-             "A variant is caught when any check fails on at least one route. Rerun a set with",
-             "`bench/rerun-detection.sh dev` or `bench/rerun-detection.sh held-out`.", ""]
+             "A variant is caught when any check fails on at least one route. Rerun a set by", rerun, ""]
     for d in docs:
         on, off, fa = d["caughtWithSamOn"], d["caughtWithSamOff"], d["falseAlarm"]
         glimmer = d.get("judge") == "glimmer-engine"
@@ -431,7 +434,7 @@ def markdown(docs: list[dict]) -> str:
         lines += [f"## {title} (run {runs}, {d['date'][:10]}, commit {d['commit'][:7]})", "",
                   (f"Caught with {vision}: **{seen['yes']} of {seen['of']}**. Without {'vision' if glimmer else 'SAM'}: "
                    f"**{off['yes']} of {off['of']}**. "
-                   f"False alarms on the clean game ({fa['cleanRoutes']} routes): {_alarm(fa.get(alarm))} with {vision}, "
+                   f"False alarms on the clean {'page' if d.get('app') == 'checkout' else 'game'} ({fa['cleanRoutes']} routes): {_alarm(fa.get(alarm))} with {vision}, "
                    f"{_alarm(fa['withSamOff'])} without."), ""]
         if d.get("spend") and glimmer:
             lines += [(f"Spend: no SAM. Glimmer runs on a Fireworks deployment billed by the hour, not counted here; "
@@ -466,6 +469,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--judge", action="store_true", help="a judge-benchmark run instead of a detection run")
     p.add_argument("--demo", action="store_true", help="a live demo-loop run (Fix matrix, bench demo)")
     p.add_argument("--out", type=Path)
+    p.add_argument("--app", choices=("checkout",), help="a web-bench run on the checkout page (the second domain)")
     args = p.parse_args(argv)
     if args.demo:
         out = args.out or DEMO_DIR
@@ -492,7 +496,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"wrote {out / (args.which + '.json')} and {out / 'README.md'}")
         return 0
     args.out = args.out or OUT_DIR
-    path = write(collect(args.run, args.which), args.out)
+    doc = collect(args.run, args.which)
+    if args.app:
+        doc["app"] = args.app
+    path = write(doc, args.out)
     print(f"wrote {path} and {args.out / 'README.md'}")
     return 0
 

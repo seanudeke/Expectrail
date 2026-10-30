@@ -1,0 +1,125 @@
+{
+  "format": "expectrail.web-judge-bench/v0",
+  "run": 41088734986,
+  "runUrl": "https://github.com/seanudeke/Expectrail/actions/runs/41088734986",
+  "commit": "67d3079b0cd44ec6b97bbff2c285eb04c3690262",
+  "date": "2026-10-30T16:18:49Z",
+  "rows": [
+    {
+      "case": "good/correct-fix",
+      "what": "Any correct fix: it restores the clean page byte for byte",
+      "label": "good",
+      "expectrailSam": "accept",
+      "expectrailNoSam": "accept",
+      "pixelDiff": "accept",
+      "failing": []
+    },
+    {
+      "case": "good/intended-shipping-note",
+      "what": "Adds a free-shipping note under the total, as asked",
+      "label": "good",
+      "expectrailSam": "accept",
+      "expectrailNoSam": "accept",
+      "pixelDiff": "reject",
+      "failing": []
+    },
+    {
+      "case": "good/intended-promo-bar",
+      "what": "Adds a promo bar above the button, clear of it, as asked",
+      "label": "good",
+      "expectrailSam": "accept",
+      "expectrailNoSam": "accept",
+      "pixelDiff": "reject",
+      "failing": []
+    },
+    {
+      "case": "good/intended-place-order",
+      "what": "Renames the button to Place order, as asked",
+      "label": "good",
+      "expectrailSam": "accept",
+      "expectrailNoSam": "accept",
+      "pixelDiff": "reject",
+      "failing": []
+    },
+    {
+      "case": "bad/fix-layering-hide-bar",
+      "what": "Makes the covering bar transparent; it still takes the click",
+      "label": "bad",
+      "expectrailSam": "reject",
+      "expectrailNoSam": "reject",
+      "pixelDiff": "reject",
+      "failing": [
+        "behaviour"
+      ]
+    },
+    {
+      "case": "bad/fix-layering-click-through",
+      "what": "Lets clicks through the bar; it still covers the button",
+      "label": "bad",
+      "expectrailSam": "reject",
+      "expectrailNoSam": "accept",
+      "pixelDiff": "reject",
+      "failing": [
+        "checkout-button-visible"
+      ]
+    },
+    {
+      "case": "bad/fix-logo-remove",
+      "what": "Hides the broken logo instead of fixing its path (the hidden attribute; its box stays)",
+      "label": "bad",
+      "expectrailSam": "reject",
+      "expectrailNoSam": "accept",
+      "pixelDiff": "reject",
+      "failing": [
+        "logo-visible"
+      ]
+    },
+    {
+      "case": "bad/fix-button-text-only",
+      "what": "Restores the button's label, not the button",
+      "label": "bad",
+      "expectrailSam": "reject",
+      "expectrailNoSam": "accept",
+      "pixelDiff": "reject",
+      "failing": [
+        "checkout-button-visible"
+      ]
+    },
+    {
+      "case": "bad/fix-button-pinned-top",
+      "what": "Pins the off-screen button to the top of the window, outside the form",
+      "label": "bad",
+      "expectrailSam": "reject",
+      "expectrailNoSam": "reject",
+      "pixelDiff": "reject",
+      "failing": [
+        "checkout-button-visible",
+        "hybrid",
+        "layout"
+      ]
+    }
+  ],
+  "tally": {
+    "expectrailSam": {
+      "goodAccepted": 4,
+      "good": 4,
+      "badAccepted": 0,
+      "bad": 5,
+      "undecided": 0
+    },
+    "expectrailNoSam": {
+      "goodAccepted": 4,
+      "good": 4,
+      "badAccepted": 3,
+      "bad": 5,
+      "undecided": 0
+    },
+    "pixelDiff": {
+      "goodAccepted": 1,
+      "good": 4,
+      "badAccepted": 0,
+      "bad": 5,
+      "undecided": 0
+    }
+  }
+}

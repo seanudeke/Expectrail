@@ -15,7 +15,8 @@ floor and rejected it. In our judge benchmark it accepted none of the 7 fixes th
 and turned down none of the 8 correct ones, in both runs ([Results](#results)).
 
 We built and measured it on a game first, because a game shows the gap plainly: a change can pass
-every test and still be visibly broken. Built for the Meta Global AI Developer Hackathon (Indie
+every test and still be visibly broken. Then, to see whether the engineering carries past one game,
+we ran the same verifier on a web checkout page ([Beyond games](#beyond-games-a-web-checkout-page)). Built for the Meta Global AI Developer Hackathon (Indie
 track), October 26 to November 4, 2026. Expectrail was called Nightshift until October 30; the old
 names still work wherever a file or setting from before then turns up
 ([`expectrail/legacy.py`](expectrail/legacy.py)).
@@ -163,17 +164,62 @@ SAM 3.1 stays the default: Glimmer's boxes are too loose for the ground check, s
 judged on the engine's position log, and a Glimmer bench takes about eight times the job minutes.
 [docs/open-weights.md](docs/open-weights.md)
 
+### Beyond games: a web checkout page
+
+This is supporting evidence, not the product: the same verifier pointed at a second kind of
+software. The page is Bootstrap 5.3.8's checkout example, unmodified ([`apps/checkout`](apps/checkout)).
+Chromium replays a shopper filling in the form on a desktop and on a phone, one frame per step, and
+two replays produce the same frames byte for byte. The page's layout boxes stand in for the engine's
+position log, and "did the order go through" stands in for the gameplay check. We seeded four bug
+families of the same kinds into the page and wrote three one-sentence checks. The evaluator, the
+contracts, the decision rule and SAM 3.1 are unchanged. The new parts are the harness
+([`harness/web`](harness/web)), the checks and the bugs.
+
+| What we measured | Result | Run |
+| --- | --- | --- |
+| Development bugs caught: SAM on / SAM off | **8 of 8** / 4 of 8, no false alarm on the clean page | [41088369464](https://github.com/seanudeke/Expectrail/actions/runs/41088369464) |
+| Changes that only look right, accepted (5 cases) | Expectrail with SAM **0 of 5**; without SAM 3 of 5; a pixel diff against the clean page 0 of 5 | [judge](bench/web/judge.md) |
+| Good changes, accepted (the correct fix and 3 intended changes) | Expectrail **4 of 4**, with or without SAM; the pixel diff 1 of 4 | [judge](bench/web/judge.md) |
+
+What this does and does not show:
+
+- **Without vision, half the bugs get through.** Four of the eight pass every layout and behaviour
+  check: a bar that covers the button but lets clicks through, a transparent button, a broken logo,
+  and a button moved out of the form by a transform. Three of the five changes that only look
+  right get past the checks without SAM. A pixel diff rejects every bad change, but it also rejects every
+  intended one, because it cannot tell a change someone asked for from a broken one.
+- **The vision prompts were tuned on these bugs.** The first SAM run also caught 8 of 8, but its
+  per-session detail showed a problem. On the phone, "blue button" also matched the cart's count
+  badge and the page's theme toggle, so the "button visible" check passed with the real button
+  gone, and the bug was caught only by the check beside it. On the desktop, "purple logo" matched
+  the toggle once the logo was broken.
+  - A prompt probe ([`agents/web_probe.py`](agents/web_probe.py)) scored each candidate against where
+    the page actually drew the element. We moved to "full-width blue button" at minScore 0.71 and
+    "purple B logo".
+  - Every failing check now fails on both sessions.
+  - The button's margin is narrow: the drawn button scores 0.75 or more, the toggle up to 0.65.
+  - The prompts were chosen on the same bugs they are scored on, and the page has no private
+    variants yet ([`bench/web/`](bench/web)).
+- **The repair loop is built but not yet run live.** Muse Code fixing the page uses the game's
+  fixer and sandbox unchanged ([`agents/web_fix.py`](agents/web_fix.py)). Until private web sessions
+  exist, every verdict is "needs review".
+- **One static page, three checks, written by the team that built the verifier.** It shows that
+  the harness can be replaced while the rest stays fixed. It does not show that Expectrail works on
+  any web app.
+
 ## What Expectrail cannot do yet
 
 - **It checks a change; it does not explore.** It replays fixed routes, so a bug where no route goes
   is invisible to it. Today it is visual regression checking, not playtesting.
 - **It checks only what someone wrote a check for.** Three approved checks today. Nothing checks what
   nobody described.
-- **One game, one engine, one level, bugs we seeded.** The held-out bugs were kept from the fixer,
-  but a teammate wrote them, and the same team wrote the checks.
-- **Repairs only.** We have not run it on other kinds of agent change (features, refactors,
-  dependency updates) or on software that is not a game. The design is meant to carry over;
-  [docs/future-work.md](docs/future-work.md) says which parts would and which would not.
+- **One game and one web page, with bugs we seeded.** The game's held-out bugs were kept from the
+  fixer, but a teammate wrote them, and the same team wrote the checks. The checkout page has no
+  held-out bugs yet.
+- **Mostly repairs.** The web judge includes three intended changes. We have not run the agent on
+  features, refactors or dependency updates, or on software without a screen. The design is meant
+  to carry over; [docs/future-work.md](docs/future-work.md) says which parts would and which would
+  not.
 - **The fixer's sandbox is not a hard boundary.** It has network access and shares the host's
   kernel, and without bubblewrap it is only a worktree without the verifier's files.
 - **No measured comparison with doing it by hand,** and one held-out catch (sinking/v4) came from a
