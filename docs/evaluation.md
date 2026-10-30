@@ -87,7 +87,12 @@ How to read it:
   blind. The verifier does not run these checks yet.
 - The result that would count as blind is a natural catch: the checks and guards committed before
   Muse Code runs, the fixer given the reporter's own words, and a fix that looks right but breaks a
-  guard rejected (protocol in [bugs/reported/README.md](../bugs/reported/README.md#running-a-natural-catch-trial)).
+  guard rejected. `agents/reported_trial.py` runs it (the Fix matrix with set `reported`, SAM off):
+  each bug five times, every candidate judged by Expectrail, by the bug's own public check and by
+  Muse from screenshots. The guards live in the held-out set; their digest was committed in
+  `bugs/reported/guards.sha256` before any trial ran, and a trial refuses any other guard file
+  (protocol in [bugs/reported/README.md](../bugs/reported/README.md#running-a-natural-catch-trial),
+  results in [`bench/reported/trial.md`](../bench/reported/trial.md)).
 
 ## Ground truth
 

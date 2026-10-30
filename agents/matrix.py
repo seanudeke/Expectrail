@@ -75,7 +75,8 @@ SPEC_FILES = {
     "coins-visible": REPO / "specs" / "coins-visible.json",
     "player-always-visible": REPO / "specs" / "player-always-visible.json",
 }
-SETS = ("dev", "held-out")
+SETS = ("dev", "held-out", "reported")
+REPORTED_CONDITION = "report"  # agents/reported_trial.py: the natural-catch trial
 PUBLIC_KEYS = ("format", "case", "condition", "live", "sam", "private", "detected", "outcome", "attemptsUsed",
                "wallClockSeconds", "samImages")
 
@@ -204,6 +205,12 @@ def expectrail_prompt(request: dict, files: dict[str, Path], attempt: int) -> st
 def run_case(key: str, condition: str, out: Path, *, live: bool, use_sam: bool | None = None,
              fixture: Path | None = None, require_sandbox: bool = False) -> dict:
     """One case under one condition: detect, brief, up to ATTEMPTS fixes, each verified."""
+    if key.startswith("reported/"):
+        if condition != REPORTED_CONDITION:
+            raise SystemExit(f"{key}: a reported-trial case runs under condition {REPORTED_CONDITION!r} only")
+        from agents.reported_trial import run_trial
+
+        return run_trial(key, out, live=live, fixture=fixture, require_sandbox=require_sandbox)
     if condition not in CONDITIONS:
         raise SystemExit(f"unknown condition {condition!r}")
     patch, spec, private = resolve_case(key)
@@ -347,9 +354,10 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument("--list", action="store_true", help="print the case ids of one set as JSON")
-    g.add_argument("--case", help="dev/<family>/vN, or <family>/vN for an active held-out variant")
+    g.add_argument("--case", help="dev/<family>/vN, <family>/vN for an active held-out variant, or "
+                                  "reported/<id>/r<n> for the reported-bug trial (condition report)")
     g.add_argument("--summarize", type=Path, help="build matrix-summary.json and print a table")
-    p.add_argument("--condition", choices=CONDITIONS)
+    p.add_argument("--condition", choices=CONDITIONS + (REPORTED_CONDITION,))
     p.add_argument("--set", choices=SETS, default="dev", dest="which", help="with --list")
     p.add_argument("--out", type=Path, default=REPO / "runs" / "matrix")
     p.add_argument("--live", action="store_true", help="run Muse Code (spends Meta credit)")
@@ -358,6 +366,11 @@ def main(argv: list[str] | None = None) -> int:
                    help="refuse to run Muse Code outside bubblewrap (CI: the verifier's private set is on disk)")
     args = p.parse_args(argv)
     if args.list:
+        if args.which == "reported":
+            from agents.reported_trial import case_ids
+
+            print(json.dumps(case_ids()))
+            return 0
         print(json.dumps(sorted(dev_variants()) if args.which == "dev" else sorted(heldout_cases())))
         return 0
     if args.summarize:

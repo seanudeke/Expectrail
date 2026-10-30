@@ -11,6 +11,13 @@
 # results are sanitized to ids, outcomes and per-attempt decisions, and nothing else is printed
 # or kept, since a candidate patch, a reason or Muse's log would describe the bug.
 #
+# set=reported runs the natural-catch trial on the reproduced public bug reports (agents/reported_trial.py):
+# each bug five times (cases reported/<id>/r1..r5, condition report), Muse Code given the reporter's
+# own words, and every candidate judged by Expectrail (the verifier plus the engine-record checks and
+# the bug's guards from the held-out set), by the bug's own public check and by Muse from screenshots.
+# SAM is off for this set: the checks that decide these bugs read the engine's record, and SAM on
+# every candidate would cost about $3 a verification for checks that do not bear on them.
+#
 # bench=judge runs the judge benchmark instead (agents/judge_bench.py): 15 candidate fixes with a
 # known answer (8 that undo a seeded bug, 7 that only look fixed or change nothing), each judged
 # by the verifier with SAM on, with SAM off, and by Muse Code from screenshots (live only).
@@ -36,9 +43,9 @@ on:
         options: [fix, judge, demo, gateway]
         default: fix
       set:
-        description: "dev (public development variants) or held-out (private; the first run on a fixed commit is the held-out result, later runs are repeats)"
+        description: "dev (public development variants), held-out (private; the first run on a fixed commit is the held-out result, later runs are repeats) or reported (the natural-catch trial on reproduced public bug reports, SAM off)"
         type: choice
-        options: [dev, held-out]
+        options: [dev, held-out, reported]
         default: dev
       cases:
         description: Comma-separated case ids (default all in the set), e.g. dev/sinking/v2,dev/layering/v1
@@ -67,7 +74,7 @@ jobs:
   # Judge the clean game once for the whole run (see sam_cache above). Runs beside the plan job; the
   # jobs that verify wait for it, and run without it if it fails or is skipped.
   sam-warm:
-    if: ${{ inputs.sam_cache != 'off' && (inputs.live || inputs.bench == 'demo') }}
+    if: ${{ inputs.sam_cache != 'off' && inputs.set != 'reported' && (inputs.live || inputs.bench == 'demo') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     env:
@@ -222,12 +229,17 @@ jobs:
         run: |
           python - <<'PY'
           import json, os
-          from agents.matrix import CONDITIONS, dev_variants, heldout_cases
-          every = sorted(dev_variants()) if os.environ["SET"] == "dev" else sorted(heldout_cases())
+          from agents.matrix import CONDITIONS, REPORTED_CONDITION, dev_variants, heldout_cases
+          from agents.reported_trial import case_ids
+          which = os.environ["SET"]
+          every = (sorted(dev_variants()) if which == "dev" else case_ids() if which == "reported"
+                   else sorted(heldout_cases()))
           cases = [c.strip() for c in os.environ["CASES"].split(",") if c.strip()] or every
           from expectrail.legacy import current_name
-          conds = [current_name(c.strip()) for c in os.environ["CONDITIONS"].split(",") if c.strip()] or list(CONDITIONS)
-          bad = sorted(set(cases) - set(every)) + sorted(set(conds) - set(CONDITIONS))
+          allowed = [REPORTED_CONDITION] if which == "reported" else list(CONDITIONS)
+          conds = ([REPORTED_CONDITION] if which == "reported" else
+                   [current_name(c.strip()) for c in os.environ["CONDITIONS"].split(",") if c.strip()] or list(CONDITIONS))
+          bad = sorted(set(cases) - set(every)) + sorted(set(conds) - set(allowed))
           if bad:
               raise SystemExit(f"unknown case or condition: {bad}")
           with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
@@ -335,8 +347,8 @@ jobs:
           EXPECTRAIL_MUSE_GATEWAY: 'on'
           EXPECTRAIL_MITMDUMP: ${{ runner.temp }}/mitm/bin/mitmdump
           META_API_KEY: ${{ inputs.live && secrets.META_API_KEY || '' }}
-          MODEL_API_KEY: ${{ inputs.live && secrets.MODEL_API_KEY || '' }}
-          EXPECTRAIL_OBS_PROVIDER: ${{ inputs.live && 'sam' || 'trace' }}
+          MODEL_API_KEY: ${{ inputs.live && inputs.set != 'reported' && secrets.MODEL_API_KEY || '' }}
+          EXPECTRAIL_OBS_PROVIDER: ${{ inputs.live && inputs.set != 'reported' && 'sam' || 'trace' }}
           EXPECTRAIL_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
           CASE: ${{ matrix.case }}
           CONDITION: ${{ matrix.condition }}
@@ -348,7 +360,7 @@ jobs:
           python -m agents.matrix "${args[@]}" > matrix.log 2>&1
           code=$?
           set -e
-          if [[ "$SET" == "dev" ]]; then tail -n 1 matrix.log; fi
+          if [[ "$SET" != "held-out" ]]; then tail -n 1 matrix.log; fi
           dir="runs/matrix/${CASE//\//_}/$CONDITION"
           python - "$dir/result.json" <<'PY'
           import json, sys
@@ -360,7 +372,11 @@ jobs:
           if r.get("detail") and not r.get("private"):  # public cases only: why it errored or was not detected
               print(f"::warning title=Fix matrix {r['case']} {r['condition']} detail::{' '.join(r['detail'].split())[:300]}")
           PY
-          if [[ "$SET" == "dev" ]]; then
+          if [[ "$SET" == "reported" ]]; then
+            # Each candidate's three judgments: Expectrail, the public check, Muse from screenshots.
+            python -m agents.reported_trial --annotate "$dir/result.json"
+          fi
+          if [[ "$SET" != "held-out" ]]; then
             # Public cases only: what Muse did on each attempt, so an empty attempt has a visible cause.
             for d in "$dir"/attempt-*; do
               [[ -d "$d" ]] || continue
@@ -393,8 +409,10 @@ jobs:
             find runs/matrix -name result.json -print | while read -r f; do mkdir -p "keep/$(dirname "$f")"; cp "$f" "keep/$f"; done
             exit 0
           fi
+          # result-private.json (a reported trial's guard reasons) is never kept.
           find runs/matrix -path '*held-out*' -prune -o -type f \( -name result.json -o -name candidate.patch \
-            -o -name muse-prompt.txt -o -name muse.log -o -name candidate.json -o -name detection.json \) -print \
+            -o -name muse-prompt.txt -o -name muse.log -o -name candidate.json -o -name detection.json \
+            -o -name judge.json \) -print \
             | while read -r f; do mkdir -p "keep/$(dirname "$f")"; cp "$f" "keep/$f"; done
       - name: Export scan before upload (nothing private, no keys, no signing key)
         id: export-scan

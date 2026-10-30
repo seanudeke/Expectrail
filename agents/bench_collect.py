@@ -16,6 +16,9 @@ published.
 result that is not an error, in run order: a later run only fills in what an earlier one could
 not decide, never replaces a result. Every row says which run it came from.
 
+``--trial`` reads a natural-catch trial run (the Fix matrix with set ``reported``,
+agents/reported_trial.py) and writes ``bench/reported/trial.json`` and ``trial.md``.
+
 ``--reported`` reads a reported-bug bench run (agents/reported_bench.py, job ``reported-bench``;
 annotations "Reported bench <id>") and writes ``bench/reported/reported.json`` and its README.
 
@@ -42,6 +45,7 @@ JUDGE_DIR = REPO / "bench" / "judge"
 DEMO_DIR = REPO / "bench" / "demo-loop"
 REPORTED_DIR = REPO / "bench" / "reported"
 REPORTED_FORMAT = "expectrail.reported-bench-results/v0"
+TRIAL_FORMAT = "expectrail.reported-trial-results/v0"
 DEMO_TITLE = re.compile(r"^Demo run (?P<run>\d+)$")
 DEMO_MSG = re.compile(r"^decision (?P<decision>[a-z-]+); attempts (?P<tries>.*?); triage (?P<triage>\S+); "
                       r"fixer (?P<fixer>\S+); trust (?P<trust>\S+); verified on (?P<prov>\S+); signed (?P<signed>\S+); "
@@ -576,6 +580,9 @@ def reported_markdown(doc: dict) -> str:
         "now records what these bugs break and that a one-sentence rule over that record catches each of them "
         "without a false alarm. It does not show that the checks would have found the bugs blind, and the "
         "verifier does not run them yet.", "",
+        "Today's spec checks (the ground, and with SAM the visibility specs) judge frames 0 to 119 of each route, "
+        "the window their specs were approved with; the gameplay check and the engine-record checks read the "
+        "whole run.", "",
     ]
     if doc["sam"] and doc["spend"]["samImages"] is not None:
         lines += [f"Spend: SAM images {_money(doc['spend'])}; {doc['spend']['jobMinutes']:.0f} job minutes.", ""]
@@ -594,6 +601,102 @@ def reported_markdown(doc: dict) -> str:
     return "\n".join(lines)
 
 
+TRIAL_CASE = re.compile(r"^Fix matrix (?P<case>reported/[a-z0-9-]+/r\d+) report$")
+TRIAL_ATTEMPT = re.compile(r"^Reported trial (?P<case>reported/[a-z0-9-]+/r\d+) attempt (?P<n>\d+)$")
+TRIAL_MSG = re.compile(r"^expectrail (?P<decision>[a-z-]+); public check (?P<public>[a-z-]+); muse screenshots "
+                       r"(?P<muse>[a-zA-Z-]+); natural catch (?P<catch>True|False); failing (?P<failing>.*)$")
+
+
+def collect_trial(run_ids: list[int], fetch=gh_json) -> dict:
+    """Natural-catch trial runs -> one row per case (the first that is not an error, in run order) and its
+    candidates, each judged by Expectrail, the bug's public check and Muse from screenshots."""
+    cases: dict[str, dict] = {}
+    runs = []
+    for run_id in run_ids:
+        run, notes = run_annotations(run_id, fetch, prefix="run (")
+        runs.append({"run": run_id, "runUrl": run.get("html_url"), "commit": run.get("head_sha"),
+                     "date": run.get("created_at")})
+        found: dict[str, dict] = {}
+        for note in notes:
+            title, message = note.get("title") or "", " ".join((note.get("message") or "").split())
+            if m := TRIAL_CASE.match(title):
+                row = found.setdefault(m["case"], {"case": m["case"], "candidates": []})
+                try:
+                    parsed = parse_matrix_message(message)
+                except ValueError:  # a case that errored before detection says "detected None"
+                    row.update(outcome="error", live=" live=True" in f" {message}", detail=message[:300])
+                    continue
+                row.update({k: v for k, v in parsed.items() if k != "attempts"})
+                row["attemptDecisions"] = parsed["attempts"]
+            elif m := TRIAL_ATTEMPT.match(title):
+                t = TRIAL_MSG.match(message)
+                if not t:
+                    raise ValueError(f"unrecognised trial annotation: {message!r}")
+                failing = [] if t["failing"] == "none" else [f.strip() for f in t["failing"].split(",")]
+                found.setdefault(m["case"], {"case": m["case"], "candidates": []})["candidates"].append(
+                    {"attempt": int(m["n"]), "expectrail": t["decision"], "publicCheck": t["public"],
+                     "museScreenshots": None if t["muse"] == "None" else t["muse"],
+                     "naturalCatch": t["catch"] == "True", "failing": failing})
+        for key, row in found.items():
+            earlier = cases.get(key)
+            if earlier is None or earlier.get("outcome") == "error":
+                cases[key] = dict(row, run=run_id)
+    if not cases:
+        raise SystemExit(f"runs {run_ids}: no reported-trial results among their annotations")
+    if not all(r.get("live") for r in cases.values()):
+        raise SystemExit("an offline (live=False) trial is not a result; collect live runs only")
+    rows = [cases[k] for k in sorted(cases)]
+    for r in rows:
+        r["bug"] = r["case"].split("/")[1]
+    bugs = {}
+    for bug in sorted({r["bug"] for r in rows}):
+        mine = [r for r in rows if r["bug"] == bug]
+        cands = [c for r in mine for c in r["candidates"]]
+        bugs[bug] = {"cases": len(mine), "fixed": sum(r.get("outcome") == "fixed" for r in mine),
+                     "errors": sum(r.get("outcome") == "error" for r in mine),
+                     "candidates": len(cands),
+                     "expectrailAccepts": sum(c["expectrail"] == "accept" for c in cands),
+                     "publicCheckPasses": sum(c["publicCheck"] == "pass" for c in cands),
+                     "museAccepts": sum(c["museScreenshots"] == "accept" for c in cands),
+                     "naturalCatches": sum(c["naturalCatch"] for c in cands)}
+    return {"format": TRIAL_FORMAT, "runs": runs, "bugs": bugs, "rows": rows,
+            "naturalCatches": sum(b["naturalCatches"] for b in bugs.values()),
+            "candidates": sum(b["candidates"] for b in bugs.values()),
+            "rule": "first non-error result per case, in run order",
+            "spend": spend([dict(r, attemptsUsed=r.get("attemptsUsed")) for r in rows], muse_key="attemptsUsed")}
+
+
+def trial_markdown(doc: dict) -> str:
+    runs = ", ".join(f"[{r['run']}]({r['runUrl']})" for r in doc["runs"])
+    lines = ["# Reported bugs: natural-catch trial", "",
+             "Written by `python3 -m agents.bench_collect --trial` from the runs' own annotations; do not edit by "
+             f"hand. Runs {runs}.", "",
+             "Muse Code got each reported bug in the reporter's own words, with screenshots of the bug's route, "
+             "five times, up to three attempts each, stopping when Expectrail accepted. Every candidate it wrote "
+             "was judged by Expectrail (the verifier, SAM off, plus the engine-record checks and the bug's guards, "
+             "committed before the trial as a digest in `bugs/reported/guards.sha256`), by the bug's own public "
+             "check alone, and by Muse from screenshots. A natural catch is a candidate the public check or Muse "
+             "from screenshots accepts and Expectrail rejects.", "",
+             f"**Natural catches: {doc['naturalCatches']} of {doc['candidates']} candidates.**", "",
+             "| Bug | Cases fixed | Candidates | Expectrail accepts | Public check passes | Muse accepts | "
+             "Natural catches |", "| --- | --- | --- | --- | --- | --- | --- |"]
+    for bug, b in doc["bugs"].items():
+        lines.append(f"| {bug} | {b['fixed']} of {b['cases']} | {b['candidates']} | {b['expectrailAccepts']} | "
+                     f"{b['publicCheckPasses']} | {b['museAccepts']} | {b['naturalCatches']} |")
+    lines += ["", "| Case | Attempt | Expectrail | Public check | Muse | Failing checks |",
+              "| --- | --- | --- | --- | --- | --- |"]
+    for r in doc["rows"]:
+        if not r["candidates"]:
+            lines.append(f"| {r['case']} | none | {r.get('outcome')} | | | {', '.join(r.get('attemptDecisions') or [])} |")
+        for c in r["candidates"]:
+            mark = " (natural catch)" if c["naturalCatch"] else ""
+            lines.append(f"| {r['case']} | {c['attempt']} | {c['expectrail']}{mark} | {c['publicCheck']} | "
+                         f"{c['museScreenshots']} | {', '.join(c['failing']) or 'none'} |")
+    lines += ["", "Guard reasons stay private until the event ends; a guard is named here by its id only. "
+              "Candidate patches are in each run's artifacts.", ""]
+    return "\n".join(lines)
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     p.add_argument("--run", type=int, required=True, action="append",
@@ -603,9 +706,18 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--judge", action="store_true", help="a judge-benchmark run instead of a detection run")
     p.add_argument("--demo", action="store_true", help="a live demo-loop run (Fix matrix, bench demo)")
     p.add_argument("--reported", action="store_true", help="a reported-bug bench run (agents/reported_bench.py)")
+    p.add_argument("--trial", action="store_true", help="natural-catch trial runs (Fix matrix, set reported)")
     p.add_argument("--out", type=Path)
     p.add_argument("--app", choices=("checkout",), help="a web-bench run on the checkout page (the second domain)")
     args = p.parse_args(argv)
+    if args.trial:
+        out = args.out or REPORTED_DIR
+        doc = collect_trial(args.run)
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "trial.json").write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+        (out / "trial.md").write_text(trial_markdown(doc), encoding="utf-8")
+        print(f"wrote {out / 'trial.json'} and {out / 'trial.md'}")
+        return 0
     if args.reported:
         out = args.out or REPORTED_DIR
         doc = collect_reported(args.run[-1])

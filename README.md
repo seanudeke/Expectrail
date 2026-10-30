@@ -178,8 +178,10 @@ Each was rendered on five routes, and so was the clean game ([`bench/reported/`]
 
 - **Today's checks miss all four.** They check that the robot stays above the ground and keeps
   moving, and none of these bugs breaks that. This is "it checks only what someone wrote a check
-  for", measured. SAM has not been run on them yet; its specs ask whether the robot and the coins
-  are visible, which none of these bugs is about.
+  for", measured. The approved specs also judge only the first two seconds of a route (frames 0 to
+  119, the window they were approved with); the gameplay check reads the whole run. We did not pay
+  for SAM on these: its specs ask whether the robot and the coins are visible in those same two
+  seconds, and the climb and the enemy's fall come later.
 - **What caught them is more of the engine's record, not more model calls.** The harness now logs
   which way the robot's sprite faces, every enemy and every bullet. Five rules read that log: the
   robot never rises more than a double jump above the floor it left, it faces the way it walks,

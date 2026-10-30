@@ -1,0 +1,4 @@
+# sha256 of reported/guards.json in the private held-out set: the guards of the natural-catch trial
+# (agents/reported_trial.py), committed here before any trial ran. A trial refuses a guard file
+# with any other digest. The file itself is published after the event.
+909a8a1f8ff6ebc39c1e739a509b05f18fe48bd956b8290926ece22eabcf76ad  reported/guards.json

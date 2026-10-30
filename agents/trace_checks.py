@@ -167,6 +167,101 @@ def enemies_stay_up(trace: dict, max_drop: float = MAX_ENEMY_DROP_PX) -> dict:
                    maxDrop=round(worst, 1))
 
 
+# Guard kinds: parameterized rules a guard file names with its own thresholds. A guard catches a fix
+# that stops a bug by removing what the game is meant to do (the double jump, the gun, the
+# enemies' patrol). The kinds are public; which guard applies to which bug, on which route and with
+# which threshold, lives with the held-out set (agents/reported_trial.py), so the fixer never sees it.
+
+
+def rises_at_least(trace: dict, min_px: float) -> dict:
+    """The robot rises at least ``min_px`` above the floor it last stood on, at least once."""
+    verdict = jump_height(trace, max_rise=float("inf"))
+    if verdict["result"] == "needs-review":
+        return verdict
+    rise = verdict["metrics"]["maxRise"]
+    if rise < min_px:
+        return _result("fail", f"the robot never rose more than {rise:.0f} px above its floor (needs {min_px:.0f})",
+                       maxRise=rise)
+    return _result("pass", f"rose {rise:.0f} px (needs {min_px:.0f})", maxRise=rise)
+
+
+def shots_at_least(trace: dict, minimum: int) -> dict:
+    """At least ``minimum`` bullets are fired on the route."""
+    n = len(_projectile_tracks(_rows(trace)))
+    if n < minimum:
+        return _result("fail", f"{n} bullets fired (needs {minimum})", shots=n)
+    return _result("pass", f"{n} bullets fired (needs {minimum})", shots=n)
+
+
+def shots_move(trace: dict, min_px: float, within_ticks: int = SHOT_LOOK_AHEAD_TICKS) -> dict:
+    """Every bullet travels at least ``min_px`` sideways within ``within_ticks`` of being fired."""
+    tracks = _projectile_tracks(_rows(trace))
+    if not tracks:
+        return _result("needs-review", "no bullets fired, so none could be seen to move", shots=0)
+    slow = []
+    for pid, track in sorted(tracks.items()):
+        t0, x0, _ = track[0]
+        later = [p for p in track if p[0] <= t0 + within_ticks]
+        if len(later) < 2:
+            continue  # gone at once (hit something): says nothing about its speed
+        if abs(later[-1][1] - x0) < min_px:
+            slow.append(t0)
+    if slow:
+        return _result("fail", f"{len(slow)} of {len(tracks)} bullets moved less than {min_px:.0f} px in "
+                       f"{within_ticks} ticks (first fired at tick {slow[0]})", shots=len(tracks), slow=len(slow))
+    return _result("pass", f"all {len(tracks)} bullets moved at least {min_px:.0f} px", shots=len(tracks))
+
+
+def _enemy_tracks(trace: dict) -> dict[int, list[tuple[int, float, float]]]:
+    tracks: dict[int, list[tuple[int, float, float]]] = {}
+    for row in _rows(trace):
+        for eid, x, y in row.get("enemies") or []:
+            tracks.setdefault(int(eid), []).append((int(row["tick"]), float(x), float(y)))
+    return tracks
+
+
+def enemies_remain(trace: dict, minimum: int) -> dict:
+    """At least ``minimum`` enemies are still in the game on the route's last tick."""
+    rows = _rows(trace)
+    if not rows:
+        return _result("needs-review", "the trace has no rows")
+    last = len(rows[-1].get("enemies") or [])
+    if last < minimum:
+        return _result("fail", f"{last} enemies left at the end (needs {minimum})", enemies=last)
+    return _result("pass", f"{last} enemies at the end (needs {minimum})", enemies=last)
+
+
+def enemies_patrol(trace: dict, min_px: float) -> dict:
+    """Every enemy covers at least ``min_px`` sideways over the route."""
+    tracks = _enemy_tracks(trace)
+    if not tracks:
+        return _result("needs-review", "the trace has no enemy record")
+    spans = {eid: max(p[1] for p in t) - min(p[1] for p in t) for eid, t in tracks.items()}
+    still = sorted(eid for eid, span in spans.items() if span < min_px)
+    if still:
+        return _result("fail", f"{len(still)} of {len(spans)} enemies moved less than {min_px:.0f} px sideways",
+                       enemies=len(spans), minSpan=round(min(spans.values()), 1))
+    return _result("pass", f"all {len(spans)} enemies moved at least {min_px:.0f} px sideways",
+                   enemies=len(spans), minSpan=round(min(spans.values()), 1))
+
+
+GUARD_KINDS = {
+    "rises-at-least": lambda trace, p: rises_at_least(trace, float(p["minPx"])),
+    "shots-at-least": lambda trace, p: shots_at_least(trace, int(p["min"])),
+    "shots-move": lambda trace, p: shots_move(trace, float(p["minPx"]), int(p.get("withinTicks", SHOT_LOOK_AHEAD_TICKS))),
+    "enemies-remain": lambda trace, p: enemies_remain(trace, int(p["min"])),
+    "enemies-patrol": lambda trace, p: enemies_patrol(trace, float(p["minPx"])),
+}
+
+
+def judge_guard(trace: dict, guard: dict) -> dict:
+    """One guard (``{"kind": ..., <its thresholds>}``) on one trace."""
+    kind = guard.get("kind")
+    if kind not in GUARD_KINDS:
+        return _result("needs-review", f"unknown guard kind {kind!r}")
+    return GUARD_KINDS[kind](trace, guard)
+
+
 RULES = {
     "jump-height": jump_height,
     "facing-follows-motion": facing_follows_motion,

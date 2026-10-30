@@ -13,6 +13,8 @@ Each bug reproduces a publicly reported Godot bug: the team wrote the patches, n
 
 The engine-record checks were written after these bugs were reproduced, so this shows that the harness now records what these bugs break and that a one-sentence rule over that record catches each of them without a false alarm. It does not show that the checks would have found the bugs blind, and the verifier does not run them yet.
 
+Today's spec checks (the ground, and with SAM the visibility specs) judge frames 0 to 119 of each route, the window their specs were approved with; the gameplay check and the engine-record checks read the whole run.
+
 Spend: no SAM; 14 job minutes.
 
 | Bug | Own check | Today, SAM off | Engine-record | What did not pass |
