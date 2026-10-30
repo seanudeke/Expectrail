@@ -14,6 +14,12 @@ the before-and-after screenshots, said the fall was fixed. Expectrail saw the ro
 floor and rejected it. In our judge benchmark it accepted none of the 7 fixes that only look right
 and turned down none of the 8 correct ones, in both runs ([Results](#results)).
 
+Every fix is also reviewed against its failing base: the same checks run on the game with the bug
+and on the game with the fix, so the report shows the requested behavior failing before and passing
+after, not only passing. In three live overnight runs each Muse Code fix was a demonstrated repair,
+and the fix that sinks the robot was rejected with its requested checks still failing
+([docs/review.md](docs/review.md)).
+
 We built and measured it on a game first, because a game shows the gap plainly: a change can pass
 every test and still be visibly broken. Then, to see whether the engineering carries past one game,
 we ran the same verifier on a web checkout page ([Beyond games](#beyond-games-a-web-checkout-page)). Built for the Meta Global AI Developer Hackathon (Indie
