@@ -1,0 +1,137 @@
+# Mutation bench (agents/mutation_bench.py): wrong-fix operators on the correct fix for each
+# public development case. Public checks only — never checks out the private held-out set.
+# A mutant that survives SAM off and SAM on is a finding (published with a catch-spec), not a failure.
+name: Mutation bench
+
+on:
+  workflow_dispatch:
+    inputs:
+      cases:
+        description: Comma-separated case ids (default all eight), e.g. dev/sinking/v2
+        default: ''
+      operators:
+        description: Comma-separated operators (default all six)
+        default: 'hide,sink,freeze,scale-to-zero,behind-scenery,comment-only'
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      pairs: ${{ steps.plan.outputs.pairs }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Plan case × operator pairs
+        id: plan
+        env:
+          CASES: ${{ inputs.cases }}
+          OPERATORS: ${{ inputs.operators }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from agents.mutation_bench import OPERATORS, pairs
+          from agents.matrix import dev_variants
+          every_cases = sorted(dev_variants())
+          cases = [c.strip() for c in os.environ["CASES"].split(",") if c.strip()] or every_cases
+          ops = [o.strip() for o in os.environ["OPERATORS"].split(",") if o.strip()] or list(OPERATORS)
+          bad = sorted(set(cases) - set(every_cases)) + sorted(set(ops) - set(OPERATORS))
+          if bad:
+              raise SystemExit(f"unknown case or operator: {bad}")
+          rows = [{"case": c, "operator": o} for c in cases for o in ops]
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"pairs={json.dumps(rows)}\n")
+          print(len(rows), "pairs")
+          PY
+
+  run:
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.pairs) }}
+    env:
+      CASE: ${{ matrix.case }}
+      OPERATOR: ${{ matrix.operator }}
+      MODEL_API_KEY: ${{ secrets.MODEL_API_KEY }}
+      # Public only: do not set EXPECTRAIL_HELDOUT_DIR.
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Download Godot
+        run: ./harness/get_godot.sh
+      - name: Mutate and verify (public checks only)
+        run: |
+          test -z "${EXPECTRAIL_HELDOUT_DIR:-}" || { echo "held-out must stay unset"; exit 1; }
+          set +e
+          python -m agents.mutation_bench --case "$CASE" --operator "$OPERATOR" --out runs/mutation > mut.log 2>&1
+          code=$?
+          set -e
+          tail -n 40 mut.log
+          dir="runs/mutation/${CASE//\//_}+${OPERATOR}"
+          mkdir -p keep
+          find "$dir" -type f \( -name result.json -o -name finding.json -o -name catch-spec.json \
+            -o -name candidate.patch -o -name operator.patch \) -print \
+            | while read -r f; do mkdir -p "keep/$(dirname "$f")"; cp "$f" "keep/$f"; done
+          exit "$code"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: mutation-${{ strategy.job-index }}
+          path: keep/
+          retention-days: 14
+
+  summarize:
+    needs: run
+    if: always() && needs.run.result != 'cancelled'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          path: results
+          pattern: mutation-*
+          merge-multiple: true
+      - name: Summarize findings
+        run: |
+          python -m agents.mutation_bench --summarize results/runs/mutation | tee -a "$GITHUB_STEP_SUMMARY"
+          mkdir -p bench/mutation
+          cp results/runs/mutation/mutation-summary.json bench/mutation/summary.json
+          python -m agents.mutation_bench --summarize results/runs/mutation > bench/mutation/README.md
+          # Collect findings for review.
+          mkdir -p bench/mutation/findings
+          find results/runs/mutation -name finding.json -print | while read -r f; do
+            rel=${f#results/runs/mutation/}
+            mkdir -p "bench/mutation/findings/$(dirname "$rel")"
+            cp "$f" "bench/mutation/findings/$rel"
+            catch="$(dirname "$f")/catch-spec.json"
+            if [ -f "$catch" ]; then cp "$catch" "bench/mutation/findings/$(dirname "$rel")/catch-spec.json"; fi
+          done
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: mutation-summary
+          path: bench/mutation/
+          retention-days: 30

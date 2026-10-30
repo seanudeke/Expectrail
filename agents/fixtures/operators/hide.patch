@@ -1,0 +1,10 @@
+--- a/player/player.tscn
++++ b/player/player.tscn
+@@ -201,6 +201,7 @@
+ collision_mask = 8
+ 
+ [node name="Sprite2D" type="Sprite2D" parent="." unique_id=202817017]
++visible = false
+ position = Vector2(0, -14)
+ texture = ExtResource("9")
+ hframes = 8

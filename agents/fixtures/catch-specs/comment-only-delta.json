@@ -1,0 +1,11 @@
+{
+  "format": "expectrail.test-spec/v0",
+  "id": "comment-only-delta",
+  "title": "Proposed catch for comment-only mutants",
+  "status": "proposed",
+  "notes": "No public visual or gameplay check can catch a comment-only delta on a correct fix. A future process check would require the candidate to change behaviour or non-comment tokens under the editable globs.",
+  "assertion": {
+    "type": "proposed-process",
+    "require": "non-comment-delta"
+  }
+}
