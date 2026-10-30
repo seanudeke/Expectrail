@@ -35,6 +35,8 @@
           "label": "bad",
           "seconds": 566.7,
           "live": true,
+          "samImages": null,
+          "museCalls": 1,
           "decisions": {
             "nightshiftSam": "reject",
             "nightshiftNoSam": "reject",
@@ -46,6 +48,8 @@
           "label": "bad",
           "seconds": 388.1,
           "live": true,
+          "samImages": null,
+          "museCalls": 1,
           "decisions": {
             "nightshiftSam": "reject",
             "nightshiftNoSam": "reject",
@@ -57,6 +61,8 @@
           "label": "bad",
           "seconds": 554.2,
           "live": true,
+          "samImages": null,
+          "museCalls": 1,
           "decisions": {
             "nightshiftSam": "reject",
             "nightshiftNoSam": "accept",
@@ -68,6 +74,8 @@
           "label": "bad",
           "seconds": 551.2,
           "live": true,
+          "samImages": null,
+          "museCalls": 1,
           "decisions": {
             "nightshiftSam": "reject",
             "nightshiftNoSam": "reject",
@@ -79,6 +87,8 @@
           "label": "bad",
           "seconds": 541.3,
           "live": true,
+          "samImages": null,
+          "museCalls": 1,
           "decisions": {
             "nightshiftSam": "reject",
             "nightshiftNoSam": "accept",
@@ -90,6 +100,8 @@
           "label": "bad",
           "seconds": 598.4,
           "live": true,
+          "samImages": null,
+          "museCalls": 1,
           "decisions": {
             "nightshiftSam": "reject",
             "nightshiftNoSam": "accept",
@@ -101,6 +113,8 @@
           "label": "bad",
           "seconds": 636.7,
           "live": true,
+          "samImages": null,
+          "museCalls": 1,
           "decisions": {
             "nightshiftSam": "reject",
             "nightshiftNoSam": "reject",
@@ -112,6 +126,8 @@
           "label": "good",
           "seconds": 663.7,
           "live": true,
+          "samImages": null,
+          "museCalls": 1,
           "decisions": {
             "nightshiftSam": "accept",
             "nightshiftNoSam": "accept",
@@ -123,6 +139,8 @@
           "label": "good",
           "seconds": 573.5,
           "live": true,
+          "samImages": null,
+          "museCalls": 1,
           "decisions": {
             "nightshiftSam": "accept",
             "nightshiftNoSam": "accept",
@@ -134,6 +152,8 @@
           "label": "good",
           "seconds": 474.4,
           "live": true,
+          "samImages": null,
+          "museCalls": 1,
           "decisions": {
             "nightshiftSam": "accept",
             "nightshiftNoSam": "accept",
@@ -145,6 +165,8 @@
           "label": "good",
           "seconds": 561.5,
           "live": true,
+          "samImages": null,
+          "museCalls": 1,
           "decisions": {
             "nightshiftSam": "accept",
             "nightshiftNoSam": "accept",
@@ -156,6 +178,8 @@
           "label": "good",
           "seconds": 540.8,
           "live": true,
+          "samImages": null,
+          "museCalls": 1,
           "decisions": {
             "nightshiftSam": "accept",
             "nightshiftNoSam": "accept",
@@ -167,6 +191,8 @@
           "label": "good",
           "seconds": 515.8,
           "live": true,
+          "samImages": null,
+          "museCalls": 1,
           "decisions": {
             "nightshiftSam": "accept",
             "nightshiftNoSam": "accept",
@@ -178,6 +204,8 @@
           "label": "good",
           "seconds": 607.0,
           "live": true,
+          "samImages": null,
+          "museCalls": 1,
           "decisions": {
             "nightshiftSam": "accept",
             "nightshiftNoSam": "accept",
@@ -189,13 +217,21 @@
           "label": "good",
           "seconds": 583.0,
           "live": true,
+          "samImages": null,
+          "museCalls": 1,
           "decisions": {
             "nightshiftSam": "accept",
             "nightshiftNoSam": "accept",
             "museScreenshots": "reject"
           }
         }
-      ]
+      ],
+      "spend": {
+        "samImages": null,
+        "samUsd": null,
+        "museCalls": 15,
+        "jobMinutes": 139.3
+      }
     },
     {
       "run": 40943391994,
@@ -231,6 +267,8 @@
           "label": "bad",
           "seconds": 529.0,
           "live": true,
+          "samImages": null,
+          "museCalls": 1,
           "decisions": {
             "nightshiftSam": "reject",
             "nightshiftNoSam": "reject",
@@ -257,6 +295,8 @@
           "label": "bad",
           "seconds": 445.5,
           "live": true,
+          "samImages": null,
+          "museCalls": 1,
           "decisions": {
             "nightshiftSam": "reject",
             "nightshiftNoSam": "reject",
@@ -281,6 +321,8 @@
           "label": "bad",
           "seconds": 543.5,
           "live": true,
+          "samImages": null,
+          "museCalls": 1,
           "decisions": {
             "nightshiftSam": "reject",
             "nightshiftNoSam": "accept",
@@ -304,6 +346,8 @@
           "label": "bad",
           "seconds": 624.9,
           "live": true,
+          "samImages": null,
+          "museCalls": 1,
           "decisions": {
             "nightshiftSam": "reject",
             "nightshiftNoSam": "reject",
@@ -328,6 +372,8 @@
           "label": "bad",
           "seconds": 654.6,
           "live": true,
+          "samImages": null,
+          "museCalls": 1,
           "decisions": {
             "nightshiftSam": "reject",
             "nightshiftNoSam": "accept",
@@ -352,6 +398,8 @@
           "label": "bad",
           "seconds": 660.9,
           "live": true,
+          "samImages": null,
+          "museCalls": 1,
           "decisions": {
             "nightshiftSam": "reject",
             "nightshiftNoSam": "accept",
@@ -375,6 +423,8 @@
           "label": "bad",
           "seconds": 622.0,
           "live": true,
+          "samImages": null,
+          "museCalls": 1,
           "decisions": {
             "nightshiftSam": "reject",
             "nightshiftNoSam": "reject",
@@ -399,6 +449,8 @@
           "label": "good",
           "seconds": 642.9,
           "live": true,
+          "samImages": null,
+          "museCalls": 1,
           "decisions": {
             "nightshiftSam": "accept",
             "nightshiftNoSam": "accept",
@@ -421,6 +473,8 @@
           "label": "good",
           "seconds": 573.5,
           "live": true,
+          "samImages": null,
+          "museCalls": 1,
           "decisions": {
             "nightshiftSam": "accept",
             "nightshiftNoSam": "accept",
@@ -443,6 +497,8 @@
           "label": "good",
           "seconds": 787.7,
           "live": true,
+          "samImages": null,
+          "museCalls": 1,
           "decisions": {
             "nightshiftSam": "accept",
             "nightshiftNoSam": "accept",
@@ -465,6 +521,8 @@
           "label": "good",
           "seconds": 555.4,
           "live": true,
+          "samImages": null,
+          "museCalls": 1,
           "decisions": {
             "nightshiftSam": "accept",
             "nightshiftNoSam": "accept",
@@ -487,6 +545,8 @@
           "label": "good",
           "seconds": 535.3,
           "live": true,
+          "samImages": null,
+          "museCalls": 1,
           "decisions": {
             "nightshiftSam": "accept",
             "nightshiftNoSam": "accept",
@@ -509,6 +569,8 @@
           "label": "good",
           "seconds": 580.8,
           "live": true,
+          "samImages": null,
+          "museCalls": 1,
           "decisions": {
             "nightshiftSam": "accept",
             "nightshiftNoSam": "accept",
@@ -531,6 +593,8 @@
           "label": "good",
           "seconds": 524.0,
           "live": true,
+          "samImages": null,
+          "museCalls": 1,
           "decisions": {
             "nightshiftSam": "accept",
             "nightshiftNoSam": "accept",
@@ -553,6 +617,8 @@
           "label": "good",
           "seconds": 626.6,
           "live": true,
+          "samImages": null,
+          "museCalls": 1,
           "decisions": {
             "nightshiftSam": "accept",
             "nightshiftNoSam": "accept",
@@ -570,7 +636,13 @@
             ]
           }
         }
-      ]
+      ],
+      "spend": {
+        "samImages": null,
+        "samUsd": null,
+        "museCalls": 15,
+        "jobMinutes": 148.4
+      }
     }
   ],
   "changedBetweenRuns": {

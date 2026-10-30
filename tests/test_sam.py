@@ -187,9 +187,22 @@ class ClientTest(unittest.TestCase):
                 raise urllib.error.HTTPError("u", 429, "slow down", {}, io.BytesIO(b"rate limited"))
             return json.dumps({"output_text": "<0f>" + box_token(0, (1, 1, 5, 5), 0.8)}).encode(), "application/json"
 
+        before = sam.sam_usage()
         client = MetaSamClient(transport=transport, sleep=lambda s: None)
         self.assertEqual(client.segment(self.png, "x"), [{"box": [1, 1, 5, 5], "score": 0.8}])
         self.assertEqual(client.calls, 2)
+        # Two requests went out; one image was answered (and billed). The count is process-wide.
+        after = sam.sam_usage()
+        self.assertEqual((after["requests"] - before["requests"], sam.sam_images_since(before)), (2, 1))
+
+    def test_a_failed_request_is_not_counted_as_an_image(self):
+        def transport(body):
+            raise urllib.error.HTTPError("u", 400, "bad", {}, io.BytesIO(b"bad"))
+        before = sam.sam_usage()
+        with self.assertRaises(SamError):
+            MetaSamClient(transport=transport, sleep=lambda s: None).segment(self.png, "x")
+        self.assertEqual(sam.sam_images_since(before), 0)
+        self.assertEqual(sam.sam_usage()["requests"] - before["requests"], 1)
 
     def test_bad_requests_are_not_retried(self):
         def transport(body):

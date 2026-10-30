@@ -45,6 +45,7 @@ from agents.matrix import (
 )
 from agents.muse_judge import DECISION_RE, run_muse_judge
 from agents.orchestrator import build_repair_request
+from agents.sam_observations import sam_images_since, sam_usage
 from agents.verifier import verify
 from harness.run import REPO, apply_patches
 from harness.run import run as harness_run
@@ -154,6 +155,7 @@ def run_case(key: str, out: Path, *, live: bool, sam: bool = True) -> dict:
     work = out / key.replace("/", "_")
     work.mkdir(parents=True, exist_ok=True)
     t0 = time.perf_counter()
+    sam_before = sam_usage()
     row: dict = {"format": FORMAT, "case": key, "label": spec["label"], "why": spec["why"], "bug": spec["bug"],
                  "live": live, "decisions": {}, "reasons": {}}
     try:
@@ -193,6 +195,7 @@ def run_case(key: str, out: Path, *, live: bool, sam: bool = True) -> dict:
         (work / "judge-error.txt").write_text(traceback.format_exc(), encoding="utf-8")
         row["error"] = f"{type(exc).__name__}: {exc}"[:300]
     row["wallClockSeconds"] = round(time.perf_counter() - t0, 1)
+    row["samImages"] = sam_images_since(sam_before)  # only the SAM-on verification sends any
     (work / "result.json").write_text(json.dumps(row, indent=2) + "\n", encoding="utf-8")
     return row
 

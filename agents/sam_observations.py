@@ -50,6 +50,26 @@ from nightshift.evaluator import evaluate
 API_BASE = os.environ.get("NIGHTSHIFT_MODEL_API_BASE", "https://api.meta.ai/v1")
 MODEL = os.environ.get("NIGHTSHIFT_SAM_MODEL", "sam-3.1")
 KEY_ENV = "MODEL_API_KEY"
+# Image segmentation price on the Meta Model API: $2.50 per 1,000 images
+# (https://dev.meta.ai/docs/pricing-rate-limits, read Oct 29, 2026). Used only to report cost.
+USD_PER_IMAGE = 2.50 / 1000
+
+# Every sam-3.1 request this process sent, across all clients and threads, for cost reporting.
+# "images" counts requests that got a response (one frame and one prompt each); "requests" also
+# counts the tries that failed and were retried.
+_usage = {"requests": 0, "images": 0}
+_usage_lock = threading.Lock()
+
+
+def sam_usage() -> dict:
+    """A snapshot of this process's sam-3.1 usage: {"requests", "images"}."""
+    with _usage_lock:
+        return dict(_usage)
+
+
+def sam_images_since(before: dict) -> int:
+    """Images sent to sam-3.1 since the snapshot ``before`` (from ``sam_usage``)."""
+    return sam_usage()["images"] - before["images"]
 EVERY_ENV = "NIGHTSHIFT_SAM_EVERY"
 CONFIRM_ENV = "NIGHTSHIFT_SAM_CONFIRM"
 CACHE_ENV = "NIGHTSHIFT_SAM_CACHE"
@@ -277,9 +297,14 @@ class MetaSamClient:
         for attempt in range(self.retries + 1):
             with self._lock:
                 self.calls += 1
+            with _usage_lock:
+                _usage["requests"] += 1
             started = time.monotonic()
             try:
-                return self._transport(body)
+                reply = self._transport(body)
+                with _usage_lock:
+                    _usage["images"] += 1
+                return reply
             except SamError:
                 raise
             except urllib.error.HTTPError as err:

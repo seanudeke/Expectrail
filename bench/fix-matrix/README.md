@@ -8,6 +8,14 @@ Set: dev. Runs: [40916077549](https://github.com/seanudeke/Nightshift/actions/ru
 | screenshots | 8 of 8 | 0 | 0 | 0 | 0 |
 | nightshift | 8 of 8 | 0 | 0 | 0 | 0 |
 
+Spend per run, every case it ran. An error records no attempts even when Muse Code ran before it, so attempts are a floor for a run with errors.
+
+| Run | Muse Code attempts | SAM images (USD) | Job minutes |
+| --- | --- | --- | --- |
+| 40916077549 | 11 | not counted | 240 |
+| 40927304209 | 5 | not counted | 104 |
+| 40927316337 | 1 | not counted | 10 |
+
 | Case | Condition | Outcome | Attempts | Minutes | Run |
 | --- | --- | --- | --- | --- | --- |
 | dev/layering/v1 | nightshift | fixed | accept | 16 | 40916077549 |

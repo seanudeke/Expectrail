@@ -54,6 +54,22 @@ class BenchCollectTest(unittest.TestCase):
             self.assertIn("| dev/sinking/v2 | yes | no | hybrid 5, player-always-visible 2 |", md)
             self.assertIn("none with SAM, none without", md)
 
+    def test_sam_images_per_variant_add_up_to_the_runs_spend(self):
+        counts = {"1": [{"title": "Bench SAM images dev/sinking/v2", "message": "960"}],
+                  "2": [{"title": "Bench SAM images clean", "message": "480"}]}
+
+        def fetch(path):
+            doc = fake_fetch(path)
+            return doc + counts.get(path.split("/")[-2], []) if isinstance(doc, list) else doc
+        doc = bc.collect(7, "dev", fetch=fetch)
+        self.assertEqual(doc["spend"], {"samImages": 1440, "samUsd": 3.6, "museCalls": 0, "jobMinutes": 11.9})
+        self.assertEqual(doc["variants"][0]["samImages"], 960)
+        self.assertIn("Spend: SAM images 1,440 ($3.60); 12 job minutes.", bc.markdown([doc]))
+        # A run from before the count existed says so instead of guessing.
+        old = bc.collect(7, "dev", fetch=fake_fetch)
+        self.assertIsNone(old["spend"]["samImages"])
+        self.assertIn("Spend: SAM images not counted; 12 job minutes.", bc.markdown([old]))
+
     def test_a_run_without_its_clean_control_is_refused(self):
         def no_clean(path):
             doc = fake_fetch(path)
@@ -103,6 +119,19 @@ class MatrixCollectTest(unittest.TestCase):
         md = bc.matrix_markdown(doc)
         self.assertIn("| nightshift | 2 of 2 | 0 | 0 | 0 | 0 |", md)
         self.assertIn("replaces an error in 1", md)
+
+    def test_spend_counts_every_result_a_run_produced(self):
+        notes = {1: [("dev/a/v1", "nightshift", FIXED + "; SAM images 400"),
+                     ("dev/b/v1", "nightshift", ERROR + "; SAM images 100")],
+                 2: [("dev/b/v1", "nightshift", LATER)]}
+        doc = bc.collect_matrix([1, 2], "dev", fetch=matrix_fetch(notes))
+        first, second = doc["runs"]
+        self.assertEqual(first["spend"], {"samImages": 500, "samUsd": 1.25, "museCalls": 1, "jobMinutes": 25.7})
+        self.assertEqual(second["spend"]["samImages"], None)  # recorded before SAM images were counted
+        self.assertEqual(second["spend"]["museCalls"], 2)
+        md = bc.matrix_markdown(doc)
+        self.assertIn("| 1 | 1 | 500 ($1.25) | 26 |", md)
+        self.assertIn("| 2 | 2 | not counted | 30 |", md)
 
     def test_offline_results_are_refused(self):
         notes = {1: [("dev/a/v1", "screenshots", FIXED.replace("live=True", "live=False"))]}
@@ -164,8 +193,15 @@ class JudgeCollectTest(unittest.TestCase):
                                                             "held-out check player-always-visible failed"])
         md = bc.judge_markdown(doc)
         self.assertIn("| good/sinking/v1 | accept | accept, accept | accept, accept | reject, accept |", md)
+        self.assertIn("9: 3 Muse Code judge calls, SAM images not counted", md)
         self.assertIn("Muse from screenshots: bad/layering-hide-trees, good/sinking/v1.", md)
         self.assertIn("The robot stands on the floor now.", md)
+
+    def test_judge_spend_when_counted(self):
+        msg = "label bad; SAM on reject; SAM off accept; Muse screenshots accept; 600.0 s; live=True; SAM images 1200"
+        self.RUNS = {11: [("bad/x", msg, None)]}
+        run = bc.collect_judge([11], fetch=self.fetch)["runs"][0]
+        self.assertEqual(run["spend"], {"samImages": 1200, "samUsd": 3.0, "museCalls": 1, "jobMinutes": 10.0})
 
     def test_offline_judge_runs_are_refused(self):
         self.RUNS = {9: [("good/sinking/v1",

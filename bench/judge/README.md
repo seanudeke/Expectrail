@@ -12,6 +12,8 @@ Runs: [40936362830](https://github.com/seanudeke/Nightshift/actions/runs/4093636
 | Muse from screenshots | 40936362830 | 6 of 8 | 2 of 7 | 0 |
 | Muse from screenshots | 40943391994 | 7 of 8 | 2 of 7 | 0 |
 
+Spend per run: 40936362830: 15 Muse Code judge calls, SAM images not counted, 139 job minutes; 40943391994: 15 Muse Code judge calls, SAM images not counted, 148 job minutes.
+
 Cases whose decision changed between runs: Nightshift, SAM on: none; Nightshift, SAM off: none; Muse from screenshots: good/sinking/v1.
 
 Each cell lists the decision in each run, in the order above.
