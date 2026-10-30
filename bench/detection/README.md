@@ -4,6 +4,23 @@ Written by `python3 -m agents.bench_collect` from the run's own annotations; do 
 A variant is caught when any check fails on at least one route. Rerun a set with
 `bench/rerun-detection.sh dev` or `bench/rerun-detection.sh held-out`.
 
+## dev, judged by Glimmer checked against the engine (run [41001182605](https://github.com/seanudeke/Nightshift/actions/runs/41001182605), 2026-10-30, commit 2de3d9c)
+
+Caught with Glimmer+engine (no SAM): **8 of 8**. Without vision: **3 of 8**. False alarms on the clean game (5 routes): none with Glimmer+engine (no SAM), none without.
+
+Spend: no SAM. Glimmer runs on a Fireworks deployment billed by the hour, not counted here; 419 job minutes.
+
+| Variant | Caught, Glimmer+engine | Caught, SAM off | Failing checks (routes) |
+| --- | --- | --- | --- |
+| dev/layering/v1 | yes | no | player-always-visible 5 |
+| dev/layering/v2 | yes | no | player-always-visible 5 |
+| dev/missing-texture/v1 | yes | no | coins-visible 5 |
+| dev/missing-texture/v2 | yes | no | coins-visible 5 |
+| dev/physics-fall-through/v1 | yes | yes | engine 5, gameplay 5, player-always-visible 5 |
+| dev/physics-fall-through/v2 | yes | yes | engine 5, gameplay 5, player-always-visible 5 |
+| dev/sinking/v1 | yes | yes | engine 5, player-always-visible 2 |
+| dev/sinking/v2 | yes | no | player-always-visible 2 |
+
 ## dev (run [40841977642](https://github.com/seanudeke/Nightshift/actions/runs/40841977642), 2026-10-29, commit c8bce4d)
 
 Caught with SAM: **8 of 8**. Without SAM: **3 of 8**. False alarms on the clean game (5 routes): none with SAM, none without.
@@ -19,11 +36,11 @@ Caught with SAM: **8 of 8**. Without SAM: **3 of 8**. False alarms on the clean 
 | dev/sinking/v1 | yes | yes | engine 5, hybrid 5, player-always-visible 2 |
 | dev/sinking/v2 | yes | no | hybrid 5, player-always-visible 2 |
 
-## held-out, judged by Glimmer checked against the engine (run [40986680262](https://github.com/seanudeke/Nightshift/actions/runs/40986680262), [40986446779](https://github.com/seanudeke/Nightshift/actions/runs/40986446779), 2026-10-30, commit 9e9dba4)
+## held-out, judged by Glimmer checked against the engine (run [41003751876](https://github.com/seanudeke/Nightshift/actions/runs/41003751876), 2026-10-30, commit 92508d9)
 
-Caught with Glimmer+engine (no SAM): **7 of 8**. Without vision: **3 of 8**. False alarms on the clean game (5 routes): none with Glimmer+engine (no SAM), none without.
+Caught with Glimmer+engine (no SAM): **8 of 8**. Without vision: **4 of 8**. False alarms on the clean game (5 routes): none with Glimmer+engine (no SAM), none without.
 
-Spend: no SAM. Glimmer runs on a Fireworks deployment billed by the hour, not counted here; 370 job minutes.
+Spend: no SAM. Glimmer runs on a Fireworks deployment billed by the hour, not counted here; 412 job minutes.
 
 | Variant | Caught, Glimmer+engine | Caught, SAM off | Failing checks (routes) |
 | --- | --- | --- | --- |
@@ -34,11 +51,13 @@ Spend: no SAM. Glimmer runs on a Fireworks deployment billed by the hour, not co
 | physics-fall-through/v5 | yes | yes | engine 5, gameplay 5, player-always-visible 5 |
 | physics-fall-through/v6 | yes | yes | engine 5, gameplay 5, player-always-visible 5 |
 | sinking/v3 | yes | yes | engine 5, player-always-visible 2 |
-| sinking/v4 | no | no | none |
+| sinking/v4 | yes | yes | engine 5 |
 
-## held-out (run [40805529944](https://github.com/seanudeke/Nightshift/actions/runs/40805529944), 2026-10-29, commit 71f7042)
+## held-out (run [41003749744](https://github.com/seanudeke/Nightshift/actions/runs/41003749744), 2026-10-30, commit 92508d9)
 
-Caught with SAM: **7 of 8**. Without SAM: **3 of 8**. False alarms on the clean game (5 routes): none with SAM, none without.
+Caught with SAM: **8 of 8**. Without SAM: **4 of 8**. False alarms on the clean game (5 routes): none with SAM, none without.
+
+Spend: SAM images 7,693 ($19.23); 51 job minutes.
 
 | Variant | Caught, SAM on | Caught, SAM off | Failing checks (routes) |
 | --- | --- | --- | --- |
@@ -49,4 +68,4 @@ Caught with SAM: **7 of 8**. Without SAM: **3 of 8**. False alarms on the clean 
 | physics-fall-through/v5 | yes | yes | engine 5, gameplay 5, hybrid 5, player-always-visible 5 |
 | physics-fall-through/v6 | yes | yes | engine 5, gameplay 5, hybrid 5, player-always-visible 5 |
 | sinking/v3 | yes | yes | engine 5, hybrid 5, player-always-visible 3 |
-| sinking/v4 | no | no | none |
+| sinking/v4 | yes | yes | engine 5, hybrid 5 |

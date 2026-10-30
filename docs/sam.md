@@ -57,6 +57,33 @@ captured-frame pixels so `tolerancePx` means the same for each:
 - **Hybrid** (with SAM on): SAM's box for the robot against the same ground line. This one also
   sees a robot that is only *drawn* in the wrong place.
 
+### The drawn floor (October 30)
+
+Both judges measured the robot against the floor's collision, so a floor drawn somewhere its
+collision is not was invisible to every check: the first held-out run missed sinking/v4 that way.
+The harness now also renders the level's tile layers alone, once per run, in a second viewport that
+shares the game's 2D world but draws only canvas items on a visibility layer no game node uses (the
+tile layers and the nodes above them are given it at run time; the main view draws every layer, so
+the captured frames are byte-identical). Per world column it logs where the tiles are opaque
+(`levelArt` in trace.json). The ground line is now the higher of the clean level's collision and
+the floor as the candidate's game draws it, its top lowered by the grass on the tiles (8 px: over
+all 3,648 exposed surface columns of the clean level the art starts 1 to 10 px above the
+collision). A floor drawn higher than it collides fails the ground check under every judge, with
+SAM on or off; a floor drawn lower leaves the collision in charge.
+
+It was built after the miss, from the public game, without reading sinking/v4's patch, and checked
+on the four public routes before it ran on the held-out set (`bench/drawn-floor/`): no development
+variant or candidate fixture changes verdict, the clean game's worst gap is 2 px, and two
+floor-art bugs written for it (the tiles drawn 26 px higher by a shader, or by the tile set's texture
+origin) fail on every route. Art counts as a floor only if it starts at most 64 px above the robot's
+origin, as the collision search does, and reaches down past its feet: a platform overhead, and the
+overhanging end of a platform the robot jumps up beside, were both taken for the floor on public
+routes before that rule.
+
+Known limits: it reads the tile layers only (a floor drawn by some other node is not seen), and a
+candidate whose own level script strips the render's visibility layer from its tiles would leave
+the ground judged on collision alone, as before.
+
 Live probe (run 40706769342), worst gap between the robot's drawn feet and the ground line:
 
 | Run | Worst gap (frame px) | Hybrid ground check |
@@ -112,7 +139,7 @@ check fails on at least one route. Each variant gets one annotation with its id,
 and verdicts; nothing else from the private set leaves the runner (no artifacts, and the harness
 output goes to a file that is never printed).
 
-First full run, October 28 (run 40805529944, recorded in `bench/detection/held-out.json`), five
+First full run, October 28 (run 40805529944; `bench/detection/held-out.json` now holds the re-run below), five
 routes per variant, every pass confirmed on every frame:
 
 | Held-out variant | Engine | Gameplay | Hybrid | player-always-visible | coins-visible | Caught, SAM on | Caught, SAM off |
@@ -127,12 +154,22 @@ routes per variant, every pass confirmed on every frame:
 | sinking/v3 | 5 fail | 5 pass | 5 fail | 3 fail, 2 pass | 5 pass | yes | yes |
 | sinking/v4 | 5 pass | 5 pass | 5 pass | 5 pass | 5 pass | **no** | no |
 
-With SAM on, 7 of 8 held-out variants are caught; without it, 3 of 8. No false alarm on the clean
-routes either way. Sinking/v4 is a known blind spot, predicted before the run: every check measures
-the robot against the level's collision, so a bug that moves only the art is invisible to all of
-them. Not yet explained: the hybrid's needs-review on layering, and sinking/v3 failing
-player-always-visible on three routes. The benchmark does not count SAM calls or cost yet; each
-variant took 4 to 8 minutes on a GitHub runner.
+With SAM on, 7 of 8 held-out variants were caught; without it, 3 of 8. No false alarm on the clean
+routes either way. The miss, sinking/v4: every check measured the robot against the level's
+collision, so a bug that moves only the floor's art was invisible to all of them.
+
+**Re-run with the drawn floor, October 30** (run 41003749744, commit 92508d9, recorded in
+`bench/detection/held-out.json`): every count above is unchanged except sinking/v4, which now fails
+the engine and hybrid ground checks on all 5 routes. With SAM on, 8 of 8 held-out variants are
+caught; without it, 4 of 8; no false alarm on the clean routes either way. The check that catches it
+was built after the miss (see "The drawn floor"), so sinking/v4 is caught by a check made for its
+class, not blind; the other seven were caught before that check existed. SAM read 7,693 images
+($19.23); each variant took 4 to 8 minutes on a GitHub runner. Muse Glimmer checked against the
+engine, with no SAM key, got the same on the same commit: 8 of 8, 4 of 8 without vision, no false
+alarm (run 41003751876; docs/open-weights.md).
+
+Not yet explained: the hybrid's needs-review on layering, and sinking/v3 failing
+player-always-visible on three routes.
 
 ## Where SAM runs
 

@@ -2,16 +2,16 @@
   "format": "nightshift.detection-bench/v0",
   "set": "held-out",
   "judge": "glimmer-engine",
-  "run": 40986680262,
-  "runUrl": "https://github.com/seanudeke/Nightshift/actions/runs/40986680262",
-  "commit": "9e9dba47605b856c10731a3bf7d942552f301c03",
-  "date": "2026-10-30T01:34:47Z",
+  "run": 41003751876,
+  "runUrl": "https://github.com/seanudeke/Nightshift/actions/runs/41003751876",
+  "commit": "92508d9f86c5f91b3ff450fc24a8b609c3f35239",
+  "date": "2026-10-30T04:35:34Z",
   "caughtWithSamOn": {
     "yes": 0,
     "of": 8
   },
   "caughtWithSamOff": {
-    "yes": 3,
+    "yes": 4,
     "of": 8
   },
   "falseAlarm": {
@@ -47,9 +47,9 @@
     },
     "caughtWithGlimmerEngine": "no",
     "routes": 5,
-    "seconds": 3639,
+    "seconds": 4334,
     "samImages": 0,
-    "run": 40986680262
+    "run": 41003751876
   },
   "variants": [
     {
@@ -80,9 +80,9 @@
       },
       "caughtWithGlimmerEngine": "yes",
       "routes": 5,
-      "seconds": 1743,
+      "seconds": 3038,
       "samImages": 0,
-      "run": 40986680262
+      "run": 41003751876
     },
     {
       "id": "layering/v6",
@@ -112,9 +112,9 @@
       },
       "caughtWithGlimmerEngine": "yes",
       "routes": 5,
-      "seconds": 1477,
+      "seconds": 2730,
       "samImages": 0,
-      "run": 40986680262
+      "run": 41003751876
     },
     {
       "id": "missing-texture/v5",
@@ -144,9 +144,9 @@
       },
       "caughtWithGlimmerEngine": "yes",
       "routes": 5,
-      "seconds": 1083,
+      "seconds": 1495,
       "samImages": 0,
-      "run": 40986680262
+      "run": 41003751876
     },
     {
       "id": "missing-texture/v6",
@@ -176,9 +176,9 @@
       },
       "caughtWithGlimmerEngine": "yes",
       "routes": 5,
-      "seconds": 1050,
+      "seconds": 1490,
       "samImages": 0,
-      "run": 40986680262
+      "run": 41003751876
     },
     {
       "id": "physics-fall-through/v5",
@@ -208,9 +208,9 @@
       },
       "caughtWithGlimmerEngine": "yes",
       "routes": 5,
-      "seconds": 3048,
+      "seconds": 3483,
       "samImages": 0,
-      "run": 40986680262
+      "run": 41003751876
     },
     {
       "id": "physics-fall-through/v6",
@@ -240,9 +240,9 @@
       },
       "caughtWithGlimmerEngine": "yes",
       "routes": 5,
-      "seconds": 3073,
+      "seconds": 3483,
       "samImages": 0,
-      "run": 40986680262
+      "run": 41003751876
     },
     {
       "id": "sinking/v3",
@@ -272,19 +272,19 @@
       },
       "caughtWithGlimmerEngine": "yes",
       "routes": 5,
-      "seconds": 3387,
+      "seconds": 2932,
       "samImages": 0,
-      "run": 40986446779
+      "run": 41003751876
     },
     {
       "id": "sinking/v4",
       "caughtWithSamOn": null,
-      "caughtWithSamOff": "no",
+      "caughtWithSamOff": "yes",
       "checks": {
         "engine": {
-          "fail": 0,
+          "fail": 5,
           "needs-review": 0,
-          "pass": 5
+          "pass": 0
         },
         "gameplay": {
           "fail": 0,
@@ -302,11 +302,11 @@
           "pass": 5
         }
       },
-      "caughtWithGlimmerEngine": "no",
+      "caughtWithGlimmerEngine": "yes",
       "routes": 5,
-      "seconds": 3724,
+      "seconds": 1743,
       "samImages": 0,
-      "run": 40986446779
+      "run": 41003751876
     }
   ],
   "rerun": "bench/rerun-detection.sh held-out main glimmer-engine",
@@ -314,24 +314,10 @@
     "samImages": 0,
     "samUsd": 0.0,
     "museCalls": 0,
-    "jobMinutes": 370.4
+    "jobMinutes": 412.1
   },
   "caughtWithGlimmerEngine": {
-    "yes": 7,
+    "yes": 8,
     "of": 8
-  },
-  "runs": [
-    {
-      "run": 40986680262,
-      "runUrl": "https://github.com/seanudeke/Nightshift/actions/runs/40986680262",
-      "commit": "9e9dba47605b856c10731a3bf7d942552f301c03",
-      "date": "2026-10-30T01:34:47Z"
-    },
-    {
-      "run": 40986446779,
-      "runUrl": "https://github.com/seanudeke/Nightshift/actions/runs/40986446779",
-      "commit": "9e9dba47605b856c10731a3bf7d942552f301c03",
-      "date": "2026-10-30T01:32:23Z"
-    }
-  ]
+  }
 }
