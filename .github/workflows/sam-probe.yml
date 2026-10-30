@@ -263,7 +263,10 @@ jobs:
           persist-credentials: false
       - name: Point the verifier at the held-out set
         if: env.HELDOUT_TOKEN_SET == 'true'
-        run: echo "NIGHTSHIFT_HELDOUT_DIR=$GITHUB_WORKSPACE/heldout-set" >> "$GITHUB_ENV"
+        # A probe reports every private route, even for a candidate that already failed.
+        run: |
+          echo "NIGHTSHIFT_HELDOUT_DIR=$GITHUB_WORKSPACE/heldout-set" >> "$GITHUB_ENV"
+          echo "NIGHTSHIFT_HELDOUT_AFTER_FAIL=run" >> "$GITHUB_ENV"
       - name: Gate 1 accept path with SAM on
         env:
           MODEL_API_KEY: ${{ secrets.MODEL_API_KEY || secrets.META_API_KEY }}
