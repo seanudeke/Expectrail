@@ -16,6 +16,8 @@ something; keep prior work out of it.
   event. The organizers said on the October 27 call that prior open-source work
   may be used if it is disclosed; we have asked for that in writing.
 
+- Bootstrap's Checkout example (`apps/checkout/site`), unmodified from the v5.3.8 release's examples zip (MIT; see NOTICE): the second domain's app. Everything else under `apps/checkout` was written during the event.
+
 ## Log
 
 | Date | What | Where |
@@ -73,3 +75,4 @@ something; keep prior work out of it.
 | Oct 29 | Interactive Hosted Demo & Audit Vault: 4-tab interactive web app with 8 seeded variants, 4 rejected exploits, SAM 3.1 overlays, coordinate traces, Gate 2 benchmark matrix, and signed release candidate | `docs/demo/index.html`, `docs/index.html`, `README.md` |
 | Oct 30 | Muse Spark Open measured live on public material: model ids the key can see, the three approved checks drafted again and compared with the approved specs, the ground draft judged on the seeded bugs, the scripted playtest sorted, side by side with Muse Spark on Meta's API | `agents/spark_open.py`, `.github/workflows/spark-open.yml`, `tests/test_spark_open.py` |
 | Oct 30 | Renamed the project from Nightshift to Expectrail: the `expectrail` package, `expectrail.<kind>/v0` formats, `EXPECTRAIL_*` settings, the harness autoload, the signing key name, workflows and docs; names from before the rename are still read (`nightshift.<kind>/v0`, `NIGHTSHIFT_*`, the old key name, the fix matrix's old condition name), and recorded runs in `bench/` were collected again with no number changed | `expectrail/legacy.py`, `tests/test_legacy.py`, every file that named the project |
+| Oct 30 | Second domain, a web checkout page: a web harness (Chromium through Playwright replays a shopper's session byte for byte and logs the page's layout, as Godot replays a route and logs positions), the four bug families as eight seeded patches, three checks, and a detection bench whose output the game's collector reads unchanged; the evaluator, observers and verdict logic are the game's | `harness/web/`, `apps/checkout/bugs/`, `apps/checkout/specs/`, `agents/web_bench.py`, `.github/workflows/web-bench.yml`, `tests/test_web.py` |

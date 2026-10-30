@@ -1,0 +1,124 @@
+# Second domain: the detection bench on a web checkout page (agents/web_bench.py). For the clean page
+# and each seeded bug, Chromium replays the desktop and phone checkout sessions (harness/web) and the
+# same evaluator judges the checks in apps/checkout/specs on the page's layout log, on the shopper's
+# behaviour (did the order go through) and, with judge sam, on SAM 3.1's view of the frames. Each
+# variant prints the held-out bench's annotation, so agents.bench_collect records a run unchanged:
+#   python3 -m agents.bench_collect --run <id> --set dev --out bench/web/detection
+# Manual only: with judge sam it spends SAM images (14 frames a session, about 28 a variant).
+name: Web bench
+
+on:
+  workflow_dispatch:
+    inputs:
+      set:
+        description: dev (public variants in apps/checkout/bugs) or held-out (the private set's web/ variants)
+        type: choice
+        options: [dev, held-out]
+        default: dev
+      judge:
+        description: sam (SAM 3.1 on, the layout and behaviour checks too) or layout (no model, no spend)
+        type: choice
+        options: [sam, layout]
+        default: sam
+
+permissions:
+  contents: read
+
+jobs:
+  web-list:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      HELDOUT_TOKEN_SET: ${{ secrets.HELDOUT_TOKEN != '' }}
+    outputs:
+      variants: ${{ steps.list.outputs.variants }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt -r requirements-web.txt
+      - name: Fetch the private held-out set (verifier side only)
+        if: inputs.set == 'held-out' && env.HELDOUT_TOKEN_SET == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: seanudeke/Nightshift-heldout
+          token: ${{ secrets.HELDOUT_TOKEN }}
+          path: heldout-set
+          persist-credentials: false
+      - name: List the variants (ids only)
+        id: list
+        env:
+          SET: ${{ inputs.set }}
+          EXPECTRAIL_HELDOUT_DIR: ${{ inputs.set == 'held-out' && format('{0}/heldout-set', github.workspace) || '' }}
+        run: |
+          variants=$(python -m agents.web_bench --list --set "$SET")
+          [[ "$variants" =~ ^\[(\"[a-z0-9/_-]+\"(,\ )?)+\]$ ]] || { echo "::error::unexpected variant list"; exit 1; }
+          [[ "$variants" != '["clean"]' ]] || { echo "::error::no variants in the $SET set"; exit 1; }
+          echo "variants=$variants" >> "$GITHUB_OUTPUT"
+          echo "variants: $variants"
+
+  # Named heldout-bench so agents.bench_collect reads its annotations as it reads the game's.
+  heldout-bench:
+    needs: web-list
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        variant: ${{ fromJSON(needs.web-list.outputs.variants) }}
+    env:
+      SAM_KEY_SET: ${{ secrets.MODEL_API_KEY != '' || secrets.META_API_KEY != '' }}
+      HELDOUT_TOKEN_SET: ${{ secrets.HELDOUT_TOKEN != '' }}
+    steps:
+      - name: Require the SAM key when SAM judges
+        if: inputs.judge == 'sam' && env.SAM_KEY_SET != 'true'
+        run: |
+          echo "::error::Set the MODEL_API_KEY (or META_API_KEY) repository secret first."
+          exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt -r requirements-web.txt
+      - name: Install Chromium for Playwright
+        run: python -m playwright install --with-deps chromium
+      - name: Fetch the private held-out set (verifier side only)
+        if: inputs.set == 'held-out' && env.HELDOUT_TOKEN_SET == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: seanudeke/Nightshift-heldout
+          token: ${{ secrets.HELDOUT_TOKEN }}
+          path: heldout-set
+          persist-credentials: false
+      - name: Render and judge the variant
+        env:
+          MODEL_API_KEY: ${{ inputs.judge == 'sam' && (secrets.MODEL_API_KEY || secrets.META_API_KEY) || '' }}
+          EXPECTRAIL_OBS_PROVIDER: ${{ inputs.judge == 'sam' && 'sam' || 'trace' }}
+          EXPECTRAIL_HELDOUT_DIR: ${{ inputs.set == 'held-out' && format('{0}/heldout-set', github.workspace) || '' }}
+          VARIANT: ${{ matrix.variant }}
+        run: |
+          [[ "$VARIANT" =~ ^[a-z0-9_-]+(/[a-z0-9_-]+){0,2}$ ]] || { echo "::error::unexpected variant id"; exit 1; }
+          set +e
+          python -m agents.web_bench --variant "$VARIANT" --out runs/web-bench > bench.log 2>&1
+          code=$?
+          set -e
+          # Only the annotation lines: ids, counts and verdicts (a held-out variant's patch stays here).
+          grep '^::' bench.log || true
+          if [[ "$code" -ne 0 ]]; then
+            echo "::error title=Web bench ${VARIANT}::the benchmark failed (exit $code); its log stays on the runner"
+            exit "$code"
+          fi
+      - name: Keep the public frames and verdicts
+        if: always() && inputs.set == 'dev'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: web-bench-${{ strategy.job-index }}
+          path: runs/web-bench/
+          retention-days: 14
+          if-no-files-found: warn

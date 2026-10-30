@@ -1,0 +1,18 @@
+{
+  "format": "expectrail.test-spec/v0",
+  "id": "checkout-button-visible",
+  "instruction": "The Continue to checkout button is always visible.",
+  "objects": {
+    "button": {
+      "prompt": "blue button"
+    }
+  },
+  "assertion": {
+    "type": "visible",
+    "object": "button"
+  },
+  "window": {
+    "fromFrame": 0,
+    "toFrame": 13
+  }
+}

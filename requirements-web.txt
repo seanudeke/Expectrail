@@ -1,0 +1,3 @@
+# The web harness (harness/web): Playwright drives Chromium. Pinned so frames replay byte for byte;
+# after installing, run `python -m playwright install --with-deps chromium`.
+playwright==1.63.0

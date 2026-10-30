@@ -3,6 +3,7 @@
 /.github/                  @seanudeke
 /contracts/                @seanudeke
 /specs/                    @seanudeke
+/apps/checkout/specs/       @seanudeke
 /agents/specs/             @seanudeke
 /expectrail/               @seanudeke
 /harness/                  @seanudeke

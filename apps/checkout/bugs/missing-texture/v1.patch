@@ -1,0 +1,13 @@
+# The logo's path has a typo, so the image never loads; its box keeps its size.
+diff -ruN a/checkout/index.html b/checkout/index.html
+--- a/checkout/index.html
++++ b/checkout/index.html
+@@ -194,7 +194,7 @@
+         <div class="py-5 text-center">
+           <img
+             class="d-block mx-auto mb-4"
+-            src="../assets/brand/bootstrap-logo.svg"
++            src="../assets/brand/bootstrap-logo.sv"
+             alt=""
+             width="72"
+             height="57"

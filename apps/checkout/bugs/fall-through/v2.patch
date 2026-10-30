@@ -1,0 +1,14 @@
+# The checkout button is positioned absolutely and ends up above the top of the page.
+diff -ruN a/checkout/checkout.css b/checkout/checkout.css
+--- a/checkout/checkout.css
++++ b/checkout/checkout.css
+@@ -1,3 +1,9 @@
+ .container {
+   max-width: 960px;
+ }
++
++.needs-validation .btn-lg {
++  position: absolute;
++  top: -400px;
++  left: 0;
++}

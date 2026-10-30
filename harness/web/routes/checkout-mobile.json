@@ -1,0 +1,88 @@
+{
+  "format": "expectrail.web-route/v0",
+  "name": "checkout-mobile",
+  "description": "The same shopper on a phone-sized screen, where the cart sits above the form.",
+  "page": "checkout/index.html",
+  "viewport": [
+    390,
+    2700
+  ],
+  "elements": {
+    "button": "form.needs-validation button[type=submit]",
+    "logo": "main img",
+    "form": "form.needs-validation",
+    "cart": "main ul.list-group",
+    "total": "main ul.list-group li:last-child strong",
+    "page": "main"
+  },
+  "steps": [
+    {
+      "do": "load"
+    },
+    {
+      "do": "fill",
+      "target": "#firstName",
+      "value": "Ada"
+    },
+    {
+      "do": "fill",
+      "target": "#lastName",
+      "value": "Lovelace"
+    },
+    {
+      "do": "fill",
+      "target": "#username",
+      "value": "ada"
+    },
+    {
+      "do": "fill",
+      "target": "#email",
+      "value": "ada@example.com"
+    },
+    {
+      "do": "fill",
+      "target": "#address",
+      "value": "1 Analytical Way"
+    },
+    {
+      "do": "select",
+      "target": "#country",
+      "value": "United States"
+    },
+    {
+      "do": "select",
+      "target": "#state",
+      "value": "California"
+    },
+    {
+      "do": "fill",
+      "target": "#zip",
+      "value": "94016"
+    },
+    {
+      "do": "fill",
+      "target": "#cc-name",
+      "value": "Ada Lovelace"
+    },
+    {
+      "do": "fill",
+      "target": "#cc-number",
+      "value": "4242424242424242"
+    },
+    {
+      "do": "fill",
+      "target": "#cc-expiration",
+      "value": "12/30"
+    },
+    {
+      "do": "fill",
+      "target": "#cc-cvv",
+      "value": "123"
+    },
+    {
+      "do": "click",
+      "target": "button",
+      "submits": true
+    }
+  ]
+}

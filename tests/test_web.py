@@ -1,0 +1,141 @@
+"""The second domain's adapter: web routes, the layout log as observations, behaviour, and the bench."""
+from __future__ import annotations
+
+import json
+import tempfile
+import unittest
+from pathlib import Path
+from unittest import mock
+
+from agents import web_bench
+from expectrail.contracts import load, validate
+from expectrail.evaluator import evaluate
+from harness.run import REPO
+from harness.web import layout
+from harness.web.run import WebHarnessError, load_route
+
+SPECS = {p.stem: load(p, "test-spec") for p in (REPO / "apps" / "checkout" / "specs").glob("*.json")}
+
+
+def element(box, shown=True, painted=None):
+    return {"shown": shown, "layout": list(box), "painted": list(painted or box)}
+
+
+def trace(button=(332, 1358, 940, 1406), form=(332, 328, 940, 1406), logo=(764, 48, 836, 105), frames=14,
+          submitted=True, **overrides):
+    rows = []
+    for n in range(frames):
+        elements = {"button": element(button), "form": element(form), "logo": element(logo)}
+        elements.update(overrides)
+        rows.append({"frame": n, "step": "fill", "elements": elements})
+    return {"format": "expectrail.web-trace/v0", "viewport": [1600, 1680], "rows": rows,
+            "outcome": {"submitted": submitted, "error": None if submitted else "click did not go through"}}
+
+
+def judged(spec_id: str, t: dict) -> str:
+    spec = SPECS[spec_id]
+    obs = layout.layout_observations(t, spec)
+    validate(obs, "observations")
+    return evaluate(spec, obs)["result"]
+
+
+class LayoutTest(unittest.TestCase):
+    def test_the_specs_are_valid_test_specs(self):
+        self.assertEqual(sorted(SPECS), ["checkout-button-inside-form", "checkout-button-visible", "logo-visible"])
+
+    def test_the_clean_page_passes_every_spec(self):
+        for spec_id in SPECS:
+            self.assertEqual(judged(spec_id, trace()), "pass", spec_id)
+
+    def test_a_button_off_screen_or_hidden_is_not_visible(self):
+        self.assertEqual(judged("checkout-button-visible", trace(button=(332, 1998, 940, 2046))), "fail")
+        self.assertEqual(judged("checkout-button-visible", trace(button=(332, -400, 940, -352))), "fail")
+        hidden = trace(); [r["elements"].update(button=element((332, 1358, 940, 1406), shown=False)) for r in hidden["rows"]]
+        self.assertEqual(judged("checkout-button-visible", hidden), "fail")
+
+    def test_layout_cannot_see_paint(self):
+        # A transform moves what is drawn, not the layout box; opacity hides it but CSS still "shows" it.
+        moved = trace(); [r["elements"].update(button=element((332, 1358, 940, 1406), painted=(332, 1394, 940, 1442)))
+                          for r in moved["rows"]]
+        self.assertEqual(judged("checkout-button-inside-form", moved), "pass")
+        self.assertEqual(judged("checkout-button-inside-form", trace(button=(332, 1394, 940, 1442))), "fail")
+
+    def test_behaviour_is_the_order_going_through(self):
+        self.assertEqual(layout.behaviour(trace())["result"], "pass")
+        self.assertEqual(layout.behaviour(trace(submitted=False))["result"], "fail")
+
+    def test_engine_objects_give_the_form_to_the_sam_adapter(self):
+        objs = layout.engine_objects(trace(), ["form"])
+        self.assertEqual(objs[0]["form"][0]["box"], [332, 328, 940, 1406])
+
+
+class RouteTest(unittest.TestCase):
+    def test_public_routes_load(self):
+        for path in web_bench.ROUTES:
+            route = load_route(path)
+            self.assertEqual(route["steps"][0]["do"], "load")
+            self.assertTrue(route["steps"][-1].get("submits"))
+            for spec in SPECS.values():
+                for name in spec["objects"]:
+                    self.assertIn(name, route["elements"], f"{path.name} names no element {name!r}")
+
+    def test_a_game_route_is_refused(self):
+        with self.assertRaises(WebHarnessError):
+            load_route(REPO / "harness" / "routes" / "smoke.json")
+
+
+class BenchTest(unittest.TestCase):
+    def test_eight_dev_variants_two_per_family(self):
+        ids = web_bench.set_ids("dev")
+        self.assertEqual(ids[0], "clean")
+        self.assertEqual(len(ids), 9)
+        self.assertEqual({i.split("/")[1] for i in ids[1:]}, {"layering", "missing-texture", "fall-through", "sinking"})
+
+    def test_held_out_variants_come_from_the_private_manifest(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            web = Path(tmp) / "web"
+            web.mkdir()
+            (web / "manifest.json").write_text(json.dumps({"variants": [
+                {"family": "layering", "id": "v3", "patch": "layering/v3.patch"},
+                {"family": "sinking", "id": "v3", "patch": "sinking/v3.patch", "retired": True}]}))
+            with mock.patch.dict("os.environ", {"EXPECTRAIL_HELDOUT_DIR": tmp}):
+                self.assertEqual(web_bench.set_ids("held-out"), ["clean", "layering/v3"])
+
+    def test_the_annotation_is_the_one_the_collector_reads(self):
+        from agents.bench_collect import TITLE, parse_message
+
+        per_route = [{"route": "checkout-desktop", "checks": {"layout": "pass", "behaviour": "fail"}},
+                     {"route": "checkout-mobile", "checks": {"layout": "pass", "behaviour": "fail"}}]
+        with mock.patch.object(web_bench, "judge_route", side_effect=[r["checks"] for r in per_route]), \
+                mock.patch.dict("os.environ", {"EXPECTRAIL_OBS_PROVIDER": "trace"}), \
+                tempfile.TemporaryDirectory() as tmp:
+            doc = web_bench.bench("dev/layering/v1", Path(tmp))
+        from agents.heldout_bench import annotation
+
+        line = annotation(doc).splitlines()[0]
+        title, message = line.split("title=", 1)[1].split("::", 1)
+        self.assertEqual(TITLE.match(title)["id"], "dev/layering/v1")
+        row = parse_message(message)
+        self.assertEqual(row["caughtWithSamOff"], "yes")
+        self.assertEqual(row["checks"]["behaviour"]["fail"], 2)
+
+
+@unittest.skipUnless(__import__("importlib").util.find_spec("playwright"), "playwright is not installed")
+class ReplayTest(unittest.TestCase):
+    def test_two_replays_are_byte_identical_and_the_clean_page_submits(self):
+        from harness.web.run import run
+
+        route = REPO / "harness" / "web" / "routes" / "checkout-desktop.json"
+        with tempfile.TemporaryDirectory() as tmp:
+            try:
+                a = run(route, Path(tmp) / "a")
+            except Exception as exc:  # noqa: BLE001 - no browser on this machine
+                self.skipTest(f"chromium unavailable: {exc}")
+            b = run(route, Path(tmp) / "b")
+        self.assertEqual(a["frameSha256"], b["frameSha256"])
+        self.assertEqual(a["capture"]["frames"], 14)
+        self.assertTrue(a["trace"]["outcome"]["submitted"])
+
+
+if __name__ == "__main__":
+    unittest.main()

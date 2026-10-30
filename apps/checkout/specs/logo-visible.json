@@ -1,0 +1,18 @@
+{
+  "format": "expectrail.test-spec/v0",
+  "id": "logo-visible",
+  "instruction": "The store's logo is always visible.",
+  "objects": {
+    "logo": {
+      "prompt": "purple logo"
+    }
+  },
+  "assertion": {
+    "type": "visible",
+    "object": "logo"
+  },
+  "window": {
+    "fromFrame": 0,
+    "toFrame": 13
+  }
+}

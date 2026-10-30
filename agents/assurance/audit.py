@@ -42,6 +42,10 @@ PERCEPTION = frozenset({
     ".github/workflows/sam-probe.yml#sam-video",
     ".github/workflows/sam-probe.yml#sam-verify",
     ".github/workflows/sam-probe.yml#heldout-bench",
+    # The web detection bench: SAM on frames of the checkout page. Chromium runs the page's (patched)
+    # scripts with the game's environment allowlist and every request outside the page's own origin
+    # aborted (harness/web/run.py), so the key never reaches the page and the page reaches nothing.
+    ".github/workflows/web-bench.yml#heldout-bench",
 })
 LANE_LINE = re.compile(r"^(?P<job>\S+#\S+): (?P<lane>[a-z]+) \(")
 
