@@ -72,9 +72,13 @@ jobs:
           path: heldout-set
           persist-credentials: false
       # A private session the clean page fails would reject every candidate: stop before Muse spends.
-      - name: Check the private sessions on the clean page (no model)
+      # On a live run SAM judges too (about 90 images): the layout-only check once passed sessions
+      # that SAM's inside-the-form check then failed on the clean page.
+      - name: Check the private sessions on the clean page (SAM too on a live run)
         env:
           EXPECTRAIL_HELDOUT_DIR: ${{ env.HELDOUT_TOKEN_SET == 'true' && format('{0}/heldout-set', github.workspace) || '' }}
+          MODEL_API_KEY: ${{ inputs.live && secrets.MODEL_API_KEY || '' }}
+          EXPECTRAIL_OBS_PROVIDER: ${{ inputs.live && 'sam' || 'trace' }}
         run: |
           set +e
           python -m agents.web_fix --check-held-out --out runs/preflight > preflight.log 2>&1
@@ -83,7 +87,7 @@ jobs:
           # Session numbers and public check names only.
           grep -E '^held-out( r[0-9]+)?: ' preflight.log | while read -r line; do echo "::notice title=Held-out preflight::$line"; done
           if [[ "$code" -ne 0 ]]; then
-            echo "::error title=Held-out preflight::a private session fails on the clean page; fix it before a live run"
+            echo "::error title=Held-out preflight::a private session fails on the clean page; fix it (or the check) before a live run"
             exit 1
           fi
 

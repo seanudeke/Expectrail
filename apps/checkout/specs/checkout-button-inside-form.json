@@ -17,7 +17,7 @@
       "relativeTo": "form",
       "marginPx": 0
     },
-    "tolerancePx": 4
+    "tolerancePx": 18
   },
   "window": {
     "fromFrame": 0,

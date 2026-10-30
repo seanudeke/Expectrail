@@ -1,7 +1,7 @@
 # Web judge benchmark
 
 Written by `python3 -m agents.web_judge collect` from the run's own annotations; do not edit by hand.
-Run [41104434739](https://github.com/seanudeke/Expectrail/actions/runs/41104434739), 2026-10-30, commit f3851da. Each case judged on the desktop and phone checkout sessions.
+Run [41109246690](https://github.com/seanudeke/Expectrail/actions/runs/41109246690), 2026-10-30, commit 07c4ff2. Each case judged on the desktop and phone checkout sessions.
 
 | Judge | Good changes accepted | Bad fixes accepted | Undecided |
 | --- | --- | --- | --- |
