@@ -46,7 +46,7 @@ have as one more gate; it does not replace their CI, their tests or their QA.
 flowchart LR
   person["Person"] -->|"approves each check:<br/>one sentence, drafted by Muse Spark"| specs["Approved checks"]
   subgraph fixer["Fixer sandbox: all the agent can reach"]
-    work["Worktree: the failing check,<br/>the replay and the evidence"] --> muse["Muse Code"]
+    work["Worktree: the bug report and screenshots;<br/>the evidence only after a rejection"] --> muse["Muse Code"]
   end
   subgraph verifier["Verifier: out of the agent's reach"]
     heldout["Held-out bugs and routes"] --> harness["Godot harness:<br/>replays every route"]
@@ -67,8 +67,13 @@ flowchart LR
    objects the spec names, and the engine logs where they really are. A deterministic evaluator,
    not a model, decides pass or fail; a missing or uncertain observation is "needs review", never a
    pass.
-3. **Fix.** Muse Code gets the failing check, the replay and the evidence, and patches the game in
-   its own worktree. In the live runs it works inside bubblewrap: only that worktree is mounted (its
+3. **Fix.** Muse Code first gets a plain bug report: the failing check's sentence, screenshots of
+   the failing run, the route and its log. Only if the verifier rejects that attempt does the next
+   one get Expectrail's evidence (the spec, the verdict, the first failing frame, and which public
+   checks failed), and never anything about the held-out routes. Muse fixes as well from the report
+   as from the evidence, and the verifier is what stops a fix that only looks right, so the
+   verifier runs on every attempt ([docs/report-first.md](docs/report-first.md)). Muse patches the
+   game in its own worktree. In the live runs it works inside bubblewrap: only that worktree is mounted (its
    project config read-only, an empty home), so the verifier's code, the held-out cases and the
    signing key are not in its filesystem at all. It keeps network access, because it has to reach
    Meta's API, and bubblewrap is a namespace sandbox on the host's kernel, not a VM. Where
@@ -146,7 +151,9 @@ What these numbers do and do not say:
   from screenshots alone, as well as with our evidence. What screenshots alone cannot do is judge:
   Muse from screenshots accepted 2 of 7 fixes that only look right (one lowers the floor, one sinks
   the robot) and turned down one or two good ones. Expectrail with SAM accepted none of the bad and
-  all of the good, in both runs.
+  all of the good, in both runs. So since October 30 the fixer gets a plain report first, every
+  attempt is verified, and Expectrail's evidence goes to the fixer only after a rejection
+  ([docs/report-first.md](docs/report-first.md) has the decision and its evidence).
 - **One held-out catch came after a miss.** The first held-out runs caught 7 of 8. The eighth
   (sinking/v4) draws the floor away from where it collides, and every check measured the robot
   against the collision. The ground check now also follows the floor as drawn. It was built after

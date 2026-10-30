@@ -55,7 +55,7 @@ JUDGE_MSG = re.compile(r"^label (?P<label>good|bad); SAM on (?P<sam>\S+); SAM of
                        r"Muse screenshots (?P<muse>\S+); (?P<seconds>[\d.]+) s; live=(?P<live>True|False)"
                        r"(?:; SAM images (?P<samImages>\d+))?$")
 # Runs before the October 30 rename called the second condition "nightshift" (expectrail/legacy.py).
-MATRIX_TITLE = re.compile(r"^Fix matrix (?P<case>\S+/\S+) (?P<condition>screenshots|expectrail|nightshift)$")
+MATRIX_TITLE = re.compile(r"^Fix matrix (?P<case>\S+/\S+) (?P<condition>screenshots|expectrail|escalate|nightshift)$")
 MATRIX_MSG = re.compile(r"^detected (?P<detected>[a-z-]+); outcome (?P<outcome>[a-z-]+); attempts (?P<n>\d+) "
                         r"\((?P<tries>[^)]*)\); (?P<seconds>[\d.]+) s; live=(?P<live>True|False)"
                         r"(?:; SAM images (?P<sam>\d+))?$")
@@ -234,7 +234,8 @@ def collect_matrix(run_ids: list[int], which: str, fetch=gh_json) -> dict:
         raise SystemExit("an offline (live=False) result is not a fix rate; collect live runs only")
     final = sorted(rows.values(), key=lambda r: (r["case"], r["condition"]))
     conditions = {}
-    for c in ("screenshots", "expectrail"):
+    # escalate (report first, evidence after a rejection: docs/report-first.md) only when the run had it.
+    for c in ("screenshots", "expectrail") + (("escalate",) if any(r["condition"] == "escalate" for r in final) else ()):
         mine = [r for r in final if r["condition"] == c]
         conditions[c] = {o: sum(r["outcome"] == o for r in mine)
                          for o in ("fixed", "not-fixed", "not-detected", "needs-review", "error")}
