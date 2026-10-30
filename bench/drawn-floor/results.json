@@ -1,0 +1,505 @@
+{
+ "format": "nightshift.drawn-floor-bench/v0",
+ "routes": [
+  "smoke",
+  "traversal",
+  "coins",
+  "combat"
+ ],
+ "results": {
+  "clean": {
+   "smoke": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   },
+   "coins": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   },
+   "combat": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   },
+   "traversal": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   }
+  },
+  "dev/layering/v1": {
+   "smoke": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   },
+   "traversal": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   },
+   "coins": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   },
+   "combat": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   }
+  },
+  "dev/layering/v2": {
+   "traversal": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   },
+   "smoke": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   },
+   "coins": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   },
+   "combat": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   }
+  },
+  "dev/missing-texture/v1": {
+   "smoke": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   },
+   "traversal": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   },
+   "coins": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   },
+   "combat": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   }
+  },
+  "dev/missing-texture/v2": {
+   "smoke": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   },
+   "traversal": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   },
+   "coins": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   },
+   "combat": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   }
+  },
+  "dev/physics-fall-through/v1": {
+   "smoke": {
+    "collision": "fail",
+    "drawn": "fail",
+    "worstGapPx": 77.2,
+    "levelArt": true
+   },
+   "traversal": {
+    "collision": "fail",
+    "drawn": "fail",
+    "worstGapPx": 77.2,
+    "levelArt": true
+   },
+   "coins": {
+    "collision": "fail",
+    "drawn": "fail",
+    "worstGapPx": 77.2,
+    "levelArt": true
+   },
+   "combat": {
+    "collision": "fail",
+    "drawn": "fail",
+    "worstGapPx": 77.2,
+    "levelArt": true
+   }
+  },
+  "dev/physics-fall-through/v2": {
+   "traversal": {
+    "collision": "fail",
+    "drawn": "fail",
+    "worstGapPx": 77.2,
+    "levelArt": true
+   },
+   "smoke": {
+    "collision": "fail",
+    "drawn": "fail",
+    "worstGapPx": 77.2,
+    "levelArt": true
+   },
+   "coins": {
+    "collision": "fail",
+    "drawn": "fail",
+    "worstGapPx": 77.2,
+    "levelArt": true
+   },
+   "combat": {
+    "collision": "fail",
+    "drawn": "fail",
+    "worstGapPx": 77.2,
+    "levelArt": true
+   }
+  },
+  "dev/sinking/v1": {
+   "traversal": {
+    "collision": "fail",
+    "drawn": "fail",
+    "worstGapPx": 28.0,
+    "levelArt": true
+   },
+   "smoke": {
+    "collision": "fail",
+    "drawn": "fail",
+    "worstGapPx": 28.0,
+    "levelArt": true
+   },
+   "combat": {
+    "collision": "fail",
+    "drawn": "fail",
+    "worstGapPx": 28.0,
+    "levelArt": true
+   },
+   "coins": {
+    "collision": "fail",
+    "drawn": "fail",
+    "worstGapPx": 28.0,
+    "levelArt": true
+   }
+  },
+  "dev/sinking/v2": {
+   "traversal": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   },
+   "coins": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   },
+   "combat": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   },
+   "smoke": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   }
+  },
+  "floor/art-origin-up": {
+   "smoke": {
+    "collision": "pass",
+    "drawn": "fail",
+    "worstGapPx": 28.0,
+    "levelArt": true
+   },
+   "coins": {
+    "collision": "pass",
+    "drawn": "fail",
+    "worstGapPx": 28.0,
+    "levelArt": true
+   },
+   "traversal": {
+    "collision": "pass",
+    "drawn": "fail",
+    "worstGapPx": 28.0,
+    "levelArt": true
+   },
+   "combat": {
+    "collision": "pass",
+    "drawn": "fail",
+    "worstGapPx": 28.0,
+    "levelArt": true
+   }
+  },
+  "floor/art-shader-down": {
+   "smoke": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 0.0,
+    "levelArt": true
+   },
+   "traversal": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 0.0,
+    "levelArt": true
+   },
+   "coins": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 0.0,
+    "levelArt": true
+   },
+   "combat": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 0.0,
+    "levelArt": true
+   }
+  },
+  "floor/art-shader-up": {
+   "smoke": {
+    "collision": "pass",
+    "drawn": "fail",
+    "worstGapPx": 28.0,
+    "levelArt": true
+   },
+   "traversal": {
+    "collision": "pass",
+    "drawn": "fail",
+    "worstGapPx": 28.0,
+    "levelArt": true
+   },
+   "coins": {
+    "collision": "pass",
+    "drawn": "fail",
+    "worstGapPx": 28.0,
+    "levelArt": true
+   },
+   "combat": {
+    "collision": "pass",
+    "drawn": "fail",
+    "worstGapPx": 28.0,
+    "levelArt": true
+   }
+  },
+  "candidate/fix-collision-mask": {
+   "traversal": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   },
+   "smoke": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   },
+   "coins": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   },
+   "combat": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   }
+  },
+  "candidate/fix-but-hide-player": {
+   "smoke": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   },
+   "traversal": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   },
+   "coins": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   },
+   "combat": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   }
+  },
+  "candidate/fix-but-sink-player": {
+   "smoke": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   },
+   "coins": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   },
+   "traversal": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   },
+   "combat": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 2.0,
+    "levelArt": true
+   }
+  },
+  "candidate/fix-and-lower-the-floor": {
+   "smoke": {
+    "collision": "fail",
+    "drawn": "fail",
+    "worstGapPx": 28.0,
+    "levelArt": true
+   },
+   "traversal": {
+    "collision": "fail",
+    "drawn": "fail",
+    "worstGapPx": 28.0,
+    "levelArt": true
+   },
+   "combat": {
+    "collision": "fail",
+    "drawn": "fail",
+    "worstGapPx": 28.0,
+    "levelArt": true
+   },
+   "coins": {
+    "collision": "fail",
+    "drawn": "fail",
+    "worstGapPx": 28.0,
+    "levelArt": true
+   }
+  },
+  "candidate/freeze-player": {
+   "traversal": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 1.0,
+    "levelArt": true
+   },
+   "smoke": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 1.0,
+    "levelArt": true
+   },
+   "combat": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 1.0,
+    "levelArt": true
+   },
+   "coins": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 1.0,
+    "levelArt": true
+   }
+  },
+  "candidate/fix-comment-only": {
+   "traversal": {
+    "collision": "fail",
+    "drawn": "fail",
+    "worstGapPx": 77.2,
+    "levelArt": true
+   },
+   "smoke": {
+    "collision": "fail",
+    "drawn": "fail",
+    "worstGapPx": 77.2,
+    "levelArt": true
+   },
+   "combat": {
+    "collision": "fail",
+    "drawn": "fail",
+    "worstGapPx": 77.2,
+    "levelArt": true
+   },
+   "coins": {
+    "collision": "fail",
+    "drawn": "fail",
+    "worstGapPx": 77.2,
+    "levelArt": true
+   }
+  },
+  "candidate/fix-sinking-overcorrected": {
+   "smoke": {
+    "collision": "fail",
+    "drawn": "fail",
+    "worstGapPx": 77.2,
+    "levelArt": true
+   },
+   "coins": {
+    "collision": "fail",
+    "drawn": "fail",
+    "worstGapPx": 76.2,
+    "levelArt": true
+   },
+   "traversal": {
+    "collision": "fail",
+    "drawn": "fail",
+    "worstGapPx": 76.0,
+    "levelArt": true
+   },
+   "combat": {
+    "collision": "pass",
+    "drawn": "pass",
+    "worstGapPx": 0.9,
+    "levelArt": true
+   }
+  }
+ }
+}

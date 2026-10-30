@@ -1,16 +1,16 @@
 {
   "format": "nightshift.detection-bench/v0",
   "set": "held-out",
-  "run": 40805529944,
-  "runUrl": "https://github.com/seanudeke/Nightshift/actions/runs/40805529944",
-  "commit": "71f70427d4968196174a6486f5f2f8ec5e081ed1",
-  "date": "2026-10-29T02:18:06Z",
+  "run": 41003749744,
+  "runUrl": "https://github.com/seanudeke/Nightshift/actions/runs/41003749744",
+  "commit": "92508d9f86c5f91b3ff450fc24a8b609c3f35239",
+  "date": "2026-10-30T04:35:32Z",
   "caughtWithSamOn": {
-    "yes": 7,
+    "yes": 8,
     "of": 8
   },
   "caughtWithSamOff": {
-    "yes": 3,
+    "yes": 4,
     "of": 8
   },
   "falseAlarm": {
@@ -49,7 +49,8 @@
       }
     },
     "routes": 5,
-    "seconds": 371
+    "seconds": 472,
+    "samImages": 1164
   },
   "variants": [
     {
@@ -84,7 +85,8 @@
         }
       },
       "routes": 5,
-      "seconds": 238
+      "seconds": 281,
+      "samImages": 746
     },
     {
       "id": "layering/v6",
@@ -118,7 +120,8 @@
         }
       },
       "routes": 5,
-      "seconds": 290
+      "seconds": 284,
+      "samImages": 746
     },
     {
       "id": "missing-texture/v5",
@@ -152,7 +155,8 @@
         }
       },
       "routes": 5,
-      "seconds": 287
+      "seconds": 362,
+      "samImages": 731
     },
     {
       "id": "missing-texture/v6",
@@ -186,7 +190,8 @@
         }
       },
       "routes": 5,
-      "seconds": 337
+      "seconds": 337,
+      "samImages": 731
     },
     {
       "id": "physics-fall-through/v5",
@@ -220,7 +225,8 @@
         }
       },
       "routes": 5,
-      "seconds": 345
+      "seconds": 279,
+      "samImages": 749
     },
     {
       "id": "physics-fall-through/v6",
@@ -254,7 +260,8 @@
         }
       },
       "routes": 5,
-      "seconds": 338
+      "seconds": 256,
+      "samImages": 749
     },
     {
       "id": "sinking/v3",
@@ -288,17 +295,18 @@
         }
       },
       "routes": 5,
-      "seconds": 292
+      "seconds": 435,
+      "samImages": 913
     },
     {
       "id": "sinking/v4",
-      "caughtWithSamOn": "no",
-      "caughtWithSamOff": "no",
+      "caughtWithSamOn": "yes",
+      "caughtWithSamOff": "yes",
       "checks": {
         "engine": {
-          "fail": 0,
+          "fail": 5,
           "needs-review": 0,
-          "pass": 5
+          "pass": 0
         },
         "gameplay": {
           "fail": 0,
@@ -306,9 +314,9 @@
           "pass": 5
         },
         "hybrid": {
-          "fail": 0,
+          "fail": 5,
           "needs-review": 0,
-          "pass": 5
+          "pass": 0
         },
         "player-always-visible": {
           "fail": 0,
@@ -322,8 +330,15 @@
         }
       },
       "routes": 5,
-      "seconds": 478
+      "seconds": 332,
+      "samImages": 1164
     }
   ],
-  "rerun": "bench/rerun-detection.sh held-out"
+  "rerun": "bench/rerun-detection.sh held-out",
+  "spend": {
+    "samImages": 7693,
+    "samUsd": 19.23,
+    "museCalls": 0,
+    "jobMinutes": 50.6
+  }
 }

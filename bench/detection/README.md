@@ -19,9 +19,11 @@ Caught with SAM: **8 of 8**. Without SAM: **3 of 8**. False alarms on the clean 
 | dev/sinking/v1 | yes | yes | engine 5, hybrid 5, player-always-visible 2 |
 | dev/sinking/v2 | yes | no | hybrid 5, player-always-visible 2 |
 
-## held-out (run [40805529944](https://github.com/seanudeke/Nightshift/actions/runs/40805529944), 2026-10-29, commit 71f7042)
+## held-out (run [41003749744](https://github.com/seanudeke/Nightshift/actions/runs/41003749744), 2026-10-30, commit 92508d9)
 
-Caught with SAM: **7 of 8**. Without SAM: **3 of 8**. False alarms on the clean game (5 routes): none with SAM, none without.
+Caught with SAM: **8 of 8**. Without SAM: **4 of 8**. False alarms on the clean game (5 routes): none with SAM, none without.
+
+Spend: SAM images 7,693 ($19.23); 51 job minutes.
 
 | Variant | Caught, SAM on | Caught, SAM off | Failing checks (routes) |
 | --- | --- | --- | --- |
@@ -32,4 +34,4 @@ Caught with SAM: **7 of 8**. Without SAM: **3 of 8**. False alarms on the clean 
 | physics-fall-through/v5 | yes | yes | engine 5, gameplay 5, hybrid 5, player-always-visible 5 |
 | physics-fall-through/v6 | yes | yes | engine 5, gameplay 5, hybrid 5, player-always-visible 5 |
 | sinking/v3 | yes | yes | engine 5, hybrid 5, player-always-visible 3 |
-| sinking/v4 | no | no | none |
+| sinking/v4 | yes | yes | engine 5, hybrid 5 |
