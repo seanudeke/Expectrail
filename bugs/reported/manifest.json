@@ -62,7 +62,7 @@
    "check": "enemies-stay-up",
    "kind": "reported in other Godot games, ported",
    "source": "https://forum.godotengine.org/t/enemy-dosent-go-forward-and-backwards-as-intended/135232",
-   "report": "They walk off ledges occasionally."
+   "report": "Enemy dosent go forward and backwards as intended"
   }
  ],
  "notVariants": [

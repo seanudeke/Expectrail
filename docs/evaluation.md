@@ -70,7 +70,7 @@ them back; the bug, its symptom and its cause come from the cited reports
 | `air-jump` | this demo, commit cf98fed (2016) | `climb-gap` | `jump-height` |
 | `gun-cooldown` | this demo, PR #686 (2022) | `tap-shoot` | `fire-rate` |
 | `body-flip` | godot#78613 and forum reports | `turn-and-shoot` | `facing-follows-motion` |
-| `enemy-ledge` | Godot forum, and a demo contributor's note | `wait-for-patrol` | `enemies-stay-up` |
+| `enemy-ledge` | Godot forum | `wait-for-patrol` | `enemies-stay-up` |
 
 `agents/reported_bench.py` (workflow **Reported bench**, on every pull request that touches it)
 renders each bug and the clean game on the smoke route and the four reported routes, and judges
@@ -87,7 +87,12 @@ How to read it:
   blind. The verifier does not run these checks yet.
 - The result that would count as blind is a natural catch: the checks and guards committed before
   Muse Code runs, the fixer given the reporter's own words, and a fix that looks right but breaks a
-  guard rejected (protocol in [bugs/reported/README.md](../bugs/reported/README.md#running-a-natural-catch-trial)).
+  guard rejected. `agents/reported_trial.py` runs it (the Fix matrix with set `reported`, SAM off):
+  each bug five times, every candidate judged by Expectrail, by the bug's own public check and by
+  Muse from screenshots. The guards live in the held-out set; their digest was committed in
+  `bugs/reported/guards.sha256` before any trial ran, and a trial refuses any other guard file
+  (protocol in [bugs/reported/README.md](../bugs/reported/README.md#running-a-natural-catch-trial),
+  results in [`bench/reported/trial.md`](../bench/reported/trial.md)).
 
 ## Ground truth
 

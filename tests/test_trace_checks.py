@@ -154,6 +154,39 @@ class EnemiesTest(unittest.TestCase):
         self.assertEqual(tc.enemies_stay_up(trace(walk(1, 1)))["result"], "needs-review")
 
 
+class GuardKindsTest(unittest.TestCase):
+    def test_a_single_jump_does_not_meet_a_double_jump_guard(self):
+        self.assertEqual(tc.judge_guard(trace(jump(125)), {"kind": "rises-at-least", "minPx": 160})["result"], "fail")
+        self.assertEqual(tc.judge_guard(trace(jump(188)), {"kind": "rises-at-least", "minPx": 160})["result"], "pass")
+
+    def test_a_bullet_that_stands_still_fails_shots_move(self):
+        still = shot(10, -1, 0, pid=1)
+        moving = shot(60, -1, -8, pid=2)
+        self.assertEqual(tc.judge_guard(trace(moving), {"kind": "shots-move", "minPx": 20})["result"], "pass")
+        self.assertEqual(tc.judge_guard(trace(still + moving), {"kind": "shots-move", "minPx": 20})["result"], "fail")
+        self.assertEqual(tc.judge_guard(trace(walk(1, 1)), {"kind": "shots-move", "minPx": 20})["result"],
+                         "needs-review")
+
+    def test_a_gun_that_no_longer_fires_fails_shots_at_least(self):
+        self.assertEqual(tc.judge_guard(trace(walk(1, 1)), {"kind": "shots-at-least", "min": 2})["result"], "fail")
+
+    def test_frozen_or_deleted_enemies_fail_their_guards(self):
+        def rows(enemies_at):
+            return trace([row(t, 100, GROUND, enemies=enemies_at(t)) for t in range(100)])
+        patrol = rows(lambda t: [[1, 500 + 2 * t, 300], [2, 900 - 2 * t, 500]])
+        frozen = rows(lambda t: [[1, 500, 300], [2, 900, 500]])
+        deleted = rows(lambda t: [[1, 500 + 2 * t, 300]] + ([[2, 900 - 2 * t, 500]] if t < 50 else []))
+        g_patrol = {"kind": "enemies-patrol", "minPx": 100}
+        g_remain = {"kind": "enemies-remain", "min": 2}
+        self.assertEqual(tc.judge_guard(patrol, g_patrol)["result"], "pass")
+        self.assertEqual(tc.judge_guard(frozen, g_patrol)["result"], "fail")
+        self.assertEqual(tc.judge_guard(patrol, g_remain)["result"], "pass")
+        self.assertEqual(tc.judge_guard(deleted, g_remain)["result"], "fail")
+
+    def test_an_unknown_guard_kind_is_not_a_pass(self):
+        self.assertEqual(tc.judge_guard(trace(walk(1, 1)), {"kind": "made-up"})["result"], "needs-review")
+
+
 class JudgeAllTest(unittest.TestCase):
     def test_every_rule_has_a_sentence_and_a_verdict(self):
         self.assertEqual(set(tc.RULES), set(tc.CHECKS))
