@@ -152,6 +152,29 @@ class MatrixTest(unittest.TestCase):
         self.assertIn("edited before the clock ran out", self.verifies[0]["patch"])
         self.assertIn("ran out of time", calls[1])  # the reason reaches the next attempt (Expectrail)
 
+    def test_timed_out_muse_runs_are_counted_through_the_gateway(self):
+        # Oct 30, held-out sinking/v4: both attempts timed out (the second's partial edit was accepted)
+        # and the gateway evidence read "0 of 0 Muse runs". A timed-out run now keeps its record.
+        from agents.gateway import evidence
+
+        def slow_muse(prompt, *, work, **_kw):
+            scene = work / "player" / "player.tscn"
+            scene.write_text(scene.read_text() + "\n; edited before the clock ran out\n")
+            exc = subprocess.TimeoutExpired(["muse"], 900, output="partial", stderr=None)
+            exc.sandbox_meta = {"kind": "bwrap", "gateway": {"mode": "on", "requests": 40,
+                                                             "hosts": ["api.meta.ai"], "blockedHosts": [],
+                                                             "swappedHeaders": ["authorization"]}}
+            raise exc
+
+        self.verdicts = ["reject", "accept"]
+        with mock.patch.object(fixer, "run_muse_sandboxed", side_effect=slow_muse):
+            row = self.case("expectrail")
+        self.assertEqual(len(row["attempts"]), 2)
+        e = evidence(self.root / "out")
+        self.assertEqual((e["museRuns"], e["throughGateway"], e["requests"]), (2, 2, 80))
+        sandbox = json.loads(next((self.root / "out").rglob("sandbox.json")).read_text())
+        self.assertEqual((sandbox["timedOut"], sandbox["gateway"]["mode"]), (True, "on"))
+
     def test_each_case_records_the_sam_images_it_used(self):
         import agents.sam_observations as sam
 

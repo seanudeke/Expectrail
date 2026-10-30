@@ -251,6 +251,8 @@ def evidence(root: Path) -> dict:
         g = doc.get("gateway") or (doc.get("sandbox") or {}).get("gateway") if isinstance(doc, dict) else None
         if isinstance(g, dict):
             runs.append(g)
+        elif path.name == "sandbox.json":
+            runs.append({"mode": "unrecorded"})  # a Muse run that left no gateway record still counts as a run
     on = [g for g in runs if g.get("mode") == "on"]
     return {
         "museRuns": len(runs),

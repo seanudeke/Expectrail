@@ -164,6 +164,34 @@ class EvidenceTest(unittest.TestCase):
         self.assertEqual((e["hosts"], e["swappedHeaders"]), (["api.meta.ai"], ["authorization"]))
 
 
+class TimeoutTest(unittest.TestCase):
+    def test_a_run_that_times_out_keeps_what_the_gateway_saw(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            bindir = tmp / "bin"
+            bindir.mkdir()
+            _write_exec(bindir / "muse", "#!/bin/sh\n[ \"$1\" = \"--version\" ] && exit 0\nsleep 5\n")
+            mitm = _write_exec(tmp / "mitmdump", FAKE_MITMDUMP)
+            env = {"EXPECTRAIL_MUSE_GATEWAY": "on", "EXPECTRAIL_MITMDUMP": str(mitm), "META_API_KEY": REAL,
+                   "PATH": f"{bindir}{os.pathsep}{os.environ['PATH']}"}
+            with mock.patch.dict(os.environ, env):
+                sandbox._WARMED.clear()
+                with self.assertRaises(subprocess.TimeoutExpired) as caught:
+                    sandbox.run_muse("hi", work=tmp, env={"PATH": env["PATH"], "META_API_KEY": REAL},
+                                     timeout=1, sandboxed=False)
+        self.assertEqual(caught.exception.sandbox_meta["gateway"]["mode"], "on")
+
+    def test_a_run_with_no_gateway_record_still_counts_as_a_run(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "a").mkdir()
+            (root / "a" / "sandbox.json").write_text(json.dumps({"kind": "bwrap", "timedOut": True}))
+            (root / "b").mkdir()
+            (root / "b" / "sandbox.json").write_text(json.dumps({"kind": "bwrap", "gateway": {"mode": "on", "requests": 3}}))
+            e = gw.evidence(root)
+        self.assertEqual((e["museRuns"], e["throughGateway"]), (2, 1))  # reported, so the gap shows
+
+
 class SandboxCommandTest(unittest.TestCase):
     def setUp(self):
         tmp = tempfile.TemporaryDirectory()
