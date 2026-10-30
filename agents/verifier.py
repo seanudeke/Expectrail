@@ -195,6 +195,16 @@ def _ground_observations(spec: dict, trace: dict, replay_sha: str, frames_dir: P
     "engine", the position log against the same line. Older traces keep the old check. Any failure
     raises SystemExit, which callers turn into needs-review.
     """
+    if use_sam:
+        from agents.sam_observations import SamError, vision_backend
+
+        try:
+            # Glimmer's boxes are 15-20 px taller than the robot (Oct 29, run 40941969395): too loose for
+            # the 20 px ground tolerance, so under glimmer-engine the ground is judged on the position log.
+            if vision_backend() == "glimmer-engine":
+                use_sam = False
+        except SamError:
+            pass
     if any(r.get("view") for r in trace.get("rows") or []):
         if not reference:
             raise SystemExit("no clean-level reference for the ground line (its replay failed), so the "

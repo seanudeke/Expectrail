@@ -1,8 +1,12 @@
 # Open weights in Nightshift
 
-**Muse Glimmer 30B is a second pair of eyes in every vision check, and Muse Spark Open writes the
-checks.** Both are Meta open-weight models, served through partner inference (Fireworks, Baseten) or
-our own server. Muse Code (the fixer), Muse Voice Transcribe and SAM 3.1 stay on Meta's hosted API.
+**Muse Glimmer 30B can judge every vision check with no hosted vision model, checked against the
+game engine; Muse Spark Open writes the checks.** Both are Meta open-weight models, served through
+partner inference (Fireworks, Baseten) or our own server. With `glimmer-engine`, the real fix is
+accepted and the hide-the-robot fix rejected, on the four private held-out routes too, and the
+held-out bench catches 7 of 8 private bug variants with no false alarm, as SAM does, with no SAM key
+in any of these runs (Oct 29). With `both`, Glimmer is a second pair of
+eyes next to SAM 3.1. Muse Code (the fixer) and Muse Voice Transcribe stay on Meta's hosted API.
 
 This page is for the infrastructure partner verifying the open-weights prize, and for us: what runs
 on which model, where, and how to check it.
@@ -70,11 +74,13 @@ something that cannot be talked to:
 - **`both`:** SAM 3.1, a segmenter, must find the object too.
 - **`glimmer-engine` (no SAM):** the game engine must have put the object there. The harness logs
   where the robot is and where every coin is on every frame (`player` and `coins` in trace.json,
-  projected to frame pixels with that frame's camera). A Glimmer box counts only if it contains the
-  centre of an object the engine placed on that frame and is at most 3x its width and height
+  projected to frame pixels with that frame's camera). A Glimmer box counts only if it overlaps the
+  box of an object the engine placed on that frame and is at most 3x its width and height
   (`agents/engine_check.py`). A box beside the robot, or one over half the screen, is dropped and
   counted in the observations document (`model.engineCheck`). The trace and the check run on the
   verifier's side, after the frame cache; a replay whose trace cannot place objects is needs-review.
+  The ground check is judged on the position log under `glimmer-engine` (see "What was measured"):
+  Glimmer's boxes are too loose for its 20-pixel tolerance.
 
 The verifier refuses `NIGHTSHIFT_VISION_BACKEND=glimmer` with neither check (every vision check
 becomes needs-review) unless `NIGHTSHIFT_GLIMMER_ALONE=1` is set to measure Glimmer on known
@@ -108,8 +114,9 @@ hosted vision API.
   `open-weights glimmer at api.fireworks.ai, self-reported confidence`. The verifier keeps one per
   check in `runs/<run>/verify/`.
 - **Glimmer probe** (Actions, manual): mode `probe` renders the clean game and every seeded bug and
-  asks Glimmer alone what it sees. Mode `verify` runs the Gate 1 path with judge `both` (or Glimmer
-  alone, as a measurement), including the private held-out routes. Results are posted as
+  asks Glimmer what it sees (with judge `glimmer-engine`, how many of its boxes agree with the engine,
+  and how its coordinates fit the engine's). Mode `verify` runs the Gate 1 path with judge `both`,
+  `glimmer-engine` or Glimmer alone (measurement only), including the private held-out routes. Results are posted as
   annotations on the run. The key is only sent over https to `api.fireworks.ai` or the host in the
   `GLIMMER_ALLOWED_HOST` repository variable.
 - Self-hosting: Glimmer's model card documents OpenAI-compatible serving with vLLM and SGLang, and
@@ -147,18 +154,86 @@ when the run had the deployment to itself, so its kind is unknown; the workflow 
 kind of any held-out error (kind only, see "Glimmer verify held-out error"). An error never
 passes a check: it stops at needs-review, so the cost of one is a re-run, not a wrong accept.
 
+Verify mode, judge `glimmer-engine` (Glimmer checked against the engine; the SAM key is not passed
+to the run), every 4th frame, every pass confirmed on every frame, with the four private held-out
+routes:
+
+| Candidate | Decision | Checks |
+| --- | --- | --- |
+| `fix-collision-mask.patch` (the real fix) | **accept** | all 8 checks pass; ground, robot and coins pass on 4/4 held-out routes (run 40948206799) |
+| `fix-but-hide-player.patch` | **reject** | player-always-visible fails on the candidate and passes on 0/4 held-out routes; ground, coins and gameplay pass (run 40948223160) |
+
+The engine check kept every robot box on the real fix (120 on the candidate, 480 on the held-out
+routes, none dropped) and dropped 9% of coin boxes on the clean game (134 of 1,466) and 7% on the
+held-out routes (408 of 6,097); the dropped ones miss the coin by 0.8 coin-widths at the median.
+
+How it got there, the same day, all on the same deployment:
+
+1. Reading Glimmer's boxes as pixels, every robot box failed the check (runs 40934005706,
+   40934009177): Glimmer answers on a 0-1000 grid (see "Coordinates" below).
+2. With the grid, but a prompt that also gave the image's pixel size, Glimmer rescaled its x a
+   second time on some frames (raw x about 1.6 times too small; run 40937863760). The grid prompt no
+   longer gives the size, and the clean robot probe then kept 13 of 13 boxes (run 40940999505).
+3. Requiring a box to contain the object's centre dropped 40% of coin boxes, and the real fix
+   failed coins on 3 of 4 held-out routes (run 40941969395). A probe of how far the dropped boxes
+   missed (run 40947089674, development frames only) found half within 0.13 of a coin of the
+   centre and three quarters within half a coin: off by a few pixels, not elsewhere. The rule became
+   "overlaps the engine's box", which is the same as allowing the centre to be up to half the
+   object's size outside the box. The held-out routes were not used to choose it.
+4. The same run failed the ground check on the clean game: Glimmer's robot box runs 15 to 20 pixels
+   taller than the robot, too loose for the spec's 20-pixel tolerance. Under `glimmer-engine` the
+   ground check is now judged on the position log against the clean level's ground line (the SAM-off
+   ground check). That loses the one seeded bug only a precise vision box sees, sinking/v2 (the
+   robot drawn 26 px low, physics unchanged); docs/sam.md has SAM's hybrid catching it.
+
+Held-out detection bench, judge `glimmer-engine` (no SAM key in the runs), every private bug
+variant and the clean game, each on the smoke route and the four private routes, the same jobs and
+checks as SAM's bench in docs/sam.md (runs 40967826195 and 40975628695, Oct 29). **These runs used
+the earlier, stricter agreement rule** (a box had to contain the object's centre): the overlap rule
+above had not reached main when the bench branch was cut. The ground was judged on the position log,
+as now.
+
+| Held-out variant | Engine | Gameplay | player-always-visible | coins-visible | Caught, Glimmer+engine | Caught, SAM on (docs/sam.md) | Caught, SAM off |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| clean (control) | 5 pass | 5 pass | 5 pass | 5 pass | **no false alarm** | no false alarm | no false alarm |
+| physics-fall-through/v5 | 5 fail | 5 fail | 5 fail | 5 pass | **yes** | yes | yes |
+| physics-fall-through/v6 | 5 fail | 5 fail | 5 fail | 5 pass | **yes** | yes | yes |
+| missing-texture/v5 | 5 pass | 5 pass | 5 pass | 5 fail | **yes** | yes | no |
+| missing-texture/v6 | 5 pass | 5 pass | 5 pass | 5 fail | **yes** | yes | no |
+| layering/v5 | 5 pass | 5 pass | 5 fail | 1 fail, 4 pass | **yes** | yes | no |
+| layering/v6 | 5 pass | 5 pass | 5 fail | 1 fail, 4 pass | **yes** | yes | no |
+| sinking/v3 | 5 fail | 5 pass | 2 fail, 3 pass | 1 fail, 4 pass | **yes** | yes | yes |
+| sinking/v4 | 5 pass | 5 pass | 5 pass | 5 pass | no | no | no |
+
+With Glimmer checked against the engine, 7 of 8 held-out variants are caught and the clean game
+raises no false alarm: the same count as SAM, and the same miss (sinking/v4). Without vision, 3 of 8.
+The two families only vision catches, missing-texture and layering, are caught on every route by
+the check aimed at them.
+
+**The coins check failed on 3 routes where nothing touched the coins** (one each on layering/v5,
+layering/v6 and sinking/v3; SAM passed coins on every route of those variants). It changed no
+verdict, since each of those variants is caught by another check, but on a fine fix it would be a
+false fail. The private frames are not published, so the cause is not known. The stricter rule
+these runs used dropped 40% of coin boxes on the clean game against 9% under the overlap rule, so
+the likeliest cause is a frame where every coin box was dropped, which the overlap rule makes rarer.
+
 ## What is not measured yet
 
-- **Glimmer on every frame.** The probe sampled 13 frames a run; SAM's clean numbers are on all
-  120. Verify mode confirms every frame before a pass, so `both` is measured there, Glimmer alone is not.
-- **Box precision.** The hybrid ground check compares the robot's box against the ground line with
-  a 20-pixel tolerance. In `both` the boxes are SAM's, so this only matters for Glimmer alone, whose
-  box is taller and narrower than SAM's (see above).
+- **The held-out bench under the overlap rule.** The catches above should hold (missing-texture and
+  layering are caught because Glimmer sees no coins, or no robot, at all; fall-through and sinking/v3
+  by the engine), and the hide-the-robot verify run under the overlap rule still rejected; but only a
+  re-run measures it, and whether the stray coins fails go away.
+- **The development variants with `glimmer-engine`.** By the checks it uses it should catch 7 of the
+  8 in docs/sam.md (all but sinking/v2, which needs a precise box); the dev bench has not been run
+  with it.
+- **How often a fine fix gets a false fail.** One accept is not a rate. A frame with one or two
+  coins on screen, where Glimmer's only box misses by more than half a coin, would fail
+  coins-visible on a game that is fine.
 - **Confidence is self-reported, and flat.** Glimmer rates its own boxes from 0 to 1, and gave 0.90 to
   every coin on every frame. The evaluator's 0.5 threshold and the verifier's clean-score floor apply
   to that number, but it is not a margin the way SAM's scores are. Another reason `both` is the judge.
-- **Speed.** 3.2 s a call with one run on the deployment, 12.2 s with three runs sharing one replica.
-  A verify run with `both` took about 35 to 40 minutes, alone or shared.
+- **Speed.** 3 to 6 s a call with one or two runs on the deployment, 12 s with three sharing one
+  replica. A verify run took about 30 to 40 minutes with either judge.
 - **Coordinates (measured, Oct 29).** Glimmer answers on a 0-1000 grid over the image even when the
   prompt asks for pixels. Fitting its robot boxes against the engine's position on every probed
   frame (run 40936605897), its x came out 1.58 to 1.60 times smaller than the frame's pixels and its
@@ -175,9 +250,9 @@ passes a check: it stops at needs-review, so the cost of one is a re-run, not a 
 - **Engine positions for other objects.** The engine check knows the robot and the coins. A spec
   about anything else (an enemy, a door) is needs-review under `glimmer-engine` until the harness
   logs it too.
-- **Glimmer's box precision for the ground check.** Under `glimmer-engine` the hybrid ground check
-  compares Glimmer's robot box (not SAM's) with the ground line, at the spec's 20-pixel tolerance.
-  The clean run of the verify workflow shows whether that holds.
+- **A precise ground check without SAM.** Under `glimmer-engine` the ground is judged on the
+  position log, so a robot drawn into the ground with its physics intact (sinking/v2) is missed.
+  Glimmer's boxes are not precise enough for it; another open-weight segmenter could be.
 
 ## Keys
 

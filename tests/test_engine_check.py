@@ -77,7 +77,9 @@ class RuleTest(unittest.TestCase):
     def test_a_box_beside_or_over_everything_does_not(self):
         self.assertFalse(agrees(ELSEWHERE, ROBOT_BOX))
         self.assertFalse(agrees(WHOLE_FRAME, ROBOT_BOX))  # contains the centre, but says nothing
-        self.assertFalse(agrees([721, 400, 790, 540], ROBOT_BOX))  # beside: misses the centre (720)
+        self.assertFalse(agrees([761, 400, 830, 540], ROBOT_BOX))  # beside: starts past its right edge (760)
+        self.assertTrue(agrees([721, 400, 790, 540], ROBOT_BOX))  # a few pixels off, still on the robot
+        self.assertTrue(agrees([1012, 385, 1042, 425], COIN_BOX))  # a coin box 12 px off its centre
         w = ROBOT_BOX[2] - ROBOT_BOX[0]
         big = [720 - MAX_SIZE_RATIO * w / 2 - 1, 400, 720 + MAX_SIZE_RATIO * w / 2 + 1, 540]
         self.assertFalse(agrees(big, ROBOT_BOX))

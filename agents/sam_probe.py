@@ -340,6 +340,10 @@ def annotations(report: dict) -> list[str]:
             ec = run["engineCheck"]
             parts.append("engine check " + " ".join(f"{n} kept {ec['kept'][n]} dropped {ec['dropped'][n]}"
                                                     for n in ec["kept"]))
+            for n, q in (ec.get("droppedGap") or {}).items():
+                parts.append(f"{n} dropped missed by (object sizes) p25 {_num(q['p25'])} p50 {_num(q['p50'])} "
+                             f"p75 {_num(q['p75'])} p90 {_num(q['p90'])}; at centre but too big {q['atCentre']}; "
+                             f"no {n} on frame {q['noObject']}")
         fit = run.get("engineFit")
         if fit:
             parts.append(f"fit {fit['object']} over {fit['frames']} frames: engine x = {fit['x']['a']} * glimmer x + "
