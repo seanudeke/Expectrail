@@ -291,8 +291,12 @@ def warm(*, base: str | None = None, model: str | None = None, key: str | None =
          sleep: Callable[[float], None] = time.sleep, clock: Callable[[], float] = time.monotonic) -> float:
     """Wake a scaled-to-zero deployment before the frames go out; returns seconds waited.
 
-    An on-demand deployment at zero replicas answers 503 (or 429) while it starts. Keep asking with a
-    tiny text-only request until it answers 200. A 401, 403 or 404 is a setup error and stops at once.
+    An on-demand deployment at zero replicas answers 503 (or 429) while it starts, and after a long
+    idle it has also answered 404 "not deployed" until its replica came up (Oct 29, run 40986446779,
+    while Fireworks' API reported it READY with replicas 0-1). Keep asking with a tiny text-only
+    request until it answers 200. For an accounts/<account>/deployments/<id> model a 404 is retried
+    too (the workflows read the deployment through the control plane first, so a wrong id has
+    already failed there); for any other model, and for a 401 or 403, it stops at once.
     """
     base = (base or API_BASE).rstrip("/")
     model = model or MODEL
@@ -315,7 +319,8 @@ def warm(*, base: str | None = None, model: str | None = None, key: str | None =
                 detail = err.read().decode(errors="replace")[:300]
             except (OSError, http.client.HTTPException):
                 detail = ""
-            if err.code not in RETRY_STATUS:
+            starting = err.code == 404 and "/deployments/" in model
+            if err.code not in RETRY_STATUS and not starting:
                 hint = {
                     404: (" (the deployment is not serving: after a suspension Fireworks sets its replicas to "
                           "0-0, which python -m agents.fireworks_deployment --restore puts back; or the model id "
