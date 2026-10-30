@@ -61,12 +61,13 @@ def run_review(request: dict, candidate: Path, verification_file: Path, out: Pat
                "reasons": record["reasons"], "path": str(out / "change-evidence.json"),
                "frames": {k: (out / v["frame"]["path"]) for k, v in record["arms"].items()
                           if v and v.get("frame")}}
+        doc["html"] = None
         try:
             from agents.review_html import render
-        except ImportError:
-            doc["html"] = None  # the renderer (Z3) is not in this build: the JSON is the evidence
-        else:
+
             doc["html"] = str(render(out / "change-evidence.json", out))
+        except Exception:  # noqa: BLE001 - the page is a view of the record; failing to draw it changes no result
+            (out / "render-error.txt").write_text(traceback.format_exc(), encoding="utf-8")
         return doc
     except Exception as exc:  # noqa: BLE001 - a review never breaks or alters the overnight run
         (out / "review-error.txt").parent.mkdir(parents=True, exist_ok=True)

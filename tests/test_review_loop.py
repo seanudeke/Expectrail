@@ -81,6 +81,11 @@ class ReviewInTheLoopTest(unittest.TestCase):
         self.assertNotIn(ILLUSTRATIVE_NOTE, report)
         sources = [Path(f["source"]).name for f in result["morning"]["frames"]]
         self.assertEqual(sources, ["base.png", "candidate.png"])
+        # The fake review wrote no record, so the page cannot be drawn: that is recorded and the
+        # review's own result stands.
+        self.assertEqual(result["review"]["status"], "REPAIR DEMONSTRATED")
+        self.assertIsNone(result["review"]["html"])
+        self.assertTrue((self.root / "review" / "render-error.txt").is_file())
 
     def test_the_demo_annotation_keeps_its_parsed_line_and_adds_the_review_on_its_own(self):
         row = {"run": 3, "decision": "accept", "attempts": ["accept"], "triageSource": "wonder", "fixerSource": "muse",
