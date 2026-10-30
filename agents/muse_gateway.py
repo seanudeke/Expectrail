@@ -53,18 +53,57 @@ VARIANTS = ("control", "host", "bwrap", "bwrap-download")
 DOWNLOAD_HOST = "lookaside.facebook.com"
 
 
-def install_dirs(home: Path | None = None) -> list[Path]:
-    """Where the Muse Code installer put the program: directories named *muse* under the usual places.
+SKIP_DIRS = {".config", ".ssh", ".gnupg", ".git", "work", "runs", "node_modules", ".npm", ".cargo", ".rustup",
+             ".dotnet", ".nuget", ".gradle", ".m2", "go", ".android", ".docker"}
 
-    Configuration (~/.config) is left out on purpose: it is where a stored login would live.
+
+def _is_elf(path: Path) -> bool:
+    try:
+        with open(path, "rb") as fh:
+            return fh.read(4) == b"\x7fELF"
+    except OSError:
+        return False
+
+
+def install_dirs(home: Path | None = None, min_bytes: int = 5_000_000, max_depth: int = 7) -> list[Path]:
+    """Directories under the home directory holding the program the ``muse`` launcher runs.
+
+    The launcher is a shell script that keeps a native program somewhere under the home directory,
+    which the sandbox replaces with an empty one. This finds large native executables under the
+    home directory (configuration, keys and toolchains left out) and returns their directories.
     """
     home = home or Path.home()
-    found = []
-    for root in (home / ".local" / "share", home / ".local" / "lib", home / ".cache", home):
-        if root.is_dir():
-            found += [p for p in root.iterdir() if p.is_dir() and "muse" in p.name.lower()
-                      and p.name.lower() not in (".config",)]
-    return sorted(set(found))
+    found: set[Path] = set()
+
+    def walk(d: Path, depth: int) -> None:
+        if depth > max_depth:
+            return
+        try:
+            entries = list(d.iterdir())
+        except OSError:
+            return
+        for e in entries:
+            if e.is_symlink():
+                continue
+            if e.is_dir():
+                if e.name not in SKIP_DIRS:
+                    walk(e, depth + 1)
+            elif e.is_file() and e.stat().st_size >= min_bytes and _is_elf(e):
+                # A program in .../bin usually needs its siblings (lib/, share/) too.
+                found.add(e.parent.parent if e.parent.name == "bin" and e.parent.parent != home else e.parent)
+
+    walk(home, 0)
+    return sorted(found)
+
+
+def launcher_paths(launcher: str | None) -> list[str]:
+    """Lines of the launcher script that name a directory: where it keeps or looks for the program."""
+    if not launcher or not Path(launcher).is_file():
+        return []
+    text = Path(launcher).read_text(encoding="utf-8", errors="replace")
+    keep = [ln.strip() for ln in text.splitlines()
+            if re.search(r"HOME|XDG_|/\.local|/opt/|versions|install_dir|_DIR=", ln) and not ln.strip().startswith("#")]
+    return keep[:15]
 
 
 def bwrap_argv(work: Path, argv: list[str], binds: list[Path]) -> list[str]:
@@ -255,6 +294,7 @@ def main(argv: list[str] | None = None) -> int:
     dirs = install_dirs()
     print(f"::notice title=Muse install::launcher {shutil.which('muse')}; program directories bound in the "
           f"bwrap variant: {', '.join(str(d) for d in dirs) or 'none found'}")
+    print("::notice title=Muse launcher paths::" + " | ".join(launcher_paths(shutil.which("muse")))[:1500])
     names = [v.strip() for v in args.variants.split(",") if v.strip()]
     unknown = sorted(set(names) - set(VARIANTS))
     if unknown:
