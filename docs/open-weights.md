@@ -5,13 +5,11 @@ game engine; Muse Spark Open writes the checks.** Both are Meta open-weight mode
 partner inference (Fireworks, Baseten) or our own server. With `glimmer-engine`, the real fix is
 accepted and the hide-the-robot fix rejected, on the four private held-out routes too, and the
 held-out bench catches 8 of 8 private bug variants with no false alarm and no stray check failure,
-as SAM does, with no SAM key in any of these runs (Oct 29 to 30). Four of the eight are caught only
-by Glimmer's checks. The eighth, sinking/v4, is caught by the engine's ground check, not by Glimmer,
-and that check was built after the first benches missed it (see the bench below). With `both`,
-Glimmer is a second pair of eyes next to SAM 3.1. Muse Code (the fixer) and Muse Voice Transcribe stay on Meta's hosted API.
-held-out bench catches 7 of 8 private bug variants with no false alarm and no stray check failure,
-as SAM does (8 of 8 on the public development set, also as SAM does), with no SAM key in any of these runs (Oct 29 to 30). With `both`, Glimmer is a second pair of
-eyes next to SAM 3.1. Muse Code (the fixer) and Muse Voice Transcribe stay on Meta's hosted API.
+as SAM does (8 of 8 on the public development set, also as SAM does), with no SAM key in any of
+these runs (Oct 29 to 30). Four of the eight held-out variants are caught only by Glimmer's checks.
+The eighth, sinking/v4, is caught by the engine's ground check, not by Glimmer, and that check was
+built after the first benches missed it (see the bench below). With `both`, Glimmer is a second pair
+of eyes next to SAM 3.1. Muse Code (the fixer) and Muse Voice Transcribe stay on Meta's hosted API.
 
 This page is for the infrastructure partner verifying the open-weights prize, and for us: what runs
 on which model, where, and how to check it.
@@ -240,7 +238,8 @@ dropped 40% of coin boxes on the clean game against 9% now.
 Development detection bench, judge `glimmer-engine` (no SAM key in the run), the public variants in
 `bugs/` and the clean game on the same five routes and checks as SAM's dev bench in docs/sam.md,
 under the overlap rule, with the ground judged on the position log (main at 2de3d9c; run
-41001182605, Oct 30; recorded in `bench/detection/dev-glimmer-engine.json`).
+41001182605, Oct 30; recorded in `bench/detection/dev-glimmer-engine.json`). It ran before the
+drawn floor, which changes no development verdict on the four public routes (`bench/drawn-floor/`).
 
 | Development variant | Engine | Gameplay | player-always-visible | coins-visible | Caught, Glimmer+engine | Caught, SAM on (docs/sam.md) | Caught, SAM off |
 | --- | --- | --- | --- | --- | --- | --- | --- |

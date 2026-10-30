@@ -90,9 +90,17 @@ jobs:
           assert rows and all("ground" in r and "view" in r for r in rows), "harness did not log ground and view"
           level = clean["levelSurfaces"]
           assert level, "harness did not log the level surfaces"
-          # The harness's ground search and the verifier's, over the same clean level, must agree.
+          # The harness's ground search and the verifier's, over the same clean level's collision, must
+          # agree. levelArt is set aside here: the verifier's line also follows the floor as drawn.
+          collision = {k: v for k, v in clean.items() if k != "levelArt"}
           assert all(abs(a["ground"] - b["ground"]) < 0.01
-                     for a, b in zip(rows, [r for r in with_reference_ground(clean, level)["rows"] if r.get("player")])), "ground searches disagree"
+                     for a, b in zip(rows, [r for r in with_reference_ground(collision, level)["rows"] if r.get("player")])), "ground searches disagree"
+          # The floor as drawn is logged, and on the clean game it stays within the grass of the
+          # collision: the line it gives is never lower, and at most 2 px higher (measured 0 to 2).
+          assert clean.get("levelArt", {}).get("columns"), "harness did not log the level art"
+          drawn = [r for r in with_reference_ground(clean, level)["rows"] if r.get("player")]
+          lift = [a["ground"] - b["ground"] for a, b in zip(rows, drawn)]
+          assert all(-0.01 < d < 3 for d in lift), f"drawn floor off the collision on the clean game: {min(lift)} to {max(lift)} px"
           results = {name: evaluate(spec, from_trace_synthetic(with_reference_ground(
                          json.loads((root / name / "trace.json").read_text()), level)))["result"]
                      for name in ("clean", "sinking_v1", "sinking_v2")}

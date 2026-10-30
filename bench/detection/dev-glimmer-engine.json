@@ -1,0 +1,323 @@
+{
+  "format": "nightshift.detection-bench/v0",
+  "set": "dev",
+  "judge": "glimmer-engine",
+  "run": 41001182605,
+  "runUrl": "https://github.com/seanudeke/Nightshift/actions/runs/41001182605",
+  "commit": "2de3d9ca410aecf0d11f3669e2b3afdf4cc0be49",
+  "date": "2026-10-30T04:08:06Z",
+  "caughtWithSamOn": {
+    "yes": 0,
+    "of": 8
+  },
+  "caughtWithSamOff": {
+    "yes": 3,
+    "of": 8
+  },
+  "falseAlarm": {
+    "withSamOn": null,
+    "withSamOff": "no",
+    "cleanRoutes": 5,
+    "withGlimmerEngine": "no"
+  },
+  "clean": {
+    "caughtWithSamOn": null,
+    "caughtWithSamOff": "no",
+    "checks": {
+      "engine": {
+        "fail": 0,
+        "needs-review": 0,
+        "pass": 5
+      },
+      "gameplay": {
+        "fail": 0,
+        "needs-review": 0,
+        "pass": 5
+      },
+      "player-always-visible": {
+        "fail": 0,
+        "needs-review": 0,
+        "pass": 5
+      },
+      "coins-visible": {
+        "fail": 0,
+        "needs-review": 0,
+        "pass": 5
+      }
+    },
+    "caughtWithGlimmerEngine": "no",
+    "routes": 5,
+    "seconds": 3345,
+    "samImages": 0,
+    "run": 41001182605
+  },
+  "variants": [
+    {
+      "id": "dev/layering/v1",
+      "caughtWithSamOn": null,
+      "caughtWithSamOff": "no",
+      "checks": {
+        "engine": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "gameplay": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "player-always-visible": {
+          "fail": 5,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "coins-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        }
+      },
+      "caughtWithGlimmerEngine": "yes",
+      "routes": 5,
+      "seconds": 2604,
+      "samImages": 0,
+      "run": 41001182605
+    },
+    {
+      "id": "dev/layering/v2",
+      "caughtWithSamOn": null,
+      "caughtWithSamOff": "no",
+      "checks": {
+        "engine": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "gameplay": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "player-always-visible": {
+          "fail": 5,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "coins-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        }
+      },
+      "caughtWithGlimmerEngine": "yes",
+      "routes": 5,
+      "seconds": 2643,
+      "samImages": 0,
+      "run": 41001182605
+    },
+    {
+      "id": "dev/missing-texture/v1",
+      "caughtWithSamOn": null,
+      "caughtWithSamOff": "no",
+      "checks": {
+        "engine": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "gameplay": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "player-always-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "coins-visible": {
+          "fail": 5,
+          "needs-review": 0,
+          "pass": 0
+        }
+      },
+      "caughtWithGlimmerEngine": "yes",
+      "routes": 5,
+      "seconds": 1484,
+      "samImages": 0,
+      "run": 41001182605
+    },
+    {
+      "id": "dev/missing-texture/v2",
+      "caughtWithSamOn": null,
+      "caughtWithSamOff": "no",
+      "checks": {
+        "engine": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "gameplay": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "player-always-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "coins-visible": {
+          "fail": 5,
+          "needs-review": 0,
+          "pass": 0
+        }
+      },
+      "caughtWithGlimmerEngine": "yes",
+      "routes": 5,
+      "seconds": 1498,
+      "samImages": 0,
+      "run": 41001182605
+    },
+    {
+      "id": "dev/physics-fall-through/v1",
+      "caughtWithSamOn": null,
+      "caughtWithSamOff": "yes",
+      "checks": {
+        "engine": {
+          "fail": 5,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "gameplay": {
+          "fail": 5,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "player-always-visible": {
+          "fail": 5,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "coins-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        }
+      },
+      "caughtWithGlimmerEngine": "yes",
+      "routes": 5,
+      "seconds": 3518,
+      "samImages": 0,
+      "run": 41001182605
+    },
+    {
+      "id": "dev/physics-fall-through/v2",
+      "caughtWithSamOn": null,
+      "caughtWithSamOff": "yes",
+      "checks": {
+        "engine": {
+          "fail": 5,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "gameplay": {
+          "fail": 5,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "player-always-visible": {
+          "fail": 5,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "coins-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        }
+      },
+      "caughtWithGlimmerEngine": "yes",
+      "routes": 5,
+      "seconds": 3442,
+      "samImages": 0,
+      "run": 41001182605
+    },
+    {
+      "id": "dev/sinking/v1",
+      "caughtWithSamOn": null,
+      "caughtWithSamOff": "yes",
+      "checks": {
+        "engine": {
+          "fail": 5,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "gameplay": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "player-always-visible": {
+          "fail": 2,
+          "needs-review": 0,
+          "pass": 3
+        },
+        "coins-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        }
+      },
+      "caughtWithGlimmerEngine": "yes",
+      "routes": 5,
+      "seconds": 3821,
+      "samImages": 0,
+      "run": 41001182605
+    },
+    {
+      "id": "dev/sinking/v2",
+      "caughtWithSamOn": null,
+      "caughtWithSamOff": "no",
+      "checks": {
+        "engine": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "gameplay": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "player-always-visible": {
+          "fail": 2,
+          "needs-review": 0,
+          "pass": 3
+        },
+        "coins-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        }
+      },
+      "caughtWithGlimmerEngine": "yes",
+      "routes": 5,
+      "seconds": 2768,
+      "samImages": 0,
+      "run": 41001182605
+    }
+  ],
+  "rerun": "bench/rerun-detection.sh dev main glimmer-engine",
+  "spend": {
+    "samImages": 0,
+    "samUsd": 0.0,
+    "museCalls": 0,
+    "jobMinutes": 418.7
+  },
+  "caughtWithGlimmerEngine": {
+    "yes": 8,
+    "of": 8
+  }
+}
