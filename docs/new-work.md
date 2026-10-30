@@ -11,9 +11,9 @@ something; keep prior work out of it.
 - Godot 4.7.2, Mesa and Xvfb, and the Meta models (SAM 3.1, Muse Spark, Muse Code) through their
   public interfaces.
 - [OBAAF](https://github.com/Obaaf/OBAAF) (Apache-2.0): prior open-source work by a team member (Sean),
-  published before the event. It will run underneath Expectrail as a dependency (recording and
-  signing the release candidate) and is not wired in yet; nothing in Expectrail itself predates the
-  event. The organizers said on the October 27 call that prior open-source work
+  published before the event. It runs underneath Expectrail as a dependency, reporting only
+  since Oct 30 ([docs/obaaf.md](obaaf.md)); it does not yet record or sign the release candidate.
+  Nothing in Expectrail itself predates the event. The organizers said on the October 27 call that prior open-source work
   may be used if it is disclosed; we have asked for that in writing.
 
 - Bootstrap's Checkout example (`apps/checkout/site`), unmodified from the v5.3.8 release's examples zip (MIT; see NOTICE): the second domain's app. Everything else under `apps/checkout` was written during the event.
@@ -77,3 +77,9 @@ something; keep prior work out of it.
 | Oct 30 | Renamed the project from Nightshift to Expectrail: the `expectrail` package, `expectrail.<kind>/v0` formats, `EXPECTRAIL_*` settings, the harness autoload, the signing key name, workflows and docs; names from before the rename are still read (`nightshift.<kind>/v0`, `NIGHTSHIFT_*`, the old key name, the fix matrix's old condition name), and recorded runs in `bench/` were collected again with no number changed | `expectrail/legacy.py`, `tests/test_legacy.py`, every file that named the project |
 | Oct 30 | Second domain, a web checkout page: a web harness (Chromium through Playwright replays a shopper's session byte for byte and logs the page's layout, as Godot replays a route and logs positions), the four bug families as eight seeded patches, three checks, and a detection bench whose output the game's collector reads unchanged; the evaluator, observers and verdict logic are the game's | `harness/web/`, `apps/checkout/bugs/`, `apps/checkout/specs/`, `agents/web_bench.py`, `.github/workflows/web-bench.yml`, `tests/test_web.py` |
 | Oct 30 | Second domain end to end: Muse Code fixes each checkout-page bug in a workspace holding only the page (the game's fixer, sandbox and guard), and a web verifier writes the game's verification contract with the same check kinds and decision rule (regression, gameplay as the order going through, clean control, private held-out sessions) | `agents/web_fix.py`, `.github/workflows/web-fix.yml`, `tests/test_web.py` |
+| Oct 30 | SAM cost: the clean game judged once per run and its answers shared, encrypted, with the run's jobs; private routes skipped after a definite fail | `agents/sam_warm.py`, `agents/verifier.py`, `.github/workflows/fix-matrix.yml` |
+| Oct 30 | OBAAF as a dependency, reporting only: agent lanes declared and audited in CI, pipeline findings reported, candidate fixes checked as OBAAF proposals plus Expectrail's own allowlist, code owners for everything that decides a verdict | `.github/obaaf.yml`, `.github/CODEOWNERS`, `agents/assurance/`, `docs/obaaf.md` |
+| Oct 30 | The patched game runs with an allowlisted environment (no keys or private paths), with a canary in CI | `harness/run.py`, `harness/fixtures/canary-env.patch`, `.github/workflows/ci.yml` |
+| Oct 30 | Review against the failing base: the request's public checks run on the seeded game and on the candidate by the same code, paired claim by claim, with a status that claims a repair only when a requested check goes from FAIL to PASS; a closed change-evidence record, stable failure codes, and checks on every pull request and on main | `agents/review_change.py`, `agents/verifier.py`, `expectrail/change_evidence.py`, `expectrail/diagnostics.py`, `contracts/change-evidence.schema.json`, `.github/workflows/ci.yml`, `docs/review.md` |
+| Oct 30 | The overnight loop reviews each fix (on by default in the live demo), the review as a self-contained HTML page with the first failing frame before and after, and the morning report says when its frames are fixtures | `agents/loop.py`, `agents/review_html.py`, `agents/report.py`, `.github/workflows/fix-matrix.yml` |
+| Oct 30 | Muse Code never holds the Meta API key: a gateway holds it and the sandbox has no network but the gateway; CI pinned to Ubuntu 24.04 | `agents/gateway.py`, `agents/gateway_bridge.py`, `agents/sandbox.py`, `.github/workflows/` |
