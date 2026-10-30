@@ -377,6 +377,29 @@ class WarmTest(unittest.TestCase):
         with self.assertRaisesRegex(sam.SamError, "on-demand deployment"):
             gl.warm(key="k", opener=missing, sleep=lambda s: None)
 
+    def test_a_deployment_waking_from_zero_may_answer_404_first(self):
+        # Oct 29, run 40986446779: "Model not found ... not deployed" until the replica came up.
+        answers = [404, 404, 200]
+
+        def opener(req, timeout):
+            code = answers.pop(0)
+            if code != 200:
+                raise urllib.error.HTTPError(req.full_url, code, "nf", {}, io.BytesIO(b'{"error":"not deployed"}'))
+            return self.Resp(b'{"choices": []}')
+
+        t = [0.0]
+        waited = gl.warm(base="https://api.fireworks.ai/inference/v1", model="accounts/me/deployments/abc",
+                         key="k", opener=opener, sleep=lambda s: t.__setitem__(0, t[0] + s), clock=lambda: t[0])
+        self.assertEqual(waited, 30.0)
+
+        def never(req, timeout):
+            raise urllib.error.HTTPError(req.full_url, 404, "nf", {}, io.BytesIO(b'{"error":"not deployed"}'))
+
+        t = [0.0]
+        with self.assertRaisesRegex(sam.SamError, "did not wake.*HTTP 404"):
+            gl.warm(model="accounts/me/deployments/abc", key="k", opener=never, timeout_s=60, every_s=15,
+                    sleep=lambda s: t.__setitem__(0, t[0] + s), clock=lambda: t[0])
+
     def test_gives_up_after_the_timeout(self):
         def busy(req, timeout):
             raise urllib.error.HTTPError(req.full_url, 503, "busy", {}, io.BytesIO(b""))
