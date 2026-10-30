@@ -60,11 +60,40 @@ class DriverTest(unittest.TestCase):
         self.assertIn("inconclusive", mg.verdict({"control": row("control", True)}))
         self.assertEqual(mg.verdict({"control": row("control", False), "host": row("host", True, ["authorization"]),
                                      "bwrap": row("bwrap", True, ["authorization"])}),
-                         "works on the host and inside bubblewrap: Muse never held the key")
+                         "works on the host and inside bubblewrap with the installed program bound read-only: "
+                         "Muse never held the key")
         self.assertIn("host only", mg.verdict({"control": row("control", False),
                                                "host": row("host", True, ["authorization"]),
                                                "bwrap": row("bwrap", False)}))
         self.assertIn("does not work", mg.verdict({"control": row("control", False), "host": row("host", True)}))
+
+    def test_install_dirs_find_the_program_but_never_the_config(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            for d in (".local/share/muse", ".cache/muse-cli", ".config/muse", ".local/share/godot"):
+                (home / d).mkdir(parents=True)
+            found = [p.relative_to(home).as_posix() for p in mg.install_dirs(home)]
+        self.assertEqual(found, [".cache/muse-cli", ".local/share/muse"])
+
+    def test_the_bound_sandbox_adds_read_only_binds_before_the_command(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp) / "muse"
+            (d / "sessions").mkdir(parents=True)
+            cmd = mg.bwrap_argv(Path(tmp), ["muse", "exec", "x"], [d])
+        cut = cmd.index("--")
+        self.assertEqual(cmd[cut:], ["--", "muse", "exec", "x"])
+        self.assertEqual(cmd[cut - 5:cut], ["--ro-bind", str(d), str(d), "--tmpfs", str(d / "sessions")])
+
+    def test_the_verdict_says_when_the_sandbox_needs_the_download_host(self):
+        row = lambda name, answered, swapped=(): {"variant": name, "answered": answered,
+                                                  "swappedHeaders": list(swapped)}
+        verdict = mg.verdict({"control": row("control", False), "host": row("host", True, ["authorization"]),
+                              "bwrap": row("bwrap", False), "bwrap-download": row("bwrap-download", True)})
+        self.assertIn("only when the proxy also passes lookaside.facebook.com", verdict)
 
     def test_redact_removes_both_keys(self):
         fake = mg.placeholder_for(REAL)
