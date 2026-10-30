@@ -1,12 +1,23 @@
 # Expectrail
 
-**An independent verification layer for changes made by AI coding agents.** The agent that writes a
-change never certifies it. Expectrail runs the changed software, checks what it actually does against
-checks a person approved, and accepts the change only if every check passes, including checks the
-agent cannot see or reach. We built and measured it on a game first, because a game shows the gap
-plainly: a change can pass every test and still be visibly broken. Built for the Meta Global AI
-Developer Hackathon (Indie track), October 26 to November 4, 2026. Expectrail was called Nightshift
-until October 30; the old names still work wherever a file or setting from before then turns up
+**An AI coding agent says it fixed the bug. Expectrail plays the game and watches to find out.**
+
+Expectrail verifies AI-agent changes by observation, not by trust. It replays the changed game, has
+Meta's vision models (SAM 3.1, or the open-weight Muse Glimmer) find what a plain-English check names
+in the frames, measures that against the engine's own record of where the robot, the coins and the
+floor really are, and accepts the change only if every check passes: checks drafted by Muse Spark,
+approved by a person, and kept where the agent can neither see nor touch them.
+
+It catches fixes that only look right. Given a "fix" that stops the robot falling through
+the floor by drawing it sunk into the ground, a position-only check passed it, and Muse Code, shown
+the before-and-after screenshots, said the fall was fixed. Expectrail saw the robot's feet below the
+floor and rejected it. In our judge benchmark it accepted none of the 7 fixes that only look right
+and turned down none of the 8 correct ones, in both runs ([Results](#results)).
+
+We built and measured it on a game first, because a game shows the gap plainly: a change can pass
+every test and still be visibly broken. Built for the Meta Global AI Developer Hackathon (Indie
+track), October 26 to November 4, 2026. Expectrail was called Nightshift until October 30; the old
+names still work wherever a file or setting from before then turns up
 ([`expectrail/legacy.py`](expectrail/legacy.py)).
 
 ## The problem
