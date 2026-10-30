@@ -33,7 +33,7 @@ are now visible to Expectrail's engine record, not that Expectrail would have fo
 | `air-jump` | Upstream fix in this demo, 2016 | Every jump press works in mid-air, so the robot can climb forever | 10 of 10 presses honoured (clean: 4); highest point y=151 (clean: 448) | `climb-gap` | `jump-height` |
 | `gun-cooldown` | Upstream fix in this demo, 2022 (the fix's line removed) | The gun's cooldown never restarts, so every tap fires | 14 taps: 14 bullets (clean: 4) | `tap-shoot` | `fire-rate` |
 | `body-flip` | Godot engine issue and docs note, plus forum reports | The script flips the CharacterBody2D instead of its sprite | Facing flips on all 110 of 110 ticks while walking left (clean: 0); 3 of 3 bullets go right while facing left (clean: both shots on the route go left) | `turn-and-shoot` | `facing-follows-motion` (and `shots-follow-facing`) |
-| `enemy-ledge` | Godot forum report, plus a demo contributor's note | The enemy's floor rays start inside the floor and never hit it | The upper enemy walks off its platform and falls to the ground around frame 510 (clean: turns back) | `wait-for-patrol` | `enemies-stay-up` |
+| `enemy-ledge` | Godot forum report | The enemy's floor rays start inside the floor and never hit it | The upper enemy walks off its platform and falls to the ground around frame 510 (clean: turns back) | `wait-for-patrol` | `enemies-stay-up` |
 
 World coordinates; y grows downward, the ground is at y≈637. Frames are at 60 fps, physics at
 120 ticks per second. Evidence images are in `evidence/` (top row or left column is the clean
@@ -137,9 +137,10 @@ so if a judge asks.
 **Source.** A developer's patrolling enemy failed to detect ledges; the diagnosis on the
 [Godot forum](https://forum.godotengine.org/t/enemy-dosent-go-forward-and-backwards-as-intended/135232)
 was that "the raycasts cannot detect the floor if they are wholly inside it", and "moving them a
-bit up fixed the issue". A Godot demo contributor saw the same symptom in this demo's sibling,
-the 3D platformer: "they walk off ledges occasionally"
-([godot-demo-projects PR #770](https://github.com/godotengine/godot-demo-projects/pull/770)).
+bit up fixed the issue". The poster had written a script "that whould make enemy turn arroung when
+he comes close to a wall edge using raycats". (An earlier draft of this file also quoted a demo
+contributor, in godot-demo-projects PR #770, saying enemies "walk off ledges occasionally"; we could
+not find that sentence on the PR, so it is no longer cited.)
 
 **Port.** In `enemy/enemy.tscn`, both floor detector rays start 24 px down, inside the floor, so
 they never report a hit. `enemy.gd` then sends the enemy right at every step, off the edge.
@@ -158,7 +159,7 @@ it turns back (`evidence/enemy-ledge.png`; 156 of 550 frames differ).
 This is a scene-file fix, not a GDScript one, and the enemy moves at 22 px/s, so the route is
 long (1,100 ticks).
 
-**Report to give the fixer (the demo contributor's words):** "They walk off ledges occasionally."
+**Report to give the fixer (the forum poster's title, verbatim):** "Enemy dosent go forward and backwards as intended"
 
 ## Found in the current game: platform draw order
 
@@ -240,7 +241,6 @@ godot --headless --path . --script ../bugs/reported/probes/flip_probe.gd    # bo
 - [godot-demo-projects PR #686](https://github.com/godotengine/godot-demo-projects/pull/686) / [commit b46a823](https://github.com/godotengine/godot-demo-projects/commit/b46a8233421ade84aff07cb0d6fde9e45c81a8a3): gun cooldown fix
 - [godot-demo-projects PR #927](https://github.com/godotengine/godot-demo-projects/pull/927): Fix Z Index on platforms in 2D platformer demo
 - [godot-demo-projects PR #922](https://github.com/godotengine/godot-demo-projects/pull/922): Port demos with remade art assets to Godot 4
-- [godot-demo-projects PR #770](https://github.com/godotengine/godot-demo-projects/pull/770): Update 3D Platformer for 4.0
 - [godot#78613](https://github.com/godotengine/godot/issues/78613): CharacterBody2D infinite flipping on left move
 - [godot#9399](https://github.com/godotengine/godot/issues/9399): "[3.0] the new OneWay Collision makes the character fall through when is standing on an upward moving platform"
 - [Godot docs, Node2D.scale](https://github.com/godotengine/godot-docs/blob/master/classes/class_node2d.rst)

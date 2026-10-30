@@ -70,7 +70,7 @@ them back; the bug, its symptom and its cause come from the cited reports
 | `air-jump` | this demo, commit cf98fed (2016) | `climb-gap` | `jump-height` |
 | `gun-cooldown` | this demo, PR #686 (2022) | `tap-shoot` | `fire-rate` |
 | `body-flip` | godot#78613 and forum reports | `turn-and-shoot` | `facing-follows-motion` |
-| `enemy-ledge` | Godot forum, and a demo contributor's note | `wait-for-patrol` | `enemies-stay-up` |
+| `enemy-ledge` | Godot forum | `wait-for-patrol` | `enemies-stay-up` |
 
 `agents/reported_bench.py` (workflow **Reported bench**, on every pull request that touches it)
 renders each bug and the clean game on the smoke route and the four reported routes, and judges
