@@ -212,6 +212,25 @@ Both are inputs on the SAM probe workflow, together with `runs` to probe only so
 4. **Cost of confirming.** A passing replay now costs 120 requests per spec instead of 31; the
    clean replay is identical across attempts, so after the first night it comes from the cache.
 
+## Video input: measured, not used (October 29)
+
+sam-3.1 also takes a whole run as one video, at $0.20 per 1,000 frames instead of $2.50 per
+1,000 images. That is about $0.05 for both prompts over a 120-frame run, against up to $0.60.
+`agents/sam_video.py` sent every frame of the clean game and the 8 public bugs (smoke route
+only) both ways. Results are in `bench/sam-video/`.
+
+- **Coins:** the same verdict and the same per-frame verdicts on all 9 runs.
+- **The robot:** video tracks it from frame to frame and carries it through what hides it.
+  - Sinking v1 and v2: as the robot sinks, images lose it on 11 frames, so `player-always-visible` fails. Video reports it on every frame, so that spec passes.
+  - Sinking, frames where both modes see the robot: video puts its feet up to 15 px higher. The ground check's tolerance is 20 px.
+  - Layering v1 and v2: on frames 100 to 119 the robot is entirely behind a tree. Images find nothing. On frame 110, video reports a "blue robot" at the foot of the tree, where no robot is visible. The verdict still fails, but on 33 frames instead of 49.
+- **Confidence:** video gives one score per tracked object, not per frame: 0.938 for the robot on every clean frame. The score floor means nothing in video mode.
+
+So the verifier keeps one image per frame. Occlusion and sinking are two of our four bug
+families, and they are exactly where video errs, toward a pass. Video is a candidate only for
+coins, and only after testing coins that blink or vanish for a few frames. No public variant
+does that yet.
+
 ## How it looks at fewer frames
 
 - **Sample.** Every Nth frame of the spec's window, plus its last frame (`NIGHTSHIFT_SAM_EVERY`,
