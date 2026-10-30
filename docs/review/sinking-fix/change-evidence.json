@@ -1,0 +1,151 @@
+{
+  "format": "expectrail.change-evidence/v0",
+  "runId": "review-20261030T203750Z-22490",
+  "mode": "live",
+  "request": {
+    "id": "rr-gate1",
+    "sha256": "ac8f0e926683dc03a0f7dc314a2dd3302b2239f5fdd8660aaff9ce69bbcb62be"
+  },
+  "candidate": {
+    "patchSha256": "30a53ff1a9b53211f978818faff8bc74251054acae23a6f1d776f7dd35e7cb30",
+    "origin": "fixture"
+  },
+  "verification": {
+    "fileSha256": "060ea6c62f1a53ea652b497201967980b7afb1646387db537e9b983a7fdb6e7a",
+    "decision": "reject"
+  },
+  "arms": {
+    "base": {
+      "provenance": "harness",
+      "patchesSha256": [
+        "6514ad59f1311fc109b56c06366871c0aeab316179d80a9921a43a41e7667740"
+      ],
+      "replaySha256": "919a9e67ce0f613a874df8e9eef65f79845cff881f18a2872016bc52e312bfdd",
+      "observationBackend": "SAM 3.1",
+      "frame": {
+        "path": "assets/base.png",
+        "frame": 5,
+        "sha256": "bbf3c8d8ab79c831a9118a5cc06bddea6a61fc432a929e6f07e87586d137500a"
+      }
+    },
+    "candidate": {
+      "provenance": "harness",
+      "patchesSha256": [
+        "6514ad59f1311fc109b56c06366871c0aeab316179d80a9921a43a41e7667740",
+        "30a53ff1a9b53211f978818faff8bc74251054acae23a6f1d776f7dd35e7cb30"
+      ],
+      "replaySha256": "4223f770e21fa2c1c4196248737ed9c102a3160591d4a47b0a59310b4c776594",
+      "observationBackend": "SAM 3.1",
+      "frame": {
+        "path": "assets/candidate.png",
+        "frame": 5,
+        "sha256": "e253f38a036412d42d709311592c4d6344331508ec77654b5b8200c74ca6b5e4"
+      }
+    }
+  },
+  "rows": [
+    {
+      "spec": "player-stays-above-ground",
+      "kind": "regression",
+      "route": "smoke",
+      "primary": true,
+      "required": true,
+      "before": "fail",
+      "after": "fail",
+      "comparison": "UNRESOLVED",
+      "evidence": {
+        "before": "2e05347da32099923d2129a05f936643b1f767603d9b1ea7945150f2a9273353",
+        "after": "bdee9be7d07fdfea369080a52ca319e47cc99d3cd0c098695bd9041e093f9c54"
+      }
+    },
+    {
+      "spec": "player-motion-on-smoke",
+      "kind": "gameplay",
+      "route": "smoke",
+      "primary": false,
+      "required": true,
+      "before": "fail",
+      "after": "pass",
+      "comparison": "REPAIRED",
+      "evidence": {
+        "before": "afe2ed6aff414ba430da7b0479fdbdba62689fc5405bc9b98519f8321a7abf0f",
+        "after": "9a1ea87e0219b321a09aa2c2de44f1c26f7180b0bf2df5a8f5beadb7d4c05a64"
+      }
+    },
+    {
+      "spec": "coins-visible",
+      "kind": "regression",
+      "route": "smoke",
+      "primary": false,
+      "required": true,
+      "before": "pass",
+      "after": "pass",
+      "comparison": "PRESERVED",
+      "evidence": {
+        "before": "4a7856fb7ffb29dcb0fba8921508f0932a5d77de443f0aa81bb6caf23f138217",
+        "after": "f3a89c646e015f7c9fe57aa8b6a0f022015b438dc36869d7b90979fbd58a3f67"
+      }
+    },
+    {
+      "spec": "player-always-visible",
+      "kind": "regression",
+      "route": "smoke",
+      "primary": false,
+      "required": true,
+      "before": "fail",
+      "after": "fail",
+      "comparison": "UNRESOLVED",
+      "evidence": {
+        "before": "05e099fc3e23d29077751a71680b785706d0b68a5eb53971ca6d376bc0129fbb",
+        "after": "f5726e05519a4a2d05db7e2ad24814598c7ae21404ae32c01cf2ab094f402b9d"
+      }
+    }
+  ],
+  "private": {
+    "source": "harness",
+    "checks": 1,
+    "passed": 0,
+    "failed": 1,
+    "needsReview": 0
+  },
+  "stages": [
+    {
+      "stage": "preflight",
+      "status": "completed",
+      "startedAt": "2026-10-30T20:37:50Z",
+      "endedAt": "2026-10-30T20:37:50Z"
+    },
+    {
+      "stage": "base",
+      "status": "completed",
+      "startedAt": "2026-10-30T20:37:50Z",
+      "endedAt": "2026-10-30T20:38:43Z"
+    },
+    {
+      "stage": "candidate",
+      "status": "completed",
+      "startedAt": "2026-10-30T20:38:43Z",
+      "reused": true,
+      "endedAt": "2026-10-30T20:38:43Z"
+    },
+    {
+      "stage": "compare",
+      "status": "completed",
+      "startedAt": "2026-10-30T20:38:43Z",
+      "endedAt": "2026-10-30T20:38:43Z"
+    },
+    {
+      "stage": "export",
+      "status": "completed",
+      "startedAt": "2026-10-30T20:38:43Z",
+      "endedAt": "2026-10-30T20:38:43Z"
+    }
+  ],
+  "diagnostics": [],
+  "evidenceLabel": "FRESH LIVE",
+  "status": "REJECTED",
+  "reasons": [
+    "the verifier rejected the candidate: regression check player-stays-above-ground failed on smoke; regression check player-always-visible failed on smoke; held-out check player-stays-above-ground failed on held-out-routes"
+  ],
+  "rerun": "python3 -m agents.review_change --request <request.json> --candidate <candidate.patch> --mode live --out <new folder>"
+}

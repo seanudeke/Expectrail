@@ -227,8 +227,10 @@ jobs:
           exit 1
 
   # mode=verify: the real Gate 1 accept path (seeded fall-through + the known-good fix) with SAM on,
-  # including the private held-out routes. Only check results leave the runner, as annotations:
-  # no frames, no artifacts, no route names, so nothing from the held-out set is published.
+  # including the private held-out routes. Check results leave the runner as annotations, and the
+  # review leaves as the sam-review artifact: its record, the public route's two frames and its page,
+  # uploaded only after the export scan (with the private set) finds nothing. The private routes
+  # appear in the record as counts only; their frames, names and verdict file never leave.
   sam-verify:
     if: ${{ inputs.mode == 'verify' }}
     runs-on: ubuntu-24.04
@@ -324,6 +326,25 @@ jobs:
           for reason in rec["reasons"][:3]:
               print(f"::notice title=SAM review reason::{' '.join(reason.split())[:300]}")
           PY
+      - name: Gather the review (record, the two public-route frames, the page)
+        if: always() && hashFiles('runs/sam-review/change-evidence.json') != ''
+        run: |
+          mkdir -p keep/sam-review/assets
+          cp runs/sam-review/change-evidence.json keep/sam-review/
+          if compgen -G 'runs/sam-review/assets/*.png' > /dev/null; then cp runs/sam-review/assets/*.png keep/sam-review/assets/; fi
+          python -m agents.review_html keep/sam-review/change-evidence.json \
+            || echo "::warning title=SAM review page::the page did not render; the record and frames are kept"
+      - name: Scan the review before it leaves the runner
+        id: export-scan
+        if: always() && hashFiles('keep/sam-review/change-evidence.json') != ''
+        run: python -m agents.export_scan keep/sam-review --private heldout-set --paths error
+      - name: Keep the review
+        if: always() && steps.export-scan.outcome == 'success'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sam-review
+          path: keep/sam-review/
+          retention-days: 14
 
   # mode=heldout-bench: for each private bug variant (and the clean game as a false-alarm control),
   # render the game with the variant and no fix on the smoke route and every private route, and
