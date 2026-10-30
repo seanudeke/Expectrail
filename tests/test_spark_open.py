@@ -56,7 +56,7 @@ class RunTest(unittest.TestCase):
                 mock.patch.object(spark_open, "list_models", return_value=["meta-models/muse-spark-open", "x"]), \
                 mock.patch.object(spark_open.spec_writer, "open_transport", return_value=endpoint), \
                 mock.patch.object(spark_open.feedback, "openai_transport", return_value=endpoint), \
-                mock.patch.dict("os.environ", {"NIGHTSHIFT_OPEN_MODEL": "meta-models/muse-spark-open"}):
+                mock.patch.dict("os.environ", {"EXPECTRAIL_OPEN_MODEL": "meta-models/muse-spark-open"}):
             doc = spark_open.run(None, Path(tmp), meta=meta, key="test")
             self.assertTrue((Path(tmp) / "results.json").exists())
         return doc

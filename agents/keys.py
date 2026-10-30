@@ -10,6 +10,7 @@ import shutil
 from pathlib import Path
 from typing import Mapping, TypedDict
 
+from expectrail.legacy import ENV_PREFIX, LEGACY_ENV_PREFIX
 from harness.run import REPO
 
 # Keys we will adopt from a local `.env` (setdefault only).
@@ -17,20 +18,20 @@ DOTENV_KEYS = frozenset({
     "META_API_KEY",
     "MODEL_API_KEY",
     "META_API_BASE",
-    "NIGHTSHIFT_MODEL_API_BASE",
-    "NIGHTSHIFT_SPEC_MODEL",
+    "EXPECTRAIL_MODEL_API_BASE",
+    "EXPECTRAIL_SPEC_MODEL",
     # Open weights (Muse Spark Open on a partner endpoint) for agents.feedback --sorter open
     "BASETEN_API_KEY",
-    "NIGHTSHIFT_OPEN_API_KEY",
-    "NIGHTSHIFT_OPEN_API_BASE",
-    "NIGHTSHIFT_OPEN_MODEL",
+    "EXPECTRAIL_OPEN_API_KEY",
+    "EXPECTRAIL_OPEN_API_BASE",
+    "EXPECTRAIL_OPEN_MODEL",
     # Open weights: Muse Glimmer as the vision backend (agents.glimmer_client)
-    "NIGHTSHIFT_VISION_BACKEND",
+    "EXPECTRAIL_VISION_BACKEND",
     "FIREWORKS_API_KEY",
-    "NIGHTSHIFT_GLIMMER_API_KEY",
-    "NIGHTSHIFT_GLIMMER_API_BASE",
-    "NIGHTSHIFT_GLIMMER_MODEL",
-    "NIGHTSHIFT_GLIMMER_COORDS",
+    "EXPECTRAIL_GLIMMER_API_KEY",
+    "EXPECTRAIL_GLIMMER_API_BASE",
+    "EXPECTRAIL_GLIMMER_MODEL",
+    "EXPECTRAIL_GLIMMER_COORDS",
 })
 
 # Muse Code subprocess: model key + runtime/TLS/temp/proxy hygiene — not a sandbox.
@@ -81,7 +82,7 @@ def load_dotenv(path: Path | None = None) -> dict[str, str]:
     - Missing file: no-op.
     - Never overrides keys already present in the process environment (including empty
       string — CI/tests that clear or set META_API_KEY win).
-    - Only adopts keys in DOTENV_KEYS.
+    - Only adopts keys in DOTENV_KEYS; a NIGHTSHIFT_X key from before the rename is read as EXPECTRAIL_X.
     - Supports optional `export ` prefix, optional quotes, spaces around `=`.
     Returns the key→value pairs that were newly set (for tests).
     """
@@ -103,6 +104,8 @@ def load_dotenv(path: Path | None = None) -> dict[str, str]:
         value = value.strip()
         if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
             value = value[1:-1]
+        if key.startswith(LEGACY_ENV_PREFIX):
+            key = ENV_PREFIX + key[len(LEGACY_ENV_PREFIX):]  # a .env written before the rename
         if key not in DOTENV_KEYS:
             continue
         if value == "":
@@ -246,7 +249,7 @@ def require_separate_sam_key() -> None:
 
         glimmer = api_key()
         if not glimmer:
-            raise SystemExit(f"NIGHTSHIFT_VISION_BACKEND={backend} needs one of {', '.join(KEY_ENVS)}")
+            raise SystemExit(f"EXPECTRAIL_VISION_BACKEND={backend} needs one of {', '.join(KEY_ENVS)}")
         if muse_key and glimmer == muse_key:
             raise SystemExit("the Glimmer key is the same as META_API_KEY, which Muse Code (the fixer) "
                              "receives; the verifier's vision key must be its own")
@@ -254,7 +257,7 @@ def require_separate_sam_key() -> None:
             return
     sam_key = os.environ.get("MODEL_API_KEY", "").strip()
     if not sam_key:
-        raise SystemExit("NIGHTSHIFT_OBS_PROVIDER=sam needs MODEL_API_KEY (a Meta Model API key for SAM)")
+        raise SystemExit("EXPECTRAIL_OBS_PROVIDER=sam needs MODEL_API_KEY (a Meta Model API key for SAM)")
     if muse_key and sam_key == muse_key:
         raise SystemExit("MODEL_API_KEY is the same key as META_API_KEY, which Muse Code (the fixer) "
                          "receives. Create a second key on dev.meta.ai for SAM and set it as "

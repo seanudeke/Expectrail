@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/seanudeke/nightshift/contracts/feedback-intake.schema.json",
+  "$id": "https://github.com/seanudeke/expectrail/contracts/feedback-intake.schema.json",
   "title": "Feedback intake: what playtesters said, and where each remark went",
-  "description": "Written by agents.feedback from a diarized Muse Voice Transcribe result (or a transcript fixture). Feedback never reaches the fixer: a bug report becomes an unapproved draft test spec, a request to weaken or remove a check goes to a person, and nothing here is a repair request. Cross-field rules (turn indexes in range, counts match items) are checked in nightshift.contracts.validate.",
+  "description": "Written by agents.feedback from a diarized Muse Voice Transcribe result (or a transcript fixture). Feedback never reaches the fixer: a bug report becomes an unapproved draft test spec, a request to weaken or remove a check goes to a person, and nothing here is a repair request. Cross-field rules (turn indexes in range, counts match items) are checked in expectrail.contracts.validate.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -17,7 +17,7 @@
   ],
   "properties": {
     "format": {
-      "const": "nightshift.feedback-intake/v0"
+      "enum": ["expectrail.feedback-intake/v0", "nightshift.feedback-intake/v0"]
     },
     "id": {
       "type": "string",

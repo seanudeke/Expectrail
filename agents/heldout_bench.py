@@ -22,9 +22,9 @@ Only the variant id, counts and verdicts are printed. The manifest's description
 frames and traces stay in the output directory, which callers must not publish. Exit is 1 when the
 run decided nothing, so a green job always means the checks ran.
 
-    NIGHTSHIFT_HELDOUT_DIR=../Nightshift-heldout python3 -m agents.heldout_bench --list
-    NIGHTSHIFT_HELDOUT_DIR=... python3 -m agents.heldout_bench --list --set dev
-    NIGHTSHIFT_HELDOUT_DIR=... NIGHTSHIFT_OBS_PROVIDER=sam MODEL_API_KEY=... \\
+    EXPECTRAIL_HELDOUT_DIR=../Nightshift-heldout python3 -m agents.heldout_bench --list
+    EXPECTRAIL_HELDOUT_DIR=... python3 -m agents.heldout_bench --list --set dev
+    EXPECTRAIL_HELDOUT_DIR=... EXPECTRAIL_OBS_PROVIDER=sam MODEL_API_KEY=... \\
         python3 -m agents.heldout_bench --variant physics-fall-through/v5 --out runs/bench
     ... --clean --out runs/bench          # the false-alarm control
     python3 -m agents.heldout_bench --annotate runs/bench/physics-fall-through_v5/bench.json
@@ -45,8 +45,8 @@ from agents.verifier import (
     REGRESSION_SPEC, _ground_observations, _sam_verdicts, held_out_set, reference_surfaces, sam_on, sam_specs,
 )
 from harness.run import REPO, run as harness_run
-from nightshift.contracts import load
-from nightshift.evaluator import evaluate
+from expectrail.contracts import load
+from expectrail.evaluator import evaluate
 
 SMOKE_ROUTE = REPO / "harness" / "routes" / "smoke.json"
 BUGS = REPO / "bugs"
@@ -60,7 +60,7 @@ RESULTS = ("fail", "needs-review", "pass")
 # Which checks decide the verifier's verdict in each mode.
 SAM_ON_CHECKS = ("hybrid", "gameplay")  # plus every SAM spec
 SAM_OFF_CHECKS = ("engine", "gameplay")
-# NIGHTSHIFT_VISION_BACKEND=glimmer-engine: the vision specs on Glimmer checked against the engine, the
+# EXPECTRAIL_VISION_BACKEND=glimmer-engine: the vision specs on Glimmer checked against the engine, the
 # ground on the position log (the verifier does the same; Glimmer's box is too loose for the hybrid).
 GLIMMER_ENGINE_CHECKS = ("engine", "gameplay")  # plus every vision spec
 ERRORS_FILE = "bench-errors.json"
@@ -170,7 +170,7 @@ def caught(per_check: dict[str, dict[str, int]], checks: list[str]) -> str:
 def bench(key: str, out: Path) -> dict:
     root, manifest, problem = held_out_set()
     if manifest is None:
-        raise SystemExit(f"held-out set unavailable: {problem or 'NIGHTSHIFT_HELDOUT_DIR is not set'}")
+        raise SystemExit(f"held-out set unavailable: {problem or 'EXPECTRAIL_HELDOUT_DIR is not set'}")
     if key == CLEAN:
         patches: list[Path] = []
         expected = None
@@ -221,7 +221,7 @@ def bench(key: str, out: Path) -> dict:
     per_check = {c: {r: sum(row["checks"].get(c) == r for row in per_route) for r in RESULTS} for c in check_names}
     sam_on_checks = list(SAM_ON_CHECKS) + [s["id"] for s in sam_spec_docs]
     doc = {
-        "format": "nightshift.held-out-bench/v0",
+        "format": "expectrail.held-out-bench/v0",
         "variant": key,
         "expectedSpec": expected,
         "sam": use_sam and not glimmer_engine,
@@ -278,7 +278,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.list:
         _root, manifest, problem = held_out_set()
         if manifest is None:
-            raise SystemExit(f"held-out set unavailable: {problem or 'NIGHTSHIFT_HELDOUT_DIR is not set'}")
+            raise SystemExit(f"held-out set unavailable: {problem or 'EXPECTRAIL_HELDOUT_DIR is not set'}")
         ids = set_ids(manifest, args.which)
         wanted = [w.strip() for w in args.only.split(",") if w.strip()]
         unknown = sorted(set(wanted) - set(ids))

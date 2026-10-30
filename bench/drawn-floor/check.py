@@ -26,8 +26,8 @@ sys.path.insert(0, str(HERE.parent.parent))
 from agents.observations import FEET_OFFSET, with_reference_ground  # noqa: E402
 from agents.verifier import _ground_observations  # noqa: E402
 from harness.run import REPO, run as harness_run  # noqa: E402
-from nightshift.contracts import load  # noqa: E402
-from nightshift.evaluator import evaluate  # noqa: E402
+from expectrail.contracts import load  # noqa: E402
+from expectrail.evaluator import evaluate  # noqa: E402
 
 ROUTES = ("smoke", "traversal", "coins", "combat")
 FIXTURES = REPO / "agents" / "fixtures"
@@ -88,7 +88,7 @@ def main(argv: list[str] | None = None) -> int:
         for job in cf.as_completed(jobs):
             route, name = jobs[job]
             results.setdefault(name, {})[route] = judge(job.result(), reference, spec)
-    doc = {"format": "nightshift.drawn-floor-bench/v0", "routes": routes,
+    doc = {"format": "expectrail.drawn-floor-bench/v0", "routes": routes,
            "results": {n: results[n] for n in table}}
     (HERE / "results.json").write_text(json.dumps(doc, indent=1) + "\n", encoding="utf-8")
     count = lambda name, label, verdict: sum(1 for r in routes if results[name][r][label] == verdict)  # noqa: E731

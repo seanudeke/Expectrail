@@ -36,11 +36,11 @@ from pathlib import Path
 from agents import feedback
 from agents.observations import from_trace_synthetic, with_reference_ground
 from harness.run import REPO
-from nightshift import spec_writer
-from nightshift.contracts import load
-from nightshift.evaluator import evaluate
+from expectrail import spec_writer
+from expectrail.contracts import load
+from expectrail.evaluator import evaluate
 
-FORMAT = "nightshift.spark-open-run/v0"
+FORMAT = "expectrail.spark-open-run/v0"
 SPECS_DIR = REPO / "specs"
 GROUND_SPEC = "player-stays-above-ground"
 PLAYTEST = REPO / "agents" / "fixtures" / "feedback" / "playtest-transcript.json"
@@ -53,11 +53,11 @@ MAX_CHUNKS = 5
 
 
 def open_base() -> str:
-    return os.environ.get("NIGHTSHIFT_OPEN_API_BASE", spec_writer.OPEN_API_BASE).rstrip("/")
+    return os.environ.get("EXPECTRAIL_OPEN_API_BASE", spec_writer.OPEN_API_BASE).rstrip("/")
 
 
 def open_model() -> str:
-    return os.environ.get("NIGHTSHIFT_OPEN_MODEL") or spec_writer.OPEN_MODEL
+    return os.environ.get("EXPECTRAIL_OPEN_MODEL") or spec_writer.OPEN_MODEL
 
 
 def _one_line(err: BaseException | str, limit: int = 300) -> str:

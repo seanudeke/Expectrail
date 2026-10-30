@@ -20,8 +20,8 @@ from agents.sam_observations import (
 )
 from agents.sam_probe import boundary_gap, markdown, probe_run, tolerance_hint
 from harness.run import REPO
-from nightshift.contracts import load, validate
-from nightshift.evaluator import evaluate
+from expectrail.contracts import load, validate
+from expectrail.evaluator import evaluate
 
 SPEC = load(REPO / "specs" / "player-stays-above-ground.json", "test-spec")
 TOL = SPEC["assertion"]["boundary"]["tolerancePx"]
@@ -231,10 +231,10 @@ class ClientTest(unittest.TestCase):
 
     def test_sam_and_the_fixer_must_not_share_a_key(self):
         from agents.keys import require_separate_sam_key
-        cases = [({"NIGHTSHIFT_OBS_PROVIDER": "sam", "MODEL_API_KEY": "LLM_a", "META_API_KEY": "LLM_a"}, True),
-                 ({"NIGHTSHIFT_OBS_PROVIDER": "sam", "MODEL_API_KEY": "", "META_API_KEY": "LLM_a"}, True),
-                 ({"NIGHTSHIFT_OBS_PROVIDER": "sam", "MODEL_API_KEY": "LLM_b", "META_API_KEY": "LLM_a"}, False),
-                 ({"NIGHTSHIFT_OBS_PROVIDER": "trace", "MODEL_API_KEY": "LLM_a", "META_API_KEY": "LLM_a"}, False)]
+        cases = [({"EXPECTRAIL_OBS_PROVIDER": "sam", "MODEL_API_KEY": "LLM_a", "META_API_KEY": "LLM_a"}, True),
+                 ({"EXPECTRAIL_OBS_PROVIDER": "sam", "MODEL_API_KEY": "", "META_API_KEY": "LLM_a"}, True),
+                 ({"EXPECTRAIL_OBS_PROVIDER": "sam", "MODEL_API_KEY": "LLM_b", "META_API_KEY": "LLM_a"}, False),
+                 ({"EXPECTRAIL_OBS_PROVIDER": "trace", "MODEL_API_KEY": "LLM_a", "META_API_KEY": "LLM_a"}, False)]
         for env, refused in cases:
             with self.subTest(env=env), mock.patch.dict(os.environ, env):
                 if refused:
@@ -246,7 +246,7 @@ class ClientTest(unittest.TestCase):
 
     def test_the_loop_will_not_run_muse_with_a_shared_sam_key(self):
         from agents import loop
-        env = {"NIGHTSHIFT_OBS_PROVIDER": "sam", "MODEL_API_KEY": "LLM_a", "META_API_KEY": "LLM_a"}
+        env = {"EXPECTRAIL_OBS_PROVIDER": "sam", "MODEL_API_KEY": "LLM_a", "META_API_KEY": "LLM_a"}
         muse = {"mode": "live", "offline_triage": True, "use_muse": True}
         with mock.patch.dict(os.environ, env), mock.patch.object(loop, "one_run") as one_run, \
                 mock.patch.object(loop, "resolve_mode", return_value=muse), \
@@ -386,7 +386,7 @@ class FromReplayTest(unittest.TestCase):
         self.assertEqual(stats["framesAnalyzed"], 22)
         clean = Scene(self.root / "c")
         with mock.patch.dict(os.environ, {}, clear=False):
-            os.environ.pop("NIGHTSHIFT_SAM_CONFIRM", None)
+            os.environ.pop("EXPECTRAIL_SAM_CONFIRM", None)
             doc = from_replay(frames_dir=clean.dir, spec=SPEC, every=10, client=clean.client(), cache=Cache(None))
         self.assertEqual(doc["analysis"]["framesAnalyzed"], 120)
 
@@ -400,7 +400,7 @@ class FromReplayTest(unittest.TestCase):
     def test_reaches_rechecks_every_frame_when_the_sample_misses_the_moment(self):
         coin = lambda i: box_token(0, (62, 40, 70, 50), 0.8) if i == 57 else box_token(0, (140, 10, 150, 20), 0.8)
         scene = Scene(self.root, extra={"gold coin": coin})
-        spec = {"format": "nightshift.test-spec/v0", "id": "reach-coin", "instruction": "x",
+        spec = {"format": "expectrail.test-spec/v0", "id": "reach-coin", "instruction": "x",
                 "objects": {"player": {"prompt": "blue robot"}, "coin": {"prompt": "gold coin"}},
                 "assertion": {"type": "reaches", "object": "player", "goal": "coin", "distancePx": 0}}
         doc, stats = self.run_scene(scene, every=10, spec=spec)
@@ -419,7 +419,7 @@ class FromReplayTest(unittest.TestCase):
     def test_reaches_that_needs_review_on_the_sample_is_rechecked(self):
         coin = lambda i: box_token(0, (62, 40, 70, 50), 0.8) if i == 6 else box_token(0, (140, 10, 150, 20), 0.8)
         scene = Scene(self.root, extra={"gold coin": coin}, missing={4})
-        spec = {"format": "nightshift.test-spec/v0", "id": "reach-coin", "instruction": "x",
+        spec = {"format": "expectrail.test-spec/v0", "id": "reach-coin", "instruction": "x",
                 "objects": {"player": {"prompt": "blue robot"}, "coin": {"prompt": "gold coin"}},
                 "assertion": {"type": "reaches", "object": "player", "goal": "coin", "distancePx": 0}}
         doc, _ = self.run_scene(scene, every=4, spec=spec)
@@ -433,7 +433,7 @@ class FromReplayTest(unittest.TestCase):
         with self.assertRaises(SamError) as cm:
             from_replay(frames_dir=scene.dir, spec=SPEC, client=MetaSamClient(transport=broken), cache=Cache(None))
         self.assertIn("AttributeError", str(cm.exception))
-        with mock.patch.dict(os.environ, {"NIGHTSHIFT_SAM_EVERY": "four"}), self.assertRaises(SamError):
+        with mock.patch.dict(os.environ, {"EXPECTRAIL_SAM_EVERY": "four"}), self.assertRaises(SamError):
             from_replay(frames_dir=scene.dir, spec=SPEC, client=scene.client(), cache=Cache(None))
 
     def test_the_cache_is_best_effort_and_checks_what_it_reads(self):
@@ -462,7 +462,7 @@ class FromReplayTest(unittest.TestCase):
         scene = Scene(self.root, bottom=player_bottom_falling)
         real = sam.MetaSamClient
         with mock.patch.object(sam, "MetaSamClient", side_effect=lambda: real(transport=scene.transport)), \
-                mock.patch.dict(os.environ, {"NIGHTSHIFT_SAM_CACHE": "off", "NIGHTSHIFT_SAM_EVERY": "10"}):
+                mock.patch.dict(os.environ, {"EXPECTRAIL_SAM_CACHE": "off", "EXPECTRAIL_SAM_EVERY": "10"}):
             doc = from_trace({"rows": []}, replay_sha256="b" * 64, provider="sam", frames_dir=str(scene.dir), spec=SPEC)
         self.assertEqual(doc["model"]["name"], "sam-3.1")
         self.assertEqual(doc["replay"]["sha256"], "b" * 64)
@@ -579,7 +579,7 @@ class VerifierTest(unittest.TestCase):
         with mock.patch.dict(os.environ, {}, clear=False), \
                 mock.patch("agents.verifier.harness_run", side_effect=harness), \
                 mock.patch("agents.verifier.from_trace", side_effect=observations):
-            os.environ.pop("NIGHTSHIFT_HELDOUT_DIR", None)
+            os.environ.pop("EXPECTRAIL_HELDOUT_DIR", None)
             out = Path(tmp.name)
             doc = verify(_request(), REPO / "agents" / "fixtures" / "fix-collision-mask.patch", out)
         validate(doc, "verification")
@@ -609,7 +609,7 @@ COINS = lambda i: box_token(0, (100, 20, 108, 28), 0.85) + "," + box_token(1, (1
 
 
 class VerifierWithSamTest(unittest.TestCase):
-    """NIGHTSHIFT_OBS_PROVIDER=sam: the ground spec on the engine, the SAM specs on SAM's view."""
+    """EXPECTRAIL_OBS_PROVIDER=sam: the ground spec on the engine, the SAM specs on SAM's view."""
 
     def setUp(self):
         tmp = tempfile.TemporaryDirectory()
@@ -630,11 +630,11 @@ class VerifierWithSamTest(unittest.TestCase):
         from tests.test_agents import _request
         out = self.root / "verify"
         real = sam.MetaSamClient
-        env = {"NIGHTSHIFT_OBS_PROVIDER": "sam", "NIGHTSHIFT_SAM_CACHE": "off"}
+        env = {"EXPECTRAIL_OBS_PROVIDER": "sam", "EXPECTRAIL_SAM_CACHE": "off"}
         with mock.patch.dict(os.environ, env), \
                 mock.patch("agents.verifier.harness_run", side_effect=self.harness), \
                 mock.patch.object(sam, "MetaSamClient", side_effect=lambda: real(transport=transport, retries=0)):
-            os.environ.pop("NIGHTSHIFT_HELDOUT_DIR", None)
+            os.environ.pop("EXPECTRAIL_HELDOUT_DIR", None)
             doc = verify(_request(), REPO / "agents" / "fixtures" / "fix-collision-mask.patch", out, **kw)
         validate(doc, "verification")
         return doc, out
@@ -653,7 +653,7 @@ class VerifierWithSamTest(unittest.TestCase):
         self.assertAlmostEqual(
             json.loads((out / "verdict-clean-coins-visible.json").read_text())["samMinScore"], 0.85)
         self.assertEqual(json.loads((out / "observations.json").read_text())["model"]["name"],
-                         "nightshift.trace-synthetic")
+                         "expectrail.trace-synthetic")
         self.assertIn("position log against the clean level's ground line", doc["suite"]["candidate"]["detail"])
         self.assertIn("player-always-visible", doc["suite"]["clean"]["detail"])
         # No private held-out set here: SAM never saw a held-out route, so no accept.
@@ -713,7 +713,7 @@ class VerifierWithSamTest(unittest.TestCase):
         gone = Scene(self.root / "gone", extra={"blue robot": lambda i: "", "gold coin": COINS})
         for transport, expected in ((self.scene.transport, "pass"), (gone.transport, "fail")):
             out = self.root / f"out-{expected}"
-            with mock.patch.dict(os.environ, {"NIGHTSHIFT_SAM_CACHE": "off"}), \
+            with mock.patch.dict(os.environ, {"EXPECTRAIL_SAM_CACHE": "off"}), \
                     mock.patch("agents.verifier.harness_run", side_effect=self.harness), \
                     mock.patch.object(sam, "MetaSamClient", side_effect=lambda: real(transport=transport, retries=0)):
                 verdict, arm_doc = _run_held_out_routes(root, manifest, ground, [], out, use_sam=True)
@@ -737,20 +737,20 @@ class VerifierWithSamTest(unittest.TestCase):
 
     def test_sam_spec_ids_cannot_shadow_the_ground_spec(self):
         from agents.verifier import sam_specs
-        with mock.patch.dict(os.environ, {"NIGHTSHIFT_SAM_SPECS": "specs/player-stays-above-ground.json"}):
+        with mock.patch.dict(os.environ, {"EXPECTRAIL_SAM_SPECS": "specs/player-stays-above-ground.json"}):
             with self.assertRaises(SystemExit):
                 sam_specs("player-stays-above-ground")
-        with mock.patch.dict(os.environ, {"NIGHTSHIFT_SAM_SPECS":
+        with mock.patch.dict(os.environ, {"EXPECTRAIL_SAM_SPECS":
                                           "specs/coins-visible.json,specs/coins-visible.json"}):
             with self.assertRaises(SystemExit):
                 sam_specs("player-stays-above-ground")
-        with mock.patch.dict(os.environ, {"NIGHTSHIFT_SAM_SPECS": ""}):
+        with mock.patch.dict(os.environ, {"EXPECTRAIL_SAM_SPECS": ""}):
             self.assertEqual([s["id"] for s in sam_specs("player-stays-above-ground")],
                              ["player-always-visible", "coins-visible"])
 
     def test_the_loop_rejects_a_mistyped_provider_before_the_fixer_runs(self):
         from agents import loop
-        with mock.patch.dict(os.environ, {"NIGHTSHIFT_OBS_PROVIDER": "sma"}), \
+        with mock.patch.dict(os.environ, {"EXPECTRAIL_OBS_PROVIDER": "sma"}), \
                 mock.patch.object(loop, "one_run") as one_run:
             with self.assertRaises(SystemExit):
                 loop.main(["--out", str(self.root / "loop")])
@@ -767,7 +767,7 @@ class VerifierWithSamTest(unittest.TestCase):
     def test_an_unknown_provider_stops_verify_before_any_work(self):
         from agents.verifier import verify
         from tests.test_agents import _request
-        with mock.patch.dict(os.environ, {"NIGHTSHIFT_OBS_PROVIDER": "nope"}), \
+        with mock.patch.dict(os.environ, {"EXPECTRAIL_OBS_PROVIDER": "nope"}), \
                 mock.patch("agents.verifier.harness_run") as harness:
             with self.assertRaises(SystemExit):
                 verify(_request(), REPO / "agents" / "fixtures" / "fix-collision-mask.patch", self.root / "v")
@@ -786,7 +786,7 @@ def ground_trace(sink: float = 0.0, ticks: int = 240, ground: float = 650.0, vie
         v = [2.0, 0.0, 0.0, 2.0, 0.0, 0.0] if tick < 2 else list(view)  # camera settles after the first draw
         rows.append({"tick": tick, "frame": tick // 2, "player": [90.0 + tick, ground - 13.25 + sink],
                      "onFloor": True, "ground": ground, "view": v})
-    return {"format": "nightshift.trace/v0", "ticks": ticks, "physicsTicksPerSecond": 120, "rows": rows}
+    return {"format": "expectrail.trace/v0", "ticks": ticks, "physicsTicksPerSecond": 120, "rows": rows}
 
 
 class EngineGroundTest(unittest.TestCase):
@@ -834,7 +834,7 @@ class EngineGroundTest(unittest.TestCase):
         ground_spec = load(REPO / "agents" / "specs" / "player-stays-above-ground.json", "test-spec")
         scene = Scene(Path(self.tmp.name) / "v", extra={"blue robot": lambda i: box_token(0, (60, 40, 80, 70), 0.9)})
         real = sam.MetaSamClient
-        with mock.patch.dict(os.environ, {"NIGHTSHIFT_SAM_CACHE": "off"}), \
+        with mock.patch.dict(os.environ, {"EXPECTRAIL_SAM_CACHE": "off"}), \
                 mock.patch.object(sam, "MetaSamClient", side_effect=lambda: real(transport=scene.transport, retries=0)):
             _, source = _ground_observations(ground_spec, ground_trace(), "0" * 64, scene.dir, True, LEVEL)
             self.assertEqual(source, "hybrid")

@@ -5,20 +5,20 @@
 
 Applies base seed + candidate, replays the route (unless --skip-harness with
 pre-built observations), runs regression + gameplay + clean + held-out checks,
-and emits nightshift.verification/v0 via nightshift.evaluator.decide.
+and emits expectrail.verification/v0 via expectrail.evaluator.decide.
 
 Clean uses a distinct observation source (never the candidate obs object).
-Held-out: when NIGHTSHIFT_HELDOUT_DIR points at a checkout of the private held-out set,
+Held-out: when EXPECTRAIL_HELDOUT_DIR points at a checkout of the private held-out set,
 the verifier replays seed + candidate on each private route the fixer never sees and
 requires both the visual spec and the gameplay check to pass there. Without it (offline,
 fixture runs, forks) it falls back to the interim fixture, labeled interim-fixture. A candidate
 that has already failed is not replayed on the private routes, since they could not change a
-reject (NIGHTSHIFT_HELDOUT_AFTER_FAIL=run replays them anyway).
+reject (EXPECTRAIL_HELDOUT_AFTER_FAIL=run replays them anyway).
 
 Optional `suite` on the verification document records candidate/clean/held-out
 provenance (harness vs fixture vs fixture-fallback vs unavailable).
 
-With NIGHTSHIFT_OBS_PROVIDER=sam, the specs in SAM_SPECS (player always visible, coins
+With EXPECTRAIL_OBS_PROVIDER=sam, the specs in SAM_SPECS (player always visible, coins
 visible) are also judged on SAM 3.1's view of the candidate, clean and held-out replays, and
 every one must pass. SAM cannot see the ground in this game's art, so the ground spec is judged
 against the clean level's ground line (from an unpatched reference replay, so a candidate cannot
@@ -45,8 +45,8 @@ from agents.observations import (
 )
 from agents.patchutil import assert_editable, sha256_file
 from harness.run import REPO, run as harness_run, tree_digest
-from nightshift.contracts import digest, load, validate
-from nightshift.evaluator import decide, evaluate
+from expectrail.contracts import digest, load, validate
+from expectrail.evaluator import decide, evaluate
 
 REGRESSION_SPEC = REPO / "agents" / "specs" / "player-stays-above-ground.json"
 # Opaque check id for verification / filmable rows. Judged by agents.gameplay from
@@ -65,24 +65,24 @@ _NOT_RUN = arm(source="not-run", detail="suite checks skipped (early reject)")
 
 # Checkout of the private held-out repository (manifest.json, routes/, bugs/). Set only on
 # the verifier's machine; never on the fixer's.
-HELDOUT_ENV = "NIGHTSHIFT_HELDOUT_DIR"
+HELDOUT_ENV = "EXPECTRAIL_HELDOUT_DIR"
 
-# Any failed check rejects (nightshift.evaluator.decide), so once a candidate has failed, the private
+# Any failed check rejects (expectrail.evaluator.decide), so once a candidate has failed, the private
 # routes cannot change the decision: they are not replayed, which saves four renders and SAM's look
 # at every frame of them. Set to "run" to replay them anyway, for a run that reports how a candidate
 # fares on every private route (the SAM and Glimmer probes' verify mode).
-HELDOUT_AFTER_FAIL_ENV = "NIGHTSHIFT_HELDOUT_AFTER_FAIL"
+HELDOUT_AFTER_FAIL_ENV = "EXPECTRAIL_HELDOUT_AFTER_FAIL"
 
 
 def held_out_after_fail() -> bool:
     return os.environ.get(HELDOUT_AFTER_FAIL_ENV, "").strip().lower() in ("run", "1", "true", "yes")
 
 # Specs SAM 3.1 can judge in this game, approved after the live probes (docs/sam.md). With
-# NIGHTSHIFT_OBS_PROVIDER=sam they are judged on SAM's view of every replay the verifier makes
+# EXPECTRAIL_OBS_PROVIDER=sam they are judged on SAM's view of every replay the verifier makes
 # (candidate, clean and held-out routes), in addition to the ground spec. SAM cannot see the
 # ground in this art, so the ground spec compares the robot with the clean level's ground line.
 SAM_SPECS = ("specs/player-always-visible.json", "specs/coins-visible.json")
-SAM_SPECS_ENV = "NIGHTSHIFT_SAM_SPECS"  # comma-separated repo paths, to override SAM_SPECS
+SAM_SPECS_ENV = "EXPECTRAIL_SAM_SPECS"  # comma-separated repo paths, to override SAM_SPECS
 
 # The lowest per-frame score SAM may give a prompted object on the CLEAN replay before the drop
 # is reported instead of passed. From the Oct 28 clean probes (runs 40656097298, 40656100304):
@@ -163,7 +163,7 @@ def _sam_verdicts(specs: list[dict], trace: dict | None, replay_sha: str, frames
 
 
 # A two-tick replay of the unpatched game: enough for the harness to report the level's surfaces.
-LEVEL_REFERENCE_ROUTE = {"format": "nightshift.route/v0", "name": "level-reference",
+LEVEL_REFERENCE_ROUTE = {"format": "expectrail.route/v0", "name": "level-reference",
                          "description": "Two idle ticks of the clean game, to read its level surfaces.",
                          "ticks": 2, "seed": 1, "events": []}
 _REFERENCE_SURFACES: dict[str, list] = {}
@@ -257,7 +257,7 @@ def _sam_checks(specs: list[dict], kind: str, route_name: str, trace: dict | Non
 
 
 def held_out_set() -> tuple[Path | None, dict | None, str | None]:
-    """Return (root, manifest, problem). All None when NIGHTSHIFT_HELDOUT_DIR is unset.
+    """Return (root, manifest, problem). All None when EXPECTRAIL_HELDOUT_DIR is unset.
 
     A set directory that is missing or malformed returns a problem string so the
     held-out check fails closed (needs-review) instead of falling back to a fixture.
@@ -538,7 +538,7 @@ def verify(
     metrics = dict(gameplay.get("metrics") or {})
     metrics.setdefault("minDeltaX", float(min_dx))
     gameplay_doc = {
-        "format": "nightshift.gameplay-verdict/v0",
+        "format": "expectrail.gameplay-verdict/v0",
         "spec": GAMEPLAY_SPEC_ID,
         "result": gameplay["result"],
         "reason": gameplay["reason"],
@@ -712,10 +712,10 @@ def verify(
 def _write_verification(
     out, request, candidate, attempt, checks, decision, reasons, *, suite: dict | None = None,
 ) -> dict:
-    from nightshift import __version__ as eval_version
+    from expectrail import __version__ as eval_version
 
     doc = {
-        "format": "nightshift.verification/v0",
+        "format": "expectrail.verification/v0",
         "candidate": {
             "patchSha256": sha256_file(candidate),
             "baseTree": request["base"]["tree"],
@@ -723,7 +723,7 @@ def _write_verification(
             "request": request["id"],
             "requestSha256": digest(request),
         },
-        "evaluator": {"name": "nightshift.evaluator", "version": eval_version},
+        "evaluator": {"name": "expectrail.evaluator", "version": eval_version},
         "checks": checks,
         "decision": decision,
         "reasons": reasons,

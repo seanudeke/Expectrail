@@ -4,7 +4,7 @@ Written by `python3 -m agents.bench_collect` from the run's own annotations; do 
 A variant is caught when any check fails on at least one route. Rerun a set with
 `bench/rerun-detection.sh dev` or `bench/rerun-detection.sh held-out`.
 
-## dev, judged by Glimmer checked against the engine (run [41001182605](https://github.com/seanudeke/Nightshift/actions/runs/41001182605), 2026-10-30, commit 2de3d9c)
+## dev, judged by Glimmer checked against the engine (run [41001182605](https://github.com/seanudeke/Expectrail/actions/runs/41001182605), 2026-10-30, commit 2de3d9c)
 
 Caught with Glimmer+engine (no SAM): **8 of 8**. Without vision: **3 of 8**. False alarms on the clean game (5 routes): none with Glimmer+engine (no SAM), none without.
 
@@ -21,9 +21,11 @@ Spend: no SAM. Glimmer runs on a Fireworks deployment billed by the hour, not co
 | dev/sinking/v1 | yes | yes | engine 5, player-always-visible 2 |
 | dev/sinking/v2 | yes | no | player-always-visible 2 |
 
-## dev (run [40841977642](https://github.com/seanudeke/Nightshift/actions/runs/40841977642), 2026-10-29, commit c8bce4d)
+## dev (run [40841977642](https://github.com/seanudeke/Expectrail/actions/runs/40841977642), 2026-10-29, commit c8bce4d)
 
 Caught with SAM: **8 of 8**. Without SAM: **3 of 8**. False alarms on the clean game (5 routes): none with SAM, none without.
+
+Spend: SAM images not counted; 49 job minutes.
 
 | Variant | Caught, SAM on | Caught, SAM off | Failing checks (routes) |
 | --- | --- | --- | --- |
@@ -36,7 +38,7 @@ Caught with SAM: **8 of 8**. Without SAM: **3 of 8**. False alarms on the clean 
 | dev/sinking/v1 | yes | yes | engine 5, hybrid 5, player-always-visible 2 |
 | dev/sinking/v2 | yes | no | hybrid 5, player-always-visible 2 |
 
-## held-out, judged by Glimmer checked against the engine (run [41003751876](https://github.com/seanudeke/Nightshift/actions/runs/41003751876), 2026-10-30, commit 92508d9)
+## held-out, judged by Glimmer checked against the engine (run [41003751876](https://github.com/seanudeke/Expectrail/actions/runs/41003751876), 2026-10-30, commit 92508d9)
 
 Caught with Glimmer+engine (no SAM): **8 of 8**. Without vision: **4 of 8**. False alarms on the clean game (5 routes): none with Glimmer+engine (no SAM), none without.
 
@@ -53,7 +55,7 @@ Spend: no SAM. Glimmer runs on a Fireworks deployment billed by the hour, not co
 | sinking/v3 | yes | yes | engine 5, player-always-visible 2 |
 | sinking/v4 | yes | yes | engine 5 |
 
-## held-out (run [41003749744](https://github.com/seanudeke/Nightshift/actions/runs/41003749744), 2026-10-30, commit 92508d9)
+## held-out (run [41003749744](https://github.com/seanudeke/Expectrail/actions/runs/41003749744), 2026-10-30, commit 92508d9)
 
 Caught with SAM: **8 of 8**. Without SAM: **4 of 8**. False alarms on the clean game (5 routes): none with SAM, none without.
 

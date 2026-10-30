@@ -1,5 +1,5 @@
 # Run by hand: the Gate 2 fix matrix (agents/matrix.py). For each development variant and each
-# condition (screenshots, nightshift), Muse Code gets up to three attempts and the verifier, with
+# condition (screenshots, expectrail), Muse Code gets up to three attempts and the verifier, with
 # SAM on and the private held-out routes mounted, judges every candidate.
 #
 # Spends Meta credit when live is true: Muse Code on META_API_KEY, SAM on MODEL_API_KEY (a
@@ -44,8 +44,8 @@ on:
         description: Comma-separated case ids (default all in the set), e.g. dev/sinking/v2,dev/layering/v1
         default: ''
       conditions:
-        description: Comma-separated conditions (default both), screenshots and/or nightshift
-        default: 'screenshots,nightshift'
+        description: Comma-separated conditions (default both), screenshots and/or expectrail
+        default: 'screenshots,expectrail'
       runs:
         description: demo only, how many independent live runs of the overnight loop (1 to 20); always live
         default: '10'
@@ -94,8 +94,8 @@ jobs:
         id: warm
         env:
           MODEL_API_KEY: ${{ secrets.MODEL_API_KEY }}
-          NIGHTSHIFT_OBS_PROVIDER: sam
-          NIGHTSHIFT_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
+          EXPECTRAIL_OBS_PROVIDER: sam
+          EXPECTRAIL_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
           SCOPE: ${{ inputs.sam_cache == 'shared' && 'all' || 'public' }}
         run: |
           # The log names private routes: it is never printed or kept. Only the summary line is.
@@ -160,14 +160,15 @@ jobs:
           CASES: ${{ inputs.cases }}
           CONDITIONS: ${{ inputs.conditions }}
           SET: ${{ inputs.set }}
-          NIGHTSHIFT_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
+          EXPECTRAIL_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
         run: |
           python - <<'PY'
           import json, os
           from agents.matrix import CONDITIONS, dev_variants, heldout_cases
           every = sorted(dev_variants()) if os.environ["SET"] == "dev" else sorted(heldout_cases())
           cases = [c.strip() for c in os.environ["CASES"].split(",") if c.strip()] or every
-          conds = [c.strip() for c in os.environ["CONDITIONS"].split(",") if c.strip()] or list(CONDITIONS)
+          from expectrail.legacy import current_name
+          conds = [current_name(c.strip()) for c in os.environ["CONDITIONS"].split(",") if c.strip()] or list(CONDITIONS)
           bad = sorted(set(cases) - set(every)) + sorted(set(conds) - set(CONDITIONS))
           if bad:
               raise SystemExit(f"unknown case or condition: {bad}")
@@ -269,8 +270,8 @@ jobs:
         env:
           META_API_KEY: ${{ inputs.live && secrets.META_API_KEY || '' }}
           MODEL_API_KEY: ${{ inputs.live && secrets.MODEL_API_KEY || '' }}
-          NIGHTSHIFT_OBS_PROVIDER: ${{ inputs.live && 'sam' || 'trace' }}
-          NIGHTSHIFT_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
+          EXPECTRAIL_OBS_PROVIDER: ${{ inputs.live && 'sam' || 'trace' }}
+          EXPECTRAIL_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
           CASE: ${{ matrix.case }}
           CONDITION: ${{ matrix.condition }}
           SET: ${{ inputs.set }}
@@ -484,7 +485,7 @@ jobs:
         env:
           META_API_KEY: ${{ inputs.live && secrets.META_API_KEY || '' }}
           MODEL_API_KEY: ${{ secrets.MODEL_API_KEY }}
-          NIGHTSHIFT_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
+          EXPECTRAIL_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
           CASE: ${{ matrix.case }}
         run: |
           args=(--case "$CASE" --out runs/judge)
@@ -499,12 +500,12 @@ jobs:
           import json, sys
           r = json.load(open(sys.argv[1]))
           d = r.get("decisions") or {}
-          print(f"::notice title=Judge {r['case']}::label {r['label']}; SAM on {d.get('nightshiftSam')}; "
-                f"SAM off {d.get('nightshiftNoSam')}; Muse screenshots {d.get('museScreenshots')}; "
+          print(f"::notice title=Judge {r['case']}::label {r['label']}; SAM on {d.get('expectrailSam')}; "
+                f"SAM off {d.get('expectrailNoSam')}; Muse screenshots {d.get('museScreenshots')}; "
                 f"{r['wallClockSeconds']} s; live={r['live']}"
                 + (f"; SAM images {r['samImages']}" if r.get("samImages") is not None else ""))
           # Every judge case is built from public development variants, so its reasons can be shown.
-          names = {"nightshiftSam": "SAM on", "nightshiftNoSam": "SAM off", "museScreenshots": "Muse screenshots"}
+          names = {"expectrailSam": "SAM on", "expectrailNoSam": "SAM off", "museScreenshots": "Muse screenshots"}
           why = [f"{names[k]}: " + " | ".join(" ".join(str(x).split())[:200] for x in (v or [])[:3])
                  for k, v in (r.get("reasons") or {}).items() if k in names and v]
           if why:
@@ -657,8 +658,8 @@ jobs:
         env:
           META_API_KEY: ${{ secrets.META_API_KEY }}
           MODEL_API_KEY: ${{ secrets.MODEL_API_KEY }}
-          NIGHTSHIFT_OBS_PROVIDER: sam
-          NIGHTSHIFT_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
+          EXPECTRAIL_OBS_PROVIDER: sam
+          EXPECTRAIL_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
           RUN: ${{ matrix.run }}
         run: python -m agents.demo_loop --run "$RUN" --out runs/demo
       - name: Keep the run's summary, morning report and verification (no frames, no held-out material)

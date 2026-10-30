@@ -20,7 +20,7 @@ python3 -m harness.replay_check --route harness/routes/smoke.json --runs 10
 How it works:
 
 1. It copies `game/platformer` to `<out>/work`, applies one or more patches in order (seed, then
-   candidate), and adds `nightshift_harness.gd` to the copy as an autoload. The game in the
+   candidate), and adds `expectrail_harness.gd` to the copy as an autoload. The game in the
    repository never changes. Base asset imports are cached (`tools/godot_cache/.godot`), so clean
    runs skip the full-project re-import. The cache is keyed to the exact Godot binary and game files
    (`tools/godot_cache/.godot.key`) and is rebuilt when either changes; an import folder inside
@@ -65,7 +65,7 @@ bug nobody could see, and the benchmark would count it as a miss. CI runs this a
 
 ## Routes
 
-Routes (`nightshift.route/v0`) define exact sequences of physics ticks and input actions to replay deterministically across clean and patched builds:
+Routes (`expectrail.route/v0`) define exact sequences of physics ticks and input actions to replay deterministically across clean and patched builds:
 
 | Route | File | Ticks | Description |
 | :--- | :--- | :--- | :--- |

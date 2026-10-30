@@ -3,8 +3,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from nightshift.contracts import validate
-from nightshift.spec_writer import SpecDraftError, approve, draft, lint, request_body
+from expectrail.contracts import validate
+from expectrail.spec_writer import SpecDraftError, approve, draft, lint, request_body
 
 GOOD = {
     "id": "player-stays-above-ground",
@@ -87,7 +87,7 @@ class ApproveTest(unittest.TestCase):
     def test_approval_is_added_only_to_a_clean_spec(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "spec.json"
-            spec = dict(json.loads(json.dumps(GOOD)), format="nightshift.test-spec/v0", instruction="x")
+            spec = dict(json.loads(json.dumps(GOOD)), format="expectrail.test-spec/v0", instruction="x")
             path.write_text(json.dumps(spec))
             doc = approve(path, "sean", at="2026-10-27T15:00:00Z")
             self.assertEqual(doc["approval"], {"by": "sean", "at": "2026-10-27T15:00:00Z"})

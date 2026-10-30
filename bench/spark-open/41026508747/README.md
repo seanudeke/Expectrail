@@ -1,7 +1,7 @@
 # Muse Spark Open, live
 
 Written by `python3 -m agents.spark_open collect --run <id>` from the run's own annotations; do not edit by hand.
-Run [41026508747](https://github.com/seanudeke/Nightshift/actions/runs/41026508747), 2026-10-30, commit fffe0ae. Endpoint inference.baseten.co, model `meta-models/muse-spark-open`.
+Run [41026508747](https://github.com/seanudeke/Expectrail/actions/runs/41026508747), 2026-10-30, commit fffe0ae. Endpoint inference.baseten.co, model `meta-models/muse-spark-open`.
 
 The key lists 20 models; Muse or Spark ids: `meta-models/muse-spark-open`.
 

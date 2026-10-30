@@ -22,15 +22,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
 from pathlib import Path
 
+from expectrail.legacy import current_name
 from harness.run import REPO
 
-FORMAT = "nightshift.detection-bench/v0"
-MATRIX_FORMAT = "nightshift.fix-matrix-bench/v0"
+FORMAT = "expectrail.detection-bench/v0"
+MATRIX_FORMAT = "expectrail.fix-matrix-bench/v0"
 OUT_DIR = REPO / "bench" / "detection"
 MATRIX_DIR = REPO / "bench" / "fix-matrix"
 JUDGE_DIR = REPO / "bench" / "judge"
@@ -43,11 +45,13 @@ JUDGE_TITLE = re.compile(r"^Judge (?P<case>(?:good|bad)/\S+)$")
 JUDGE_MSG = re.compile(r"^label (?P<label>good|bad); SAM on (?P<sam>\S+); SAM off (?P<nosam>\S+); "
                        r"Muse screenshots (?P<muse>\S+); (?P<seconds>[\d.]+) s; live=(?P<live>True|False)"
                        r"(?:; SAM images (?P<samImages>\d+))?$")
-MATRIX_TITLE = re.compile(r"^Fix matrix (?P<case>\S+/\S+) (?P<condition>screenshots|nightshift)$")
+# Runs before the October 30 rename called the second condition "nightshift" (expectrail/legacy.py).
+MATRIX_TITLE = re.compile(r"^Fix matrix (?P<case>\S+/\S+) (?P<condition>screenshots|expectrail|nightshift)$")
 MATRIX_MSG = re.compile(r"^detected (?P<detected>[a-z-]+); outcome (?P<outcome>[a-z-]+); attempts (?P<n>\d+) "
                         r"\((?P<tries>[^)]*)\); (?P<seconds>[\d.]+) s; live=(?P<live>True|False)"
                         r"(?:; SAM images (?P<sam>\d+))?$")
-REPO_SLUG = "seanudeke/Nightshift"
+# GITHUB_REPOSITORY is set in Actions; the default is the repository's name since October 30.
+REPO_SLUG = os.environ.get("GITHUB_REPOSITORY") or "seanudeke/Expectrail"
 # sam-3.1 image segmentation, $2.50 per 1,000 images (https://dev.meta.ai/docs/pricing-rate-limits, Oct 29, 2026).
 SAM_USD_PER_IMAGE = 2.50 / 1000
 
@@ -205,7 +209,7 @@ def collect_matrix(run_ids: list[int], which: str, fetch=gh_json) -> dict:
             m = MATRIX_TITLE.match(note.get("title") or "")
             if not m:
                 continue
-            key = (m["case"], m["condition"])
+            key = (m["case"], current_name(m["condition"]))
             row = {"case": key[0], "condition": key[1], "run": run_id, **parse_matrix_message(note["message"])}
             everything.append(row)
             earlier = rows.get(key)
@@ -221,7 +225,7 @@ def collect_matrix(run_ids: list[int], which: str, fetch=gh_json) -> dict:
         raise SystemExit("an offline (live=False) result is not a fix rate; collect live runs only")
     final = sorted(rows.values(), key=lambda r: (r["case"], r["condition"]))
     conditions = {}
-    for c in ("screenshots", "nightshift"):
+    for c in ("screenshots", "expectrail"):
         mine = [r for r in final if r["condition"] == c]
         conditions[c] = {o: sum(r["outcome"] == o for r in mine)
                          for o in ("fixed", "not-fixed", "not-detected", "needs-review", "error")}
@@ -232,13 +236,13 @@ def collect_matrix(run_ids: list[int], which: str, fetch=gh_json) -> dict:
             "rule": "first non-error result per case and condition, in run order"}
 
 
-JUDGES = {"nightshiftSam": "Nightshift, SAM on", "nightshiftNoSam": "Nightshift, SAM off",
+JUDGES = {"expectrailSam": "Expectrail, SAM on", "expectrailNoSam": "Expectrail, SAM off",
           "museScreenshots": "Muse from screenshots"}
-REASON_LABELS = {"SAM on": "nightshiftSam", "SAM off": "nightshiftNoSam", "Muse screenshots": "museScreenshots"}
+REASON_LABELS = {"SAM on": "expectrailSam", "SAM off": "expectrailNoSam", "Muse screenshots": "museScreenshots"}
 
 
 def parse_judge_reasons(message: str) -> dict:
-    """'SAM on: a | b ;; Muse screenshots: c' -> {"nightshiftSam": ["a", "b"], "museScreenshots": ["c"]}."""
+    """'SAM on: a | b ;; Muse screenshots: c' -> {"expectrailSam": ["a", "b"], "museScreenshots": ["c"]}."""
     out = {}
     for part in message.split(" ;; "):
         label, sep, text = part.partition(": ")
@@ -268,7 +272,7 @@ def collect_judge_run(run_id: int, fetch=gh_json) -> dict:
                      "live": msg["live"] == "True",
                      "samImages": int(msg["samImages"]) if msg["samImages"] is not None else None,
                      "museCalls": 1 if msg["muse"] in ("accept", "reject", "needs-review", "None") else 0,
-                     "decisions": {"nightshiftSam": decided(msg["sam"]), "nightshiftNoSam": decided(msg["nosam"]),
+                     "decisions": {"expectrailSam": decided(msg["sam"]), "expectrailNoSam": decided(msg["nosam"]),
                                    "museScreenshots": decided(msg["muse"])}})
     if not rows:
         raise SystemExit(f"run {run_id}: no judge results among its annotations")
@@ -296,7 +300,7 @@ def collect_judge(run_ids, fetch=gh_json) -> dict:
     changed = {j: [c for c in cases
                    if len({r["decisions"][j] for run in runs for r in run["rows"] if r["case"] == c}) > 1]
                for j in JUDGES}
-    return {"format": "nightshift.judge-bench/v1", "runs": runs, "changedBetweenRuns": changed}
+    return {"format": "expectrail.judge-bench/v1", "runs": runs, "changedBetweenRuns": changed}
 
 
 def judge_markdown(doc: dict) -> str:
@@ -330,7 +334,7 @@ def judge_markdown(doc: dict) -> str:
     reasons = [(run["run"], r) for run in runs for r in run["rows"] if r.get("reasons")]
     if reasons:
         lines += ["", "## Reasons", "",
-                  ("Failed checks for Nightshift (routes left out); Muse's own words before its decision."), ""]
+                  ("Failed checks for Expectrail (routes left out); Muse's own words before its decision."), ""]
         for run_id, r in reasons:
             lines.append(f"- **{r['case']}** (run {run_id}): " + "; ".join(
                 f"{JUDGES[j]}: {' / '.join(v)}" for j, v in r["reasons"].items() if j in JUDGES and v))
@@ -359,7 +363,7 @@ def collect_demo(run_id: int, fetch=gh_json) -> dict:
         raise SystemExit(f"run {run_id}: no demo results among its annotations")
     rows.sort(key=lambda r: r["run"])
     accepted = sum(r["decision"] == "accept" for r in rows)
-    return {"format": "nightshift.demo-loop/v0", "run": run_id, "runUrl": run.get("html_url"),
+    return {"format": "expectrail.demo-loop/v0", "run": run_id, "runUrl": run.get("html_url"),
             "commit": run.get("head_sha"), "date": run.get("created_at"), "asked": asked, "recorded": len(rows),
             "accepted": accepted, "firstAttempt": sum(r["attempts"][:1] == ["accept"] for r in rows),
             "spend": spend(rows, muse_key="none") | {"museCalls": sum(len(r["attempts"]) for r in rows)},

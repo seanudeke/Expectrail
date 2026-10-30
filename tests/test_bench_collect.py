@@ -145,24 +145,24 @@ LATER = "detected fail; outcome fixed; attempts 2 (1: timeout; 2: accept); 1800.
 
 class MatrixCollectTest(unittest.TestCase):
     def test_a_later_run_only_fills_in_errors(self):
-        notes = {1: [("dev/a/v1", "nightshift", FIXED), ("dev/b/v1", "nightshift", ERROR)],
-                 2: [("dev/a/v1", "nightshift", ERROR), ("dev/b/v1", "nightshift", LATER)]}
+        notes = {1: [("dev/a/v1", "expectrail", FIXED), ("dev/b/v1", "expectrail", ERROR)],
+                 2: [("dev/a/v1", "expectrail", ERROR), ("dev/b/v1", "expectrail", LATER)]}
         doc = bc.collect_matrix([1, 2], "dev", fetch=matrix_fetch(notes))
         rows = {r["case"]: r for r in doc["rows"]}
         self.assertEqual(rows["dev/a/v1"]["run"], 1)  # a fix is never replaced by a later error
         self.assertEqual(rows["dev/b/v1"]["run"], 2)
         self.assertEqual(rows["dev/b/v1"]["replaces"], {"run": 1, "outcome": "error"})
         self.assertEqual(rows["dev/b/v1"]["attempts"], ["timeout", "accept"])
-        s = doc["conditions"]["nightshift"]
+        s = doc["conditions"]["expectrail"]
         self.assertEqual((s["fixed"], s["error"], s["cases"], s["firstAttemptFixes"]), (2, 0, 2, 1))
         md = bc.matrix_markdown(doc)
-        self.assertIn("| nightshift | 2 of 2 | 0 | 0 | 0 | 0 |", md)
+        self.assertIn("| expectrail | 2 of 2 | 0 | 0 | 0 | 0 |", md)
         self.assertIn("replaces an error in 1", md)
 
     def test_spend_counts_every_result_a_run_produced(self):
-        notes = {1: [("dev/a/v1", "nightshift", FIXED + "; SAM images 400"),
-                     ("dev/b/v1", "nightshift", ERROR + "; SAM images 100")],
-                 2: [("dev/b/v1", "nightshift", LATER)]}
+        notes = {1: [("dev/a/v1", "expectrail", FIXED + "; SAM images 400"),
+                     ("dev/b/v1", "expectrail", ERROR + "; SAM images 100")],
+                 2: [("dev/b/v1", "expectrail", LATER)]}
         doc = bc.collect_matrix([1, 2], "dev", fetch=matrix_fetch(notes))
         first, second = doc["runs"]
         self.assertEqual(first["spend"], {"samImages": 500, "samUsd": 1.25, "museCalls": 1, "jobMinutes": 25.7})
@@ -214,21 +214,21 @@ class JudgeCollectTest(unittest.TestCase):
     def test_one_run_to_per_judge_counts(self):
         doc = bc.collect_judge([9], fetch=self.fetch)
         run = doc["runs"][0]
-        self.assertEqual(run["judges"]["nightshiftSam"], {"goodAccepted": 1, "good": 1, "badAccepted": 1, "bad": 2,
+        self.assertEqual(run["judges"]["expectrailSam"], {"goodAccepted": 1, "good": 1, "badAccepted": 1, "bad": 2,
                                                           "undecided": 0})
         self.assertEqual(run["judges"]["museScreenshots"]["badAccepted"], 1)
         self.assertEqual(run["judges"]["museScreenshots"]["undecided"], 1)
         md = bc.judge_markdown(doc)
-        self.assertIn("| Nightshift, SAM off | 9 | 1 of 1 | 2 of 2 | 0 |", md)
+        self.assertIn("| Expectrail, SAM off | 9 | 1 of 1 | 2 of 2 | 0 |", md)
         self.assertIn("| bad/fall-through-hide-player | reject | reject | accept | accept |", md)
         self.assertNotIn("changed between runs", md)
 
     def test_two_runs_show_what_changed_and_the_reasons(self):
         doc = bc.collect_judge([9, 10], fetch=self.fetch)
         self.assertEqual(doc["changedBetweenRuns"]["museScreenshots"], ["bad/layering-hide-trees", "good/sinking/v1"])
-        self.assertEqual(doc["changedBetweenRuns"]["nightshiftSam"], [])
+        self.assertEqual(doc["changedBetweenRuns"]["expectrailSam"], [])
         hide = next(r for r in doc["runs"][1]["rows"] if r["case"] == "bad/fall-through-hide-player")
-        self.assertEqual(hide["reasons"]["nightshiftSam"], ["candidate check player-always-visible failed",
+        self.assertEqual(hide["reasons"]["expectrailSam"], ["candidate check player-always-visible failed",
                                                             "held-out check player-always-visible failed"])
         md = bc.judge_markdown(doc)
         self.assertIn("| good/sinking/v1 | accept | accept, accept | accept, accept | reject, accept |", md)

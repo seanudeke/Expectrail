@@ -17,7 +17,7 @@ import sys
 import time
 from pathlib import Path
 
-FORMAT = "nightshift.demo-run/v0"
+FORMAT = "expectrail.demo-run/v0"
 LOOP_ARGS = ["--runs", "1", "--mode", "live", "--no-skip-harness", "--require-sandbox"]
 
 

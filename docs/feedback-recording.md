@@ -11,7 +11,7 @@ what, then sorts each remark:
 | Anything else | logged |
 
 Nothing from feedback becomes a repair request. The fixer only gets work from a failing check, and a
-draft spec does nothing until a person approves it with `python3 -m nightshift.spec_writer approve`.
+draft spec does nothing until a person approves it with `python3 -m expectrail.spec_writer approve`.
 
 ## Before you record
 
@@ -97,7 +97,7 @@ python3 -m agents.feedback --audio playtest-1.wav --consent --sorter open --out 
 
 The intake records the model and the host that served it (`classifier.endpoint`), and the morning
 report says "open weights on inference.baseten.co". Another partner works the same way: set
-`NIGHTSHIFT_OPEN_API_BASE` to its OpenAI-compatible `/v1` URL and `NIGHTSHIFT_OPEN_MODEL` to its
+`EXPECTRAIL_OPEN_API_BASE` to its OpenAI-compatible `/v1` URL and `EXPECTRAIL_OPEN_MODEL` to its
 model id. Neither key is ever passed to Muse Code. In CI, pick `sorter: open` on **Feedback (live)**
 after adding the `BASETEN_API_KEY` secret.
 
@@ -149,4 +149,4 @@ What it does not do, so we don't claim it:
   anyway.
 
 The hard gate is unchanged: the fixer refuses a patch outside the editable globs, and the verifier
-rebuilds from the patch alone. Set `NIGHTSHIFT_FIXER_GUARD=0` to run without the guard.
+rebuilds from the patch alone. Set `EXPECTRAIL_FIXER_GUARD=0` to run without the guard.

@@ -1,4 +1,4 @@
-"""Build a nightshift.repair-request/v0 for the Muse Code fixer.
+"""Build an expectrail.repair-request/v0 for the Muse Code fixer.
 
     python3 -m agents.orchestrator --spec ... --verdict ... --route ... --out rr.json \\
         [--base-patch bugs/physics-fall-through/v1.patch] [--key-frame frames/f00000008.png]
@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 from harness.run import REPO, tree_digest
-from nightshift.contracts import load, validate
+from expectrail.contracts import load, validate
 
 DEFAULT_EDITABLE = ["player/**", "level/**"]
 
@@ -35,7 +35,7 @@ def build_repair_request(
     validate(route, "route")
     game = REPO / "game" / "platformer"
     doc = {
-        "format": "nightshift.repair-request/v0",
+        "format": "expectrail.repair-request/v0",
         "id": request_id,
         "base": {
             "tree": base_tree or tree_digest(game),

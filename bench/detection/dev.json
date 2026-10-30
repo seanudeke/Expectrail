@@ -1,8 +1,9 @@
 {
-  "format": "nightshift.detection-bench/v0",
+  "format": "expectrail.detection-bench/v0",
   "set": "dev",
+  "judge": "sam",
   "run": 40841977642,
-  "runUrl": "https://github.com/seanudeke/Nightshift/actions/runs/40841977642",
+  "runUrl": "https://github.com/seanudeke/Expectrail/actions/runs/40841977642",
   "commit": "c8bce4dfed87beff275f89a0d362815806ef4698",
   "date": "2026-10-29T08:25:06Z",
   "caughtWithSamOn": {
@@ -49,7 +50,9 @@
       }
     },
     "routes": 5,
-    "seconds": 351
+    "seconds": 351,
+    "samImages": null,
+    "run": 40841977642
   },
   "variants": [
     {
@@ -84,7 +87,9 @@
         }
       },
       "routes": 5,
-      "seconds": 302
+      "seconds": 302,
+      "samImages": null,
+      "run": 40841977642
     },
     {
       "id": "dev/layering/v2",
@@ -118,7 +123,9 @@
         }
       },
       "routes": 5,
-      "seconds": 343
+      "seconds": 343,
+      "samImages": null,
+      "run": 40841977642
     },
     {
       "id": "dev/missing-texture/v1",
@@ -152,7 +159,9 @@
         }
       },
       "routes": 5,
-      "seconds": 280
+      "seconds": 280,
+      "samImages": null,
+      "run": 40841977642
     },
     {
       "id": "dev/missing-texture/v2",
@@ -186,7 +195,9 @@
         }
       },
       "routes": 5,
-      "seconds": 285
+      "seconds": 285,
+      "samImages": null,
+      "run": 40841977642
     },
     {
       "id": "dev/physics-fall-through/v1",
@@ -220,7 +231,9 @@
         }
       },
       "routes": 5,
-      "seconds": 333
+      "seconds": 333,
+      "samImages": null,
+      "run": 40841977642
     },
     {
       "id": "dev/physics-fall-through/v2",
@@ -254,7 +267,9 @@
         }
       },
       "routes": 5,
-      "seconds": 292
+      "seconds": 292,
+      "samImages": null,
+      "run": 40841977642
     },
     {
       "id": "dev/sinking/v1",
@@ -288,7 +303,9 @@
         }
       },
       "routes": 5,
-      "seconds": 374
+      "seconds": 374,
+      "samImages": null,
+      "run": 40841977642
     },
     {
       "id": "dev/sinking/v2",
@@ -322,8 +339,16 @@
         }
       },
       "routes": 5,
-      "seconds": 362
+      "seconds": 362,
+      "samImages": null,
+      "run": 40841977642
     }
   ],
-  "rerun": "bench/rerun-detection.sh dev"
+  "rerun": "bench/rerun-detection.sh dev",
+  "spend": {
+    "samImages": null,
+    "samUsd": null,
+    "museCalls": 0,
+    "jobMinutes": 48.7
+  }
 }

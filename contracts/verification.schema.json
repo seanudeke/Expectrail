@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/seanudeke/nightshift/contracts/verification.schema.json",
+  "$id": "https://github.com/seanudeke/expectrail/contracts/verification.schema.json",
   "title": "Verification: whether a candidate patch is accepted, decided outside the fixer's reach",
   "description": "accept only if every check passes; any fail rejects; anything else needs review. Passing means the candidate passed this suite, not that the game is correct.",
   "type": "object",
@@ -14,7 +14,7 @@
   ],
   "properties": {
     "format": {
-      "const": "nightshift.verification/v0"
+      "enum": ["expectrail.verification/v0", "nightshift.verification/v0"]
     },
     "candidate": {
       "type": "object",

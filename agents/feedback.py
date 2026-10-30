@@ -14,7 +14,7 @@ Muse Voice Transcribe (file endpoint, DIARIZATION mode) says who said what and w
 remark is then sorted into one of four kinds:
 
 - bug: something a player saw go wrong. When Muse Spark sorted the remark and wrote a one-line
-  check for it, the check becomes a draft test spec through `nightshift.spec_writer`, which stays
+  check for it, the check becomes a draft test spec through `expectrail.spec_writer`, which stays
   a draft until a person approves it. Without a model-written check (rules only, a model error,
   a check that itself asks to weaken one), it goes to a person instead. Raw speech is never a
   spec instruction.
@@ -44,16 +44,16 @@ from pathlib import Path
 from typing import Callable
 
 from harness.run import REPO
-from nightshift import spec_writer
-from nightshift.contracts import ContractError, validate
+from expectrail import spec_writer
+from expectrail.contracts import ContractError, validate
 
-TRANSCRIBE_MODEL = os.environ.get("NIGHTSHIFT_TRANSCRIBE_MODEL", "muse-voice-transcribe-1.0")
-CLASSIFY_MODEL = os.environ.get("NIGHTSHIFT_FEEDBACK_MODEL", spec_writer.DEFAULT_MODEL)
+TRANSCRIBE_MODEL = os.environ.get("EXPECTRAIL_TRANSCRIBE_MODEL", "muse-voice-transcribe-1.0")
+CLASSIFY_MODEL = os.environ.get("EXPECTRAIL_FEEDBACK_MODEL", spec_writer.DEFAULT_MODEL)
 # Open weights: Muse Spark Open through a partner's OpenAI-compatible endpoint (Baseten by default;
 # the hackathon names this model id). Used with --sorter open; transcription stays on Meta's API.
-OPEN_API_BASE = os.environ.get("NIGHTSHIFT_OPEN_API_BASE", "https://inference.baseten.co/v1")
-OPEN_MODEL = os.environ.get("NIGHTSHIFT_OPEN_MODEL", "meta-models/muse-spark-open")
-OPEN_KEY_ENVS = ("NIGHTSHIFT_OPEN_API_KEY", "BASETEN_API_KEY")
+OPEN_API_BASE = os.environ.get("EXPECTRAIL_OPEN_API_BASE", "https://inference.baseten.co/v1")
+OPEN_MODEL = os.environ.get("EXPECTRAIL_OPEN_MODEL", "meta-models/muse-spark-open")
+OPEN_KEY_ENVS = ("EXPECTRAIL_OPEN_API_KEY", "BASETEN_API_KEY")
 MAX_AUDIO_BYTES = 32 * 1024 * 1024
 MAX_AUDIO_MS = 10 * 60 * 1000
 SAMPLE_RATES = (24000, 16000)
@@ -180,7 +180,7 @@ def check_wav(path: Path) -> dict:
 
 def multipart(fields: list[tuple[str, str, str | None, bytes]]) -> tuple[bytes, str]:
     """(name, content type, filename, bytes) parts -> (body, Content-Type header)."""
-    boundary = f"----nightshift{uuid.uuid4().hex}"
+    boundary = f"----expectrail{uuid.uuid4().hex}"
     out = bytearray()
     for name, ctype, filename, data in fields:
         out += f"--{boundary}\r\n".encode()
@@ -487,7 +487,7 @@ def intake(turns: list[dict], *, out: Path, intake_id: str, source: dict, transp
 
     counts = {c: sum(1 for i in items if i["category"] == c) for c in CATEGORIES}
     doc = {
-        "format": "nightshift.feedback-intake/v0",
+        "format": "expectrail.feedback-intake/v0",
         "id": intake_id,
         "source": source,
         "classifier": classifier,
@@ -528,7 +528,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--keyword", action="append", default=[], help="extra word for the transcriber")
     p.add_argument("--sorter", choices=("meta", "open"), default="meta",
                    help="meta: Muse Spark on Meta's Model API; open: Muse Spark Open (open weights) on a "
-                        "partner endpoint, NIGHTSHIFT_OPEN_API_BASE (default Baseten) with BASETEN_API_KEY")
+                        "partner endpoint, EXPECTRAIL_OPEN_API_BASE (default Baseten) with BASETEN_API_KEY")
     p.add_argument("--model", help=f"model for sorting and drafting (default {CLASSIFY_MODEL}, or "
                                    f"{OPEN_MODEL} with --sorter open)")
     args = p.parse_args(argv)

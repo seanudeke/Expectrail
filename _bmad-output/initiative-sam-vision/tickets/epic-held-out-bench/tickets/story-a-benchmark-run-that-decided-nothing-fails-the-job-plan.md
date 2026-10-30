@@ -19,7 +19,7 @@ On branch `bench/heldout-detection`, commit `71f7042`, pushed to PR #39:
 ## Not verified
 
 The story's dispatch check needs a `heldout-bench` run with a set-but-garbage `MODEL_API_KEY`, which
-needs write access to the `seanudeke/Nightshift` secrets. Nothing was dispatched.
+needs write access to the `seanudeke/Expectrail` secrets. Nothing was dispatched.
 
 ## Done
 

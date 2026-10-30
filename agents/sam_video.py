@@ -40,8 +40,8 @@ from agents.sam_observations import (
     sam_usage,
     sam_usd_since,
 )
-from nightshift.contracts import load
-from nightshift.evaluator import evaluate
+from expectrail.contracts import load
+from expectrail.evaluator import evaluate
 
 FPS = 60  # the harness captures at 60 frames a second
 CRF = 4  # H.264 High profile, yuv420p: near lossless and widely decodable

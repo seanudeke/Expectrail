@@ -19,7 +19,7 @@ from pathlib import Path
 from agents.keys import load_dotenv, wonder_key
 from agents.orchestrator import build_repair_request
 from harness.run import REPO
-from nightshift.contracts import load
+from expectrail.contracts import load
 
 WONDER_MODEL = "muse-wonder-1.0"
 
@@ -50,7 +50,7 @@ def call_wonder(prompt: str, api_key: str, *, api_base: str | None = None) -> st
     body = json.dumps({
         "model": WONDER_MODEL,
         "messages": [
-            {"role": "system", "content": "You triage game bugs for Nightshift. Be concise."},
+            {"role": "system", "content": "You triage game bugs for Expectrail. Be concise."},
             {"role": "user", "content": prompt},
         ],
     }).encode("utf-8")

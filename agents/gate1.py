@@ -22,7 +22,7 @@ from agents.signing import generate_run_keys
 from agents.trust import POISON
 from agents.verifier import verify
 from harness.run import REPO
-from nightshift.contracts import load
+from expectrail.contracts import load
 
 DEFAULT_BEFORE = REPO / "agents" / "fixtures" / "frames" / "before-fall.png"
 DEFAULT_AFTER = REPO / "agents" / "fixtures" / "frames" / "after-fixed.png"

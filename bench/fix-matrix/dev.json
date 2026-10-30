@@ -1,10 +1,10 @@
 {
-  "format": "nightshift.fix-matrix-bench/v0",
+  "format": "expectrail.fix-matrix-bench/v0",
   "set": "dev",
   "runs": [
     {
       "run": 40916077549,
-      "runUrl": "https://github.com/seanudeke/Nightshift/actions/runs/40916077549",
+      "runUrl": "https://github.com/seanudeke/Expectrail/actions/runs/40916077549",
       "commit": "7cca77a30a38f0d92e6fa4918bc38d4bfb9a775b",
       "date": "2026-10-29T16:54:01Z",
       "spend": {
@@ -16,7 +16,7 @@
     },
     {
       "run": 40927304209,
-      "runUrl": "https://github.com/seanudeke/Nightshift/actions/runs/40927304209",
+      "runUrl": "https://github.com/seanudeke/Expectrail/actions/runs/40927304209",
       "commit": "444e9c833d3b98ad7482c47dfd81e1fd1fb8ac42",
       "date": "2026-10-29T18:04:17Z",
       "spend": {
@@ -28,7 +28,7 @@
     },
     {
       "run": 40927316337,
-      "runUrl": "https://github.com/seanudeke/Nightshift/actions/runs/40927316337",
+      "runUrl": "https://github.com/seanudeke/Expectrail/actions/runs/40927316337",
       "commit": "444e9c833d3b98ad7482c47dfd81e1fd1fb8ac42",
       "date": "2026-10-29T18:04:21Z",
       "spend": {
@@ -49,7 +49,7 @@
       "cases": 8,
       "firstAttemptFixes": 8
     },
-    "nightshift": {
+    "expectrail": {
       "fixed": 8,
       "not-fixed": 0,
       "not-detected": 0,
@@ -62,7 +62,7 @@
   "rows": [
     {
       "case": "dev/layering/v1",
-      "condition": "nightshift",
+      "condition": "expectrail",
       "run": 40916077549,
       "detected": "fail",
       "outcome": "fixed",
@@ -90,7 +90,7 @@
     },
     {
       "case": "dev/layering/v2",
-      "condition": "nightshift",
+      "condition": "expectrail",
       "run": 40927316337,
       "detected": "fail",
       "outcome": "fixed",
@@ -122,7 +122,7 @@
     },
     {
       "case": "dev/missing-texture/v1",
-      "condition": "nightshift",
+      "condition": "expectrail",
       "run": 40916077549,
       "detected": "fail",
       "outcome": "fixed",
@@ -150,7 +150,7 @@
     },
     {
       "case": "dev/missing-texture/v2",
-      "condition": "nightshift",
+      "condition": "expectrail",
       "run": 40916077549,
       "detected": "fail",
       "outcome": "fixed",
@@ -178,7 +178,7 @@
     },
     {
       "case": "dev/physics-fall-through/v1",
-      "condition": "nightshift",
+      "condition": "expectrail",
       "run": 40916077549,
       "detected": "fail",
       "outcome": "fixed",
@@ -206,7 +206,7 @@
     },
     {
       "case": "dev/physics-fall-through/v2",
-      "condition": "nightshift",
+      "condition": "expectrail",
       "run": 40916077549,
       "detected": "fail",
       "outcome": "fixed",
@@ -234,7 +234,7 @@
     },
     {
       "case": "dev/sinking/v1",
-      "condition": "nightshift",
+      "condition": "expectrail",
       "run": 40927304209,
       "detected": "fail",
       "outcome": "fixed",
@@ -271,7 +271,7 @@
     },
     {
       "case": "dev/sinking/v2",
-      "condition": "nightshift",
+      "condition": "expectrail",
       "run": 40927304209,
       "detected": "fail",
       "outcome": "fixed",

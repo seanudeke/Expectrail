@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Builds and runs the Nightshift harness inside a Docker container.
+# Builds and runs the Expectrail harness inside a Docker container.
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
-IMAGE_NAME="${NIGHTSHIFT_HARNESS_IMAGE:-nightshift-harness:latest}"
+IMAGE_NAME="${EXPECTRAIL_HARNESS_IMAGE:-expectrail-harness:latest}"
 
 if [[ "${1:-}" == "--build-only" ]]; then
     echo "Building harness container ($IMAGE_NAME)..."

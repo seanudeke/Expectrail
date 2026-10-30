@@ -5,7 +5,7 @@ Owner: Sean. Status: draft for the team to review by noon on Tuesday, October 27
 
 ## The question the benchmark answers
 
-Does Nightshift catch and fix visual regressions that a coding agent given screenshots would miss
+Does Expectrail catch and fix visual regressions that a coding agent given screenshots would miss
 or fix wrongly? Each case runs under three conditions with the same repair budget, and every
 candidate fix is judged by the same independent verifier:
 
@@ -13,7 +13,7 @@ candidate fix is judged by the same independent verifier:
 | --- | --- |
 | Existing checks | The game's own build passing; it has no tests, so every seeded bug passes this condition. This row shows the gap. |
 | Muse Code with screenshots | The failing frames, the route, the logs and the instruction in plain English. No structured checks. |
-| Nightshift | The same, plus structured test specs, SAM 3.1 observations and the evaluator's verdict. |
+| Expectrail | The same, plus structured test specs, SAM 3.1 observations and the evaluator's verdict. |
 
 ## Bug families (first wave)
 
@@ -41,7 +41,7 @@ overflow, softlock and motion jitter wait until after Gate 2.
 and never in this one:
 
 - **Held-out variants** (the two active variants of each family in the table) are a
-  generalization set. We build and tune Nightshift on v1 and v2 only; the held-out variants run
+  generalization set. We build and tune Expectrail on v1 and v2 only; the held-out variants run
   once, in the benchmark, and their results are reported separately. They never appear in a repair
   request or on the fixer's machine before then. Detection on them (would the verifier reject a
   candidate that leaves the bug in place) is measured by the `heldout-bench` mode of the SAM probe
@@ -49,7 +49,7 @@ and never in this one:
 - **Held-out routes** guard each candidate fix. The verifier replays the seeded bug plus the
   candidate on routes the fixer has never seen, and requires the visual spec and the gameplay
   check to pass there too. A fix tuned to the smoke route (for example one that only works on its
-  exact timing) fails here. The verifier reads the set from `NIGHTSHIFT_HELDOUT_DIR`; CI fetches it
+  exact timing) fails here. The verifier reads the set from `EXPECTRAIL_HELDOUT_DIR`; CI fetches it
   with the `HELDOUT_TOKEN` secret and never uploads held-out frames or traces as artifacts. Without
   the set (offline runs, forks) the check falls back to an interim fixture, labeled
   `interim-fixture` in the verification's suite provenance.
@@ -93,7 +93,7 @@ run at fixed frames (0, 30, 60, 90, 119, never chosen by a verdict), the route a
 the same three attempts and the same editable globs (`player/**`, `level/**` and
 `game_singleplayer.tscn`, since layering v1 lives in the game scene). The screenshots condition
 gets the expected behaviour in plain English and, after a rejected attempt, only that it did not
-work. The Nightshift condition also gets the repair request (spec, verdict, evidence) and the
+work. The Expectrail condition also gets the repair request (spec, verdict, evidence) and the
 verifier's reasons, and opens a repair only when its own check caught the bug. Every candidate is
 judged by the same verifier with SAM on and the private routes mounted; Muse Code runs only inside
 bubblewrap there. "Existing checks" needs no run: the game has no tests, so it catches nothing.
@@ -105,7 +105,7 @@ verifier reason or Muse's log would describe the private bug.
 ## Who accepts a fix that only looks right (judge benchmark)
 
 The fix matrix showed both conditions fix all 8 development variants, so the fix rate does not
-separate them. What Nightshift is for is the judgement: would it ship a fix that only looks right?
+separate them. What Expectrail is for is the judgement: would it ship a fix that only looks right?
 `agents/judge_bench.py` puts 15 candidates, each with a known right answer, in front of three
 judges. The 8 good candidates undo each development bug exactly. The 7 bad candidates
 (`agents/fixtures/`) look fixed and are not. Five sit on fall-through v1: the fall stops but the
@@ -119,8 +119,8 @@ Twice, live (runs 40936362830 and 40943391994):
 
 | Judge | Good fixes accepted | Bad fixes accepted |
 | --- | --- | --- |
-| Nightshift, SAM on | 8 of 8, both runs | 0 of 7, both runs |
-| Nightshift, SAM off | 8 of 8, both runs | 3 of 7, both runs |
+| Expectrail, SAM on | 8 of 8, both runs | 0 of 7, both runs |
+| Expectrail, SAM off | 8 of 8, both runs | 3 of 7, both runs |
 | Muse from screenshots | 6 of 8, then 7 of 8 | 2 of 7, both runs |
 
 What the reasons show (second run):
@@ -132,7 +132,7 @@ What the reasons show (second run):
   it reads a normal jump as the robot floating.
 - The floating robot fails `player-stays-above-ground` in both modes: the spec holds the feet within
   20 px of the ground, so floating fails as well as sinking.
-- Nightshift does not notice the missing trees. It rejects that candidate because the player is
+- Expectrail does not notice the missing trees. It rejects that candidate because the player is
   still drawn at z_index -3, behind the grass, bushes and tiles, so `player-always-visible` fails.
   Muse rejects it because the trees are gone. Deleting scenery that no spec covers would pass.
 
@@ -159,6 +159,6 @@ screen comes from `bench/` and reruns with one command.
 
 Sixteen variants (eight development, eight held out, across four families) and their clean runs,
 three conditions, up to three repair attempts each. Each run renders 120 frames; SAM 3.1 sees a
-sample: every fourth frame by default (`NIGHTSHIFT_SAM_EVERY`), refined to the exact frame when a
+sample: every fourth frame by default (`EXPECTRAIL_SAM_EVERY`), refined to the exact frame when a
 sample fails, and every remaining frame confirmed before a pass, so a pass still rests on all 120.
 Decided October 28, after the first live measurements.

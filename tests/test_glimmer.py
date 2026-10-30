@@ -14,8 +14,8 @@ import agents.glimmer_client as gl
 import agents.sam_observations as sam
 from agents.keys import MUSE_ENV_ALLOWLIST, require_separate_sam_key
 from harness.run import REPO
-from nightshift.contracts import load, validate
-from nightshift.evaluator import evaluate
+from expectrail.contracts import load, validate
+from expectrail.evaluator import evaluate
 from tests.test_sam import png_bytes
 
 W, H = 1600, 960
@@ -121,7 +121,7 @@ class ParseTest(unittest.TestCase):
         self.assertNotIn("reasoning_effort", body)
         self.assertEqual(body["response_format"]["json_schema"]["schema"]["properties"]["objects"]["maxItems"], 30)
         self.assertIn("at most 30 entries", body["messages"][1]["content"][0]["text"])
-        with mock.patch.dict(os.environ, {"NIGHTSHIFT_GLIMMER_REASONING": "low"}):
+        with mock.patch.dict(os.environ, {"EXPECTRAIL_GLIMMER_REASONING": "low"}):
             self.assertEqual(gl.request_body("gold coin", "u", (W, H))["reasoning_effort"], "low")
 
     def test_answer_text_unwraps_fences_and_parts(self):
@@ -173,8 +173,8 @@ class GridTest(unittest.TestCase):
     """Glimmer answers on a 0-1000 grid (measured against the engine, run 40936605897): ask for it, read it."""
 
     def test_the_default_is_the_0_1000_grid_and_the_prompt_asks_for_it(self):
-        with mock.patch.dict(os.environ, {"NIGHTSHIFT_GLIMMER_COORDS": ""}):
-            os.environ.pop("NIGHTSHIFT_GLIMMER_COORDS")
+        with mock.patch.dict(os.environ, {"EXPECTRAIL_GLIMMER_COORDS": ""}):
+            os.environ.pop("EXPECTRAIL_GLIMMER_COORDS")
             client = gl.GlimmerClient(key="k", transport=lambda b: reply([{"box": [470, 690, 535, 830],
                                                                            "confidence": 0.9}]))
             self.assertEqual(client.coords, "norm1000")
@@ -256,15 +256,15 @@ class ClientTest(unittest.TestCase):
             gl.GlimmerClient(transport=denied, key="k", sleep=lambda s: None).segment(self.png, "gold coin")
 
     def test_key_rules(self):
-        with mock.patch.dict(os.environ, {"FIREWORKS_API_KEY": "", "NIGHTSHIFT_GLIMMER_API_KEY": ""}):
+        with mock.patch.dict(os.environ, {"FIREWORKS_API_KEY": "", "EXPECTRAIL_GLIMMER_API_KEY": ""}):
             with self.assertRaisesRegex(sam.SamError, "FIREWORKS_API_KEY"):
                 gl.GlimmerClient()._http({})
         with mock.patch.dict(os.environ, {"FIREWORKS_API_KEY": "same", "META_API_KEY": "same"}):
             with self.assertRaisesRegex(sam.SamError, "META_API_KEY"):
                 gl.GlimmerClient()._http({})
         self.assertFalse(set(gl.KEY_ENVS) & MUSE_ENV_ALLOWLIST)
-        env = {"NIGHTSHIFT_OBS_PROVIDER": "sam", "NIGHTSHIFT_VISION_BACKEND": "glimmer", "META_API_KEY": "m",
-               "FIREWORKS_API_KEY": "", "NIGHTSHIFT_GLIMMER_API_KEY": "", "MODEL_API_KEY": ""}
+        env = {"EXPECTRAIL_OBS_PROVIDER": "sam", "EXPECTRAIL_VISION_BACKEND": "glimmer", "META_API_KEY": "m",
+               "FIREWORKS_API_KEY": "", "EXPECTRAIL_GLIMMER_API_KEY": "", "MODEL_API_KEY": ""}
         with mock.patch.dict(os.environ, env):
             with self.assertRaises(SystemExit):
                 require_separate_sam_key()
@@ -305,17 +305,17 @@ class ClientTest(unittest.TestCase):
         self.assertEqual(fooled.segment(self.png, "blue robot"), [])
 
     def test_glimmer_alone_never_decides_a_verdict(self):
-        with mock.patch.dict(os.environ, {"NIGHTSHIFT_VISION_BACKEND": "glimmer", "NIGHTSHIFT_GLIMMER_ALONE": ""}):
+        with mock.patch.dict(os.environ, {"EXPECTRAIL_VISION_BACKEND": "glimmer", "EXPECTRAIL_GLIMMER_ALONE": ""}):
             with self.assertRaisesRegex(sam.SamError, "both"):
                 sam.default_client(verdict=True)
             self.assertIsInstance(sam.default_client(), gl.GlimmerClient)  # measuring is fine
-            os.environ["NIGHTSHIFT_GLIMMER_ALONE"] = "1"
+            os.environ["EXPECTRAIL_GLIMMER_ALONE"] = "1"
             self.assertIsInstance(sam.default_client(verdict=True), gl.GlimmerClient)
-        with mock.patch.dict(os.environ, {"NIGHTSHIFT_VISION_BACKEND": "both"}):
+        with mock.patch.dict(os.environ, {"EXPECTRAIL_VISION_BACKEND": "both"}):
             self.assertIsInstance(sam.default_client(verdict=True), gl.BothClient)
             self.assertEqual(sam.vision_label(), "SAM 3.1 with Muse Glimmer")
         with tempfile.TemporaryDirectory() as tmp, \
-                mock.patch.dict(os.environ, {"NIGHTSHIFT_VISION_BACKEND": "glimmer", "NIGHTSHIFT_GLIMMER_ALONE": ""}):
+                mock.patch.dict(os.environ, {"EXPECTRAIL_VISION_BACKEND": "glimmer", "EXPECTRAIL_GLIMMER_ALONE": ""}):
             frames = Path(tmp) / "frames"
             frames.mkdir()
             (frames / "f00000000.png").write_bytes(png_bytes(W, H, 0))
@@ -324,23 +324,23 @@ class ClientTest(unittest.TestCase):
                 sam.from_replay(frames_dir=frames, spec=spec, cache=sam.Cache(None))
 
     def test_keys_for_both_and_typos(self):
-        base = {"NIGHTSHIFT_OBS_PROVIDER": "sam", "META_API_KEY": "m", "FIREWORKS_API_KEY": "g",
-                "NIGHTSHIFT_GLIMMER_API_KEY": ""}
-        with mock.patch.dict(os.environ, {**base, "NIGHTSHIFT_VISION_BACKEND": "both", "MODEL_API_KEY": ""}):
+        base = {"EXPECTRAIL_OBS_PROVIDER": "sam", "META_API_KEY": "m", "FIREWORKS_API_KEY": "g",
+                "EXPECTRAIL_GLIMMER_API_KEY": ""}
+        with mock.patch.dict(os.environ, {**base, "EXPECTRAIL_VISION_BACKEND": "both", "MODEL_API_KEY": ""}):
             with self.assertRaises(SystemExit):
                 require_separate_sam_key()  # both still needs SAM's own key
             os.environ["MODEL_API_KEY"] = "s"
             require_separate_sam_key()
-        with mock.patch.dict(os.environ, {**base, "NIGHTSHIFT_VISION_BACKEND": "glimer", "MODEL_API_KEY": "s"}):
+        with mock.patch.dict(os.environ, {**base, "EXPECTRAIL_VISION_BACKEND": "glimer", "MODEL_API_KEY": "s"}):
             with self.assertRaises(SystemExit):
                 require_separate_sam_key()  # a typo stops the run before the fixer, not after
 
     def test_backend_switch(self):
-        with mock.patch.dict(os.environ, {"NIGHTSHIFT_VISION_BACKEND": "glimmer"}):
+        with mock.patch.dict(os.environ, {"EXPECTRAIL_VISION_BACKEND": "glimmer"}):
             self.assertIsInstance(sam.default_client(), gl.GlimmerClient)
-        with mock.patch.dict(os.environ, {"NIGHTSHIFT_VISION_BACKEND": ""}):
+        with mock.patch.dict(os.environ, {"EXPECTRAIL_VISION_BACKEND": ""}):
             self.assertNotIsInstance(sam.default_client(), gl.GlimmerClient)
-        with mock.patch.dict(os.environ, {"NIGHTSHIFT_VISION_BACKEND": "llava"}):
+        with mock.patch.dict(os.environ, {"EXPECTRAIL_VISION_BACKEND": "llava"}):
             with self.assertRaises(sam.SamError):
                 sam.default_client()
 

@@ -6,7 +6,7 @@ A model finds objects; this code decides whether the condition holds. Rules that
   - every verdict names the spec and the observations it was computed from, by digest, so anyone
     can recompute it.
 
-    python3 -m nightshift.evaluator --spec spec.json --observations obs.json [--out verdict.json]
+    python3 -m expectrail.evaluator --spec spec.json --observations obs.json [--out verdict.json]
 """
 from __future__ import annotations
 
@@ -15,10 +15,10 @@ import json
 import sys
 from pathlib import Path
 
-from nightshift import __version__
-from nightshift.contracts import digest, load
+from expectrail import __version__
+from expectrail.contracts import digest, load
 
-EVALUATOR = {"name": "nightshift.evaluator", "version": __version__}
+EVALUATOR = {"name": "expectrail.evaluator", "version": __version__}
 DEFAULT_MIN_SCORE = 0.5
 MAX_EVIDENCE = 5
 
@@ -165,7 +165,7 @@ def evaluate(spec: dict, observations: dict) -> dict:
             result, reason = "needs-review", "no frame had the objects needed to judge this assertion"
 
     return {
-        "format": "nightshift.verdict/v0",
+        "format": "expectrail.verdict/v0",
         "spec": {"id": spec["id"], "sha256": digest(spec)},
         "observations": {"sha256": digest(observations)},
         "result": result,

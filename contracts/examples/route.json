@@ -1,5 +1,5 @@
 {
-  "format": "nightshift.route/v0",
+  "format": "expectrail.route/v0",
   "name": "smoke",
   "description": "Walk right, jump twice, stop. Four seconds at 60 ticks per second.",
   "ticks": 240,

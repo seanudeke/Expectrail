@@ -1,5 +1,5 @@
 {
- "format": "nightshift.drawn-floor-bench/v0",
+ "format": "expectrail.drawn-floor-bench/v0",
  "routes": [
   "smoke",
   "traversal",

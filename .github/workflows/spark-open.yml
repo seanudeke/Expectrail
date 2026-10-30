@@ -48,7 +48,7 @@ jobs:
       - name: The model ids the key can see
         env:
           BASETEN_API_KEY: ${{ secrets.BASETEN_API_KEY }}
-          NIGHTSHIFT_OPEN_MODEL: ${{ env.MODEL_ID }}
+          EXPECTRAIL_OPEN_MODEL: ${{ env.MODEL_ID }}
         run: python -m agents.spark_open models || echo "::warning::the endpoint did not list its models"
       - name: Install a virtual display and software OpenGL
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri libglx-mesa0 patch
@@ -59,7 +59,7 @@ jobs:
       - name: Draft, judge and sort with Muse Spark Open
         env:
           BASETEN_API_KEY: ${{ secrets.BASETEN_API_KEY }}
-          NIGHTSHIFT_OPEN_MODEL: ${{ env.MODEL_ID }}
+          EXPECTRAIL_OPEN_MODEL: ${{ env.MODEL_ID }}
           MODEL_API_KEY: ${{ inputs.compare && secrets.META_API_KEY || '' }}
         run: python -m agents.spark_open run --seeded runs/seeded-check --out runs/spark-open
       - name: Publish the results as annotations

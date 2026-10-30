@@ -6,7 +6,10 @@ agents adjuncts `gameplay-verdict`, `release-candidate`, `overnight-summary` and
 schema in [`contracts/`](../contracts) and a worked example in
 [`contracts/examples/`](../contracts/examples).
 Agree changes in the team channel first, then change the schema, the example and the code in one
-pull request. Every document starts with `"format": "nightshift.<kind>/v0"`.
+pull request. Every document starts with `"format": "expectrail.<kind>/v0"`. Documents written
+before the October 30 rename say `nightshift.<kind>/v0`, and every schema, `expectrail.contracts`
+and the Godot harness still accept that (`expectrail/legacy.py`), so the private held-out set and
+recorded runs read unchanged. New documents always use the new name.
 
 ```
 route ──► harness ──► replay + frames ──► SAM 3.1 ──► observations ─┐
@@ -38,12 +41,12 @@ verification ◄── verifier (rebuild, replay, all checks) ◄── candidat
   absence is the thing being tested.
 - **Positions stay out of prompts.** A test spec's `objects` are short noun phrases for SAM 3.1.
   Spatial and temporal conditions live in the `assertion`, which the evaluator decides in code.
-  `nightshift.spec_writer` drafts specs with Muse Spark, rejects drafts with positional prompts or
+  `expectrail.spec_writer` drafts specs with Muse Spark, rejects drafts with positional prompts or
   unknown objects, and only a person adds the `approval`.
 - **Four assertion types, nothing else yet:** `visible`, `inside-region`, `never-crosses` and
   `reaches`. Any other instruction stays a draft marked needs review.
 - **Everything is named by digest.** A verdict records the sha256 of the spec and the observations
-  (`nightshift.contracts.digest`: sorted keys, no spaces), and a replay records the sha256 of the
+  (`expectrail.contracts.digest`: sorted keys, no spaces), and a replay records the sha256 of the
   route, the game tree, the patch and every frame. Anyone can recompute a verdict.
 - **The fixer gets a repair request and nothing more.** It can read the failing spec and verdict,
   the route and key frames. Held-out variants, clean controls, the evaluator, the gameplay checks

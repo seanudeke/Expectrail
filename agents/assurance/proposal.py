@@ -45,7 +45,7 @@ GAME_ROOT = "game/platformer"
 # The OBAAF commit this integration was reviewed against (integration spec, section 10).
 OBAAF_REVISION = "ef34304214923953cf7d67343b912385d4ce5906"
 # Expectrail's trust boundary, added to OBAAF's protected paths: a fix may never change what judges it.
-PROTECT = ["agents/**", "harness/**", "nightshift/**", "contracts/**", "specs/**", "tests/**", "bench/**",
+PROTECT = ["agents/**", "harness/**", "expectrail/**", "contracts/**", "specs/**", "tests/**", "bench/**",
            "bugs/**", "requirements*.txt"]
 DEFAULT_EDITABLE = ["player/**", "level/**", "game_singleplayer.tscn"]  # game-relative, as agents/matrix.py
 # Fixed identity and dates, so the same inputs always give the same commits and trees.

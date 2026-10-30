@@ -4,7 +4,7 @@
 /contracts/                @seanudeke
 /specs/                    @seanudeke
 /agents/specs/             @seanudeke
-/nightshift/               @seanudeke
+/expectrail/               @seanudeke
 /harness/                  @seanudeke
 /agents/verifier.py        @seanudeke
 /agents/sam_observations.py @seanudeke

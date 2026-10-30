@@ -40,15 +40,15 @@ class HarnessTest(unittest.TestCase):
 
     def test_get_cache_dir_default_and_env(self):
         with mock.patch.dict(os.environ):
-            os.environ.pop("NIGHTSHIFT_GODOT_CACHE", None)  # a developer may have it set
+            os.environ.pop("EXPECTRAIL_GODOT_CACHE", None)  # a developer may have it set
             self.assertEqual(get_cache_dir(), DEFAULT_CACHE_DIR)
-        with mock.patch.dict(os.environ, {"NIGHTSHIFT_GODOT_CACHE": "/custom/path"}):
+        with mock.patch.dict(os.environ, {"EXPECTRAIL_GODOT_CACHE": "/custom/path"}):
             self.assertEqual(get_cache_dir(), Path("/custom/path/.godot"))
-        with mock.patch.dict(os.environ, {"NIGHTSHIFT_GODOT_CACHE": "/custom/path/.godot"}):
+        with mock.patch.dict(os.environ, {"EXPECTRAIL_GODOT_CACHE": "/custom/path/.godot"}):
             self.assertEqual(get_cache_dir(), Path("/custom/path/.godot"))
 
     def test_find_godot_env_override(self):
-        with mock.patch.dict(os.environ, {"NIGHTSHIFT_GODOT": "/custom/godot"}):
+        with mock.patch.dict(os.environ, {"EXPECTRAIL_GODOT": "/custom/godot"}):
             self.assertEqual(find_godot(), Path("/custom/godot"))
 
     def test_godot_cmd_display_and_platform(self):
@@ -79,10 +79,10 @@ class HarnessTest(unittest.TestCase):
             prepare(game, work, cache=cache)
 
             self.assertTrue((work / "project.godot").is_file())
-            self.assertTrue((work / "nightshift_harness.gd").is_file())
-            self.assertTrue((work / "nightshift_recorder.gd").is_file())
+            self.assertTrue((work / "expectrail_harness.gd").is_file())
+            self.assertTrue((work / "expectrail_recorder.gd").is_file())
             self.assertTrue((work / ".godot" / "imported" / "sample.ctex").is_file())
-            self.assertIn("NightshiftHarness", (work / "project.godot").read_text(encoding="utf-8"))
+            self.assertIn("ExpectrailHarness", (work / "project.godot").read_text(encoding="utf-8"))
 
     def _fake_godot_import(self, calls):
         """subprocess.run stand-in: '--import' creates .godot/imported in the target project."""
@@ -109,7 +109,7 @@ class HarnessTest(unittest.TestCase):
             godot = root / "fake-godot"
             godot.touch()
             calls = []
-            with mock.patch.dict(os.environ, {"NIGHTSHIFT_GODOT_CACHE": str(root / "cache")}):
+            with mock.patch.dict(os.environ, {"EXPECTRAIL_GODOT_CACHE": str(root / "cache")}):
                 with mock.patch("subprocess.run", side_effect=self._fake_godot_import(calls)):
                     found = ensure_import_cache(game, godot, {})
             self.assertEqual(found, root / "cache" / ".godot")
@@ -124,7 +124,7 @@ class HarnessTest(unittest.TestCase):
             godot = root / "fake-godot"
             godot.touch()
             calls = []
-            with mock.patch.dict(os.environ, {"NIGHTSHIFT_GODOT_CACHE": str(root / "cache")}):
+            with mock.patch.dict(os.environ, {"EXPECTRAIL_GODOT_CACHE": str(root / "cache")}):
                 with mock.patch("subprocess.run", side_effect=self._fake_godot_import(calls)):
                     first = ensure_import_cache(game, godot, {})
                     again = ensure_import_cache(game, godot, {})
@@ -147,7 +147,7 @@ class HarnessTest(unittest.TestCase):
             godot = root / "fake-godot"
             godot.touch()
             boom = subprocess.CalledProcessError(1, ["godot", "--import"])
-            with mock.patch.dict(os.environ, {"NIGHTSHIFT_GODOT_CACHE": str(root / "cache")}):
+            with mock.patch.dict(os.environ, {"EXPECTRAIL_GODOT_CACHE": str(root / "cache")}):
                 with mock.patch("subprocess.run", side_effect=boom):
                     self.assertIsNone(ensure_import_cache(game, godot, {}))
 
@@ -176,7 +176,7 @@ class HarnessTest(unittest.TestCase):
                     return mock.Mock(returncode=0, stdout="Godot Engine v4.7.2 Using Device: test", stderr="")
                 return fake_import(cmd, **kw)
 
-            with mock.patch.dict(os.environ, {"NIGHTSHIFT_GODOT_CACHE": str(root / "cache")}):
+            with mock.patch.dict(os.environ, {"EXPECTRAIL_GODOT_CACHE": str(root / "cache")}):
                 with mock.patch("subprocess.run", side_effect=fake_subp):
                     ensure_import_cache(game, godot_mock, {})  # warm once
                     calls.clear()
@@ -205,7 +205,7 @@ class HarnessTest(unittest.TestCase):
         source = {"PATH": "/usr/bin", "HOME": "/home/r", "DISPLAY": ":99", "LC_ALL": "C.UTF-8",
                   "XDG_RUNTIME_DIR": "/run/user/1", "MESA_GL_VERSION_OVERRIDE": "3.3",
                   "MODEL_API_KEY": "sam", "META_API_KEY": "muse", "GITHUB_TOKEN": "gh", "HELDOUT_TOKEN": "h",
-                  "NIGHTSHIFT_HELDOUT_DIR": "/private", "NIGHTSHIFT_SAM_CACHE": "/cache", "AWS_SECRET_ACCESS_KEY": "a",
+                  "EXPECTRAIL_HELDOUT_DIR": "/private", "EXPECTRAIL_SAM_CACHE": "/cache", "AWS_SECRET_ACCESS_KEY": "a",
                   "ACTIONS_RUNTIME_TOKEN": "r", "GITHUB_ENV": "/env"}
         env = game_env(source)
         self.assertEqual(set(env), {"PATH", "HOME", "DISPLAY", "LC_ALL", "XDG_RUNTIME_DIR",
@@ -236,14 +236,14 @@ class HarnessTest(unittest.TestCase):
                     return mock.Mock(returncode=0, stdout="Godot Engine v4.7.2", stderr="")
                 return fake_import(cmd, **kw)
 
-            secrets = {"NIGHTSHIFT_GODOT_CACHE": str(root / "cache"), "MODEL_API_KEY": "sam-key",
-                       "META_API_KEY": "muse-key", "NIGHTSHIFT_HELDOUT_DIR": "/private"}
+            secrets = {"EXPECTRAIL_GODOT_CACHE": str(root / "cache"), "MODEL_API_KEY": "sam-key",
+                       "META_API_KEY": "muse-key", "EXPECTRAIL_HELDOUT_DIR": "/private"}
             with mock.patch.dict(os.environ, secrets), mock.patch("subprocess.run", side_effect=fake_subp):
                 run(route, out, game=game, godot=godot_mock, force_import=True)
             godot_envs = [e for e in envs if e is not None]
             self.assertGreaterEqual(len(godot_envs), 2)  # the import and the capture
             for env in godot_envs:
-                self.assertFalse({"MODEL_API_KEY", "META_API_KEY", "NIGHTSHIFT_HELDOUT_DIR"} & set(env), env)
+                self.assertFalse({"MODEL_API_KEY", "META_API_KEY", "EXPECTRAIL_HELDOUT_DIR"} & set(env), env)
 
     def test_all_seeded_bug_patches_apply_cleanly(self):
         patches = sorted((REPO / "bugs").glob("*/*.patch"))
@@ -259,7 +259,7 @@ class HarnessTest(unittest.TestCase):
         try:
             import jsonschema  # noqa: F401
             import json
-            from nightshift.contracts import validate
+            from expectrail.contracts import validate
         except ImportError:
             self.skipTest("jsonschema not installed")
         routes = sorted((REPO / "harness" / "routes").glob("*.json"))

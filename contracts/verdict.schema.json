@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/seanudeke/nightshift/contracts/verdict.schema.json",
+  "$id": "https://github.com/seanudeke/expectrail/contracts/verdict.schema.json",
   "title": "Verdict: the evaluator's decision for one test spec on one replay",
   "type": "object",
   "required": [
@@ -13,7 +13,7 @@
   ],
   "properties": {
     "format": {
-      "const": "nightshift.verdict/v0"
+      "enum": ["expectrail.verdict/v0", "nightshift.verdict/v0"]
     },
     "spec": {
       "type": "object",

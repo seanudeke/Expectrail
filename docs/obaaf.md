@@ -1,11 +1,11 @@
-# OBAAF in Nightshift (Expectrail)
+# OBAAF in Expectrail (Expectrail)
 
 OBAAF (the Open Build and Agent Assurance Framework, https://github.com/Obaaf/OBAAF) is a
 dependency here, pinned to commit `ef34304214923953cf7d67343b912385d4ce5906`. It answers a question
-Nightshift does not: may this change cause an effect (a pull request, a release), given where it
-came from and who approved it. Nightshift answers whether the change does what the player needs.
+Expectrail does not: may this change cause an effect (a pull request, a release), given where it
+came from and who approved it. Expectrail answers whether the change does what the player needs.
 Both are needed; neither replaces the other. OBAAF does not make a fix more likely to be right, and
-a passing Nightshift verdict grants no write access by itself.
+a passing Expectrail verdict grants no write access by itself.
 
 **Status: Phase A, reporting only (Oct 30).** Nothing is enforced and no protected effect is
 enabled. What runs, in the `obaaf-audit` CI job on every push and pull request:
@@ -39,7 +39,7 @@ Two rule sets, both required:
 - **OBAAF** (`obaaf proposal check --repo`): no workflow, instruction, CODEOWNERS or OBAAF file; no
   symlink, submodule or rename; at most 100 paths and 1,000,000 bytes; the patch is applied again to
   a temporary index of the base. Expectrail adds its trust boundary to the protected paths:
-  `agents/**`, `harness/**`, `nightshift/**`, `contracts/**`, `specs/**`, `tests/**`, `bench/**`,
+  `agents/**`, `harness/**`, `expectrail/**`, `contracts/**`, `specs/**`, `tests/**`, `bench/**`,
   `bugs/**`, `requirements*.txt`.
 - **Expectrail**: every changed path is under `game/platformer/` and matches the request's editable
   globs.
@@ -50,7 +50,7 @@ seeded-bug edit is refused; a symlink is refused; the raw game-relative fixture 
 `verification.json` in it are refused; a bundle changed after normalization fails its digest; a fix
 to a game file outside the editable globs passes OBAAF and is refused by Expectrail. The fakes that
 hide or sink the robot pass the proposal check, as they should: they are wrong in meaning, not in
-where they write, and Nightshift's verifier is what rejects them.
+where they write, and Expectrail's verifier is what rejects them.
 
     python3 -m agents.assurance.proposal --seed bugs/physics-fall-through/v1.patch \
         --candidate agents/fixtures/fix-collision-mask.patch --out runs/proposal

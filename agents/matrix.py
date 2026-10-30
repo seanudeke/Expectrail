@@ -7,9 +7,9 @@ renders the bugged game, briefs Muse Code, and judges every candidate with the s
   - ``screenshots``: Muse Code gets screenshots of the bugged run, the route, the run's log and
     the expected behaviour in plain English. No spec, no verdict, no evidence. Between attempts it
     learns only that the previous attempt did not fix the bug.
-  - ``nightshift``: the same files, plus the repair request: the approved spec, the evaluator's
+  - ``expectrail``: the same files, plus the repair request: the approved spec, the evaluator's
     verdict on the bugged run with its evidence and first failing frame, and the verifier's reasons
-    after a rejected attempt. Nightshift only opens a repair when its own check caught the bug.
+    after a rejected attempt. Expectrail only opens a repair when its own check caught the bug.
 
 "Existing checks" (the game's build) catches none of the seeded bugs; it needs no run.
 
@@ -18,9 +18,9 @@ scene, since dev layering v1 lives in ``game_singleplayer.tscn``), the same atte
 same verifier, and nothing in either briefing names the cause.
 
     python3 -m agents.matrix --list
-    python3 -m agents.matrix --case dev/sinking/v2 --condition nightshift --out runs/matrix --live
+    python3 -m agents.matrix --case dev/sinking/v2 --condition expectrail --out runs/matrix --live
     python3 -m agents.matrix --summarize runs/matrix
-    NIGHTSHIFT_HELDOUT_DIR=... python3 -m agents.matrix --list --set held-out
+    EXPECTRAIL_HELDOUT_DIR=... python3 -m agents.matrix --list --set held-out
 
 Held-out cases (``<family>/vN`` from the private manifest) run the same way, once, after the code
 freeze. What they write publicly is sanitized: ``result.json`` keeps ids, outcomes and per-attempt
@@ -50,11 +50,11 @@ from agents.verifier import (
     REGRESSION_SPEC, _ground_observations, held_out_set, reference_surfaces, sam_on, verify,
 )
 from harness.run import REPO, run as harness_run
-from nightshift.contracts import digest, load, validate
-from nightshift.evaluator import EVALUATOR, evaluate
+from expectrail.contracts import digest, load, validate
+from expectrail.evaluator import EVALUATOR, evaluate
 
-FORMAT = "nightshift.fix-matrix/v0"
-CONDITIONS = ("screenshots", "nightshift")
+FORMAT = "expectrail.fix-matrix/v0"
+CONDITIONS = ("screenshots", "expectrail")
 EDITABLE = ["player/**", "level/**", "game_singleplayer.tscn"]
 SMOKE_ROUTE = REPO / "harness" / "routes" / "smoke.json"
 ATTEMPTS = 3
@@ -97,7 +97,7 @@ def heldout_cases() -> dict[str, tuple[Path, Path]]:
     """Active private variants, ``<family>/vN`` -> (patch, spec file). Never prints a description."""
     root, manifest, problem = held_out_set()
     if manifest is None:
-        raise SystemExit(f"held-out set unavailable: {problem or 'NIGHTSHIFT_HELDOUT_DIR is not set'}")
+        raise SystemExit(f"held-out set unavailable: {problem or 'EXPECTRAIL_HELDOUT_DIR is not set'}")
     cases: dict[str, tuple[Path, Path]] = {}
     for v in manifest.get("variants") or []:
         if v.get("retired"):
@@ -128,10 +128,10 @@ def _frame_files(frames_dir: Path) -> list[Path]:
 
 
 def detect(patch: Path, spec: dict, out: Path, *, use_sam: bool, reference: list | None) -> dict:
-    """Render the bugged game on the smoke route and judge the case's spec, as Nightshift would.
+    """Render the bugged game on the smoke route and judge the case's spec, as Expectrail would.
 
     Returns the verdict (contract ``verdict``), the frames directory and the bugged trace path.
-    A spec only SAM can judge is needs-review with SAM off: Nightshift cannot see that bug then.
+    A spec only SAM can judge is needs-review with SAM off: Expectrail cannot see that bug then.
     """
     run_dir = out / "bugged"
     harness_run(SMOKE_ROUTE, run_dir, patches=[patch])
@@ -145,7 +145,7 @@ def detect(patch: Path, spec: dict, out: Path, *, use_sam: bool, reference: list
         obs = from_trace(trace, replay_sha256=replay_sha, frames_dir=str(frames), spec=spec, provider="sam")
         verdict = evaluate(spec, obs)
     else:
-        verdict = {"format": "nightshift.verdict/v0", "spec": {"id": spec["id"], "sha256": digest(spec)},
+        verdict = {"format": "expectrail.verdict/v0", "spec": {"id": spec["id"], "sha256": digest(spec)},
                    "observations": {"sha256": "0" * 64}, "result": "needs-review",
                    "reason": f"{spec['id']} needs SAM, and SAM is off", "firstFrame": None, "evidence": [],
                    "framesJudged": 0, "evaluator": dict(EVALUATOR)}
@@ -194,7 +194,7 @@ log from that run is {BRIEFING_DIR}/godot.log.{again}
 """
 
 
-def nightshift_prompt(request: dict, files: dict[str, Path], attempt: int) -> str:
+def expectrail_prompt(request: dict, files: dict[str, Path], attempt: int) -> str:
     shots = sorted(f for f in files if "/screenshots/" in f)
     base = build_muse_prompt(request, rr_relpath="repair-request.json", attempt=attempt)
     return (base + f"\nScreenshots of the failing run (open and look at each one): {', '.join(shots)}; "
@@ -218,8 +218,8 @@ def run_case(key: str, condition: str, out: Path, *, live: bool, use_sam: bool |
         detection = detect(patch, spec, work, use_sam=use_sam, reference=reference)
         verdict = detection["verdict"]
         row["detected"] = verdict["result"]
-        if condition == "nightshift" and verdict["result"] != "fail":
-            row.update(outcome="not-detected", detail=f"Nightshift's check did not catch it: {verdict['reason']}")
+        if condition == "expectrail" and verdict["result"] != "fail":
+            row.update(outcome="not-detected", detail=f"Expectrail's check did not catch it: {verdict['reason']}")
             return _finish(row, work, t0)
         files = briefing_files(detection, work)
         request = build_repair_request(
@@ -242,8 +242,8 @@ def run_case(key: str, condition: str, out: Path, *, live: bool, use_sam: bool |
                             "policy": "matrix-screenshots-v1", "files": files, "withRequest": False}
                 feedback = {"attempt": attempt - 1, "decision": "reject"} if prior else None
             else:
-                briefing = {"prompt": nightshift_prompt(request, files, attempt),
-                            "policy": "matrix-nightshift-v1", "files": files, "withRequest": True}
+                briefing = {"prompt": expectrail_prompt(request, files, attempt),
+                            "policy": "matrix-expectrail-v1", "files": files, "withRequest": True}
                 feedback = prior
             meta = run_fixer(request, attempt_out, candidate_patch=None if live else offline_patch,
                              attempt=attempt, allow_empty=True, prior_reject=feedback, briefing=briefing,

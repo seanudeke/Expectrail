@@ -120,22 +120,22 @@ jobs:
         if: env.HELDOUT_TOKEN_SET == 'true' && inputs.mode == 'verify'
         # A probe reports every private route, even for a candidate that already failed.
         run: |
-          echo "NIGHTSHIFT_HELDOUT_DIR=$GITHUB_WORKSPACE/heldout-set" >> "$GITHUB_ENV"
-          echo "NIGHTSHIFT_HELDOUT_AFTER_FAIL=run" >> "$GITHUB_ENV"
+          echo "EXPECTRAIL_HELDOUT_DIR=$GITHUB_WORKSPACE/heldout-set" >> "$GITHUB_ENV"
+          echo "EXPECTRAIL_HELDOUT_AFTER_FAIL=run" >> "$GITHUB_ENV"
       - name: Check the Glimmer deployment, and restore its scaling after a suspension
         # A suspended account (out of credits) comes back with the deployment at 0-0 replicas and a
         # 60-minute scale-to-zero window. This puts back min 0 / max 1 / 15 minutes through Fireworks'
         # API (only those fields), so a run after a top-up does not need a dashboard edit first.
         env:
-          NIGHTSHIFT_GLIMMER_API_KEY: ${{ secrets.GLIMMER_API_KEY || secrets.FIREWORKS_API_KEY }}
+          EXPECTRAIL_GLIMMER_API_KEY: ${{ secrets.GLIMMER_API_KEY || secrets.FIREWORKS_API_KEY }}
         run: |
           [[ "$BASE" =~ ^https://api\.fireworks\.ai(/|$) ]] || { echo "not Fireworks: nothing to check"; exit 0; }
           python -m agents.fireworks_deployment --restore --model "$MODEL"
       - name: Wake the Glimmer deployment (its own step, so its notice does not crowd out results)
         env:
-          NIGHTSHIFT_GLIMMER_API_KEY: ${{ secrets.GLIMMER_API_KEY || secrets.FIREWORKS_API_KEY }}
+          EXPECTRAIL_GLIMMER_API_KEY: ${{ secrets.GLIMMER_API_KEY || secrets.FIREWORKS_API_KEY }}
         run: |
-          export NIGHTSHIFT_GLIMMER_API_BASE="$BASE" NIGHTSHIFT_GLIMMER_MODEL="$MODEL"
+          export EXPECTRAIL_GLIMMER_API_BASE="$BASE" EXPECTRAIL_GLIMMER_MODEL="$MODEL"
           python -m agents.glimmer_client --warm --timeout 900
       - name: Probe - render the clean game and every seeded bug (no key in this step)
         if: inputs.mode == 'probe'
@@ -144,32 +144,32 @@ jobs:
         if: inputs.mode == 'probe'
         env:
           # judge glimmer-engine: report how many of Glimmer's boxes agree with the engine (and judge by those)
-          NIGHTSHIFT_VISION_BACKEND: ${{ inputs.judge == 'glimmer-engine' && 'glimmer-engine' || 'glimmer' }}
-          NIGHTSHIFT_GLIMMER_API_KEY: ${{ secrets.GLIMMER_API_KEY || secrets.FIREWORKS_API_KEY }}
+          EXPECTRAIL_VISION_BACKEND: ${{ inputs.judge == 'glimmer-engine' && 'glimmer-engine' || 'glimmer' }}
+          EXPECTRAIL_GLIMMER_API_KEY: ${{ secrets.GLIMMER_API_KEY || secrets.FIREWORKS_API_KEY }}
         run: |
           [ -f "$SPEC" ] || { echo "::error::no spec $SPEC"; exit 1; }
-          export NIGHTSHIFT_GLIMMER_API_BASE="$BASE" NIGHTSHIFT_GLIMMER_MODEL="$MODEL" NIGHTSHIFT_GLIMMER_COORDS="$COORDS"
+          export EXPECTRAIL_GLIMMER_API_BASE="$BASE" EXPECTRAIL_GLIMMER_MODEL="$MODEL" EXPECTRAIL_GLIMMER_COORDS="$COORDS"
           python -m agents.sam_probe --spec "$SPEC" --every "$EVERY" --out runs/glimmer-probe --runs runs/seeded/*/
       - name: Verify - Gate 1 path with Glimmer in the vision checks
         if: inputs.mode == 'verify'
         env:
-          NIGHTSHIFT_OBS_PROVIDER: sam
-          NIGHTSHIFT_GLIMMER_API_KEY: ${{ secrets.GLIMMER_API_KEY || secrets.FIREWORKS_API_KEY }}
+          EXPECTRAIL_OBS_PROVIDER: sam
+          EXPECTRAIL_GLIMMER_API_KEY: ${{ secrets.GLIMMER_API_KEY || secrets.FIREWORKS_API_KEY }}
           MODEL_API_KEY: ${{ secrets.MODEL_API_KEY || secrets.META_API_KEY }}
         run: |
           [ -f "$CANDIDATE" ] || { echo "::error::no candidate $CANDIDATE"; exit 1; }
-          export NIGHTSHIFT_GLIMMER_API_BASE="$BASE" NIGHTSHIFT_GLIMMER_MODEL="$MODEL" NIGHTSHIFT_GLIMMER_COORDS="$COORDS"
-          export NIGHTSHIFT_SAM_EVERY="$EVERY"
+          export EXPECTRAIL_GLIMMER_API_BASE="$BASE" EXPECTRAIL_GLIMMER_MODEL="$MODEL" EXPECTRAIL_GLIMMER_COORDS="$COORDS"
+          export EXPECTRAIL_SAM_EVERY="$EVERY"
           if [ "$JUDGE" = "glimmer" ]; then
             # Measurement on a known fixture only: Glimmer alone never decides a real verdict.
-            export NIGHTSHIFT_VISION_BACKEND=glimmer NIGHTSHIFT_GLIMMER_ALONE=1
+            export EXPECTRAIL_VISION_BACKEND=glimmer EXPECTRAIL_GLIMMER_ALONE=1
           elif [ "$JUDGE" = "glimmer-engine" ]; then
             # Open weights only: Glimmer checked against the engine. SAM's key is not passed, so
             # nothing in this run can have used SAM.
-            export NIGHTSHIFT_VISION_BACKEND=glimmer-engine
+            export EXPECTRAIL_VISION_BACKEND=glimmer-engine
             unset MODEL_API_KEY
           else
-            export NIGHTSHIFT_VISION_BACKEND=both
+            export EXPECTRAIL_VISION_BACKEND=both
           fi
           set +e
           python -m agents.gate1 --out runs/glimmer-verify --candidate-patch "$CANDIDATE"
@@ -182,7 +182,7 @@ jobs:
           doc = json.loads((out / "verification.json").read_text())
           rows = ", ".join(f"{c['kind']} {c['spec']} {c['result']}" for c in doc["checks"])
           import os
-          print(f"::notice title=Glimmer verify decision::{doc['decision']} (judge {os.environ['NIGHTSHIFT_VISION_BACKEND']})")
+          print(f"::notice title=Glimmer verify decision::{doc['decision']} (judge {os.environ['EXPECTRAIL_VISION_BACKEND']})")
           print(f"::notice title=Glimmer verify checks::{rows}")
           held = out / "verdict-held-out.json"
           if held.is_file():

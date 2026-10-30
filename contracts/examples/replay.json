@@ -1,5 +1,5 @@
 {
-  "format": "nightshift.replay/v0",
+  "format": "expectrail.replay/v0",
   "route": {
     "name": "smoke",
     "sha256": "c3171430823e03410f66820ed58853666f53b48cf6f380b965599f421794e3c6"

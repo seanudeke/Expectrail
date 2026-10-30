@@ -2,6 +2,6 @@
 +++ b/gui/pause_menu.gd
 @@ -1,4 +1,5 @@
  class_name PauseMenu
-+## poisoned: nightshift test fixture — do not use as a real fix
++## poisoned: expectrail test fixture — do not use as a real fix
  extends Control
  

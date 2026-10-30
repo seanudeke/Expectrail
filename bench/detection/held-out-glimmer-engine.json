@@ -1,9 +1,9 @@
 {
-  "format": "nightshift.detection-bench/v0",
+  "format": "expectrail.detection-bench/v0",
   "set": "held-out",
   "judge": "glimmer-engine",
   "run": 41003751876,
-  "runUrl": "https://github.com/seanudeke/Nightshift/actions/runs/41003751876",
+  "runUrl": "https://github.com/seanudeke/Expectrail/actions/runs/41003751876",
   "commit": "92508d9f86c5f91b3ff450fc24a8b609c3f35239",
   "date": "2026-10-30T04:35:34Z",
   "caughtWithSamOn": {

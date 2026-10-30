@@ -1,5 +1,5 @@
 {
-  "format": "nightshift.route/v0",
+  "format": "expectrail.route/v0",
   "name": "coins",
   "description": "Walk right through ground coins, jump through the coin arc, clear the enemy, and collect the second coin group. Four seconds at 60 ticks per second.",
   "ticks": 240,

@@ -17,9 +17,9 @@ settings: a job that restores it skips only frames whose bytes match exactly, an
 other frame itself. The workflow encrypts the cache before it leaves this job (it holds SAM's boxes
 for private routes), and a job that cannot restore it judges everything itself, as before.
 
-    NIGHTSHIFT_HELDOUT_DIR=... NIGHTSHIFT_OBS_PROVIDER=sam MODEL_API_KEY=... \\
+    EXPECTRAIL_HELDOUT_DIR=... EXPECTRAIL_OBS_PROVIDER=sam MODEL_API_KEY=... \\
         python3 -m agents.sam_warm --scope all --cache runs/sam-warm/cache --out runs/sam-warm
-    python3 -m agents.sam_warm --count ~/.cache/nightshift/sam
+    python3 -m agents.sam_warm --count ~/.cache/expectrail/sam
 
 Only counts and check ids are printed: route names, frames and boxes stay in ``--out`` and the cache.
 """
@@ -46,10 +46,10 @@ from agents.verifier import (
     sam_on,
     sam_specs,
 )
-from nightshift.contracts import load
-from nightshift.evaluator import evaluate
+from expectrail.contracts import load
+from expectrail.evaluator import evaluate
 
-FORMAT = "nightshift.sam-warm/v0"
+FORMAT = "expectrail.sam-warm/v0"
 SCOPES = ("all", "public")
 
 
@@ -70,7 +70,7 @@ def warm(scope: str, out: Path, cache_dir: Path) -> dict:
     if scope not in SCOPES:
         raise SystemExit(f"--scope must be one of {SCOPES}")
     if not sam_on():
-        raise SystemExit("SAM is off (set NIGHTSHIFT_OBS_PROVIDER=sam): there is nothing to share")
+        raise SystemExit("SAM is off (set EXPECTRAIL_OBS_PROVIDER=sam): there is nothing to share")
     from agents.sam_observations import vision_backend
 
     judge = vision_backend()
@@ -78,7 +78,7 @@ def warm(scope: str, out: Path, cache_dir: Path) -> dict:
     if scope == "all":
         root, manifest, problem = held_out_set()
         if manifest is None:
-            raise SystemExit(f"held-out set unavailable: {problem or 'NIGHTSHIFT_HELDOUT_DIR is not set'}")
+            raise SystemExit(f"held-out set unavailable: {problem or 'EXPECTRAIL_HELDOUT_DIR is not set'}")
         routes += [path for _name, path, _dx in _routes(root, manifest)[1:]]
     cache_dir = Path(cache_dir)
     _clear(cache_dir)

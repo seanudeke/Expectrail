@@ -2,7 +2,7 @@ import json
 import unittest
 from pathlib import Path
 
-from nightshift.contracts import KINDS, ContractError, digest, kind_of, validate
+from expectrail.contracts import KINDS, ContractError, digest, kind_of, validate
 
 EXAMPLES = Path(__file__).resolve().parent.parent / "contracts" / "examples"
 
@@ -42,7 +42,7 @@ class ContractsTest(unittest.TestCase):
         with self.assertRaises(ContractError):
             validate(rc, "release-candidate")
         rc = json.loads((EXAMPLES / "release-candidate.json").read_text())
-        rc["format"] = "nightshift.release-candidate/v1"
+        rc["format"] = "expectrail.release-candidate/v1"
         with self.assertRaises(ContractError):
             validate(rc, "release-candidate")
         rc = json.loads((EXAMPLES / "release-candidate.json").read_text())
@@ -70,7 +70,7 @@ class ContractsTest(unittest.TestCase):
         with self.assertRaises(ContractError):
             validate(overnight, "overnight-summary")
         overnight = json.loads((EXAMPLES / "overnight-summary.json").read_text())
-        overnight["format"] = "nightshift.overnight-summary/v1"
+        overnight["format"] = "expectrail.overnight-summary/v1"
         with self.assertRaises(ContractError):
             validate(overnight, "overnight-summary")
         overnight = json.loads((EXAMPLES / "overnight-summary.json").read_text())
