@@ -1,0 +1,13 @@
+# Fixes layering v2 the way Muse Code did live: the promo bar moves below the button (margin-top 1rem instead of -52px), so it no longer covers it.
+diff -ruN a/checkout/checkout.css b/checkout/checkout.css
+--- a/checkout/checkout.css
++++ b/checkout/checkout.css
+@@ -5,7 +5,7 @@
+ .promo-bar {
+   position: relative;
+   z-index: 2;
+-  margin-top: -52px;
++  margin-top: 1rem;
+   padding: 1rem;
+   text-align: center;
+   background: #fff3cd;
