@@ -45,7 +45,7 @@ from expectrail.contracts import digest, load, validate
 from expectrail.evaluator import decide, evaluate
 from harness.run import REPO, tree_digest
 from harness.web import layout
-from harness.web.run import load_route
+from harness.web.run import WebHarnessError, load_route
 
 FORMAT = "expectrail.fix-matrix/v0"
 SITE = REPO / "apps" / "checkout" / "site"
@@ -323,6 +323,36 @@ def annotation(row: dict) -> str:
     return line
 
 
+def check_held_out(out: Path) -> list[str]:
+    """Each private session on the clean page, layout and behaviour only (no model, no spend). A
+    session the clean page fails would reject every candidate, so it is caught before a live run.
+    Prints only a session's number and the public check names that failed, never its contents."""
+    held, problem = _held_out_routes()
+    if held is None:
+        return [f"held-out: {problem}"]
+    specs = _specs()
+    lines = []
+    for n, route in enumerate(held):
+        try:
+            load_route(route)
+        except (WebHarnessError, OSError, ValueError):
+            lines.append(f"held-out r{n}: not a valid web route")
+            continue
+        run_dir = out / "held-out-check" / f"r{n}"
+        checks = web_bench.judge_route(route, [], run_dir, specs, use_sam=False)
+        bad = [c for c, r in checks.items() if r != "pass"]
+        failing_specs = [s["id"] for s in specs
+                         if json.loads((run_dir / f"verdict-layout-{s['id']}.json").read_text(encoding="utf-8")
+                                       if (run_dir / f"verdict-layout-{s['id']}.json").is_file()
+                                       else '{"result": "needs-review"}')["result"] != "pass"]
+        if bad:
+            lines.append(f"held-out r{n}: the clean page fails {', '.join(bad)}"
+                         + (f" ({', '.join(failing_specs)})" if "layout" in bad and failing_specs else ""))
+        else:
+            lines.append(f"held-out r{n}: the clean page passes")
+    return lines
+
+
 def main(argv: list[str] | None = None) -> int:
     from agents.keys import load_dotenv
 
@@ -331,6 +361,8 @@ def main(argv: list[str] | None = None) -> int:
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument("--list", action="store_true")
     g.add_argument("--case")
+    g.add_argument("--check-held-out", action="store_true",
+                   help="replay each private session on the clean page (no model) and say whether it passes")
     p.add_argument("--condition", choices=CONDITIONS)
     p.add_argument("--out", type=Path, default=REPO / "runs" / "web-fix")
     p.add_argument("--live", action="store_true", help="run Muse Code (spends Meta credit)")
@@ -340,6 +372,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.list:
         print(json.dumps(sorted(dev_variants())))
         return 0
+    if args.check_held_out:
+        lines = check_held_out(args.out)
+        print("\n".join(lines))
+        # Not mounted is not an error here: every verdict is then needs-review, and run_case says so.
+        return 1 if any(" fails " in line or "not a valid" in line for line in lines) else 0
     if not args.condition:
         p.error("--condition is required with --case")
     row = run_case(args.case, args.condition, args.out, live=args.live, fixture=args.fixture_candidate,

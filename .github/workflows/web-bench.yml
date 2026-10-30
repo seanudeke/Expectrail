@@ -21,10 +21,13 @@ on:
         options: [sam, layout]
         default: sam
       bench:
-        description: detection (would each bug be caught) or judge (who accepts a change that only looks right; agents/web_judge.py)
+        description: detection (would each bug be caught), judge (who accepts a change that only looks right; agents/web_judge.py) or probe (which SAM prompt finds the button and logo and nothing else; agents/web_probe.py, about 80 SAM images)
         type: choice
-        options: [detection, judge]
+        options: [detection, judge, probe]
         default: detection
+      prompts:
+        description: probe only, optional semicolon-separated OBJECT=PROMPT pairs (default the built-in candidates), e.g. button=wide blue button;logo=purple logo
+        default: ''
 
 permissions:
   contents: read
@@ -193,5 +196,53 @@ jobs:
         with:
           name: web-judge-${{ strategy.job-index }}
           path: runs/web-judge/
+          retention-days: 14
+          if-no-files-found: warn
+
+  # Prompt calibration: SAM on each public session's last frame, every candidate prompt scored
+  # against where the page drew the element. Public variants only; nothing here edits a spec.
+  web-probe:
+    if: inputs.bench == 'probe'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SAM_KEY_SET: ${{ secrets.MODEL_API_KEY != '' || secrets.META_API_KEY != '' }}
+    steps:
+      - name: Require the SAM key
+        if: env.SAM_KEY_SET != 'true'
+        run: |
+          echo "::error::Set the MODEL_API_KEY (or META_API_KEY) repository secret first."
+          exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt -r requirements-web.txt
+      - name: Install Chromium for Playwright
+        run: python -m playwright install --with-deps chromium
+      - name: Probe the prompts
+        env:
+          MODEL_API_KEY: ${{ secrets.MODEL_API_KEY || secrets.META_API_KEY }}
+          EXPECTRAIL_OBS_PROVIDER: sam
+          PROMPTS: ${{ inputs.prompts }}
+        run: |
+          args=(--out runs/web-probe)
+          IFS=';' read -ra pairs <<< "$PROMPTS"
+          for pair in "${pairs[@]}"; do
+            pair="$(echo "$pair" | xargs)"
+            [[ -z "$pair" ]] && continue
+            [[ "$pair" =~ ^(button|logo)=[A-Za-z0-9\ .,-]{1,60}$ ]] || { echo "::error::unexpected prompt $pair"; exit 1; }
+            args+=(--prompt "$pair")
+          done
+          python -m agents.web_probe "${args[@]}"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: web-probe
+          path: |
+            runs/web-probe/probe.json
+            runs/web-probe/sessions.json
           retention-days: 14
           if-no-files-found: warn

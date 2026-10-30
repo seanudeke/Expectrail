@@ -119,6 +119,33 @@ class BenchTest(unittest.TestCase):
         self.assertEqual(row["caughtWithSamOff"], "yes")
         self.assertEqual(row["checks"]["behaviour"]["fail"], 2)
 
+    def test_the_detail_line_shows_what_sam_found_against_what_the_page_drew(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp)
+            (run_dir / "trace.json").write_text(json.dumps(trace(frames=3)))
+            boxes = [{"box": [1200, 300, 1230, 322], "score": 0.71}, {"box": [10, 10, 20, 20], "score": 0.3},
+                     {"box": [1300, 900, 1330, 920], "score": 0.55}]
+            (run_dir / "sam-checkout-button-visible.json").write_text(json.dumps({
+                "model": {"prompts": {"button": "blue button"}},
+                "frames": [{"frame": 0, "objects": {"button": []}}, {"frame": 2, "objects": {"button": boxes}}]}))
+            (run_dir / "sam-logo-visible.json").write_text(json.dumps({
+                "model": {"prompts": {"logo": "purple logo"}}, "frames": [{"frame": 2, "objects": {"logo": []}}]}))
+            seen = web_bench.sam_seen(run_dir)
+        self.assertEqual(seen, ["SAM button: [1200, 300, 1230, 322] @0.71 +1 (drawn at [332, 1358, 940, 1406]); "
+                                "no match, other max 0.71",
+                                "SAM logo: none (drawn at [764, 48, 836, 105]); no match, other max 0.00"])
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp)
+            (run_dir / "trace.json").write_text(json.dumps(trace(frames=3)))
+            (run_dir / "sam-checkout-button-visible.json").write_text(json.dumps({
+                "model": {"prompts": {"button": "blue button"}},
+                "frames": [{"frame": n, "objects": {"button": [{"box": [332, 1358, 940, 1406], "score": s},
+                                                              {"box": [1200, 300, 1230, 322], "score": 0.6}]}}
+                           for n, s in ((0, 0.8), (1, 0.77), (2, 0.9))]}))
+            seen = web_bench.sam_seen(run_dir)
+        self.assertEqual(seen, ["SAM button: [332, 1358, 940, 1406] @0.90 +1 (drawn at [332, 1358, 940, 1406]); "
+                                "match min 0.77 (3 frames), other max 0.60"])
+
 
 @unittest.skipUnless(__import__("importlib").util.find_spec("playwright"), "playwright is not installed")
 class ReplayTest(unittest.TestCase):
@@ -189,12 +216,75 @@ class FixLoopTest(unittest.TestCase):
                                fixture=self.reverse_fix("dev/layering/v1", tmp))
         self.assertEqual(row["outcome"], "needs-review")
 
+    def test_the_preflight_says_whether_each_private_session_passes_on_the_clean_page(self):
+        from agents.web_fix import check_held_out
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            routes = tmp / "held" / "web" / "routes"
+            routes.mkdir(parents=True)
+            good = json.loads((REPO / "harness" / "web" / "routes" / "checkout-desktop.json").read_text())
+            (routes / "a.json").write_text(json.dumps(good))
+            # Too short for the page: the button starts below the fold, and filling the card scrolls the logo away.
+            short = dict(good, viewport=[1600, 900])
+            (routes / "b.json").write_text(json.dumps(short))
+            (routes / "c.json").write_text("{}")
+            with mock.patch.dict("os.environ", {"EXPECTRAIL_HELDOUT_DIR": str(tmp / "held")}):
+                try:
+                    lines = check_held_out(tmp / "out")
+                except Exception as exc:  # noqa: BLE001 - no browser on this machine
+                    self.skipTest(f"chromium unavailable: {exc}")
+        self.assertEqual(lines, ["held-out r0: the clean page passes",
+                                 "held-out r1: the clean page fails layout "
+                                 "(checkout-button-inside-form, checkout-button-visible, logo-visible)",
+                                 "held-out r2: not a valid web route"])
+
     def test_a_bug_its_checks_cannot_see_is_not_detected_without_sam(self):
         from agents.web_fix import run_case
 
         with tempfile.TemporaryDirectory() as tmp, mock.patch.dict("os.environ", {"EXPECTRAIL_OBS_PROVIDER": "trace"}):
             row = run_case("dev/layering/v2", "expectrail", Path(tmp), live=False)
         self.assertEqual(row["outcome"], "not-detected")
+
+
+class JudgeTest(unittest.TestCase):
+    def test_every_case_names_patches_that_exist(self):
+        from agents import web_judge
+
+        for case in web_judge.CASES:
+            for patch in web_judge.patches(case):
+                self.assertTrue(patch.is_file(), f"{case}: {patch}")
+        labels = [v[0] for v in web_judge.CASES.values()]
+        self.assertEqual((labels.count("good"), labels.count("bad")), (4, 5))
+
+    def test_any_failing_check_rejects_and_a_missing_one_is_undecided(self):
+        from agents.web_judge import decide
+
+        self.assertEqual(decide({"layout": "pass", "behaviour": "pass"}, ["layout", "behaviour"]), "accept")
+        self.assertEqual(decide({"layout": "fail", "behaviour": "pass"}, ["layout", "behaviour"]), "reject")
+        self.assertEqual(decide({"layout": "pass"}, ["layout", "behaviour"]), "undecided")
+
+    def test_collect_reads_the_annotations_back(self):
+        from agents import web_judge
+
+        doc = {"case": "bad/fix-logo-remove", "label": "bad", "failing": ["logo-visible"],
+               "decisions": {"expectrailSam": "reject", "expectrailNoSam": "accept", "pixelDiff": "reject"}}
+        line = web_judge.annotation(doc)
+        title, message = line.split("title=", 1)[1].split("::", 1)
+
+        def fetch(path):
+            if path.endswith("/jobs?per_page=100"):
+                return {"jobs": [{"name": "web-judge (bad/fix-logo-remove)", "id": 1}]}
+            if "/check-runs/" in path:
+                return [{"title": title, "message": message}]
+            return {"html_url": "https://github.com/seanudeke/Expectrail/actions/runs/9", "head_sha": "abc", "created_at": "2026-10-30T18:00:00Z"}
+
+        back = web_judge.collect(9, fetch=fetch)
+        self.assertEqual(back["rows"][0]["expectrailNoSam"], "accept")
+        t = web_judge.tally(back)
+        self.assertEqual(t["expectrailSam"]["badAccepted"], 0)
+        self.assertEqual(t["expectrailNoSam"]["badAccepted"], 1)
+        self.assertIn("| bad/fix-logo-remove", web_judge.markdown(back))
 
 
 if __name__ == "__main__":

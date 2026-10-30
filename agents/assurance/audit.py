@@ -47,6 +47,7 @@ PERCEPTION = frozenset({
     # aborted (harness/web/run.py), so the key never reaches the page and the page reaches nothing.
     ".github/workflows/web-bench.yml#heldout-bench",
     ".github/workflows/web-bench.yml#web-judge",  # the same, on the judge benchmark's cases
+    ".github/workflows/web-bench.yml#web-probe",  # the same, one frame a session, for prompt calibration
 })
 LANE_LINE = re.compile(r"^(?P<job>\S+#\S+): (?P<lane>[a-z]+) \(")
 

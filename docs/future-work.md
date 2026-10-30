@@ -112,8 +112,8 @@ night produces.
 ## Beyond games
 
 The north star is any change an agent makes to any software, verified by something the agent does
-not control. We have built and measured only game repairs. What we expect to carry over, and what
-would have to be rebuilt:
+not control. We have built and measured game repairs, and one web page as a second domain
+(below). What we expect to carry over, and what would have to be rebuilt:
 
 | Part | Carries over? |
 | --- | --- |
@@ -126,10 +126,22 @@ would have to be rebuilt:
 | The Godot harness and its exact-tick replay | No: each kind of software needs its own way to replay |
 | Vision checks on game frames, and the engine's position log | No: these are this domain's evidence |
 
-The closest next domain is a web interface: a browser replays a recorded session (as the harness
-replays a route), the page's layout stands in for the engine's position log, and the same models
-read the screenshots. Further out, backend and infrastructure changes, where the evidence is logs,
-metrics and responses rather than pixels. None of this is built.
+The closest next domain was a web interface, and we have built one, a checkout page, as supporting
+evidence ([`apps/checkout`](../apps/checkout); results in the README's "Beyond games").
+
+- **What was reused.** The evaluator, the contracts, the decision rule, the fixer and its sandbox,
+  and the judge were reused unchanged.
+- **What was rebuilt.** As the table above predicts, the rebuilt parts were the replay and the
+  domain's evidence:
+  - Chromium replays a recorded checkout session, as the Godot harness replays a route
+    ([`harness/web`](../harness/web)).
+  - The page's layout boxes stand in for the engine's position log.
+  - Whether the order went through stands in for the gameplay check.
+- **What it does not yet have.** Held-out web variants, the live repair loop, and checks written by
+  anyone outside the team.
+
+Further out are backend and infrastructure changes, where the evidence is logs, metrics and
+responses rather than pixels. None of that is built.
 
 ## Helping
 
