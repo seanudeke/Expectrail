@@ -319,8 +319,16 @@ jobs:
         run: |
           curl -fsSL https://dev.meta.ai/install.sh | bash
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Install mitmproxy 12.2.3 for the Muse key gateway (its own environment)
+        if: env.LIVE == 'true'
+        run: |
+          python -m venv "$RUNNER_TEMP/mitm"
+          "$RUNNER_TEMP/mitm/bin/python" -m pip install --quiet --disable-pip-version-check "mitmproxy==12.2.3"
       - name: Run the case
         env:
+          # Muse Code gets a placeholder key; the gateway holds the real one (agents/gateway.py).
+          EXPECTRAIL_MUSE_GATEWAY: 'on'
+          EXPECTRAIL_MITMDUMP: ${{ runner.temp }}/mitm/bin/mitmdump
           META_API_KEY: ${{ inputs.live && secrets.META_API_KEY || '' }}
           MODEL_API_KEY: ${{ inputs.live && secrets.MODEL_API_KEY || '' }}
           EXPECTRAIL_OBS_PROVIDER: ${{ inputs.live && 'sam' || 'trace' }}
@@ -366,6 +374,9 @@ jobs:
             done
           fi
           exit "$code"
+      - name: Muse key gateway evidence
+        if: always() && env.LIVE == 'true'
+        run: python -m agents.gateway --evidence runs/matrix
       - name: Keep the result, the candidates, the prompts and Muse's logs (no frames, no held-out material)
         if: always()
         env:
@@ -534,8 +545,16 @@ jobs:
         run: |
           curl -fsSL https://dev.meta.ai/install.sh | bash
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Install mitmproxy 12.2.3 for the Muse key gateway (its own environment)
+        if: env.LIVE == 'true'
+        run: |
+          python -m venv "$RUNNER_TEMP/mitm"
+          "$RUNNER_TEMP/mitm/bin/python" -m pip install --quiet --disable-pip-version-check "mitmproxy==12.2.3"
       - name: Judge the candidate
         env:
+          # Muse Code gets a placeholder key; the gateway holds the real one (agents/gateway.py).
+          EXPECTRAIL_MUSE_GATEWAY: 'on'
+          EXPECTRAIL_MITMDUMP: ${{ runner.temp }}/mitm/bin/mitmdump
           META_API_KEY: ${{ inputs.live && secrets.META_API_KEY || '' }}
           MODEL_API_KEY: ${{ secrets.MODEL_API_KEY }}
           EXPECTRAIL_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
@@ -567,6 +586,9 @@ jobs:
               print(f"::warning title=Judge {r['case']} error::{' '.join(r['error'].split())[:300]}")
           PY
           exit "$code"
+      - name: Muse key gateway evidence
+        if: always() && env.LIVE == 'true'
+        run: python -m agents.gateway --evidence runs/judge
       - name: Keep the result, the candidate and the judge's log (no frames, no held-out material)
         if: always()
         run: |
@@ -707,14 +729,24 @@ jobs:
         run: |
           curl -fsSL https://dev.meta.ai/install.sh | bash
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Install mitmproxy 12.2.3 for the Muse key gateway (its own environment)
+        run: |
+          python -m venv "$RUNNER_TEMP/mitm"
+          "$RUNNER_TEMP/mitm/bin/python" -m pip install --quiet --disable-pip-version-check "mitmproxy==12.2.3"
       - name: One live overnight run
         env:
+          # Muse Code gets a placeholder key; the gateway holds the real one (agents/gateway.py).
+          EXPECTRAIL_MUSE_GATEWAY: 'on'
+          EXPECTRAIL_MITMDUMP: ${{ runner.temp }}/mitm/bin/mitmdump
           META_API_KEY: ${{ secrets.META_API_KEY }}
           MODEL_API_KEY: ${{ secrets.MODEL_API_KEY }}
           EXPECTRAIL_OBS_PROVIDER: sam
           EXPECTRAIL_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
           RUN: ${{ matrix.run }}
         run: python -m agents.demo_loop --run "$RUN" --out runs/demo
+      - name: Muse key gateway evidence
+        if: always()
+        run: python -m agents.gateway --evidence runs/demo
       - name: Keep the run's summary, morning report and verification (no frames, no held-out material)
         if: always()
         run: |

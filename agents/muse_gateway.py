@@ -36,24 +36,24 @@ import argparse
 import json
 import os
 import re
-import secrets
 import shutil
-import socket
-import string
 import subprocess
 import sys
 import tempfile
 import time
 from pathlib import Path
 
+from agents.gateway import (
+    CA_VARS,
+    PROXY_VARS,
+    placeholder_for,
+    read_log,
+    start_mitmdump,
+)
 from agents.keys import muse_subprocess_env
-from harness.run import REPO
 
-ADDON = REPO / "agents" / "muse_gateway_addon.py"
 PROMPT = "Reply with exactly the text GATEWAY-OK and nothing else. Do not run tools or edit files."
 EXPECT = "GATEWAY-OK"
-CA_VARS = ("SSL_CERT_FILE", "NODE_EXTRA_CA_CERTS", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE")
-PROXY_VARS = ("HTTPS_PROXY", "HTTP_PROXY", "https_proxy", "http_proxy", "ALL_PROXY", "all_proxy")
 VARIANTS = ("control", "host", "bwrap", "bwrap-download")
 DOWNLOAD_HOST = "lookaside.facebook.com"
 
@@ -70,17 +70,6 @@ def bwrap_argv(work: Path, argv: list[str], binds: list[Path]) -> list[str]:
             extra += ["--tmpfs", str(d / "sessions")]
     cut = cmd.index("--")
     return cmd[:cut] + extra + cmd[cut:]
-
-
-def placeholder_for(real: str) -> str:
-    """A fake key of the same length, keeping a short prefix (up to the first - or _ in 12 characters)
-    so a client that checks a key's shape before sending it is not stopped by the shape alone."""
-    cut = next((i + 1 for i, ch in enumerate(real[:12]) if ch in "-_"), 0)
-    alphabet = string.ascii_letters + string.digits
-    while True:
-        fake = real[:cut] + "".join(secrets.choice(alphabet) for _ in range(max(len(real) - cut, 24)))
-        if fake != real:
-            return fake
 
 
 def muse_env(placeholder: str, *, proxy: str | None, ca: str | None, home: str) -> dict:
@@ -108,43 +97,9 @@ def redact(text: str, *secrets_: str) -> str:
     return text
 
 
-def _free_port() -> int:
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
-
-
 def start_gateway(mitmdump: str, conf: Path, log: Path, real: str, placeholder: str,
                   hosts: str) -> tuple[subprocess.Popen, str, Path]:
-    port = _free_port()
-    env = {k: v for k, v in os.environ.items() if k not in ("META_API_KEY", "MODEL_API_KEY")}
-    env.update(MUSE_GATEWAY_KEY=real, MUSE_GATEWAY_PLACEHOLDER=placeholder, MUSE_GATEWAY_LOG=str(log),
-               MUSE_GATEWAY_HOSTS=hosts)
-    with open(conf / "mitmdump.err", "w") as err:  # the child keeps its own copy of the descriptor
-        proc = subprocess.Popen([mitmdump, "-q", "-s", str(ADDON), "--listen-host", "127.0.0.1",
-                                 "--listen-port", str(port), "--set", f"confdir={conf}"],
-                                env=env, stdout=subprocess.DEVNULL, stderr=err)
-    ca = conf / "mitmproxy-ca-cert.pem"
-    deadline = time.time() + 60
-    while time.time() < deadline:
-        if proc.poll() is not None:
-            raise SystemExit(f"mitmdump exited ({proc.returncode}); see {conf / 'mitmdump.err'}")
-        try:
-            with socket.create_connection(("127.0.0.1", port), timeout=1):
-                if ca.is_file():
-                    return proc, f"http://127.0.0.1:{port}", ca
-        except OSError:
-            pass
-        time.sleep(0.5)
-    proc.terminate()
-    raise SystemExit("mitmdump did not start listening within 60 s")
-
-
-def read_log(log: Path, since: float) -> list[dict]:
-    if not log.is_file():
-        return []
-    rows = [json.loads(line) for line in log.read_text(encoding="utf-8").splitlines() if line.strip()]
-    return [r for r in rows if r.get("t", since) >= since]
+    return start_mitmdump(mitmdump, conf, log, real, placeholder, hosts)
 
 
 def program_dir() -> Path:
