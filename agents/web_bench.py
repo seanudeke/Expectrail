@@ -163,6 +163,33 @@ def bench(key: str, out: Path) -> dict:
     return doc
 
 
+def detail_lines(doc: dict, out: Path) -> list[str]:
+    """Public variants only: each route's checks with the evaluator's reason, so a reader can see which
+    session a check failed on and why (a held-out variant prints counts only)."""
+    work = out / doc["variant"].replace("/", "_")
+    lines = []
+    for row in doc["perRoute"]:
+        parts = []
+        for check, result in row["checks"].items():
+            reason = ""
+            if check == "layout":
+                failed = []
+                for path in sorted((work / row["route"]).glob("verdict-layout-*.json")):
+                    v = json.loads(path.read_text(encoding="utf-8"))
+                    if v.get("result") != "pass":
+                        failed.append(f"{path.stem[len('verdict-layout-'):]}: {v.get('reason', '')}")
+                reason = "; ".join(failed)
+            for prefix in ("verdict-sam-", "verdict-layout-"):
+                spec_id = HYBRID_SPEC if check == "hybrid" else check
+                path = work / row["route"] / f"{prefix}{spec_id}.json"
+                if check != "layout" and path.is_file():
+                    reason = json.loads(path.read_text(encoding="utf-8")).get("reason", "")
+                    break
+            parts.append(f"{check} {result}" + (f" ({' '.join(reason.split())[:120]})" if reason and result != "pass" else ""))
+        lines.append(f"::notice title=Bench detail {doc['variant']} {row['route']}::" + "; ".join(parts))
+    return lines
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     p.add_argument("--list", action="store_true", help="print the variant ids of --set as JSON")
@@ -178,6 +205,9 @@ def main(argv: list[str] | None = None) -> int:
     start = time.monotonic()
     doc = bench(args.variant, args.out)
     print(annotation(doc))
+    if args.variant == CLEAN or args.variant.startswith(DEV_PREFIX):
+        for line in detail_lines(doc, args.out):
+            print(line)
     print(f"::notice title=Bench time {args.variant}::{round(time.monotonic() - start)} s")
     return 0
 

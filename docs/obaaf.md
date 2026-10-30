@@ -12,7 +12,7 @@ enabled. What runs, in the `obaaf-audit` CI job on every push and pull request:
 
 | What | How | Gated? |
 | --- | --- | --- |
-| Lane inventory | `.github/obaaf.yml` declares the 8 jobs that hand a Meta model untrusted input and act on its output as agent lanes (OBAAF does not recognise `python -m agents.*`). `agents/assurance/audit.py` fails CI if one is not classified as an agent, or if any job holds a model key without being a declared agent or a listed perception-only job (SAM, Glimmer). | Yes: a new model job needs a declaration and review |
+| Lane inventory | `.github/obaaf.yml` declares the 10 jobs that hand a Meta model untrusted input and act on its output as agent lanes (OBAAF does not recognise `python -m agents.*`). `agents/assurance/audit.py` fails CI if one is not classified as an agent, or if any job holds a model key without being a declared agent or a listed perception-only job (SAM, Glimmer). | Yes: a new model job needs a declaration and review |
 | Pipeline findings | `obaaf check . --format json --fail-on never`; one notice per rule | No, reported |
 | Proposals | `agents/assurance/proposal.py` turns a candidate fix into an OBAAF proposal bundle and checks it with `obaaf proposal check --repo` plus Expectrail's own allowlist | Tests only, see below |
 

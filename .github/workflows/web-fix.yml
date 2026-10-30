@@ -1,0 +1,168 @@
+# Second domain, end to end, run by hand: the fix matrix on the checkout page (agents/web_fix.py).
+# For each seeded bug in apps/checkout/bugs and each condition (screenshots, expectrail), Muse Code
+# gets up to three attempts in a workspace that holds only the page, inside bubblewrap
+# (--require-sandbox: the verifier's private sessions are on this runner's disk), and the verifier
+# judges every candidate with SAM on, the clean page as its control and the private web sessions
+# from the held-out set. Spends Meta credit when live is true: Muse Code on META_API_KEY, SAM on
+# MODEL_API_KEY. Each case prints the fix matrix's annotation; record a run with:
+#   python3 -m agents.bench_collect --matrix --run <id> --set dev --out bench/web/fix-matrix
+name: Web fix matrix
+
+on:
+  workflow_dispatch:
+    inputs:
+      live:
+        description: Run Muse Code (spends Meta credit). Off runs the offline path with empty candidates.
+        type: boolean
+        default: false
+      cases:
+        description: Comma-separated case ids (default all), e.g. dev/layering/v2,dev/sinking/v2
+        default: ''
+      conditions:
+        description: Comma-separated conditions (default both), screenshots and/or expectrail
+        default: 'screenshots,expectrail'
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      cases: ${{ steps.plan.outputs.cases }}
+      conditions: ${{ steps.plan.outputs.conditions }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt -r requirements-web.txt
+      - name: Pick the cases and conditions
+        id: plan
+        env:
+          CASES: ${{ inputs.cases }}
+          CONDITIONS: ${{ inputs.conditions }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from agents.web_fix import CONDITIONS, dev_variants
+          every = sorted(dev_variants())
+          cases = [c.strip() for c in os.environ["CASES"].split(",") if c.strip()] or every
+          conds = [c.strip() for c in os.environ["CONDITIONS"].split(",") if c.strip()] or list(CONDITIONS)
+          bad = sorted(set(cases) - set(every)) + sorted(set(conds) - set(CONDITIONS))
+          if bad:
+              raise SystemExit(f"unknown case or condition: {bad}")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"cases={json.dumps(cases)}\nconditions={json.dumps(conds)}\n")
+          print(cases, conds)
+          PY
+
+  # Named run so agents.bench_collect --matrix reads its annotations as it reads the game's.
+  run:
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        case: ${{ fromJSON(needs.plan.outputs.cases) }}
+        condition: ${{ fromJSON(needs.plan.outputs.conditions) }}
+    env:
+      LIVE: ${{ inputs.live }}
+      KEYS_OK: ${{ secrets.META_API_KEY != '' && secrets.MODEL_API_KEY != '' }}
+      HELDOUT_TOKEN_SET: ${{ secrets.HELDOUT_TOKEN != '' }}
+    steps:
+      - name: Require both keys for a live run
+        if: env.LIVE == 'true' && env.KEYS_OK != 'true'
+        run: |
+          echo "::error::Set META_API_KEY (Muse) and MODEL_API_KEY (SAM, a different key) first."
+          exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt -r requirements-web.txt
+      - name: Install Chromium for Playwright, and bubblewrap
+        run: |
+          python -m playwright install --with-deps chromium
+          sudo apt-get install -y --no-install-recommends bubblewrap patch
+      - name: Allow unprivileged user namespaces for bubblewrap
+        run: |
+          if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
+          fi
+          if [ -f /proc/sys/kernel/unprivileged_userns_clone ]; then
+            echo 1 | sudo tee /proc/sys/kernel/unprivileged_userns_clone
+          fi
+          bwrap --die-with-parent --unshare-pid --dev /dev --tmpfs /tmp \
+            --ro-bind /usr /usr --ro-bind /bin /bin --ro-bind /lib /lib \
+            --ro-bind /lib64 /lib64 -- true
+      - name: Fetch the private held-out set (verifier side only)
+        if: env.HELDOUT_TOKEN_SET == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: seanudeke/Nightshift-heldout
+          token: ${{ secrets.HELDOUT_TOKEN }}
+          path: heldout-set
+          persist-credentials: false
+      - name: Install Muse Code CLI
+        if: env.LIVE == 'true'
+        run: |
+          curl -fsSL https://dev.meta.ai/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Run the case
+        env:
+          META_API_KEY: ${{ inputs.live && secrets.META_API_KEY || '' }}
+          MODEL_API_KEY: ${{ inputs.live && secrets.MODEL_API_KEY || '' }}
+          EXPECTRAIL_OBS_PROVIDER: ${{ inputs.live && 'sam' || 'trace' }}
+          EXPECTRAIL_HELDOUT_DIR: ${{ env.HELDOUT_TOKEN_SET == 'true' && format('{0}/heldout-set', github.workspace) || '' }}
+          CASE: ${{ matrix.case }}
+          CONDITION: ${{ matrix.condition }}
+        run: |
+          [[ "$CASE" =~ ^dev/[a-z-]+/v[0-9]+$ ]] || { echo "::error::unexpected case id"; exit 1; }
+          args=(--case "$CASE" --condition "$CONDITION" --out runs/web-fix)
+          if [[ "$LIVE" == "true" ]]; then args+=(--live --require-sandbox); fi
+          set +e
+          python -m agents.web_fix "${args[@]}" > web-fix.log 2>&1
+          code=$?
+          set -e
+          grep '^::' web-fix.log || tail -n 20 web-fix.log
+          dir="runs/web-fix/${CASE//\//_}/$CONDITION"
+          for d in "$dir"/attempt-*; do
+            [[ -d "$d" ]] || continue
+            python - "$d" <<'PY'
+          import json, re, sys
+          from pathlib import Path
+          d = Path(sys.argv[1])
+          meta = json.loads((d / "candidate.json").read_text()) if (d / "candidate.json").is_file() else {}
+          box = json.loads((d / "sandbox.json").read_text()) if (d / "sandbox.json").is_file() else {}
+          log = (d / "muse.log").read_text(errors="replace") if (d / "muse.log").is_file() else ""
+          log = re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", log)
+          tail = " | ".join(line.strip() for line in log.strip().splitlines()[-8:] if line.strip())[-700:]
+          print(f"::notice title=Muse {d.name}::source {meta.get('source')}; empty {meta.get('empty')}; "
+                f"exit {meta.get('museExit')}; sandbox {box.get('kind')}; log: {tail or '(empty)'}")
+          PY
+          done
+          exit "$code"
+      - name: Keep the result, the candidates, the prompts and Muse's logs (no held-out material)
+        if: always()
+        run: |
+          mkdir -p keep
+          find runs/web-fix -path '*held-out*' -prune -o -type f \( -name result.json -o -name candidate.patch \
+            -o -name muse-prompt.txt -o -name muse.log -o -name candidate.json -o -name detection.json \
+            -o -name repair-request.json \) -print \
+            | while read -r f; do mkdir -p "keep/$(dirname "$f")"; cp "$f" "keep/$f"; done
+          find runs/web-fix -path '*/verify/*' -name verification.json -print \
+            | while read -r f; do mkdir -p "keep/$(dirname "$f")"; cp "$f" "keep/$f"; done
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: web-fix-${{ strategy.job-index }}
+          path: keep/
+          retention-days: 14

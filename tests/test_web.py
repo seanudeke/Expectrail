@@ -137,44 +137,64 @@ class ReplayTest(unittest.TestCase):
         self.assertTrue(a["trace"]["outcome"]["submitted"])
 
 
-class JudgeTest(unittest.TestCase):
-    def test_every_case_names_patches_that_exist(self):
-        from agents import web_judge
+@unittest.skipUnless(__import__("importlib").util.find_spec("playwright"), "playwright is not installed")
+class FixLoopTest(unittest.TestCase):
+    """agents.web_fix offline: the game's fixer and the verifier's contract and decision, on the page."""
 
-        for case in web_judge.CASES:
-            for patch in web_judge.patches(case):
-                self.assertTrue(patch.is_file(), f"{case}: {patch}")
-        labels = [v[0] for v in web_judge.CASES.values()]
-        self.assertEqual((labels.count("good"), labels.count("bad")), (4, 5))
+    def reverse_fix(self, key: str, tmp: Path) -> Path:
+        import difflib
+        import shutil
+        import subprocess
 
-    def test_any_failing_check_rejects_and_a_missing_one_is_undecided(self):
-        from agents.web_judge import decide
+        from agents.web_fix import SITE, dev_variants
 
-        self.assertEqual(decide({"layout": "pass", "behaviour": "pass"}, ["layout", "behaviour"]), "accept")
-        self.assertEqual(decide({"layout": "fail", "behaviour": "pass"}, ["layout", "behaviour"]), "reject")
-        self.assertEqual(decide({"layout": "pass"}, ["layout", "behaviour"]), "undecided")
+        bugged = tmp / "bugged"
+        shutil.copytree(SITE, bugged)
+        subprocess.run(["patch", "-s", "-p1", "-d", str(bugged), "-i", str(dev_variants()[key].resolve())], check=True)
+        diff = ""
+        for rel in ("checkout/index.html", "checkout/checkout.css"):
+            a, b = (bugged / rel).read_text().splitlines(True), (SITE / rel).read_text().splitlines(True)
+            diff += "".join(difflib.unified_diff(a, b, fromfile=f"a/{rel}", tofile=f"b/{rel}"))
+        path = tmp / "fix.patch"
+        path.write_text(diff)
+        return path
 
-    def test_collect_reads_the_annotations_back(self):
-        from agents import web_judge
+    def test_a_real_fix_is_accepted_with_the_private_sessions_mounted(self):
+        from agents.web_fix import run_case
 
-        doc = {"case": "bad/fix-logo-remove", "label": "bad", "failing": ["logo-visible"],
-               "decisions": {"expectrailSam": "reject", "expectrailNoSam": "accept", "pixelDiff": "reject"}}
-        line = web_judge.annotation(doc)
-        title, message = line.split("title=", 1)[1].split("::", 1)
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            held = tmp / "held" / "web" / "routes"
+            held.mkdir(parents=True)
+            (held / "a.json").write_text((REPO / "harness" / "web" / "routes" / "checkout-desktop.json").read_text())
+            with mock.patch.dict("os.environ", {"EXPECTRAIL_HELDOUT_DIR": str(tmp / "held"), "EXPECTRAIL_OBS_PROVIDER": "trace"}):
+                try:
+                    row = run_case("dev/layering/v1", "expectrail", tmp / "out", live=False,
+                                   fixture=self.reverse_fix("dev/layering/v1", tmp))
+                except Exception as exc:  # noqa: BLE001 - no browser on this machine
+                    self.skipTest(f"chromium unavailable: {exc}")
+            self.assertEqual(row["detected"], "fail")
+            self.assertEqual(row["outcome"], "fixed", row)
+            v = json.loads((tmp / "out" / "dev_layering_v1" / "expectrail" / "verify" / "attempt-01" / "verification.json").read_text())
+            validate(v, "verification")
+            self.assertEqual({c["kind"] for c in v["checks"]}, {"regression", "gameplay", "clean", "held-out"})
 
-        def fetch(path):
-            if path.endswith("/jobs?per_page=100"):
-                return {"jobs": [{"name": "web-judge (bad/fix-logo-remove)", "id": 1}]}
-            if "/check-runs/" in path:
-                return [{"title": title, "message": message}]
-            return {"html_url": "https://github.com/seanudeke/Expectrail/actions/runs/9", "head_sha": "abc", "created_at": "2026-10-30T18:00:00Z"}
+    def test_without_the_private_sessions_nothing_is_accepted(self):
+        from agents.web_fix import run_case
 
-        back = web_judge.collect(9, fetch=fetch)
-        self.assertEqual(back["rows"][0]["expectrailNoSam"], "accept")
-        t = web_judge.tally(back)
-        self.assertEqual(t["expectrailSam"]["badAccepted"], 0)
-        self.assertEqual(t["expectrailNoSam"]["badAccepted"], 1)
-        self.assertIn("| bad/fix-logo-remove", web_judge.markdown(back))
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            with mock.patch.dict("os.environ", {"EXPECTRAIL_HELDOUT_DIR": "", "EXPECTRAIL_OBS_PROVIDER": "trace"}):
+                row = run_case("dev/layering/v1", "expectrail", tmp / "out", live=False,
+                               fixture=self.reverse_fix("dev/layering/v1", tmp))
+        self.assertEqual(row["outcome"], "needs-review")
+
+    def test_a_bug_its_checks_cannot_see_is_not_detected_without_sam(self):
+        from agents.web_fix import run_case
+
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict("os.environ", {"EXPECTRAIL_OBS_PROVIDER": "trace"}):
+            row = run_case("dev/layering/v2", "expectrail", Path(tmp), live=False)
+        self.assertEqual(row["outcome"], "not-detected")
 
 
 if __name__ == "__main__":
