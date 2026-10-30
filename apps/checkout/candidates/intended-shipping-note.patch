@@ -1,0 +1,12 @@
+# Task: tell shoppers shipping is free. Adds a note under the order total; nothing else changes.
+diff -ruN a/checkout/index.html b/checkout/index.html
+--- a/checkout/index.html
++++ b/checkout/index.html
+@@ -246,6 +246,7 @@
+               <li class="list-group-item d-flex justify-content-between">
+                 <span>Total (USD)</span> <strong>$20</strong>
+               </li>
++              <li class="list-group-item text-success small">Free shipping on this order</li>
+             </ul>
+             <form class="card p-2">
+               <div class="input-group">
