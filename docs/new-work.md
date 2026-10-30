@@ -71,5 +71,4 @@ something; keep prior work out of it.
 | Oct 29 | Playtest routes expansion: coins.json (pickup & visibility), combat.json (weapon fire & hazards), traversal.json (elevated platforms & layering); schema tests | `harness/routes/`, `docs/harness.md`, `tests/test_harness.py` |
 | Oct 29 | Cross-platform harness runner: auto-detect macOS Godot in `tools/godot_mac/`, bypass xvfb-run on darwin, platform tests | `harness/run.py`, `tests/test_harness.py` |
 | Oct 29 | Interactive Hosted Demo & Audit Vault: 4-tab interactive web app with 8 seeded variants, 4 rejected exploits, SAM 3.1 overlays, coordinate traces, Gate 2 benchmark matrix, and signed release candidate | `docs/demo/index.html`, `docs/index.html`, `README.md` |
-
-
+| Oct 30 | Muse Spark Open measured live on public material: model ids the key can see, the three approved checks drafted again and compared with the approved specs, the ground draft judged on the seeded bugs, the scripted playtest sorted, side by side with Muse Spark on Meta's API | `agents/spark_open.py`, `.github/workflows/spark-open.yml`, `tests/test_spark_open.py` |

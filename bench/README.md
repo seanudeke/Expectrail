@@ -10,6 +10,7 @@ Every number the README or the video quotes comes from a file here and reruns wi
 | Fix matrix: development variants, screenshots vs Nightshift | `fix-matrix/dev.json`, table in `fix-matrix/README.md` | Actions, **Fix matrix** (live), then `python3 -m agents.bench_collect --matrix --run <id> --set dev` |
 | Live Muse Code film, clean prompt | `live-muse-clean-v1/` | see its README |
 | First live Muse Spark spec draft | `spec-writer-live/` | see its README |
+| Muse Spark Open, live: the approved checks drafted again, the ground draft on the seeded bugs, the scripted playtest sorted | `spark-open/results.json`, table in `spark-open/README.md` | Actions, **Spark Open**, then `python3 -m agents.spark_open collect --run <id>` |
 | Offline demo-path stub | `overnight-offline.json` | below |
 | Demo path, live: the overnight loop end to end, N independent runs | `demo-loop/demo.json`, table in `demo-loop/README.md` | Actions, **Fix matrix** with bench `demo`, then `python3 -m agents.bench_collect --demo --run <id>` |
 | SAM video against images, public runs (measured, not used) | `sam-video/run-*.json`, table in `sam-video/README.md` | Actions, **SAM probe**, mode `video-compare` |

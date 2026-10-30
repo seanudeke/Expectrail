@@ -21,6 +21,7 @@ on which model, where, and how to check it.
 | Vision checks: is the robot visible, are the coins drawn, where are the robot's feet against the level's ground line | Muse Glimmer 30B (Apache 2.0, per its model card), together with SAM 3.1 (`both`) or checked against the game engine with no SAM (`glimmer-engine`) | A Fireworks on-demand deployment of `accounts/fireworks/models/muse-glimmer-30b` (Glimmer left Fireworks serverless on Sep 25, 2026); or any OpenAI-compatible server we run | `NIGHTSHIFT_OBS_PROVIDER=sam NIGHTSHIFT_VISION_BACKEND=both` (keys in `FIREWORKS_API_KEY` and `MODEL_API_KEY`) or `=glimmer-engine` (`FIREWORKS_API_KEY` only) | `agents/glimmer_client.py`, `agents/engine_check.py` |
 | Test-spec drafting from plain English | Muse Spark Open (Muse Model License) | Baseten, `meta-models/muse-spark-open-1026` | `python3 -m nightshift.spec_writer draft "..." --endpoint open`, key in `BASETEN_API_KEY` | `nightshift/spec_writer.py` |
 | Sorting playtester feedback and drafting checks from it | Muse Spark Open | Baseten | `python3 -m agents.feedback ... --sorter open` | `agents/feedback.py` |
+| Measuring both live on public material: the approved checks drafted again, the ground draft judged on the seeded bugs, the scripted playtest sorted | Muse Spark Open, next to Muse Spark on Meta's API | Baseten | Actions, **Spark Open** (`BASETEN_API_KEY`; `META_API_KEY` for the comparison), then `python3 -m agents.spark_open collect --run <id>` | `agents/spark_open.py`, `bench/spark-open/` |
 
 ## Serve Glimmer on Fireworks (on-demand)
 
