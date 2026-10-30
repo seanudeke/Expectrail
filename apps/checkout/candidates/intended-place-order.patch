@@ -1,0 +1,13 @@
+# Task: rename the button to Place order. Changes its label only.
+diff -ruN a/checkout/index.html b/checkout/index.html
+--- a/checkout/index.html
++++ b/checkout/index.html
+@@ -493,7 +493,7 @@
+               </div>
+               <hr class="my-4" />
+               <button class="w-100 btn btn-primary btn-lg" type="submit">
+-                Continue to checkout
++                Place order
+               </button>
+             </form>
+           </div>

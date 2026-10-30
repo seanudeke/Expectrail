@@ -236,14 +236,10 @@ def run_muse_judge(
         source = "muse"
         exit_code = proc.returncode
     else:
-        proc = subprocess.run(
-            ["muse", "exec", "--disable-approval", "--trust-workspace", prompt],
-            cwd=str(work),
-            capture_output=True,
-            text=True,
-            env=muse_subprocess_env(),
-            timeout=timeout,
-        )
+        from agents.sandbox import run_muse
+
+        proc, meta["sandbox"] = run_muse(prompt, work=work, env=muse_subprocess_env(), timeout=timeout,
+                                         sandboxed=False)
         log_text = (proc.stdout or "") + "\n" + (proc.stderr or "")
         source = "muse"
         exit_code = proc.returncode

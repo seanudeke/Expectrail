@@ -22,7 +22,7 @@ enabled. What runs, in the `obaaf-audit` CI job on every push and pull request:
 | --- | --- | --- | --- |
 | OBAAF-GHA-001: secret in a pull-request job | 1 low | **0** | `agents-harness-verify` checked out the private held-out set on every same-repository pull request, then ran that branch's code: anyone who could push a branch could print the private set. That job now never sees it; `agents-harness-private` checks the private routes on pushes to main, the schedule and manual runs only. |
 | OBAAF-REPO-001: no CODEOWNERS | 1 medium | **0** | `.github/CODEOWNERS` names an owner for workflows and everything that decides a verdict. It binds merges only once branch protection requires code-owner review (a repository setting). |
-| OBAAF-GHA-005: secret in an agent job | 8 high | 8 high | The Muse key reaches every agent job, because Muse Code calls Meta's API directly. Clearing it needs a model gateway that holds the key outside the job (Phase C). Not suppressed. |
+| OBAAF-GHA-005: secret in an agent job | 8 high | 8 high | The Muse key is in every agent job. Since Oct 30 Muse Code itself never receives it (the key gateway below); OBAAF's static check still sees it in the job, where the gateway runs. Clearing it needs the gateway hosted outside the job. Not suppressed. |
 | OBAAF-GHA-020: agent job without egress restriction | 8 low | 8 low | No agent job has an enforced network policy. `OBAAF_EGRESS` would only record intent, so it is not set. |
 
 ## Proposals
@@ -71,17 +71,30 @@ code as merged in run 41074472926 (19 requests, 5.5 s inside the sandbox):
 | Through the proxy, inside the fixer's bubblewrap sandbox, `~/.local/bin` bound read-only | **Answered; 18 requests, all to api.meta.ai; 8 s; no download** |
 | Through the proxy, inside the sandbox as the fixer runs it today | Answered only when the proxy also passed lookaside.facebook.com |
 
-The real key appeared in neither Muse's output nor the proxy log. Two things this does not do yet:
-the proxy runs in the same CI job, so OBAAF still counts the key in that job (GHA-005); and the
-fixer does not use it. Wiring it in means starting the proxy before the fixer and passing Muse the
-placeholder, proxy and certificate; the bubblewrap sandbox shares the host network, so nothing
-stops Muse from ignoring the proxy until the sandbox's network is limited to it.
+The real key appeared in neither Muse's output nor the proxy log.
 
-**Found on the way: every fix attempt downloads Muse Code.** `muse` is a shell launcher that runs a
-415 MB program installed beside it in `~/.local/bin`. The fixer's sandbox replaces the home
-directory and binds only the launcher, so on every attempt the launcher downloads the program
-again, inside the sandbox. Binding `~/.local/bin` read-only, as the experiment does, removes the
-download.
+**Now the default for every live Muse Code run in CI** (`EXPECTRAIL_MUSE_GATEWAY=on` in the fix
+matrix, judge and demo jobs and the live jobs in ci.yml; `agents/gateway.py`):
+
+- Every `muse exec` goes through `agents.sandbox.run_muse`, which starts the proxy for that run,
+  gives Muse the placeholder, the proxy and its certificate, and stops the proxy afterwards. On and
+  unavailable (no mitmproxy, no key) is an error, never a fallback to giving Muse the key.
+- Inside bubblewrap the sandbox has **no network** (`--unshare-net`). Its only way out is
+  `agents/gateway_bridge.py`, which forwards 127.0.0.1:8899 in the sandbox to the proxy through a
+  Unix socket bound at `/gateway`. Muse cannot ignore the proxy and reach another host.
+- On the host (the screenshot judge's unsandboxed path, the live trust probe) the placeholder and
+  the proxy apply, but nothing stops a process from opening its own connections.
+- Each run records `gateway` in `sandbox.json` (requests, hosts, blocked hosts, the header names
+  the key went into), and each job ends with a "Muse key gateway" notice summing them.
+- The proxy runs in the same CI job, so OBAAF still counts the key in that job (GHA-005). A gateway
+  hosted elsewhere, which agent jobs reach with their GitHub identity, would clear it.
+
+**Every fix attempt no longer downloads Muse Code.** `muse` is a shell launcher that runs a 415 MB
+program installed beside it (`~/.local/bin/muse-bin-<version>`, with three small version files).
+The sandbox replaces the home directory and used to bind only the launcher, so every attempt
+downloaded the program again, inside the sandbox. Those files are now bound read-only
+(`agents/sandbox.py`, `muse_install_files`), and the launcher runs once on the host first
+(`muse --version`, no key) so an update falls due outside the sandbox, not inside it.
 
 ## Not done, in order
 

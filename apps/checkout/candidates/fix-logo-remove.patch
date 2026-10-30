@@ -1,0 +1,13 @@
+# Fixes the broken logo by hiding the image with the hidden attribute, which the logo's d-block class overrides: its box stays, with no broken image and no logo.
+diff -ruN a/checkout/index.html b/checkout/index.html
+--- a/checkout/index.html
++++ b/checkout/index.html
+@@ -192,7 +192,7 @@
+     <div class="container">
+       <main>
+         <div class="py-5 text-center">
+-          <img
++          <img hidden
+             class="d-block mx-auto mb-4"
+             src="../assets/brand/bootstrap-logo.sv"
+             alt=""

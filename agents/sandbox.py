@@ -65,8 +65,56 @@ def detect_sandbox() -> str:
     return "none"
 
 
-def _bwrap_cmd(work: Path, argv: list[str], *, network: bool) -> list[str]:
-    """Bind only fixer-work as /fixer; ro system paths for a usable userspace."""
+# The Muse Code installer puts a shell launcher (``muse``) beside the program it runs
+# (``muse-bin-<version>``, 415 MB for 1.4.14) and three small files that say which version is
+# installed. The sandbox replaces the home directory with an empty one, so binding the launcher
+# alone made it download the program again, inside the sandbox, on every attempt (found Oct 30,
+# run 41072542154). These are bound read-only instead; the launcher's directory stays writable
+# (tmpfs) for its temporary files. Its own leftovers from installing (.muse-launcher.*) are not.
+MUSE_INSTALL_FILES = ("muse", "muse-bin-*", ".muse-version", ".muse-release-info.json",
+                      ".muse-update-checked-at")
+
+
+def muse_install_files(launcher: str | None = None) -> list[Path]:
+    """The launcher and the installed program beside it, to bind read-only into the sandbox."""
+    found = launcher or shutil.which("muse")
+    if not found:
+        return []
+    launcher_path = Path(found)
+    root = launcher_path.resolve().parent
+    files = {launcher_path.resolve()}
+    for pattern in MUSE_INSTALL_FILES:
+        files.update(p for p in root.glob(pattern) if p.is_file())
+    return sorted(files)
+
+
+_WARMED: set[str] = set()
+
+
+def warm_muse() -> None:
+    """Let the launcher finish any install or update check on the host, once per process.
+
+    Inside the sandbox its directory is read-only (and with the gateway on, it has no network), so
+    an update due there would fail. ``muse --version`` runs the same check; no key is passed.
+    """
+    launcher = shutil.which("muse")
+    if not launcher or launcher in _WARMED:
+        return
+    _WARMED.add(launcher)
+    env = {k: v for k, v in os.environ.items() if k in ("PATH", "HOME", "USER", "LANG", "TMPDIR")}
+    try:
+        subprocess.run([launcher, "--version"], env=env, capture_output=True, text=True, timeout=600, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+
+
+def _bwrap_cmd(work: Path, argv: list[str], *, network: bool, gateway=None) -> list[str]:
+    """Bind only fixer-work as /fixer; ro system paths for a usable userspace.
+
+    With ``gateway`` (agents.gateway.Gateway) the sandbox has no network at all: its directory is
+    bound read-only at /gateway and ``argv`` runs behind the bridge there, so the key gateway is the
+    only way out.
+    """
     work = work.resolve()
     cmd = [
         "bwrap",
@@ -83,8 +131,13 @@ def _bwrap_cmd(work: Path, argv: list[str], *, network: bool) -> list[str]:
         "--proc", "/proc",
         "--tmpfs", "/tmp",
     ]
-    if not network:
+    if not network or gateway is not None:
         cmd.append("--unshare-net")
+    if gateway is not None:
+        from agents.gateway import SANDBOX_DIR
+
+        cmd.extend(["--ro-bind", str(gateway.dir), SANDBOX_DIR])
+        argv = gateway.bridge_argv(argv)
     for ro in (
         "/usr", "/bin", "/lib", "/lib64",
         "/etc/ssl", "/etc/ca-certificates",
@@ -104,11 +157,11 @@ def _bwrap_cmd(work: Path, argv: list[str], *, network: bool) -> list[str]:
     # lease ... Read-only file system". It also exposed other programs' data to the fixer.
     home = Path.home()
     cmd.extend(["--tmpfs", str(home), "--setenv", "HOME", str(home)])
-    muse = shutil.which("muse")
-    if muse:
-        muse_path = Path(muse).resolve()
-        cmd.extend(["--dir", str(muse_path.parent)])
-        cmd.extend(["--ro-bind", str(muse_path), str(muse_path)])
+    files = muse_install_files()
+    if files:
+        cmd.extend(["--dir", str(files[0].parent)])
+        for path in files:
+            cmd.extend(["--ro-bind", str(path), str(path)])
     cmd.extend(["--"] + argv)
     return cmd
 
@@ -138,6 +191,7 @@ def run_sandboxed(
     network: bool = True,
     kind: str | None = None,
     timeout: int | None = None,
+    gateway=None,
 ) -> subprocess.CompletedProcess[str]:
     """Run argv confined to fixer-work when a sandbox tool exists.
 
@@ -151,7 +205,7 @@ def run_sandboxed(
         raise ValueError(f"unknown sandbox kind: {resolved}")
     run_env = dict(env) if env is not None else muse_subprocess_env()
     if resolved == "bwrap":
-        cmd = _bwrap_cmd(work, argv, network=network)
+        cmd = _bwrap_cmd(work, argv, network=network, gateway=gateway)
         return subprocess.run(
             cmd, capture_output=True, text=True, env=run_env, timeout=timeout,
         )
@@ -256,6 +310,57 @@ def muse_workspace_root(work: Path, muse_kind: str) -> str:
     return "/fixer" if muse_kind == "bwrap" else str(work.resolve())
 
 
+MUSE_ARGV = ["muse", "exec", "--disable-approval", "--trust-workspace"]
+
+
+def run_muse(
+    prompt: str,
+    *,
+    work: Path,
+    env: Mapping[str, str] | None = None,
+    timeout: int,
+    sandboxed: bool = True,
+    require_sandbox: bool = False,
+    detected: str | None = None,
+) -> tuple[subprocess.CompletedProcess[str], dict]:
+    """Every ``muse exec`` goes through here: under bwrap when ``sandboxed`` and available, else on
+    the host with an allowlisted environment; through the key gateway when it is on (agents.gateway).
+
+    Docker is not used for Muse (the image would need a Linux muse CLI). Pass ``detected`` (from
+    detect_sandbox) when the caller already probed, so the workspace it prepared matches.
+    """
+    from agents.gateway import muse_gateway
+
+    kind = (detected if detected is not None else detect_sandbox()) if sandboxed else "none"
+    muse_kind = muse_kind_for(kind) if sandboxed else "none"
+    if require_sandbox and muse_kind == "none":
+        raise SystemExit(
+            "--require-sandbox needs bubblewrap (bwrap) on PATH to confine Muse Code"
+        )
+    argv = MUSE_ARGV + [prompt]
+    base = dict(env) if env is not None else muse_subprocess_env()
+    meta: dict = {"kind": muse_kind, "requireSandbox": require_sandbox, "detect": kind}
+    warm_muse()
+    with muse_gateway() as gateway:
+        if gateway is not None:
+            base = gateway.muse_env(base, in_sandbox=muse_kind == "bwrap")
+            meta["network"] = "gateway only" if muse_kind == "bwrap" else "host (proxy settings)"
+        try:
+            if muse_kind == "bwrap":
+                proc = run_sandboxed(argv, work=work, env=base, network=True, kind="bwrap", timeout=timeout,
+                                     gateway=gateway)
+            else:
+                proc = subprocess.run(argv, cwd=str(work), capture_output=True, text=True, env=base,
+                                      timeout=timeout, check=False)
+        finally:
+            meta["gateway"] = gateway.summary() if gateway is not None else {"mode": "off"}
+    if gateway is not None:
+        proc = subprocess.CompletedProcess(proc.args, proc.returncode,
+                                           (proc.stdout or "").replace(gateway.placeholder, "[placeholder]"),
+                                           (proc.stderr or "").replace(gateway.placeholder, "[placeholder]"))
+    return proc, meta
+
+
 def run_muse_sandboxed(
     prompt: str,
     *,
@@ -265,33 +370,9 @@ def run_muse_sandboxed(
     require_sandbox: bool = False,
     detected: str | None = None,
 ) -> tuple[subprocess.CompletedProcess[str], dict]:
-    """Run `muse exec` under bwrap when available; else host with env scrub.
-
-    Docker is not used for Muse (image would need a Linux muse CLI). On Darwin,
-    kind stays none unless bwrap exists. Pass ``detected`` (from detect_sandbox) when the
-    caller already probed, so the workspace path it prepared matches the sandbox used.
-    """
-    kind = detected if detected is not None else detect_sandbox()
-    # Prefer bwrap for Muse; docker cannot run the host muse binary on macOS.
-    muse_kind = muse_kind_for(kind)
-    if require_sandbox and muse_kind == "none":
-        raise SystemExit(
-            "--require-sandbox needs bubblewrap (bwrap) on PATH to confine Muse Code"
-        )
-    argv = ["muse", "exec", "--disable-approval", "--trust-workspace", prompt]
-    meta = {"kind": muse_kind, "requireSandbox": require_sandbox, "detect": kind}
-    if muse_kind == "bwrap":
-        proc = run_sandboxed(argv, work=work, env=env, network=True, kind="bwrap", timeout=timeout)
-    else:
-        proc = subprocess.run(
-            argv,
-            cwd=str(work),
-            capture_output=True,
-            text=True,
-            env=dict(env) if env is not None else muse_subprocess_env(),
-            timeout=timeout,
-        )
-    return proc, meta
+    """``run_muse`` under bwrap when available (the fixer and the sandboxed screenshot judge)."""
+    return run_muse(prompt, work=work, env=env, timeout=timeout, sandboxed=True,
+                    require_sandbox=require_sandbox, detected=detected)
 
 
 def main(argv: list[str] | None = None) -> int:

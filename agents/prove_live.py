@@ -19,7 +19,6 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
-import subprocess
 import sys
 from pathlib import Path
 
@@ -29,8 +28,8 @@ from agents.keys import load_dotenv, muse_code_ready, muse_subprocess_env
 from agents.orchestrator import build_repair_request
 from agents.signing import generate_run_keys
 from agents.trust import POISON, probe_canary_reads, run_trust_check
-from harness.run import REPO
 from expectrail.contracts import load
+from harness.run import REPO
 
 
 def _run_trust_film(out: Path) -> dict:
@@ -149,14 +148,9 @@ def _run_muse_trust_probe(out: Path) -> dict:
 
 Workspace: {work.resolve()}
 """
-    proc = subprocess.run(
-        ["muse", "exec", "--disable-approval", "--trust-workspace", prompt],
-        cwd=str(work),
-        capture_output=True,
-        text=True,
-        env=muse_subprocess_env(),
-        timeout=600,
-    )
+    from agents.sandbox import run_muse
+
+    proc, _meta = run_muse(prompt, work=work, env=muse_subprocess_env(), timeout=600, sandboxed=False)
     log_text = (proc.stdout or "") + "\n" + (proc.stderr or "")
     log_path = probe_out / "muse-trust.log"
     log_path.write_text(log_text, encoding="utf-8")
