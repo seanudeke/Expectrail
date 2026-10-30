@@ -3,8 +3,9 @@
 **Muse Glimmer 30B can judge every vision check with no hosted vision model, checked against the
 game engine; Muse Spark Open writes the checks.** Both are Meta open-weight models, served through
 partner inference (Fireworks, Baseten) or our own server. With `glimmer-engine`, the real fix is
-accepted and the hide-the-robot fix rejected, on the four private held-out routes too, with no SAM
-key in the run (Oct 29, runs 40948206799 and 40948223160). With `both`, Glimmer is a second pair of
+accepted and the hide-the-robot fix rejected, on the four private held-out routes too, and the
+held-out bench catches 7 of 8 private bug variants with no false alarm, as SAM does, with no SAM key
+in any of these runs (Oct 29). With `both`, Glimmer is a second pair of
 eyes next to SAM 3.1. Muse Code (the fixer) and Muse Voice Transcribe stay on Meta's hosted API.
 
 This page is for the infrastructure partner verifying the open-weights prize, and for us: what runs
@@ -185,12 +186,45 @@ How it got there, the same day, all on the same deployment:
    ground check). That loses the one seeded bug only a precise vision box sees, sinking/v2 (the
    robot drawn 26 px low, physics unchanged); docs/sam.md has SAM's hybrid catching it.
 
+Held-out detection bench, judge `glimmer-engine` (no SAM key in the runs), every private bug
+variant and the clean game, each on the smoke route and the four private routes, the same jobs and
+checks as SAM's bench in docs/sam.md (runs 40967826195 and 40975628695, Oct 29). **These runs used
+the earlier, stricter agreement rule** (a box had to contain the object's centre): the overlap rule
+above had not reached main when the bench branch was cut. The ground was judged on the position log,
+as now.
+
+| Held-out variant | Engine | Gameplay | player-always-visible | coins-visible | Caught, Glimmer+engine | Caught, SAM on (docs/sam.md) | Caught, SAM off |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| clean (control) | 5 pass | 5 pass | 5 pass | 5 pass | **no false alarm** | no false alarm | no false alarm |
+| physics-fall-through/v5 | 5 fail | 5 fail | 5 fail | 5 pass | **yes** | yes | yes |
+| physics-fall-through/v6 | 5 fail | 5 fail | 5 fail | 5 pass | **yes** | yes | yes |
+| missing-texture/v5 | 5 pass | 5 pass | 5 pass | 5 fail | **yes** | yes | no |
+| missing-texture/v6 | 5 pass | 5 pass | 5 pass | 5 fail | **yes** | yes | no |
+| layering/v5 | 5 pass | 5 pass | 5 fail | 1 fail, 4 pass | **yes** | yes | no |
+| layering/v6 | 5 pass | 5 pass | 5 fail | 1 fail, 4 pass | **yes** | yes | no |
+| sinking/v3 | 5 fail | 5 pass | 2 fail, 3 pass | 1 fail, 4 pass | **yes** | yes | yes |
+| sinking/v4 | 5 pass | 5 pass | 5 pass | 5 pass | no | no | no |
+
+With Glimmer checked against the engine, 7 of 8 held-out variants are caught and the clean game
+raises no false alarm: the same count as SAM, and the same miss (sinking/v4). Without vision, 3 of 8.
+The two families only vision catches, missing-texture and layering, are caught on every route by
+the check aimed at them.
+
+**The coins check failed on 3 routes where nothing touched the coins** (one each on layering/v5,
+layering/v6 and sinking/v3; SAM passed coins on every route of those variants). It changed no
+verdict, since each of those variants is caught by another check, but on a fine fix it would be a
+false fail. The private frames are not published, so the cause is not known. The stricter rule
+these runs used dropped 40% of coin boxes on the clean game against 9% under the overlap rule, so
+the likeliest cause is a frame where every coin box was dropped, which the overlap rule makes rarer.
+
 ## What is not measured yet
 
-- **Detection across every seeded bug with `glimmer-engine`.** The verify runs above are one real
-  fix and one attack, each run once. By the checks it now uses (position-log ground, Glimmer
-  visibility and coins), it should catch 7 of the 8 development variants in docs/sam.md (all but
-  sinking/v2), against SAM's 8 of 8 and 3 of 8 with no vision; the held-out bench has not been run
+- **The held-out bench under the overlap rule.** The catches above should hold (missing-texture and
+  layering are caught because Glimmer sees no coins, or no robot, at all; fall-through and sinking/v3
+  by the engine), and the hide-the-robot verify run under the overlap rule still rejected; but only a
+  re-run measures it, and whether the stray coins fails go away.
+- **The development variants with `glimmer-engine`.** By the checks it uses it should catch 7 of the
+  8 in docs/sam.md (all but sinking/v2, which needs a precise box); the dev bench has not been run
   with it.
 - **How often a fine fix gets a false fail.** One accept is not a rate. A frame with one or two
   coins on screen, where Glimmer's only box misses by more than half a coin, would fail
