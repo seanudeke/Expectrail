@@ -27,7 +27,7 @@ import json
 import sys
 from pathlib import Path
 
-from agents.web_bench import CLEAN, ROUTES, dev_variants
+from agents.web_bench import CLEAN, ROUTES, dev_variants, iou
 from expectrail.evaluator import DEFAULT_MIN_SCORE
 from harness.run import REPO
 from harness.web.run import run as web_run
@@ -47,14 +47,6 @@ PROMPTS: dict[str, list[str]] = {
     "logo": ["purple logo", "Bootstrap logo", "purple B logo", "purple square logo", "logo"],
 }
 MATCH_IOU = 0.5
-
-
-def iou(a: list[float], b: list[float]) -> float:
-    ix = max(0.0, min(a[2], b[2]) - max(a[0], b[0]))
-    iy = max(0.0, min(a[3], b[3]) - max(a[1], b[1]))
-    inter = ix * iy
-    union = (a[2] - a[0]) * (a[3] - a[1]) + (b[2] - b[0]) * (b[3] - b[1]) - inter
-    return inter / union if union > 0 else 0.0
 
 
 def score_prompt(sessions: list[dict], name: str, prompt: str) -> dict:

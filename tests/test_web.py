@@ -131,8 +131,20 @@ class BenchTest(unittest.TestCase):
             (run_dir / "sam-logo-visible.json").write_text(json.dumps({
                 "model": {"prompts": {"logo": "purple logo"}}, "frames": [{"frame": 2, "objects": {"logo": []}}]}))
             seen = web_bench.sam_seen(run_dir)
-        self.assertEqual(seen, ["SAM button: [1200, 300, 1230, 322] @0.71 +1 (drawn at [332, 1358, 940, 1406])",
-                                "SAM logo: none (drawn at [764, 48, 836, 105])"])
+        self.assertEqual(seen, ["SAM button: [1200, 300, 1230, 322] @0.71 +1 (drawn at [332, 1358, 940, 1406]); "
+                                "no match, other max 0.71",
+                                "SAM logo: none (drawn at [764, 48, 836, 105]); no match, other max 0.00"])
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp)
+            (run_dir / "trace.json").write_text(json.dumps(trace(frames=3)))
+            (run_dir / "sam-checkout-button-visible.json").write_text(json.dumps({
+                "model": {"prompts": {"button": "blue button"}},
+                "frames": [{"frame": n, "objects": {"button": [{"box": [332, 1358, 940, 1406], "score": s},
+                                                              {"box": [1200, 300, 1230, 322], "score": 0.6}]}}
+                           for n, s in ((0, 0.8), (1, 0.77), (2, 0.9))]}))
+            seen = web_bench.sam_seen(run_dir)
+        self.assertEqual(seen, ["SAM button: [332, 1358, 940, 1406] @0.90 +1 (drawn at [332, 1358, 940, 1406]); "
+                                "match min 0.77 (3 frames), other max 0.60"])
 
 
 @unittest.skipUnless(__import__("importlib").util.find_spec("playwright"), "playwright is not installed")

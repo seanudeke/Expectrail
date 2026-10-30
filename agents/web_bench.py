@@ -191,10 +191,20 @@ def detail_lines(doc: dict, out: Path) -> list[str]:
     return lines
 
 
+def iou(a: list[float], b: list[float]) -> float:
+    ix = max(0.0, min(a[2], b[2]) - max(a[0], b[0]))
+    iy = max(0.0, min(a[3], b[3]) - max(a[1], b[1]))
+    inter = ix * iy
+    union = (a[2] - a[0]) * (a[3] - a[1]) + (b[2] - b[0]) * (b[3] - b[1]) - inter
+    return inter / union if union > 0 else 0.0
+
+
 def sam_seen(run_dir: Path) -> list[str]:
-    """What SAM found against what the layout says, for calibrating prompts and thresholds: on the
-    last frame SAM looked at, its best box and score for each object it was asked for, how many other
-    matches cleared the evaluator's default score, and where the page drew the element."""
+    """What SAM found against what the page drew, for calibrating prompts and thresholds: on the last
+    frame SAM looked at, its best box and score for each object it was asked for, how many other
+    matches cleared the evaluator's default score, and where the page drew the element; then, over
+    every frame SAM looked at, the lowest score of a match on the drawn element (IoU 0.5 or more) and
+    the highest score of anything else. A minScore between the two separates them."""
     from expectrail.evaluator import DEFAULT_MIN_SCORE
 
     try:
@@ -223,6 +233,23 @@ def sam_seen(run_dir: Path) -> list[str]:
             others = sum((d.get("score") or 0) >= DEFAULT_MIN_SCORE for d in ranked[1:])
             seen[name] = (f"SAM {name}: {[round(v) for v in best['box']]} @{best.get('score', 0):.2f}"
                           f" +{others} (drawn at {drawn})")
+    for name in list(seen):
+        matches, other = [], 0.0
+        for path in sorted(run_dir.glob("sam-*.json")):
+            obs = json.loads(path.read_text(encoding="utf-8"))
+            if name not in obs.get("model", {}).get("prompts", {}):
+                continue
+            for frame in obs.get("frames", []):
+                element = (rows.get(frame["frame"]) or {}).get("elements", {}).get(name) or {}
+                truth = element.get("painted") if element.get("shown") else None
+                found = frame["objects"].get(name) or []
+                hit = [d.get("score") or 0 for d in found if truth and iou(d["box"], truth) >= 0.5]
+                other = max([other] + [d.get("score") or 0 for d in found if not (truth and iou(d["box"], truth) >= 0.5)])
+                if hit:
+                    matches.append(max(hit))
+            break
+        seen[name] += (f"; match min {min(matches):.2f} ({len(matches)} frames)" if matches else "; no match") + \
+            f", other max {other:.2f}"
     return list(seen.values())
 
 

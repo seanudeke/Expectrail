@@ -5,7 +5,7 @@
   "objects": {
     "button": {
       "prompt": "full-width blue button",
-      "minScore": 0.66
+      "minScore": 0.71
     }
   },
   "assertion": {
