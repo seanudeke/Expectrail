@@ -15,7 +15,7 @@ Three things, on public material only (the approved specs, the seeded bugs, the 
     python3 -m agents.spark_open models
     python3 -m agents.spark_open run --seeded runs/seeded-check --out runs/spark-open
     python3 -m agents.spark_open publish runs/spark-open/results.json   # GitHub annotations
-    python3 -m agents.spark_open collect --run <id>                    # bench/spark-open/
+    python3 -m agents.spark_open collect --run <id>                    # bench/spark-open/<id>/
 
 The workflow is ``.github/workflows/spark-open.yml``. Nothing here is estimated: token counts are
 what the endpoint reported, and a call that failed is recorded as failed.
@@ -233,7 +233,7 @@ def summary_lines(doc: dict) -> list[tuple[str, str]]:
                 parts.append(f"{r['spec']} needs review ({'; '.join(r['problems'])[:200]})")
                 continue
             c, s = r["compare"], r["shape"]
-            parts.append(f"{r['spec']} valid; assertion {'same' if c['sameAssertion'] else s['assertion']}; "
+            parts.append(f"{r['spec']} valid; assertion {'same' if c['sameAssertion'] else _assertion(s)}; "
                          f"names {'same' if c['sameObjectNames'] else s['objects']}; "
                          f"tolerance {s['tolerancePx']} vs {r['approvedShape']['tolerancePx']}; "
                          f"window {s['window']} vs {r['approvedShape']['window']}")
@@ -314,6 +314,11 @@ def _px(value) -> str:
     return "none" if value is None else f"{value} px"
 
 
+def _assertion(shape_: dict) -> str:
+    b = shape_.get("boundary")
+    return shape_["assertion"] + (f", {b['side']} the {b['relativeTo']}'s {b['edge']} edge" if b else "")
+
+
 def _cell(value) -> str:
     return str(value).replace("|", "\\|")
 
@@ -342,7 +347,7 @@ def markdown(doc: dict) -> str:
             continue
         c, s, a = r["compare"], r["shape"], r["approvedShape"]
         prompts = ", ".join(f"{k}: \"{v}\"" for k, v in s["objects"].items())
-        lines.append(f"| {r['spec']} | {r['by']} | yes | {'yes' if c['sameAssertion'] else 'no: ' + str(s['assertion'])} | "
+        lines.append(f"| {r['spec']} | {r['by']} | yes | {'yes' if c['sameAssertion'] else 'no: ' + _assertion(s)} | "
                      f"{'yes' if c['sameObjectNames'] else 'no'} | {_cell(prompts)} | "
                      f"{_px(s['tolerancePx'])} / {_px(a['tolerancePx'])} | {s['window']} / {a['window']} |")
     approved_prompts = {}
@@ -399,7 +404,7 @@ def main(argv: list[str] | None = None) -> int:
     pub.add_argument("results", type=Path)
     c = sub.add_parser("collect", help="write bench/spark-open/ from a run's annotations")
     c.add_argument("--run", type=int, required=True)
-    c.add_argument("--out", type=Path, default=OUT_DIR)
+    c.add_argument("--out", type=Path, help="default bench/spark-open/<run>")
     args = p.parse_args(argv)
 
     if args.cmd in ("models", "run"):
@@ -425,6 +430,7 @@ def main(argv: list[str] | None = None) -> int:
         publish(json.loads(args.results.read_text(encoding="utf-8")))
         return 0
     doc = collect(args.run)
+    args.out = args.out or OUT_DIR / str(args.run)
     write(doc, args.out)
     print(f"wrote {args.out / 'results.json'} and {args.out / 'README.md'}")
     return 0

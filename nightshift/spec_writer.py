@@ -46,7 +46,9 @@ Rules:
   2. {"type": "inside-region", "object": O, "region": {"relativeTo": R, "marginPx": n} or {"box": [x0,y0,x1,y1]},
      "tolerancePx": n}: O stays inside R's box (or a fixed box).
   3. {"type": "never-crosses", "object": O, "boundary": {"relativeTo": R, "edge": "top|bottom|left|right",
-     "side": "above|below|left-of|right-of", "tolerancePx": n}}: O never goes past that edge of R.
+     "side": "above|below|left-of|right-of", "tolerancePx": n}}: O stays on "side" of that edge of R and
+     never crosses it. "side" is where O stays, not where it must not go: "the ball never rises through
+     the ceiling" is {"relativeTo": "ceiling", "edge": "bottom", "side": "below"}.
   4. {"type": "reaches", "object": O, "goal": G, "distancePx": n}: O touches or comes within n px of G at some point.
 - Every object named in the assertion must appear in "objects".
 - If the check cannot be expressed with these four types, return {"unsupported": "<why>"} instead.
