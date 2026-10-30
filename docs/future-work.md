@@ -150,7 +150,9 @@ evidence ([`apps/checkout`](../apps/checkout); results in the README's "Beyond g
   - Running the repair loop live found two faults the bench alone had not: a threshold that rejected
     a correct fix, and a tolerance too tight for SAM's box at a private screen size. Both are fixed,
     and the live matrix then accepted Muse Code's fixes for all 8 bugs.
-- **What it does not yet have.** Held-out web bugs, and checks written by anyone outside the team.
+- **What it does not yet have.** Held-out web bugs written by a person: the four it has were written
+  by a separate agent that never saw the checks, and SAM caught all four. It also has no checks
+  written by anyone outside the team.
 
 Further out are backend and infrastructure changes, where the evidence is logs, metrics and
 responses rather than pixels. None of that is built.

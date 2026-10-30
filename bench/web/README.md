@@ -81,9 +81,26 @@ tuned them, in order, including the tuning that failed, so the result can be che
      the bar moved clear of the button.
    - Cost: 2,209 SAM images ($5.52) and 46 job minutes.
 
+10. **Private web bugs** ([41130091655](https://github.com/seanudeke/Expectrail/actions/runs/41130091655)).
+    - Four private bugs, in three families, live only in the private repository.
+    - They were written by a separate Claude agent that was given only the page, the public bugs
+      (so it would not repeat their mechanisms) and the four things a shopper should get. It never
+      saw the checks' prompts, thresholds, tolerance or this history, and ran no check.
+    - It confirmed each bug from rendered frames only. It reports that one shows on one session
+      only.
+    - We have not read the patches. The results, ids and counts only:
+      - caught with SAM: **4 of 4**;
+      - caught without SAM: 2 of 4;
+      - no false alarm on the clean page;
+      - cost: 214 SAM images ($0.54).
+
 **What remains open:**
-- The prompts and the agreement rule were chosen on public bugs and changes we wrote, plus one
-  Muse fix. There are no private web bugs yet to test them on cases they were not tuned on.
+- The prompts, the agreement rule and the tolerance were tuned on public bugs and changes we wrote,
+  plus Muse's fixes. The four private bugs are the first test on bugs they were not tuned on.
+  - Those bugs were written by an AI agent from the same model family as the one that tuned the
+    checks, not by a person.
+  - Four is a small set.
+  - Human-written private bugs (issue #109) would be the stronger test.
 - We suggested the private sessions' screen sizes to Sean (a list of sizes that fit the page),
   so they are less independent of us than the game's held-out bugs. Sean chose among them and wrote
   the sessions, and we have not read them.
@@ -92,5 +109,5 @@ tuned them, in order, including the tuning that failed, so the result can be che
   cannot make SAM see a button that is not drawn on the element's own box. But a vision check that
   leans on the page's geometry is not independent of the page.
 
-Spend for the runs above: about $13 of SAM images, plus Muse Code on the live cases (rejected and
+Spend for the runs above: about $19 of SAM images, plus Muse Code on the live cases (rejected and
 accepted), at a few cents each.

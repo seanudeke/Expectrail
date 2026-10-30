@@ -128,6 +128,20 @@ class PublicLinesTest(unittest.TestCase):
             items = private_items(private)
         self.assertEqual(items["patch lines"], [ADDED])
 
+    def test_the_checkout_page_s_private_bugs_are_guarded_too(self):
+        page_line = next(l.strip() for l in (REPO / "apps" / "checkout" / "site" / "checkout" / "index.html")
+                         .read_text().splitlines() if len(l.strip()) >= 12)
+        web_added = "margin-inline: -9999px; /* synthetic private web mechanism */"
+        with tempfile.TemporaryDirectory() as tmp:
+            private = Path(tmp)
+            (private / "web" / "layering").mkdir(parents=True)
+            (private / "manifest.json").write_text(json.dumps({"variants": []}))
+            (private / "web" / "layering" / "v9.patch").write_text(f"+{page_line}\n+{web_added}\n")
+            (private / "web" / "manifest.json").write_text(json.dumps({"variants": [
+                {"family": "layering", "id": "v9", "patch": "layering/v9.patch"}]}))
+            items = private_items(private)
+        self.assertEqual(items["patch lines"], [web_added])
+
 
 if __name__ == "__main__":
     unittest.main()
