@@ -34,6 +34,11 @@ MATRIX_FORMAT = "nightshift.fix-matrix-bench/v0"
 OUT_DIR = REPO / "bench" / "detection"
 MATRIX_DIR = REPO / "bench" / "fix-matrix"
 JUDGE_DIR = REPO / "bench" / "judge"
+DEMO_DIR = REPO / "bench" / "demo-loop"
+DEMO_TITLE = re.compile(r"^Demo run (?P<run>\d+)$")
+DEMO_MSG = re.compile(r"^decision (?P<decision>[a-z-]+); attempts (?P<tries>.*?); triage (?P<triage>\S+); "
+                      r"fixer (?P<fixer>\S+); trust (?P<trust>\S+); verified on (?P<prov>\S+); signed (?P<signed>\S+); "
+                      r"(?P<seconds>[\d.]+) s; SAM images (?P<sam>\d+)$")
 JUDGE_TITLE = re.compile(r"^Judge (?P<case>(?:good|bad)/\S+)$")
 JUDGE_MSG = re.compile(r"^label (?P<label>good|bad); SAM on (?P<sam>\S+); SAM off (?P<nosam>\S+); "
                        r"Muse screenshots (?P<muse>\S+); (?P<seconds>[\d.]+) s; live=(?P<live>True|False)"
@@ -309,6 +314,55 @@ def judge_markdown(doc: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+def collect_demo(run_id: int, fetch=gh_json) -> dict:
+    """A live demo-loop run -> each overnight run's outcome, and how many were accepted."""
+    run, notes = run_annotations(run_id, fetch, prefix="demo-run")
+    rows = []
+    for note in notes:
+        m = DEMO_TITLE.match(note.get("title") or "")
+        if not m:
+            continue
+        msg = DEMO_MSG.match(" ".join((note.get("message") or "").split()))
+        if not msg:
+            raise ValueError(f"unrecognised demo annotation: {note.get('message')!r}")
+        tries = [t.split(": ", 1)[1] for t in msg["tries"].split("; ") if ": " in t]
+        rows.append({"run": int(m["run"]), "decision": msg["decision"], "attempts": tries,
+                     "triage": msg["triage"], "fixer": msg["fixer"], "trust": msg["trust"],
+                     "verifiedOn": msg["prov"], "signed": msg["signed"] == "True",
+                     "seconds": float(msg["seconds"]), "samImages": int(msg["sam"])})
+    jobs = fetch(f"repos/{REPO_SLUG}/actions/runs/{run_id}/jobs?per_page=100")["jobs"]
+    asked = sum(1 for j in jobs if j["name"].startswith("demo-run"))
+    if not rows:
+        raise SystemExit(f"run {run_id}: no demo results among its annotations")
+    rows.sort(key=lambda r: r["run"])
+    accepted = sum(r["decision"] == "accept" for r in rows)
+    return {"format": "nightshift.demo-loop/v0", "run": run_id, "runUrl": run.get("html_url"),
+            "commit": run.get("head_sha"), "date": run.get("created_at"), "asked": asked, "recorded": len(rows),
+            "accepted": accepted, "firstAttempt": sum(r["attempts"][:1] == ["accept"] for r in rows),
+            "spend": spend(rows, muse_key="none") | {"museCalls": sum(len(r["attempts"]) for r in rows)},
+            "rows": rows}
+
+
+def demo_markdown(doc: dict) -> str:
+    s = doc["spend"]
+    lines = ["# Demo path, live", "",
+             ("Written by `python3 -m agents.bench_collect --demo --run <id>` from the run's own annotations; "
+              "do not edit by hand."),
+             (f"Run [{doc['run']}]({doc['runUrl']}), {doc['date'][:10]}, commit {doc['commit'][:7]}. Each run is the "
+              "overnight loop end to end in its own job: Wonder triage, Muse Code in bubblewrap, the Godot harness, "
+              "the verifier with SAM on and the private held-out routes, the signed morning report and the trust check."),
+             "",
+             (f"**{doc['accepted']} of {doc['asked']} runs accepted**, {doc['firstAttempt']} on the first attempt. "
+              f"Muse Code attempts {s['museCalls']}; SAM images {_money(s)}; {s['jobMinutes']:.0f} job minutes."), "",
+             "| Run | Decision | Attempts | Triage | Fixer | Trust | Signed | Minutes | SAM images |",
+             "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
+    for r in doc["rows"]:
+        lines.append(f"| {r['run']} | {r['decision']} | {', '.join(r['attempts']) or 'none'} | {r['triage']} | "
+                     f"{r['fixer']} | {r['trust']} | {'yes' if r['signed'] else 'no'} | {r['seconds'] / 60:.0f} | "
+                     f"{r['samImages']:,} |")
+    return "\n".join(lines) + "\n"
+
+
 def matrix_markdown(doc: dict) -> str:
     runs = ", ".join(f"[{r['run']}]({r['runUrl']}) ({r['commit'][:7]})" for r in doc["runs"])
     lines = ["# Fix matrix", "",
@@ -372,8 +426,17 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--set", choices=("dev", "held-out"), default="dev", dest="which")
     p.add_argument("--matrix", action="store_true", help="fix-matrix runs instead of a detection run")
     p.add_argument("--judge", action="store_true", help="a judge-benchmark run instead of a detection run")
+    p.add_argument("--demo", action="store_true", help="a live demo-loop run (Fix matrix, bench demo)")
     p.add_argument("--out", type=Path)
     args = p.parse_args(argv)
+    if args.demo:
+        out = args.out or DEMO_DIR
+        doc = collect_demo(args.run[-1])
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "demo.json").write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+        (out / "README.md").write_text(demo_markdown(doc), encoding="utf-8")
+        print(f"wrote {out / 'demo.json'} and {out / 'README.md'}")
+        return 0
     if args.judge:
         out = args.out or JUDGE_DIR
         doc = collect_judge(args.run)
