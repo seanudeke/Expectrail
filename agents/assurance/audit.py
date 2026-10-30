@@ -48,6 +48,7 @@ PERCEPTION = frozenset({
     ".github/workflows/web-bench.yml#heldout-bench",
     ".github/workflows/web-bench.yml#web-judge",  # the same, on the judge benchmark's cases
     ".github/workflows/web-bench.yml#web-probe",  # the same, one frame a session, for prompt calibration
+    ".github/workflows/web-fix.yml#plan",  # SAM on the clean page's private sessions, before Muse runs
     # Mutation bench: SAM on public checks only; never Muse Code, never the private set.
     ".github/workflows/mutation-bench.yml#run",
 })

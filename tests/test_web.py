@@ -247,7 +247,7 @@ class FixLoopTest(unittest.TestCase):
                     self.skipTest(f"chromium unavailable: {exc}")
         self.assertEqual(lines, ["held-out r0: the clean page passes",
                                  "held-out r1: the clean page fails layout "
-                                 "(checkout-button-inside-form, checkout-button-visible, logo-visible)",
+                                 "(layout: checkout-button-inside-form, checkout-button-visible, logo-visible)",
                                  "held-out r2: not a valid web route"])
 
     def test_a_bug_its_checks_cannot_see_is_not_detected_without_sam(self):

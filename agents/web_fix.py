@@ -337,9 +337,12 @@ def annotation(row: dict) -> str:
     return line
 
 
-def check_held_out(out: Path) -> list[str]:
-    """Each private session on the clean page, layout and behaviour only (no model, no spend). A
-    session the clean page fails would reject every candidate, so it is caught before a live run.
+def check_held_out(out: Path, use_sam: bool = False) -> list[str]:
+    """Each private session on the clean page, judged as the verifier will judge a candidate: layout
+    and behaviour, and with ``use_sam`` every SAM check too (two sessions, about 90 SAM images). A
+    session the clean page fails would reject every candidate, so it is caught before Muse spends.
+    The layout-only check missed one: the clean page passed it but failed the SAM inside-the-form
+    check at the private screen sizes, and the first full run rejected every correct fix for it.
     Prints only a session's number and the public check names that failed, never its contents."""
     held, problem = _held_out_routes()
     if held is None:
@@ -353,15 +356,15 @@ def check_held_out(out: Path) -> list[str]:
             lines.append(f"held-out r{n}: not a valid web route")
             continue
         run_dir = out / "held-out-check" / f"r{n}"
-        checks = web_bench.judge_route(route, [], run_dir, specs, use_sam=False)
-        bad = [c for c, r in checks.items() if r != "pass"]
+        checks = web_bench.judge_route(route, [], run_dir, specs, use_sam=use_sam)
+        bad = [c if r == "fail" else f"{c} ({r})" for c, r in checks.items() if r != "pass"]
         failing_specs = [s["id"] for s in specs
                          if json.loads((run_dir / f"verdict-layout-{s['id']}.json").read_text(encoding="utf-8")
                                        if (run_dir / f"verdict-layout-{s['id']}.json").is_file()
                                        else '{"result": "needs-review"}')["result"] != "pass"]
         if bad:
             lines.append(f"held-out r{n}: the clean page fails {', '.join(bad)}"
-                         + (f" ({', '.join(failing_specs)})" if "layout" in bad and failing_specs else ""))
+                         + (f" (layout: {', '.join(failing_specs)})" if "layout" in bad and failing_specs else ""))
         else:
             lines.append(f"held-out r{n}: the clean page passes")
     return lines
@@ -376,7 +379,8 @@ def main(argv: list[str] | None = None) -> int:
     g.add_argument("--list", action="store_true")
     g.add_argument("--case")
     g.add_argument("--check-held-out", action="store_true",
-                   help="replay each private session on the clean page (no model) and say whether it passes")
+                   help="replay each private session on the clean page and say whether it passes "
+                        "(with EXPECTRAIL_OBS_PROVIDER=sam, SAM's checks too)")
     p.add_argument("--condition", choices=CONDITIONS)
     p.add_argument("--out", type=Path, default=REPO / "runs" / "web-fix")
     p.add_argument("--live", action="store_true", help="run Muse Code (spends Meta credit)")
@@ -387,7 +391,7 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(sorted(dev_variants())))
         return 0
     if args.check_held_out:
-        lines = check_held_out(args.out)
+        lines = check_held_out(args.out, use_sam=web_bench.sam_on())
         print("\n".join(lines))
         # Not mounted is not an error here: every verdict is then needs-review, and run_case says so.
         return 1 if any(" fails " in line or "not a valid" in line for line in lines) else 0
