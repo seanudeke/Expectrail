@@ -28,6 +28,46 @@ jobs:
       - run: python -m pip install -r requirements-dev.txt
       - run: python -m unittest discover -s tests -t . -v
 
+  # OBAAF (docs/obaaf.md), pinned to the reviewed commit: the lane inventory in .github/obaaf.yml
+  # must hold, every finding is reported and none is gated yet, and candidate fixes become proposals
+  # that OBAAF's checker accepts or refuses before any game code runs.
+  obaaf-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Install OBAAF from the reviewed commit (hash-pinned dependencies, its own venv)
+        uses: Obaaf/OBAAF/actions/setup-obaaf@ef34304214923953cf7d67343b912385d4ce5906
+      - name: Lane inventory and findings (reporting only)
+        run: |
+          obaaf check . --lanes > obaaf-lanes.txt
+          obaaf check . --format json --fail-on never --output obaaf-audit.json
+          "$pythonLocation/bin/python" -m agents.assurance.audit --lanes obaaf-lanes.txt --report obaaf-audit.json
+      - name: Proposals - the real fix passes; workflow, verifier and spec edits, symlinks and extra files are refused
+        run: |
+          "$pythonLocation/bin/python" -m unittest tests.test_assurance -v
+          "$pythonLocation/bin/python" -m agents.assurance.proposal --seed bugs/physics-fall-through/v1.patch \
+            --candidate agents/fixtures/fix-collision-mask.patch --out runs/obaaf-proposal
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: obaaf-audit
+          path: |
+            obaaf-lanes.txt
+            obaaf-audit.json
+            runs/obaaf-proposal/proposal/
+            runs/obaaf-proposal/normalization.json
+            runs/obaaf-proposal/proposal-check.json
+          retention-days: 14
+
   capture-smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -259,12 +299,12 @@ jobs:
             bench/overnight-offline.json
           retention-days: 7
 
+  # No secret here: this job runs a pull request's own code, so it never sees the private held-out
+  # set (it used to, on same-repository branches: OBAAF-GHA-001). The verifier uses the labeled
+  # interim fixture, as it always has on forks; agents-harness-private checks the private routes.
   agents-harness-verify:
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    env:
-      # The private held-out set is fetched only when this secret exists (not on forks).
-      HELDOUT_TOKEN_SET: ${{ secrets.HELDOUT_TOKEN != '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -277,17 +317,6 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri libglx-mesa0 patch
       - name: Download Godot 4.7.2 and check its SHA-512
         run: ./harness/get_godot.sh
-      - name: Fetch the private held-out set (verifier side only)
-        if: env.HELDOUT_TOKEN_SET == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: seanudeke/Nightshift-heldout
-          token: ${{ secrets.HELDOUT_TOKEN }}
-          path: heldout-set
-          persist-credentials: false
-      - name: Point the verifier at the held-out set
-        if: env.HELDOUT_TOKEN_SET == 'true'
-        run: echo "NIGHTSHIFT_HELDOUT_DIR=$GITHUB_WORKSPACE/heldout-set" >> "$GITHUB_ENV"
       - name: Flake control — seed+fix replay identical twice
         run: >
           python -m harness.replay_check --route harness/routes/smoke.json --runs 2
@@ -362,6 +391,51 @@ jobs:
           retention-days: 7
 
   # Offline daily film on schedule + PRs (no Meta keys). Live Muse stays dispatch-only.
+  # The Gate 1 accept with the private held-out routes mounted. Never on a pull request: a pull
+  # request runs its branch's code, which must not see the private set.
+  agents-harness-private:
+    if: ${{ github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      HELDOUT_TOKEN_SET: ${{ secrets.HELDOUT_TOKEN != '' }}
+    steps:
+      - name: Skip without the held-out token (forks)
+        if: env.HELDOUT_TOKEN_SET != 'true'
+        run: echo "::notice title=Private routes::HELDOUT_TOKEN is not set here, so the private routes are not checked"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: env.HELDOUT_TOKEN_SET == 'true'
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        if: env.HELDOUT_TOKEN_SET == 'true'
+        with:
+          python-version: '3.13'
+      - if: env.HELDOUT_TOKEN_SET == 'true'
+        run: python -m pip install -r requirements-dev.txt
+      - name: Install a virtual display and software OpenGL
+        if: env.HELDOUT_TOKEN_SET == 'true'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri libglx-mesa0 patch
+      - name: Download Godot 4.7.2 and check its SHA-512
+        if: env.HELDOUT_TOKEN_SET == 'true'
+        run: ./harness/get_godot.sh
+      - name: Fetch the private held-out set (verifier side only)
+        if: env.HELDOUT_TOKEN_SET == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: seanudeke/Nightshift-heldout
+          token: ${{ secrets.HELDOUT_TOKEN }}
+          path: heldout-set
+          persist-credentials: false
+      - name: Harness-backed Gate 1 accept on the private routes
+        if: env.HELDOUT_TOKEN_SET == 'true'
+        env:
+          NIGHTSHIFT_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
+        run: |
+          python -m agents.gate1 --out runs/harness-private \
+            --candidate-patch agents/fixtures/fix-collision-mask.patch
+          python -c "import json; d=json.load(open('runs/harness-private/verify/verification.json')); assert d['decision']=='accept', d['reasons']; assert d['suite']['heldOut']['source']=='harness', d['suite']; print('accept on', d['suite']['heldOut']['detail'])"
+
   agents-daily-offline:
     runs-on: ubuntu-latest
     timeout-minutes: 15
