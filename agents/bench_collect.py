@@ -633,7 +633,10 @@ def collect_trial(run_ids: list[int], fetch=gh_json) -> dict:
                 if not t:
                     raise ValueError(f"unrecognised trial annotation: {message!r}")
                 failing = [] if t["failing"] == "none" else [f.strip() for f in t["failing"].split(",")]
-                found.setdefault(m["case"], {"case": m["case"], "candidates": []})["candidates"].append(
+                row = found.setdefault(m["case"], {"case": m["case"], "candidates": []})
+                if any(c["attempt"] == int(m["n"]) for c in row["candidates"]):
+                    continue  # the API can list one annotation twice; an attempt is one candidate
+                row["candidates"].append(
                     {"attempt": int(m["n"]), "expectrail": t["decision"], "publicCheck": t["public"],
                      "museScreenshots": None if t["muse"] == "None" else t["muse"],
                      "naturalCatch": t["catch"] == "True", "failing": failing})
