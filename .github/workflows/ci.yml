@@ -53,7 +53,23 @@ jobs:
           "$pythonLocation/bin/python" -m agents.assurance.audit --lanes obaaf-lanes.txt --report obaaf-audit.json
       - name: Proposals - the real fix passes; workflow, verifier and spec edits, symlinks and extra files are refused
         run: |
-          "$pythonLocation/bin/python" -m unittest tests.test_assurance -v
+          set +e
+          "$pythonLocation/bin/python" -m unittest tests.test_assurance -v > obaaf-tests.log 2>&1
+          code=$?
+          set -e
+          tail -n 3 obaaf-tests.log
+          if [ "$code" -ne 0 ]; then
+            # One annotation per failing test, with the last lines of its traceback (public material only).
+            "$pythonLocation/bin/python" - <<'PY'
+          import re
+          text = open("obaaf-tests.log").read()
+          for block in re.split(r"^=+$", text, flags=re.M)[1:]:
+              lines = [ln for ln in block.strip().splitlines() if ln.strip() and not set(ln) <= set("-")]
+              if lines:
+                  print(f"::error title={lines[0][:120]}::" + " | ".join(lines[-6:])[:900])
+          PY
+            exit "$code"
+          fi
           "$pythonLocation/bin/python" -m agents.assurance.proposal --seed bugs/physics-fall-through/v1.patch \
             --candidate agents/fixtures/fix-collision-mask.patch --out runs/obaaf-proposal
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
