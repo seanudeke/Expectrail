@@ -25,8 +25,11 @@ per run and price them at $2.50 per 1,000 images, the image segmentation price o
 from before the count existed say "not counted"; nothing is estimated.
 
 Muse Code does not report its token use, so its spend is counted as calls (fix attempts, judge calls) and
-priced from the usage page on dev.meta.ai for the `META_API_KEY` that only CI uses. The Actions jobs
-themselves are free on a public repository; job minutes are listed for scale.
+priced from the usage export on dev.meta.ai. The Actions jobs themselves are free on a public
+repository; job minutes are listed for scale.
+
+The team's whole bill is in `cost/`: the dev.meta.ai usage export (team id left out of the file name),
+priced by `python3 -m agents.usage_report bench/cost/meta-usage-2026-10-24-to-30.csv --out bench/cost`.
 
 ## Offline demo-path stub (agents lane)
 
