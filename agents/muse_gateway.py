@@ -54,7 +54,7 @@ DOWNLOAD_HOST = "lookaside.facebook.com"
 
 
 SKIP_DIRS = {".config", ".ssh", ".gnupg", ".git", "work", "runs", "node_modules", ".npm", ".cargo", ".rustup",
-             ".dotnet", ".nuget", ".gradle", ".m2", "go", ".android", ".docker"}
+             ".dotnet", ".nuget", ".gradle", ".m2", "go", ".android", ".docker", "actions-runner"}
 
 
 def _is_elf(path: Path) -> bool:
@@ -66,11 +66,12 @@ def _is_elf(path: Path) -> bool:
 
 
 def install_dirs(home: Path | None = None, min_bytes: int = 5_000_000, max_depth: int = 7) -> list[Path]:
-    """Directories under the home directory holding the program the ``muse`` launcher runs.
+    """What to bind read-only so the ``muse`` launcher finds its program inside the sandbox.
 
-    The launcher is a shell script that keeps a native program somewhere under the home directory,
-    which the sandbox replaces with an empty one. This finds large native executables under the
-    home directory (configuration, keys and toolchains left out) and returns their directories.
+    The launcher is a shell script that keeps a native program under the home directory, which the
+    sandbox replaces with an empty one. This finds large native executables there (configuration,
+    keys, toolchains and the CI runner left out). A program in ~/.local/bin is bound as a file, so
+    the rest of ~/.local (Muse's sessions and locks) stays writable; one elsewhere, with its directory.
     """
     home = home or Path.home()
     found: set[Path] = set()
@@ -89,8 +90,7 @@ def install_dirs(home: Path | None = None, min_bytes: int = 5_000_000, max_depth
                 if e.name not in SKIP_DIRS:
                     walk(e, depth + 1)
             elif e.is_file() and e.stat().st_size >= min_bytes and _is_elf(e):
-                # A program in .../bin usually needs its siblings (lib/, share/) too.
-                found.add(e.parent.parent if e.parent.name == "bin" and e.parent.parent != home else e.parent)
+                found.add(e if e.parent == home / ".local" / "bin" else e.parent)
 
     walk(home, 0)
     return sorted(found)
@@ -114,7 +114,7 @@ def bwrap_argv(work: Path, argv: list[str], binds: list[Path]) -> list[str]:
     extra: list[str] = []
     for d in binds:
         extra += ["--ro-bind", str(d), str(d)]
-        if (d / "sessions").is_dir():
+        if d.is_dir() and (d / "sessions").is_dir():
             extra += ["--tmpfs", str(d / "sessions")]
     cut = cmd.index("--")
     return cmd[:cut] + extra + cmd[cut:]

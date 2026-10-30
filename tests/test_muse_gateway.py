@@ -73,12 +73,14 @@ class DriverTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             home = Path(tmp)
             elf = b"\x7fELF" + b"\0" * 64
-            for rel, data in ((".local/share/m/versions/1.4/bin/prog", elf), (".config/x/prog", elf),
+            for rel, data in ((".local/share/m/versions/1.4/prog", elf), (".local/bin/muse-core", elf),
+                              (".config/x/prog", elf), ("actions-runner/cached/2.3/Runner", elf),
                               (".local/share/small/prog", elf[:20]), (".cache/big.bin", b"\0" * 128)):
                 (home / rel).parent.mkdir(parents=True, exist_ok=True)
                 (home / rel).write_bytes(data)
             found = [p.relative_to(home).as_posix() for p in mg.install_dirs(home, min_bytes=40)]
-        self.assertEqual(found, [".local/share/m/versions/1.4"])  # bin's parent, for its siblings
+        # The program in ~/.local/bin as a file (sessions under ~/.local stay writable); another with its directory.
+        self.assertEqual(found, [".local/bin/muse-core", ".local/share/m/versions/1.4"])
 
     def test_launcher_paths_pick_out_where_it_looks(self):
         import tempfile
