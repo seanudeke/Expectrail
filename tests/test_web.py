@@ -137,5 +137,65 @@ class ReplayTest(unittest.TestCase):
         self.assertTrue(a["trace"]["outcome"]["submitted"])
 
 
+@unittest.skipUnless(__import__("importlib").util.find_spec("playwright"), "playwright is not installed")
+class FixLoopTest(unittest.TestCase):
+    """agents.web_fix offline: the game's fixer and the verifier's contract and decision, on the page."""
+
+    def reverse_fix(self, key: str, tmp: Path) -> Path:
+        import difflib
+        import shutil
+        import subprocess
+
+        from agents.web_fix import SITE, dev_variants
+
+        bugged = tmp / "bugged"
+        shutil.copytree(SITE, bugged)
+        subprocess.run(["patch", "-s", "-p1", "-d", str(bugged), "-i", str(dev_variants()[key].resolve())], check=True)
+        diff = ""
+        for rel in ("checkout/index.html", "checkout/checkout.css"):
+            a, b = (bugged / rel).read_text().splitlines(True), (SITE / rel).read_text().splitlines(True)
+            diff += "".join(difflib.unified_diff(a, b, fromfile=f"a/{rel}", tofile=f"b/{rel}"))
+        path = tmp / "fix.patch"
+        path.write_text(diff)
+        return path
+
+    def test_a_real_fix_is_accepted_with_the_private_sessions_mounted(self):
+        from agents.web_fix import run_case
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            held = tmp / "held" / "web" / "routes"
+            held.mkdir(parents=True)
+            (held / "a.json").write_text((REPO / "harness" / "web" / "routes" / "checkout-desktop.json").read_text())
+            with mock.patch.dict("os.environ", {"EXPECTRAIL_HELDOUT_DIR": str(tmp / "held"), "EXPECTRAIL_OBS_PROVIDER": "trace"}):
+                try:
+                    row = run_case("dev/layering/v1", "expectrail", tmp / "out", live=False,
+                                   fixture=self.reverse_fix("dev/layering/v1", tmp))
+                except Exception as exc:  # noqa: BLE001 - no browser on this machine
+                    self.skipTest(f"chromium unavailable: {exc}")
+            self.assertEqual(row["detected"], "fail")
+            self.assertEqual(row["outcome"], "fixed", row)
+            v = json.loads((tmp / "out" / "dev_layering_v1" / "expectrail" / "verify" / "attempt-01" / "verification.json").read_text())
+            validate(v, "verification")
+            self.assertEqual({c["kind"] for c in v["checks"]}, {"regression", "gameplay", "clean", "held-out"})
+
+    def test_without_the_private_sessions_nothing_is_accepted(self):
+        from agents.web_fix import run_case
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            with mock.patch.dict("os.environ", {"EXPECTRAIL_HELDOUT_DIR": "", "EXPECTRAIL_OBS_PROVIDER": "trace"}):
+                row = run_case("dev/layering/v1", "expectrail", tmp / "out", live=False,
+                               fixture=self.reverse_fix("dev/layering/v1", tmp))
+        self.assertEqual(row["outcome"], "needs-review")
+
+    def test_a_bug_its_checks_cannot_see_is_not_detected_without_sam(self):
+        from agents.web_fix import run_case
+
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict("os.environ", {"EXPECTRAIL_OBS_PROVIDER": "trace"}):
+            row = run_case("dev/layering/v2", "expectrail", Path(tmp), live=False)
+        self.assertEqual(row["outcome"], "not-detected")
+
+
 if __name__ == "__main__":
     unittest.main()
