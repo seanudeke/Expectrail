@@ -74,6 +74,7 @@ def materialize_base(work: Path, seeds: list[Path], source: Path = REPO) -> dict
     Benchmark lineage only: the base is a fixture, never the clean main branch, and nothing here is
     ever pushed. For a production task the base would be a real committed failing revision.
     """
+    work = Path(work).resolve()  # git runs from inside it, so a relative path would not resolve
     base = work / "base"
     if base.exists():
         shutil.rmtree(base)
@@ -90,6 +91,8 @@ def materialize_base(work: Path, seeds: list[Path], source: Path = REPO) -> dict
 
 def normalize(candidate: Path, seeds: list[Path], out: Path, source: Path = REPO) -> dict:
     """Write ``out/proposal/`` (patch.diff, meta.json) for a game-relative candidate; return its record."""
+    out = Path(out).resolve()
+    candidate = Path(candidate).resolve()
     out.mkdir(parents=True, exist_ok=True)
     base = materialize_base(out, seeds, source)
     cand = out / "candidate-tree"
@@ -195,6 +198,7 @@ def obaaf_check(bundle: Path, base: Path, protect: list[str] | None = None, dige
 
 def check(out: Path, record: dict, editable: list[str] | None = None) -> dict:
     """Both rule sets over the bundle in ``out``; writes and returns ``out/proposal-check.json``."""
+    out = Path(out).resolve()
     obaaf = obaaf_check(out / "proposal", out / "base", digest=record["bundleDigest"])
     own = editable_problems(record["changedPaths"], editable or DEFAULT_EDITABLE)
     result = {

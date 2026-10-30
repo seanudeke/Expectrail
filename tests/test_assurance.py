@@ -51,6 +51,17 @@ class NormalizeTest(unittest.TestCase):
         self.assertIn("collision_mask = 14", tscn)  # the base carries the defect, not the fix
         self.assertNotIn(str(self.out), json.dumps(record))  # no local paths in the record
 
+    def test_a_relative_output_directory_works(self):
+        # CI passes --out runs/...; git runs from inside it, so every path must be absolute by then.
+        cwd = os.getcwd()
+        os.chdir(self.out)
+        try:
+            record = ap.normalize(FIX, [SEED], Path("relative") / "out")
+        finally:
+            os.chdir(cwd)
+        self.assertEqual(record["changedPaths"], ["game/platformer/player/player.tscn"])
+        self.assertTrue((self.out / "relative" / "out" / "proposal" / "patch.diff").is_file())
+
     def test_a_candidate_that_does_not_apply_or_changes_nothing_is_an_error(self):
         with self.assertRaises(ap.ProposalError):
             ap.normalize(SEED, [SEED], self.out / "twice")  # the seed again: already applied
