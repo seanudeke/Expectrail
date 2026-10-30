@@ -139,7 +139,7 @@ check fails on at least one route. Each variant gets one annotation with its id,
 and verdicts; nothing else from the private set leaves the runner (no artifacts, and the harness
 output goes to a file that is never printed).
 
-First full run, October 28 (run 40805529944, recorded in `bench/detection/held-out.json`), five
+First full run, October 28 (run 40805529944; `bench/detection/held-out.json` now holds the re-run below), five
 routes per variant, every pass confirmed on every frame:
 
 | Held-out variant | Engine | Gameplay | Hybrid | player-always-visible | coins-visible | Caught, SAM on | Caught, SAM off |
@@ -164,7 +164,9 @@ the engine and hybrid ground checks on all 5 routes. With SAM on, 8 of 8 held-ou
 caught; without it, 4 of 8; no false alarm on the clean routes either way. The check that catches it
 was built after the miss (see "The drawn floor"), so sinking/v4 is caught by a check made for its
 class, not blind; the other seven were caught before that check existed. SAM read 7,693 images
-($19.23); each variant took 4 to 8 minutes on a GitHub runner.
+($19.23); each variant took 4 to 8 minutes on a GitHub runner. Muse Glimmer checked against the
+engine, with no SAM key, got the same on the same commit: 8 of 8, 4 of 8 without vision, no false
+alarm (run 41003751876; docs/open-weights.md).
 
 Not yet explained: the hybrid's needs-review on layering, and sinking/v3 failing
 player-always-visible on three routes.

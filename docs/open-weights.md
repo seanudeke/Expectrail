@@ -4,9 +4,11 @@
 game engine; Muse Spark Open writes the checks.** Both are Meta open-weight models, served through
 partner inference (Fireworks, Baseten) or our own server. With `glimmer-engine`, the real fix is
 accepted and the hide-the-robot fix rejected, on the four private held-out routes too, and the
-held-out bench catches 7 of 8 private bug variants with no false alarm and no stray check failure,
-as SAM does, with no SAM key in any of these runs (Oct 29 to 30). With `both`, Glimmer is a second pair of
-eyes next to SAM 3.1. Muse Code (the fixer) and Muse Voice Transcribe stay on Meta's hosted API.
+held-out bench catches 8 of 8 private bug variants with no false alarm and no stray check failure,
+as SAM does, with no SAM key in any of these runs (Oct 29 to 30). Four of the eight are caught only
+by Glimmer's checks. The eighth, sinking/v4, is caught by the engine's ground check, not by Glimmer,
+and that check was built after the first benches missed it (see the bench below). With `both`,
+Glimmer is a second pair of eyes next to SAM 3.1. Muse Code (the fixer) and Muse Voice Transcribe stay on Meta's hosted API.
 
 This page is for the infrastructure partner verifying the open-weights prize, and for us: what runs
 on which model, where, and how to check it.
@@ -56,9 +58,10 @@ to confirm. Without `--restore` it only reports. By hand: Edit Deployment, Deplo
 Replicas 1, Advanced Options, Scale to Zero Window 15 min, Save.
 
 Each full verify run keeps one H200 up for about 35 to 40 minutes plus the 15-minute tail, about $7
-at $8 an hour; a probe about $1 to $3; the held-out bench (9 jobs sharing one replica) about 1 hour
-40 minutes plus the tail, about $15. Keep at least $15 of credit before starting runs, $25 before a
-bench.
+at $8 an hour; a probe about $1 to $3; the held-out bench (9 jobs, 3 at a time, sharing one replica)
+about 2 hours 35 minutes plus the tail, about $22 (run 41003751876, Oct 30; an earlier bench split
+over two runs took about 1 hour 40 minutes). Keep at least $15 of credit before starting runs, $30
+before a bench.
 
 ## How Glimmer fits
 
@@ -193,8 +196,8 @@ How it got there, the same day, all on the same deployment:
 Held-out detection bench, judge `glimmer-engine` (no SAM key in the runs), every private bug
 variant and the clean game, each on the smoke route and the four private routes, the same jobs and
 checks as SAM's bench in docs/sam.md, under the overlap rule above, with the ground judged on the
-position log (main at 9e9dba4; runs 40986446779 for sinking/v3 and v4, 40986680262 for the rest,
-Oct 30).
+position log against the clean level's collision and the floor as drawn (commit 92508d9, run
+41003751876, Oct 30; `bench/detection/held-out-glimmer-engine.json`).
 
 | Held-out variant | Engine | Gameplay | player-always-visible | coins-visible | Caught, Glimmer+engine | Caught, SAM on (docs/sam.md) | Caught, SAM off |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -206,13 +209,21 @@ Oct 30).
 | layering/v5 | 5 pass | 5 pass | 5 fail | 5 pass | **yes** | yes | no |
 | layering/v6 | 5 pass | 5 pass | 5 fail | 5 pass | **yes** | yes | no |
 | sinking/v3 | 5 fail | 5 pass | 2 fail, 3 pass | 5 pass | **yes** | yes | yes |
-| sinking/v4 | 5 pass | 5 pass | 5 pass | 5 pass | no | no | no |
+| sinking/v4 | 5 fail | 5 pass | 5 pass | 5 pass | **yes** | yes | yes |
 
-With Glimmer checked against the engine, 7 of 8 held-out variants are caught and the clean game
-raises no false alarm: the same count as SAM, and the same miss (sinking/v4). Without vision, 3 of 8.
-The two families only vision catches, missing-texture and layering, are caught on every route by
-the check aimed at them, and every check fails only where its bug is: coins pass on every route of
-every variant that does not touch the coins.
+With Glimmer checked against the engine, 8 of 8 held-out variants are caught and the clean game
+raises no false alarm: the same count as SAM. Without vision, 4 of 8. The two families only vision
+catches, missing-texture and layering, are caught on every route by the check aimed at them, and
+every check fails only where its bug is: coins pass on every route of every variant that does not
+touch the coins.
+
+The bench before it (main at 9e9dba4; runs 40986446779 for sinking/v3 and v4, 40986680262 for the
+rest, Oct 30) had the same verdict on every route of the other seven and the clean game, and missed
+sinking/v4, as SAM did: its floor is drawn away from where it collides, and every check measured
+the robot against the collision. The ground line now also follows the floor as the harness renders
+it (docs/sam.md, "The drawn floor"; `bench/drawn-floor/`). That check is the engine's render, not a
+model, and it was built after the miss, from the public game, without reading sinking/v4's patch,
+so this is a check made for the class that was missed, not a blind catch.
 
 The first bench (runs 40967826195 and 40975628695, Oct 29) ran under the earlier rule, where a box
 had to contain the object's centre, because the overlap rule had not reached main when its branch
