@@ -16,7 +16,8 @@ extends Node
 ##           be checked against where the engine put the coins.
 ## and the trace header carries levelSurfaces: every solid tile collision polygon in world
 ## coordinates, so the verifier can measure a candidate against the clean game's ground instead of
-## the ground the candidate itself shipped.
+## the ground the candidate itself shipped; and levelArt: where the tile layers are drawn, so the
+## verifier can see a floor drawn somewhere its collision is not (see _render_level_art).
 
 const TRACE_FORMAT := "nightshift.trace/v0"
 
@@ -42,6 +43,14 @@ const SINK_WINDOW := 64.0
 # centre (the body rests on the highest point beneath it, e.g. on a slope or a ledge).
 const BODY_HALF_WIDTH := 20.0
 const SEARCH_ROWS := 16
+# The tile-art render (_render_level_art): a visibility layer no game node uses, and the largest
+# render it makes (world pixels a side); a bigger level is rendered in tiles of this size.
+const ART_LAYER_BIT := 1 << 19
+const ART_TILE := 2048
+const ART_ALPHA := 128  # a pixel at least half opaque is drawn
+
+var _art: Dictionary = {}        # levelArt for the trace header, once rendered
+var _art_started := false
 
 
 func _ready() -> void:
@@ -99,6 +108,9 @@ func record() -> void:
 		var ground = _ground_under(_player.global_position)
 		if ground != null:
 			row["ground"] = snappedf(ground, 0.001)
+	if not _art_started and _layers_searched and not _layers.is_empty():
+		_art_started = true
+		_render_level_art()  # a coroutine: finishes a frame or two later, long before the route ends
 	var coins := _coin_positions()
 	if not coins.is_empty():
 		row["coins"] = coins
@@ -118,6 +130,8 @@ func _finish() -> void:
 		var surfaces := _level_surfaces()
 		if not surfaces.is_empty():
 			out["levelSurfaces"] = surfaces
+		if not _art.is_empty():
+			out["levelArt"] = _art
 		var file := FileAccess.open(_trace_path, FileAccess.WRITE)
 		file.store_string(JSON.stringify(out, "", false))
 		file.close()
@@ -183,6 +197,88 @@ func _level_surfaces() -> Array:
 						points.append([snappedf(world.x, 0.01), snappedf(world.y, 0.01)])
 					polygons.append(points)
 	return polygons
+
+
+func _render_level_art() -> void:
+	"""Render the tile layers alone, as the game draws them, and keep where they are opaque.
+
+	A second viewport shares the game's 2D world but only draws canvas items on ART_LAYER_BIT,
+	which only the tile layers (and the nodes above them) are given, so it draws exactly what the
+	game draws for them: their tiles, materials, shaders, offsets and modulation, nothing else. The
+	main viewport draws every layer, so the captured frames do not change. Per world column it
+	keeps the opaque runs, [[top, bottom], ...] in world y: levelArt = {x0, y0, width, height,
+	columns}. Read once: the tile layers do not move during a route.
+	"""
+	var bounds := Rect2()
+	var have := false
+	for node in _layers:
+		var layer := node as TileMapLayer
+		if layer == null or layer.tile_set == null:
+			continue
+		var used := layer.get_used_rect()
+		if used.size == Vector2i.ZERO:
+			continue
+		var cell := Vector2(layer.tile_set.tile_size)
+		# One cell of margin all round: tile art may be drawn outside its cell.
+		var a := layer.to_global(layer.map_to_local(used.position) - cell * 1.5)
+		var b := layer.to_global(layer.map_to_local(used.end) + cell * 0.5)
+		var r := Rect2(a, Vector2.ZERO).expand(b)
+		bounds = r if not have else bounds.merge(r)
+		have = true
+		var item: Node = layer
+		while item is CanvasItem:
+			(item as CanvasItem).visibility_layer |= ART_LAYER_BIT
+			item = item.get_parent()
+	if not have:
+		return
+	var x0 := int(floor(bounds.position.x))
+	var y0 := int(floor(bounds.position.y))
+	var width := int(ceil(bounds.end.x)) - x0
+	var height := int(ceil(bounds.end.y)) - y0
+	var columns := []
+	columns.resize(width)
+	for i in width:
+		columns[i] = []
+	var vp := SubViewport.new()
+	vp.world_2d = get_viewport().world_2d
+	vp.canvas_cull_mask = ART_LAYER_BIT
+	vp.transparent_bg = true
+	vp.disable_3d = true
+	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	add_child(vp)
+	for ty in range(0, height, ART_TILE):
+		for tx in range(0, width, ART_TILE):
+			var w := mini(ART_TILE, width - tx)
+			var h := mini(ART_TILE, height - ty)
+			vp.size = Vector2i(w, h)
+			vp.canvas_transform = Transform2D(0.0, Vector2(-(x0 + tx), -(y0 + ty)))
+			await RenderingServer.frame_post_draw
+			await RenderingServer.frame_post_draw
+			var img := vp.get_texture().get_image()
+			img.convert(Image.FORMAT_RGBA8)
+			var data := img.get_data()
+			for x in w:
+				var runs: Array = columns[tx + x]
+				var top := -1
+				for y in h:
+					var opaque := data[(y * w + x) * 4 + 3] >= ART_ALPHA
+					if opaque and top < 0:
+						top = y
+					elif not opaque and top >= 0:
+						_add_run(runs, y0 + ty + top, y0 + ty + y)
+						top = -1
+				if top >= 0:
+					_add_run(runs, y0 + ty + top, y0 + ty + h)
+	vp.queue_free()
+	_art = {"x0": x0, "y0": y0, "width": width, "height": height, "columns": columns}
+
+
+static func _add_run(runs: Array, top: int, bottom: int) -> void:
+	# A run that continues one from the tile above it is the same run.
+	if not runs.is_empty() and runs[-1][1] == top:
+		runs[-1][1] = bottom
+	else:
+		runs.append([top, bottom])
 
 
 func _surface_in_column(layer: TileMapLayer, world_x: float, min_y: float) -> Variant:

@@ -12,6 +12,7 @@ trace; SAM replaces the position-log stand-in for the observations document.
 from __future__ import annotations
 
 import importlib
+import math
 import os
 from typing import Callable
 
@@ -350,23 +351,67 @@ def surface_under(surfaces: list, x: float, y: float) -> float | None:
     return best
 
 
+# How far the top of the floor's drawn art sits above its collision, measured on the clean game: the
+# grass tufts on top of the tiles. Over all 3,648 exposed surface columns of the clean level the art
+# starts 1 to 10 px above the collision, 8 px at the mode. A constant, like FEET_OFFSET, so a
+# candidate cannot move it.
+DRAWN_GROUND_OFFSET = 8.0
+
+
+def drawn_surface_under(art: dict, x: float, y: float) -> float | None:
+    """World y of the floor as it is drawn under a body at (x, y), or None.
+
+    ``art`` is the trace's levelArt (where the harness found the tile layers opaque when rendered
+    alone). Per body column, the first drawn run that starts at or below y - SINK_WINDOW; its top,
+    lowered by DRAWN_GROUND_OFFSET, is where the floor's top would be if its art matched the clean
+    game's. The highest line over the columns wins, as for surface_under.
+    """
+    columns = art.get("columns") or []
+    x0, width = int(art.get("x0", 0)), int(art.get("width", len(columns)))
+    floor_limit = y - SINK_WINDOW
+    best = None
+    for dx in (-BODY_HALF_WIDTH, 0.0, BODY_HALF_WIDTH):
+        i = math.floor(x + dx) - x0
+        if not 0 <= i < min(width, len(columns)):
+            continue
+        for top, _bottom in columns[i]:
+            # Art that starts above the window is a platform the robot jumps through or a wall beside
+            # it, not a floor under it; the collision search skips those surfaces the same way.
+            if top < floor_limit:
+                continue
+            if best is None or top < best:
+                best = float(top)
+            break
+    return None if best is None else best + DRAWN_GROUND_OFFSET
+
+
 def with_reference_ground(trace: dict, surfaces: list) -> dict:
     """The trace with every row's ground line recomputed from trusted level surfaces.
 
     A candidate may edit the level, so the ground it logs is the ground it shipped. Judging it
     against the clean game's surfaces means a fix cannot move the yardstick it is measured by.
+
+    When the trace carries levelArt (the floor as the candidate's game draws it), the line is the
+    higher of the clean level's collision and the drawn floor: a robot whose body rests on the
+    collision but is drawn inside a floor whose art was moved up looks sunk, and fails. Art moved
+    down (a robot that looks like it floats) leaves the collision line in charge.
     """
     out = dict(trace)
+    art = trace.get("levelArt") if isinstance(trace.get("levelArt"), dict) else None
     rows = []
     for row in trace.get("rows") or []:
         row = dict(row)
         player = row.get("player")
         ground = surface_under(surfaces, float(player[0]), float(player[1])) if player is not None else None
+        if art is not None and player is not None:
+            drawn = drawn_surface_under(art, float(player[0]), float(player[1]))
+            if drawn is not None and (ground is None or drawn < ground):
+                ground = drawn
         if ground is None:
             row.pop("ground", None)
         else:
             row["ground"] = round(ground, 3)
         rows.append(row)
     out["rows"] = rows
-    out["groundReference"] = "clean level"
+    out["groundReference"] = "clean level, and the floor as drawn" if art is not None else "clean level"
     return out
