@@ -150,6 +150,23 @@ def prepare(game: Path, work: Path, patch: Path | None = None, patches: list[Pat
     (work / "project.godot").write_text(project, encoding="utf-8")
 
 
+# The patched game is the candidate's code: a fix can change any script under the editable globs,
+# and GDScript can read its environment (OS.get_environment) and open network connections. It runs
+# on the verifier's machine, whose environment holds the SAM key, the Muse key in a live loop and
+# the path to the private held-out set. So Godot gets only what it and the virtual display need.
+GAME_ENV_KEEP = frozenset({"PATH", "HOME", "USER", "LOGNAME", "SHELL", "LANG", "LANGUAGE", "TZ", "TMPDIR",
+                           "DISPLAY", "XAUTHORITY", "WAYLAND_DISPLAY", "LIBGL_ALWAYS_SOFTWARE", "GALLIUM_DRIVER"})
+GAME_ENV_PREFIXES = ("LC_", "XDG_", "MESA_", "LP_", "__GLX_", "__EGL_")
+
+
+def game_env(source: dict | None = None) -> dict:
+    """The environment for a Godot process: the display and rendering variables, nothing secret."""
+    source = os.environ if source is None else source
+    env = {k: v for k, v in source.items() if k in GAME_ENV_KEEP or k.startswith(GAME_ENV_PREFIXES)}
+    env.setdefault("LIBGL_ALWAYS_SOFTWARE", "1")
+    return env
+
+
 def godot_cmd(godot: Path, display: bool) -> list[str]:
     cmd = [str(godot)]
     if not display and sys.platform != "darwin":
@@ -165,7 +182,7 @@ def run(route: Path, out: Path, patch: Path | None = None, game: Path | None = N
     out.mkdir(parents=True, exist_ok=True)
     work, frames = out / "work", out / "frames"
     ordered = list(patches) if patches is not None else ([patch] if patch is not None else [])
-    env = dict(os.environ, LIBGL_ALWAYS_SOFTWARE=os.environ.get("LIBGL_ALWAYS_SOFTWARE", "1"))
+    env = game_env()
     cache = ensure_import_cache(game, godot, env)
     prepare(game, work, patches=ordered, cache=cache)
     if frames.exists():
@@ -241,7 +258,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.warm_cache:
         game = args.game or REPO / "game" / "platformer"
         godot = find_godot()
-        env = dict(os.environ, LIBGL_ALWAYS_SOFTWARE=os.environ.get("LIBGL_ALWAYS_SOFTWARE", "1"))
+        env = game_env()
         cache = ensure_import_cache(game, godot, env)
         print(f"harness cache ready at {cache}")
         return 0

@@ -200,6 +200,51 @@ class HarnessTest(unittest.TestCase):
                     import_calls = [c for c in calls if "--import" in c]
                     self.assertEqual(len(import_calls), 1, "Patched run must call --import incrementally")
 
+    def test_the_game_never_gets_the_verifiers_secrets(self):
+        from harness.run import game_env
+        source = {"PATH": "/usr/bin", "HOME": "/home/r", "DISPLAY": ":99", "LC_ALL": "C.UTF-8",
+                  "XDG_RUNTIME_DIR": "/run/user/1", "MESA_GL_VERSION_OVERRIDE": "3.3",
+                  "MODEL_API_KEY": "sam", "META_API_KEY": "muse", "GITHUB_TOKEN": "gh", "HELDOUT_TOKEN": "h",
+                  "NIGHTSHIFT_HELDOUT_DIR": "/private", "NIGHTSHIFT_SAM_CACHE": "/cache", "AWS_SECRET_ACCESS_KEY": "a",
+                  "ACTIONS_RUNTIME_TOKEN": "r", "GITHUB_ENV": "/env"}
+        env = game_env(source)
+        self.assertEqual(set(env), {"PATH", "HOME", "DISPLAY", "LC_ALL", "XDG_RUNTIME_DIR",
+                                    "MESA_GL_VERSION_OVERRIDE", "LIBGL_ALWAYS_SOFTWARE"})
+        self.assertEqual(env["LIBGL_ALWAYS_SOFTWARE"], "1")
+        self.assertEqual(game_env(dict(source, LIBGL_ALWAYS_SOFTWARE="0"))["LIBGL_ALWAYS_SOFTWARE"], "0")
+
+    def test_every_godot_process_of_a_run_gets_the_scrubbed_environment(self):
+        from harness.run import run
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            game = self._game(root)
+            route = root / "route.json"
+            route.write_text('{"name": "test", "ticks": 10}', encoding="utf-8")
+            out = root / "out"
+            godot_mock = root / "fake-godot"
+            godot_mock.touch()
+            envs = []
+            fake_import = self._fake_godot_import([])
+
+            def fake_subp(cmd, **kw):
+                envs.append(kw.get("env"))
+                if "--write-movie" in cmd:
+                    (out / "frames").mkdir(parents=True, exist_ok=True)
+                    (out / "frames" / "f00000000.png").write_bytes(b"dummy")
+                    (out / "trace.json").write_text('{"physicsTicksPerSecond": 60, "rows": []}', encoding="utf-8")
+                    return mock.Mock(returncode=0, stdout="Godot Engine v4.7.2", stderr="")
+                return fake_import(cmd, **kw)
+
+            secrets = {"NIGHTSHIFT_GODOT_CACHE": str(root / "cache"), "MODEL_API_KEY": "sam-key",
+                       "META_API_KEY": "muse-key", "NIGHTSHIFT_HELDOUT_DIR": "/private"}
+            with mock.patch.dict(os.environ, secrets), mock.patch("subprocess.run", side_effect=fake_subp):
+                run(route, out, game=game, godot=godot_mock, force_import=True)
+            godot_envs = [e for e in envs if e is not None]
+            self.assertGreaterEqual(len(godot_envs), 2)  # the import and the capture
+            for env in godot_envs:
+                self.assertFalse({"MODEL_API_KEY", "META_API_KEY", "NIGHTSHIFT_HELDOUT_DIR"} & set(env), env)
+
     def test_all_seeded_bug_patches_apply_cleanly(self):
         patches = sorted((REPO / "bugs").glob("*/*.patch"))
         self.assertGreaterEqual(len(patches), 6)
