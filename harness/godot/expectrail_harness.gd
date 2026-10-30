@@ -14,6 +14,14 @@ extends Node
 ## and, when the level has collectibles of the coin class (--coins=<class_name>, default Coin):
 ##   coins:  world [x, y] of every such node still in the tree, so a vision model's coin boxes can
 ##           be checked against where the engine put the coins.
+## and, for the engine-record checks (agents/trace_checks.py):
+##   facing:      1 or -1, which way the player's sprite (--sprite=<child name>, default Sprite2D)
+##                points on screen: the sign of its world x axis. A sprite flipped by a negative
+##                scale anywhere above it (the sprite or the body) reads -1.
+##   enemies:     [id, x, y] of every node of the enemy class (--enemies=<class_name>, default
+##                Enemy) still in the tree; ids are small integers in the order the nodes were seen.
+##   projectiles: [id, x, y] of every node of the projectile class (--projectiles=<class_name>,
+##                default Bullet) in the tree, so the tick each one first appears is when it was fired.
 ## and the trace header carries levelSurfaces: every solid tile collision polygon in world
 ## coordinates, so the verifier can measure a candidate against the clean game's ground instead of
 ## the ground the candidate itself shipped; and levelArt: where the tile layers are drawn, so the
@@ -37,6 +45,14 @@ var _layers_searched := false
 var _coin_class: StringName = &"Coin"
 var _coins: Array = []           # every coin node, found on the first record
 var _coins_searched := false
+var _sprite_name: String = "Sprite2D"
+var _sprite: Node2D = null
+var _enemy_class: StringName = &"Enemy"
+var _enemies: Array = []         # [id, node] of every enemy, found on the first record
+var _enemies_searched := false
+var _projectile_class: StringName = &"Bullet"
+var _projectiles: Array = []     # [id, node] of every projectile seen entering the tree
+var _next_id := 0
 
 # How far above the player's origin a surface may sit and still count as the ground under it:
 # a robot sunk into the ground by less than this is measured against the surface it sank into.
@@ -66,6 +82,10 @@ func _ready() -> void:
 	_trace_path = args.get("trace", "")
 	_player_name = args.get("player", "Player")
 	_coin_class = StringName(args.get("coins", "Coin"))
+	_sprite_name = args.get("sprite", "Sprite2D")
+	_enemy_class = StringName(args.get("enemies", "Enemy"))
+	_projectile_class = StringName(args.get("projectiles", "Bullet"))
+	get_tree().node_added.connect(_on_node_added)
 	var route = JSON.parse_string(FileAccess.get_file_as_string(args["route"]))
 	if typeof(route) != TYPE_DICTIONARY or not (route.get("format", "") in ROUTE_FORMATS):
 		push_error("expectrail: not an expectrail.route/v0 file: %s" % args["route"])
@@ -111,12 +131,22 @@ func record() -> void:
 		var ground = _ground_under(_player.global_position)
 		if ground != null:
 			row["ground"] = snappedf(ground, 0.001)
+		if _sprite == null:
+			_sprite = _player.find_child(_sprite_name, true, false) as Node2D
+		if _sprite != null:
+			row["facing"] = -1 if _sprite.global_transform.x.x < 0.0 else 1
 	if not _art_started and _layers_searched and not _layers.is_empty():
 		_art_started = true
 		_render_level_art()  # a coroutine: finishes a frame or two later, long before the route ends
 	var coins := _coin_positions()
 	if not coins.is_empty():
 		row["coins"] = coins
+	var enemies := _enemy_positions()
+	if not enemies.is_empty():
+		row["enemies"] = enemies
+	var projectiles := _tracked_positions(_projectiles)
+	if not projectiles.is_empty():
+		row["projectiles"] = projectiles
 	var view := get_viewport().get_final_transform() * get_viewport().get_canvas_transform()
 	row["view"] = [snappedf(view.x.x, 0.0001), snappedf(view.x.y, 0.0001), snappedf(view.y.x, 0.0001),
 		snappedf(view.y.y, 0.0001), snappedf(view.origin.x, 0.001), snappedf(view.origin.y, 0.001)]
@@ -157,6 +187,41 @@ func _coin_positions() -> Array:
 		if is_instance_valid(coin) and coin.is_inside_tree():
 			var p: Vector2 = coin.global_position
 			out.append([snappedf(p.x, 0.01), snappedf(p.y, 0.01)])
+	return out
+
+
+func _is_class(node: Node, cls: StringName) -> bool:
+	var script = node.get_script()
+	return script != null and script.get_global_name() == cls
+
+
+func _on_node_added(node: Node) -> void:
+	if node is Node2D and _is_class(node, _projectile_class):
+		_projectiles.append([_next_id, node])
+		_next_id += 1
+
+
+func _enemy_positions() -> Array:
+	if not _enemies_searched:
+		var scene := get_tree().current_scene
+		if scene == null:
+			return []
+		_enemies_searched = true
+		for node in scene.find_children("*", "Node2D", true, false):
+			if _is_class(node, _enemy_class):
+				_enemies.append([_next_id, node])
+				_next_id += 1
+	return _tracked_positions(_enemies)
+
+
+func _tracked_positions(tracked: Array) -> Array:
+	"""[id, x, y] of every tracked node still in the tree (freed nodes drop out)."""
+	var out := []
+	for entry in tracked:
+		var node = entry[1]
+		if is_instance_valid(node) and node.is_inside_tree():
+			var p: Vector2 = node.global_position
+			out.append([entry[0], snappedf(p.x, 0.01), snappedf(p.y, 0.01)])
 	return out
 
 

@@ -98,7 +98,8 @@ report and the trust check. See [docs/new-work.md](docs/new-work.md) and
 Every number here comes from a file in [`bench/`](bench), written from a CI run's own output, with
 the command that reruns it. Four bug families (physics fall-through, missing texture, layering,
 sinking), with two public development variants and two private held-out variants of each; the
-detection benches replay every variant, and the clean game, on five routes.
+detection benches replay every variant, and the clean game, on five routes. We wrote those bugs;
+four more reproduce bugs other people reported ([Bugs we did not write](#bugs-we-did-not-write)).
 
 | What we measured | Result | Run |
 | --- | --- | --- |
@@ -106,6 +107,7 @@ detection benches replay every variant, and the clean game, on five routes.
 | Held-out bugs caught, Muse Glimmer checked against the engine, no SAM | **8 of 8**, no false alarm | [41003751876](https://github.com/seanudeke/Expectrail/actions/runs/41003751876) |
 | Held-out bugs caught with no vision model (engine and gameplay checks only) | 4 of 8 | the same two runs |
 | Development bugs caught: SAM on / Glimmer, no SAM / no vision | 8 of 8 / 8 of 8 / 3 of 8 | [40841977642](https://github.com/seanudeke/Expectrail/actions/runs/40841977642), [41001182605](https://github.com/seanudeke/Expectrail/actions/runs/41001182605) |
+| Publicly reported Godot bugs, reproduced (not written by us), caught: today's checks with SAM off / engine-record checks | 0 of 4 / **4 of 4**, no false alarm on the clean game; the engine-record checks were written after the bugs were reproduced | [41116202685](https://github.com/seanudeke/Expectrail/actions/runs/41116202685) |
 | Bad fixes that only look right, accepted by the judge (7 cases, 2 runs) | Expectrail with SAM **0 of 7**; Expectrail without SAM 3 of 7; Muse from screenshots 2 of 7 | [judge](bench/judge/README.md) |
 | Good fixes accepted by the judge (8 cases, 2 runs) | Expectrail 8 of 8 both runs; Muse from screenshots 6 and 7 of 8 | [judge](bench/judge/README.md) |
 | Development bugs fixed by Muse Code | 8 of 8 with Expectrail's evidence; 8 of 8 from screenshots alone | [fix matrix](bench/fix-matrix/README.md) |
@@ -156,6 +158,42 @@ What these numbers do and do not say:
   these bugs, not a measure of robustness to any fix an agent might write.
 - **There is no manual baseline.** We have not timed a person doing the same work, so we make no
   claim about hours saved.
+
+### Bugs we did not write
+
+Every bug above was written by our team. A teammate wrote the held-out ones away from the checks,
+but "you planted bugs your own tool can see" is a fair objection. So we reproduced four bugs that
+other people reported: two that Godot contributors fixed in this very demo (jumping in mid-air,
+2016; the gun's cooldown never restarting, 2022) and two reported in other developers' Godot games
+(a script that flips the robot's body instead of its sprite, godot#78613; an enemy whose floor rays
+start inside the floor, so it walks off ledges). We wrote the patches that put them back; the bug,
+its symptom and its cause come from the cited reports ([`bugs/reported/`](bugs/reported/README.md)).
+Each was rendered on five routes, and so was the clean game ([`bench/reported/`](bench/reported/README.md)).
+
+| Checks | Caught | False alarm on the clean game |
+| --- | --- | --- |
+| Today's verifier, SAM off (engine ground, gameplay) | 0 of 4 | none |
+| Engine-record checks (five one-sentence rules on the harness trace) | **4 of 4** | none |
+
+- **Today's checks miss all four.** They check that the robot stays above the ground and keeps
+  moving, and none of these bugs breaks that. This is "it checks only what someone wrote a check
+  for", measured. SAM has not been run on them yet; its specs ask whether the robot and the coins
+  are visible, which none of these bugs is about.
+- **What caught them is more of the engine's record, not more model calls.** The harness now logs
+  which way the robot's sprite faces, every enemy and every bullet. Five rules read that log: the
+  robot never rises more than a double jump above the floor it left, it faces the way it walks,
+  bullets go the way it faces, the gun fires at most every 0.25 s, and no enemy falls more than a
+  tile. Each bug fails its own rule on its own route; nothing fails on the clean game.
+- **The rules were written after we reproduced the bugs,** so this shows the bugs are now visible
+  to Expectrail, not that it would have found them blind, and the verifier does not run the rules
+  yet. The test that would count is a natural catch: rules and guards committed first, Muse Code
+  given the reporter's own words, and a fix that looks right but breaks something rejected
+  ([protocol](bugs/reported/README.md#running-a-natural-catch-trial)). The jump bug is the best
+  trap: the 2016 fix, "only jump on the floor", would also delete today's double jump.
+- **Reproducing them turned up a live upstream regression.** A 2024 art remake of the demo partly
+  undid an earlier fix to the platforms' drawing order (PR #927), so in the current demo the lower
+  moving platform draws behind the ground's grass edge. It is a candidate report to the demo's
+  maintainers, not a benchmark case.
 
 **Open weights.** Muse Glimmer 30B, on a Fireworks deployment, can judge every vision check with no
 SAM key, checked against the game engine (`glimmer-engine`): 8 of 8 held-out and 8 of 8
@@ -247,11 +285,12 @@ What this does and does not show:
 
 - **It checks a change; it does not explore.** It replays fixed routes, so a bug where no route goes
   is invisible to it. Today it is visual regression checking, not playtesting.
-- **It checks only what someone wrote a check for.** Three approved checks today. Nothing checks what
-  nobody described.
-- **One game and one web page, with bugs we seeded.** The game's held-out bugs were kept from the
-  fixer, but a teammate wrote them, and the same team wrote the checks. The checkout page has no
-  held-out bugs yet.
+- **It checks only what someone wrote a check for.** Three approved checks in the verifier today. Nothing
+  checks what nobody described: today's checks caught none of the four reported bugs.
+- **One game and one web page, mostly with bugs we seeded.** The game's held-out bugs were kept from
+  the fixer, but a teammate wrote them, and the same team wrote the checks. The four reproduced
+  public bug reports are caught only by engine-record checks written after we saw them, which the
+  verifier does not run yet. The checkout page has no held-out bugs yet.
 - **Mostly repairs.** The web judge includes three intended changes. We have not run the agent on
   features, refactors or dependency updates, or on software without a screen. The design is meant
   to carry over; [docs/future-work.md](docs/future-work.md) says which parts would and which would
@@ -331,7 +370,7 @@ See [agents/README.md](agents/README.md) for Muse API / Muse Code setup (`.env`,
 | [`harness/`](harness) | Route player, Movie Maker capture under Xvfb, replay check ([docs](docs/harness.md)) | Timo |
 | [`expectrail/`](expectrail) | Contract helpers, the reference evaluator, and the Muse Spark spec writer | Zayyad, Sean |
 | [`specs/`](specs) | Test specs for the bug families; a person approves each one | Sean |
-| [`bugs/`](bugs) | Seeded bugs as patches against the clean game ([evaluation plan](docs/evaluation.md)) | Sean, Timo |
+| [`bugs/`](bugs) | Seeded bugs, and reproductions of publicly reported Godot bugs ([`bugs/reported/`](bugs/reported/README.md)), as patches against the clean game ([evaluation plan](docs/evaluation.md)) | Sean, Timo |
 | [`docs/demo/`](docs/demo/) | Interactive demo showcase and audit vault web app | Timo |
 | [`game/`](game) | Godot's 2D platformer demo, unmodified (MIT) | prior work |
 | [`agents/`](agents) | Repair requests, Muse Code fixer, verifier, Wonder triage, morning report | Taofeek |

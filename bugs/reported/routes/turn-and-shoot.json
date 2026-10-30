@@ -1,0 +1,59 @@
+{
+ "format": "expectrail.route/v0",
+ "name": "turn-and-shoot",
+ "description": "Walk right, turn and walk left, shoot while walking left, stop, shoot again standing still facing left, then walk right.",
+ "ticks": 300,
+ "seed": 1,
+ "events": [
+  {
+   "tick": 10,
+   "action": "move_right",
+   "pressed": true
+  },
+  {
+   "tick": 70,
+   "action": "move_right",
+   "pressed": false
+  },
+  {
+   "tick": 80,
+   "action": "move_left",
+   "pressed": true
+  },
+  {
+   "tick": 120,
+   "action": "shoot",
+   "pressed": true
+  },
+  {
+   "tick": 124,
+   "action": "shoot",
+   "pressed": false
+  },
+  {
+   "tick": 150,
+   "action": "move_left",
+   "pressed": false
+  },
+  {
+   "tick": 190,
+   "action": "shoot",
+   "pressed": true
+  },
+  {
+   "tick": 194,
+   "action": "shoot",
+   "pressed": false
+  },
+  {
+   "tick": 220,
+   "action": "move_right",
+   "pressed": true
+  },
+  {
+   "tick": 260,
+   "action": "move_right",
+   "pressed": false
+  }
+ ]
+}

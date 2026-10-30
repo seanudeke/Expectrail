@@ -1,0 +1,15 @@
+--- a/player/player.gd
++++ b/player/player.gd
+@@ -79,11 +79,8 @@
+ func try_jump() -> void:
+ 	if is_on_floor():
+ 		jump_sound.pitch_scale = 1.0
+-	elif _double_jump_charged:
+-		_double_jump_charged = false
++	else:
+ 		velocity.x *= 2.5
+ 		jump_sound.pitch_scale = 1.5
+-	else:
+-		return
+ 	velocity.y = JUMP_VELOCITY
+ 	jump_sound.play()

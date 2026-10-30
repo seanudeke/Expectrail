@@ -1,0 +1,120 @@
+name: Reported bench
+
+# Would Expectrail catch reproductions of publicly reported Godot bugs (bugs/reported/)? For each
+# one, and for the clean game as the false-alarm control, render the game on the smoke route and the
+# reported routes and judge every replay with today's verifier checks and with the engine-record
+# checks (agents/reported_bench.py). Everything here is public, so each job keeps its runs as an
+# artifact. Record a run with: python3 -m agents.bench_collect --reported --run <id>
+on:
+  pull_request:
+    paths:
+      - 'bugs/reported/**'
+      - 'agents/reported_bench.py'
+      - 'agents/trace_checks.py'
+      - 'agents/gameplay.py'
+      - 'agents/verifier.py'
+      - 'harness/**'
+      - 'game/**'
+      - '.github/workflows/reported-bench.yml'
+  workflow_dispatch:
+    inputs:
+      sam:
+        description: Also judge with SAM on (the verifier's hybrid ground check and SAM specs; paid per image)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reported-bench-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reported-list:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      variants: ${{ steps.list.outputs.variants }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: List the clean game and every reported bug
+        id: list
+        run: |
+          variants=$(python -m agents.reported_bench --list)
+          [[ "$variants" =~ ^\[(\"[a-z0-9-]+\"(,\ )?)+\]$ ]] || { echo "::error::unexpected variant list"; exit 1; }
+          echo "variants=$variants" >> "$GITHUB_OUTPUT"
+          echo "variants: $variants"
+
+  reported-bench:
+    needs: reported-list
+    name: reported-bench (${{ matrix.variant }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: ${{ fromJSON(needs.reported-list.outputs.variants) }}
+    env:
+      SAM: ${{ inputs.sam && 'true' || 'false' }}
+      SAM_KEY_SET: ${{ secrets.MODEL_API_KEY != '' || secrets.META_API_KEY != '' }}
+    steps:
+      - name: Require the SAM key when SAM is on
+        if: env.SAM == 'true' && env.SAM_KEY_SET != 'true'
+        run: |
+          echo "::error::Set the MODEL_API_KEY (or META_API_KEY) repository secret first."
+          exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Install a virtual display and software OpenGL
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri libglx-mesa0 patch
+      - name: Download Godot 4.7.2 and check its SHA-512
+        run: ./harness/get_godot.sh
+      - name: Render and judge
+        env:
+          MODEL_API_KEY: ${{ inputs.sam && (secrets.MODEL_API_KEY || secrets.META_API_KEY) || '' }}
+          EXPECTRAIL_OBS_PROVIDER: ${{ inputs.sam && 'sam' || 'trace' }}
+          VARIANT: ${{ matrix.variant }}
+        run: |
+          [[ "$VARIANT" =~ ^[a-z0-9-]+$ ]] || { echo "::error::unexpected variant id"; exit 1; }
+          start=$(date +%s)
+          # The bench exits non-zero when a check could not decide, so the counts are still published
+          # and the job is red: a green run always means every check ran.
+          set +e
+          if [[ "$VARIANT" == clean ]]; then
+            python -m agents.reported_bench --clean --out runs/reported-bench > bench.log 2>&1
+          else
+            python -m agents.reported_bench --variant "$VARIANT" --out runs/reported-bench > bench.log 2>&1
+          fi
+          code=$?
+          set -e
+          bench_json="runs/reported-bench/${VARIANT}/bench.json"
+          [[ -f "$bench_json" ]] && python -m agents.reported_bench --annotate "$bench_json"
+          echo "::notice title=Reported bench time ${VARIANT}::$(( $(date +%s) - start )) s"
+          if [[ "$code" -ne 0 ]]; then
+            tail -n 40 bench.log
+            echo "::error title=Reported bench ${VARIANT} error::a check could not decide or the bench failed (exit $code)"
+            exit "$code"
+          fi
+      - name: Keep the verdicts and traces
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: reported-bench-${{ matrix.variant }}
+          path: |
+            runs/reported-bench/${{ matrix.variant }}/bench.json
+            runs/reported-bench/${{ matrix.variant }}/*/trace.json
+            bench.log
+          if-no-files-found: ignore
+          retention-days: 14

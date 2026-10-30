@@ -1,0 +1,18 @@
+--- a/level/level.tscn
++++ b/level/level.tscn
+@@ -1297,6 +1297,7 @@
+ autoplay = &"move"
+ 
+ [node name="Platform2" parent="Platforms" unique_id=944820660 instance=ExtResource("3")]
++z_index = 0
+ position = Vector2(-28, 645)
+ 
+ [node name="AnimationPlayer" type="AnimationPlayer" parent="Platforms/Platform2" unique_id=457546637]
+@@ -1305,7 +1306,6 @@
+ autoplay = &"move"
+ 
+ [node name="PlatformStatic" type="StaticBody2D" parent="Platforms" unique_id=2045322115]
+-z_index = -1
+ position = Vector2(611, 135)
+ rotation = 0.355618
+ collision_layer = 16

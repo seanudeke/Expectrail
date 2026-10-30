@@ -1,0 +1,19 @@
+{
+ "format": "expectrail.route/v0",
+ "name": "wait-for-patrol",
+ "description": "Walk right and wait nine seconds while the enemy on the upper ledge patrols.",
+ "ticks": 1100,
+ "seed": 1,
+ "events": [
+  {
+   "tick": 10,
+   "action": "move_right",
+   "pressed": true
+  },
+  {
+   "tick": 105,
+   "action": "move_right",
+   "pressed": false
+  }
+ ]
+}

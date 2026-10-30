@@ -2,7 +2,8 @@
 
 Expectrail is meant to be an independent verification layer for changes made by AI coding agents:
 the agent that writes a change never certifies it. This is a ten-day hackathon build of that idea on
-one Godot demo game, along scripted routes, with bugs we seeded ourselves. This page says plainly
+one Godot demo game, along scripted routes, with bugs we seeded ourselves and four reproductions of
+publicly reported Godot bugs. This page says plainly
 what it does not do yet and what we would build next, so anyone judging or extending it knows where
 the edges are. The last section says which parts would carry over beyond games.
 
@@ -13,6 +14,9 @@ the edges are. The last section says which parts would carry over beyond games.
 - Four bug families (physics fall-through, missing texture, layering, sinking), with two public
   development variants and two private held-out variants each, plus the clean game
   ([evaluation plan](evaluation.md), results in [`bench/`](../bench)).
+- Four reproductions of publicly reported Godot bugs (`bugs/reported/`), caught by five
+  engine-record checks that were written after the bugs were reproduced and that only the
+  reported-bug bench runs so far ([`bench/reported/`](../bench/reported/README.md)).
 - One kind of agent change: repairs of a reported bug.
 - Four visual assertion types: visible, inside-region, never-crosses and reaches.
 - A fixer that writes small patches in its own worktree, inside bubblewrap in the live runs (only
@@ -52,11 +56,14 @@ its box, and audio cues.
 game's pixel art on every clean frame, but it does not see the ground at all, and "small robot"
 also matches the enemies ([docs/sam.md](sam.md)). Muse Glimmer's boxes are too loose for the ground
 check ([docs/open-weights.md](open-weights.md)). The engine's position log covers what the models
-cannot, but only for objects the harness logs (the robot and the coins).
+cannot, but only for objects the harness logs: the robot and the coins, and since October 30 the
+robot's facing, the enemies and the bullets.
 
 Next:
 - Score the observers against the position log on each new art style before trusting their verdicts.
-- Log more objects from the engine, so a check about an enemy or a door is not needs-review.
+- Run the engine-record checks (`agents/trace_checks.py`) in the verifier, after a natural-catch
+  trial and a false-alarm run on the private routes.
+- Log more objects from the engine, so a check about a door or a moving platform is not needs-review.
 - Keep the rule that a missing or uncertain object means "needs review", never a pass.
 
 **Determinism is proven on one setup.** Ten replays were bit-identical on a Linux machine with no GPU

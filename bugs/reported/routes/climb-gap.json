@@ -1,0 +1,119 @@
+{
+ "format": "expectrail.route/v0",
+ "name": "climb-gap",
+ "description": "Walk right to the gap in the platforms above, stop, then press jump ten times, once every 20 ticks, and wait for the robot to land.",
+ "ticks": 600,
+ "seed": 1,
+ "events": [
+  {
+   "tick": 10,
+   "action": "move_right",
+   "pressed": true
+  },
+  {
+   "tick": 115,
+   "action": "move_right",
+   "pressed": false
+  },
+  {
+   "tick": 140,
+   "action": "jump",
+   "pressed": true
+  },
+  {
+   "tick": 159,
+   "action": "jump",
+   "pressed": false
+  },
+  {
+   "tick": 160,
+   "action": "jump",
+   "pressed": true
+  },
+  {
+   "tick": 179,
+   "action": "jump",
+   "pressed": false
+  },
+  {
+   "tick": 180,
+   "action": "jump",
+   "pressed": true
+  },
+  {
+   "tick": 199,
+   "action": "jump",
+   "pressed": false
+  },
+  {
+   "tick": 200,
+   "action": "jump",
+   "pressed": true
+  },
+  {
+   "tick": 219,
+   "action": "jump",
+   "pressed": false
+  },
+  {
+   "tick": 220,
+   "action": "jump",
+   "pressed": true
+  },
+  {
+   "tick": 239,
+   "action": "jump",
+   "pressed": false
+  },
+  {
+   "tick": 240,
+   "action": "jump",
+   "pressed": true
+  },
+  {
+   "tick": 259,
+   "action": "jump",
+   "pressed": false
+  },
+  {
+   "tick": 260,
+   "action": "jump",
+   "pressed": true
+  },
+  {
+   "tick": 279,
+   "action": "jump",
+   "pressed": false
+  },
+  {
+   "tick": 280,
+   "action": "jump",
+   "pressed": true
+  },
+  {
+   "tick": 299,
+   "action": "jump",
+   "pressed": false
+  },
+  {
+   "tick": 300,
+   "action": "jump",
+   "pressed": true
+  },
+  {
+   "tick": 319,
+   "action": "jump",
+   "pressed": false
+  },
+  {
+   "tick": 320,
+   "action": "jump",
+   "pressed": true
+  },
+  {
+   "tick": 339,
+   "action": "jump",
+   "pressed": false
+  }
+ ]
+}

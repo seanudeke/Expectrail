@@ -1,0 +1,75 @@
+{
+ "format": "expectrail.reported-bugs/v0",
+ "description": "Reproductions of publicly reported Godot bugs (README.md has the sources and measurements). agents/reported_bench.py renders each one and the clean game on the smoke route and these routes. minDeltaX is about 80% of the clean game's measured delta-x on the route, as smoke's 400 is of 485. walk-left is the route for the platform draw-order finding, which is not a bug variant.",
+ "routes": [
+  {
+   "name": "climb-gap",
+   "file": "routes/climb-gap.json",
+   "minDeltaX": 210,
+   "cleanDeltaX": 262.5
+  },
+  {
+   "name": "tap-shoot",
+   "file": "routes/tap-shoot.json",
+   "minDeltaX": 40,
+   "cleanDeltaX": 50.0
+  },
+  {
+   "name": "turn-and-shoot",
+   "file": "routes/turn-and-shoot.json",
+   "minDeltaX": 80,
+   "cleanDeltaX": 100.0
+  },
+  {
+   "name": "wait-for-patrol",
+   "file": "routes/wait-for-patrol.json",
+   "minDeltaX": 190,
+   "cleanDeltaX": 237.5
+  }
+ ],
+ "variants": [
+  {
+   "id": "air-jump",
+   "patch": "air-jump.patch",
+   "route": "climb-gap",
+   "check": "jump-height",
+   "kind": "upstream fix in this demo, ported to today's code",
+   "source": "https://github.com/godotengine/godot-demo-projects/commit/cf98fed099e07e91ad7255f27fdeb96175c71f8d",
+   "report": "Infinite jump while in the air."
+  },
+  {
+   "id": "gun-cooldown",
+   "patch": "gun-cooldown.patch",
+   "route": "tap-shoot",
+   "check": "fire-rate",
+   "kind": "upstream fix in this demo, its line removed",
+   "source": "https://github.com/godotengine/godot-demo-projects/pull/686",
+   "report": "The player can keep on shooting without any cooldown."
+  },
+  {
+   "id": "body-flip",
+   "patch": "body-flip.patch",
+   "route": "turn-and-shoot",
+   "check": "facing-follows-motion",
+   "kind": "reported in other Godot games, ported",
+   "source": "https://github.com/godotengine/godot/issues/78613",
+   "report": "Infinite flipping on left move."
+  },
+  {
+   "id": "enemy-ledge",
+   "patch": "enemy-ledge.patch",
+   "route": "wait-for-patrol",
+   "check": "enemies-stay-up",
+   "kind": "reported in other Godot games, ported",
+   "source": "https://forum.godotengine.org/t/enemy-dosent-go-forward-and-backwards-as-intended/135232",
+   "report": "They walk off ledges occasionally."
+  }
+ ],
+ "notVariants": [
+  {
+   "patch": "platform-z-order-pr927.patch",
+   "route": "routes/walk-left.json",
+   "why": "Re-applies an upstream fix (PR #927) that the current demo lost; it is a candidate upstream report, not a bug to catch."
+  }
+ ]
+}
