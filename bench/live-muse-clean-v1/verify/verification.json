@@ -48,17 +48,17 @@
   "suite": {
     "candidate": {
       "source": "fixture",
-      "path": "/Users/fehintola/Documents/GitHub/Nightshift/agents/fixtures/obs-fixed.json",
+      "path": "<checkout>/agents/fixtures/obs-fixed.json",
       "observationsSha256": "ca960e024b7a820654988c4b54228a693bf0a5b301292026c5ebfb2ae82d92ef"
     },
     "clean": {
       "source": "fixture",
-      "path": "/Users/fehintola/Documents/GitHub/Nightshift/agents/fixtures/obs-clean.json",
+      "path": "<checkout>/agents/fixtures/obs-clean.json",
       "observationsSha256": "7395c39139725a6c16264350e9c455a584174ffc1aa09b4446596a8f316312ee"
     },
     "heldOut": {
       "source": "interim-fixture",
-      "path": "/Users/fehintola/Documents/GitHub/Nightshift/agents/fixtures/obs-held-out.json",
+      "path": "<checkout>/agents/fixtures/obs-held-out.json",
       "observationsSha256": "572202e6219eed6cd850d3d68aa9350f533571ecac38fcea81e858bc238f358f"
     }
   }

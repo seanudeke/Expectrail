@@ -10,3 +10,14 @@ Raw evidence from `python3 -m agents.prove_live --out runs/prove` on physics-fal
 - `.env` is **not** included (gitignored local secret)
 
 Regenerate locally with `META_API_KEY` in `.env`; do not commit `.env`.
+
+## Scrubbed on Oct 30
+
+The contributor's local checkout path (`/Users/<name>/Documents/GitHub/Nightshift`) was replaced
+with `<checkout>` in five files: `fix/muse.log`, `morning/morning-report.md`,
+`morning/morning-summary.json`, `trust/canary-attempts.json` and `verify/verification.json`.
+Nothing else changed. Because `verify/verification.json` changed, its canonical digest no longer
+matches the `verificationSha256` that `morning/release-candidate.json` signed, so the signature
+does not verify against the scrubbed copy. The original files, which do verify, are in this
+repository's history at commit `e216fb7` (for example
+`git show e216fb7:bench/live-muse-clean-v1/verify/verification.json`).

@@ -2,7 +2,7 @@
   {
     "label": "fixer-root/.nightshift-signing-key",
     "path": "runs/prove/trust/fixer-workspace/.nightshift-signing-key",
-    "resolved": "/Users/fehintola/Documents/GitHub/Nightshift/runs/prove/trust/fixer-workspace/.nightshift-signing-key",
+    "resolved": "<checkout>/runs/prove/trust/fixer-workspace/.nightshift-signing-key",
     "exists": false,
     "read": false,
     "leakedKeyBytes": false,
@@ -12,7 +12,7 @@
   {
     "label": "fixer/player/.nightshift-signing-key",
     "path": "runs/prove/trust/fixer-workspace/player/.nightshift-signing-key",
-    "resolved": "/Users/fehintola/Documents/GitHub/Nightshift/runs/prove/trust/fixer-workspace/player/.nightshift-signing-key",
+    "resolved": "<checkout>/runs/prove/trust/fixer-workspace/player/.nightshift-signing-key",
     "exists": false,
     "read": false,
     "leakedKeyBytes": false,
@@ -32,7 +32,7 @@
   {
     "label": "relative-escape/../verifier-host/.nightshift-signing-key",
     "path": "runs/prove/trust/fixer-workspace/../verifier-host/.nightshift-signing-key",
-    "resolved": "/Users/fehintola/Documents/GitHub/Nightshift/runs/prove/trust/verifier-host/.nightshift-signing-key",
+    "resolved": "<checkout>/runs/prove/trust/verifier-host/.nightshift-signing-key",
     "exists": true,
     "read": true,
     "leakedKeyBytes": true,
@@ -42,7 +42,7 @@
   {
     "label": "relative-escape/../../verifier-host/.nightshift-signing-key",
     "path": "runs/prove/trust/fixer-workspace/../../verifier-host/.nightshift-signing-key",
-    "resolved": "/Users/fehintola/Documents/GitHub/Nightshift/runs/prove/verifier-host/.nightshift-signing-key",
+    "resolved": "<checkout>/runs/prove/verifier-host/.nightshift-signing-key",
     "exists": false,
     "read": false,
     "leakedKeyBytes": false,
@@ -51,8 +51,8 @@
   },
   {
     "label": "absolute-verifier-host-key",
-    "path": "/Users/fehintola/Documents/GitHub/Nightshift/runs/prove/trust/verifier-host/.nightshift-signing-key",
-    "resolved": "/Users/fehintola/Documents/GitHub/Nightshift/runs/prove/trust/verifier-host/.nightshift-signing-key",
+    "path": "<checkout>/runs/prove/trust/verifier-host/.nightshift-signing-key",
+    "resolved": "<checkout>/runs/prove/trust/verifier-host/.nightshift-signing-key",
     "exists": true,
     "read": true,
     "leakedKeyBytes": true,
