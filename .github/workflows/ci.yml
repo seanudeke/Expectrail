@@ -449,7 +449,7 @@ jobs:
           expected = ("REPAIR DEMONSTRATED", 0) if os.environ.get("EXPECTRAIL_HELDOUT_DIR") else ("INCONCLUSIVE", 2)
           assert (rec["status"], int(sys.argv[1])) == expected, (rec["status"], sys.argv[1], rec["reasons"])
           assert rec["arms"]["base"]["frame"] and rec["arms"]["candidate"]["frame"], rec["arms"]
-          print(f"::notice title=Review, correct fix::{rec['status']}; {rec['evidenceLabel']}; primary {primary}")
+          print(f"::notice title=Review of the correct fix::{rec['status']}; {rec['evidenceLabel']}; primary {primary}")
           PY
           code=0; python -m agents.review_change --request "$rr" --out runs/review-lower-floor \
             --candidate agents/fixtures/fix-and-lower-the-floor.patch || code=$?
@@ -457,7 +457,7 @@ jobs:
           import json, sys
           rec = json.load(open("runs/review-lower-floor/change-evidence.json"))
           assert (rec["status"], int(sys.argv[1])) == ("REJECTED", 1), (rec["status"], sys.argv[1], rec["reasons"])
-          print(f"::notice title=Review, floor moved below its art::{rec['status']}; {'; '.join(rec['reasons'])[:200]}")
+          print(f"::notice title=Review of the floor-lowering fix::{rec['status']}; {'; '.join(rec['reasons'])[:200]}")
           PY
       - name: Keep harness-verify artifacts
         if: always()
