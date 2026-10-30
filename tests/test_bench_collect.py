@@ -247,3 +247,29 @@ class JudgeCollectTest(unittest.TestCase):
                           "label good; SAM on None; SAM off accept; Muse screenshots None; 3.0 s; live=False", None)]}
         with self.assertRaises(SystemExit):
             bc.collect_judge([9], fetch=self.fetch)
+
+
+class DemoCollectTest(unittest.TestCase):
+    def test_demo_runs_to_accepts_out_of_asked(self):
+        msgs = {1: "decision accept; attempts 1: accept; triage muse-wonder-1.0; fixer muse; trust ok; verified on "
+                   "harness; signed True; 730.7 s; SAM images 1164",
+                2: "decision reject; attempts 1: reject; 2: reject; 3: reject; triage muse-wonder-1.0; fixer muse; "
+                   "trust ok; verified on harness; signed False; 2400.0 s; SAM images 2000"}
+
+        def fetch(path):
+            parts = path.split("/")
+            if parts[-2] == "runs" and parts[-1].isdigit():
+                return {"html_url": "https://x/5", "head_sha": "abc1234def", "created_at": "2026-10-30T02:14:00Z"}
+            if "/jobs" in path:
+                return {"jobs": [{"id": 1, "name": "demo-run (1)"}, {"id": 2, "name": "demo-run (2)"},
+                                 {"id": 3, "name": "demo-run (3)"}, {"id": 9, "name": "demo-summary"}]}
+            job = int(parts[-2])
+            return [{"title": f"Demo run {job}", "message": msgs[job]}] if job in msgs else []
+
+        doc = bc.collect_demo(5, fetch=fetch)
+        self.assertEqual((doc["asked"], doc["recorded"], doc["accepted"], doc["firstAttempt"]), (3, 2, 1, 1))
+        self.assertEqual(doc["spend"]["museCalls"], 4)
+        self.assertEqual(doc["spend"]["samImages"], 3164)
+        md = bc.demo_markdown(doc)
+        self.assertIn("**1 of 3 runs accepted**", md)  # a run that recorded nothing still counts against the total
+        self.assertIn("| 2 | reject | reject, reject, reject |", md)
