@@ -82,8 +82,11 @@ def _frame(arm_name: str, arm: dict | None, run_id: str, src_dir: Path, out: Pat
             f'<figcaption>{caption}</figcaption></figure>'), None
 
 
-def build(record: dict, src_dir: Path, out: Path) -> str:
+def build(record: dict, src_dir: Path, out: Path, recorded: str | None = None) -> str:
     status, label = record["status"], record["evidenceLabel"]
+    as_written = label
+    if recorded and label == "FRESH LIVE":
+        label = "RECORDED LIVE"  # fresh when it ran; shown again later, it is a recorded live run
     reasons = record.get("reasons") or []
     verification = record.get("verification")
     warnings: list[str] = []
@@ -176,10 +179,11 @@ dt {{ color:var(--quiet); }} dd {{ margin:0; overflow-wrap:anywhere; }}
 <p>{esc(STATUS_MEANS.get(status, ""))}</p>
 {reason_html}
 <div class="meta">
-<span class="chip">Evidence: {esc(label)}, {esc(LABEL_MEANS.get(label, ""))}</span>
+<span class="chip">Evidence: {esc(label)}, {esc(LABEL_MEANS.get(label, ""))}{f" (the run labelled it {esc(as_written)})" if label != as_written else ""}</span>
 <span class="chip">Candidate from {esc(ORIGIN.get(record["candidate"]["origin"], record["candidate"]["origin"]))}</span>
 <span class="chip">Verifier decision: {esc(decision)}</span>
 </div>
+{f'<p class="warning">Recorded evidence: {esc(recorded)}. This page shows that run as it wrote its record; nothing was run again.</p>' if recorded else ""}
 {warning_html}
 {f"<ul>{more_reasons}</ul>" if more_reasons else ""}
 
@@ -220,14 +224,15 @@ and no status here approves a merge or a release. Generated from change-evidence
 """
 
 
-def render(record_path: Path, out: Path) -> Path:
-    """Write out/review.html from a change-evidence record; returns its path."""
+def render(record_path: Path, out: Path, *, recorded: str | None = None, name: str = "review.html") -> Path:
+    """Write out/<name> from a change-evidence record; returns its path. ``recorded`` names the run
+    a republished record came from: the page says so and shows a fresh live label as recorded."""
     record_path = Path(record_path)
     record = load_record(record_path)
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
-    target = out / "review.html"
-    target.write_text(build(record, record_path.parent, out), encoding="utf-8")
+    target = out / name
+    target.write_text(build(record, record_path.parent, out, recorded), encoding="utf-8")
     return target
 
 
@@ -235,8 +240,10 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("record", type=Path, help="a change-evidence.json")
     p.add_argument("--out", type=Path, help="folder for review.html (default: the record's folder)")
+    p.add_argument("--recorded", help="the run a republished record came from, e.g. 'fix matrix run 123, demo run 1'")
+    p.add_argument("--name", default="review.html", help="the page's file name")
     args = p.parse_args(argv)
-    print(render(args.record, args.out or args.record.parent))
+    print(render(args.record, args.out or args.record.parent, recorded=args.recorded, name=args.name))
     return 0
 
 

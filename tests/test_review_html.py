@@ -108,6 +108,17 @@ class ReviewPageTest(unittest.TestCase):
         for src in re.findall(r'<img src="([^"]+)"', text):
             self.assertTrue((self.tmp / "published" / src).is_file(), src)
 
+    def test_a_republished_live_review_says_it_is_recorded(self):
+        record = _live_record(self.tmp / "review")
+        page = render(record, self.tmp / "review", recorded="fix matrix run 1, demo run 1").read_text(encoding="utf-8")
+        self.assertIn("RECORDED LIVE", page)
+        self.assertIn("the run labelled it FRESH LIVE", page)
+        self.assertIn("Recorded evidence: fix matrix run 1, demo run 1", page)
+        self.assertNotIn("Evidence: FRESH LIVE", page)
+        fresh = self.page(record)
+        self.assertIn("Evidence: FRESH LIVE", fresh)
+        self.assertNotIn("Recorded evidence", fresh)
+
     def test_private_routes_are_counts_only(self):
         text = self.page(EXAMPLE, self.tmp / "out")
         self.assertIn("1 check on the private routes: 1 passed, 0 failed, 0 need review", text)
