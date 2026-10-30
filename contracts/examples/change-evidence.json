@@ -1,0 +1,112 @@
+{
+  "format": "expectrail.change-evidence/v0",
+  "runId": "review-20261030T174421Z-60592",
+  "mode": "sample",
+  "request": {
+    "id": "rr-test",
+    "sha256": "6b351638fd7900c547d543809532197eb2b52102c3ae44f8c1dc46c6f1567914"
+  },
+  "candidate": {
+    "patchSha256": "ceda817fc43cb1249404a110b2517adc10e22b5d39ec7c29f0ed322862e38c09",
+    "origin": "fixture"
+  },
+  "verification": {
+    "fileSha256": "bfd339a0971228872b6622043eb1bfbd89936fb3b823dc213f1ec4b05babe622",
+    "decision": "accept"
+  },
+  "arms": {
+    "base": {
+      "provenance": "fixture",
+      "patchesSha256": [
+        "6514ad59f1311fc109b56c06366871c0aeab316179d80a9921a43a41e7667740"
+      ],
+      "replaySha256": null,
+      "observationBackend": "engine",
+      "frame": null
+    },
+    "candidate": {
+      "provenance": "fixture",
+      "patchesSha256": [
+        "6514ad59f1311fc109b56c06366871c0aeab316179d80a9921a43a41e7667740",
+        "ceda817fc43cb1249404a110b2517adc10e22b5d39ec7c29f0ed322862e38c09"
+      ],
+      "replaySha256": null,
+      "observationBackend": "engine",
+      "frame": null
+    }
+  },
+  "rows": [
+    {
+      "spec": "player-stays-above-ground",
+      "kind": "regression",
+      "route": "smoke",
+      "primary": true,
+      "required": true,
+      "before": "fail",
+      "after": "pass",
+      "comparison": "REPAIRED",
+      "evidence": {
+        "before": "af3ea02ba0fd58937c810e1f2ce5e36c660eeda1e4ee01703344a3586818e913",
+        "after": "45a77810eaa3ce36041714add425f932b56aa71f3afc5c8af7afc99ae4e4bab7"
+      }
+    },
+    {
+      "spec": "player-motion-on-smoke",
+      "kind": "gameplay",
+      "route": "smoke",
+      "primary": false,
+      "required": true,
+      "before": "fail",
+      "after": "pass",
+      "comparison": "REPAIRED",
+      "evidence": {
+        "before": "24d0f6e166aafe3a1a569932a04db50566ad24f221eb594d63c486b455ef9865",
+        "after": "32062f0014ab3e972055106d636e954a92c3b296ecafebcde019e1384162dafa"
+      }
+    }
+  ],
+  "private": {
+    "source": "interim-fixture",
+    "checks": 1,
+    "passed": 1,
+    "failed": 0,
+    "needsReview": 0
+  },
+  "stages": [
+    {
+      "stage": "preflight",
+      "status": "completed",
+      "startedAt": "2026-10-30T17:44:21Z",
+      "endedAt": "2026-10-30T17:44:21Z"
+    },
+    {
+      "stage": "base",
+      "status": "completed",
+      "startedAt": "2026-10-30T17:44:21Z",
+      "endedAt": "2026-10-30T17:44:21Z"
+    },
+    {
+      "stage": "candidate",
+      "status": "completed",
+      "startedAt": "2026-10-30T17:44:21Z",
+      "endedAt": "2026-10-30T17:44:21Z"
+    },
+    {
+      "stage": "compare",
+      "status": "completed",
+      "startedAt": "2026-10-30T17:44:21Z",
+      "endedAt": "2026-10-30T17:44:21Z"
+    },
+    {
+      "stage": "export",
+      "status": "completed",
+      "startedAt": "2026-10-30T17:44:21Z",
+      "endedAt": "2026-10-30T17:44:21Z"
+    }
+  ],
+  "diagnostics": [],
+  "evidenceLabel": "SAMPLE",
+  "status": "REPAIR DEMONSTRATED",
+  "reasons": [],
+  "rerun": "python3 -m agents.review_change --request <request.json> --candidate <candidate.patch> --mode sample --out <new folder> --base-observations agents/fixtures/obs-fallthrough.json --observations agents/fixtures/obs-fixed.json"
+}
