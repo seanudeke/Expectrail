@@ -297,11 +297,14 @@ def build_report(
     feedback: dict | Path | None = None,
     guard: dict | Path | None = None,
     frames_illustrative: bool = False,
+    review: dict | None = None,
 ) -> dict:
     """Write the morning report, its signed release candidate and morning-summary.json.
 
     ``frames_illustrative`` marks before/after frames that did not come from this run (the loop's
     fixture defaults): each frame is flagged and the report says so, so they never read as evidence.
+    ``review`` (the loop's review against the failing base, when it ran) is reported in its own
+    section, separate from the verifier's decision, which it never changes.
     """
     out.mkdir(parents=True, exist_ok=True)
     decision = verification["decision"]
@@ -390,6 +393,16 @@ def build_report(
             lines.append(f"- belowStreak: `{metrics.get('belowStreak')}`")
         if "sampleCount" in metrics:
             lines.append(f"- sampleCount: `{metrics.get('sampleCount')}`")
+
+    if review is not None:
+        lines.extend(["", "## Review against the failing base",
+                      f"**Status:** `{review['status']}` ({review['evidenceLabel'].lower()} evidence). "
+                      "The verifier's decision above stands on its own; this says whether the same checks "
+                      "failed before the patch and pass after it."])
+        for reason in review.get("reasons") or []:
+            lines.append(f"- {_md_text(reason)}")
+        if review.get("path"):
+            lines.append(f"- Evidence: `{Path(review['path']).name}` in the run's review folder")
 
     if frame_meta:
         lines.extend(["", "## Before / after frames"])
@@ -485,6 +498,8 @@ def build_report(
         "signature": signature,
         "gameplay": gameplay,
     }
+    if review is not None:
+        summary["review"] = {"status": review["status"], "evidenceLabel": review["evidenceLabel"]}
     if feedback_doc is not None:
         summary["feedback"] = {
             "id": feedback_doc["id"],
