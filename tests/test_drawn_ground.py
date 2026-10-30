@@ -53,6 +53,11 @@ class DrawnGroundTest(unittest.TestCase):
         overhead = art(650 - DRAWN_GROUND_OFFSET, platform=(449, 494))
         self.assertEqual(drawn_surface_under(overhead, 100.0, 557.5), 650.0)
         self.assertEqual(drawn_surface_under(overhead, 100.0, 436.75), 457.0)  # standing on it
+        # The overhanging end of a platform the robot jumps up beside starts inside the window but ends
+        # above the feet: not a floor (found on the public combat route, a robot at y 530 beside
+        # platform art from 470 to 515).
+        beside = art(650 - DRAWN_GROUND_OFFSET, platform=(470, 515))
+        self.assertEqual(drawn_surface_under(beside, 100.0, 530.3), 650.0)
 
     def test_the_clean_floor_passes_and_art_moved_up_fails(self):
         self.assertEqual(judged(ground_trace(), CLEAN_ART), "pass")

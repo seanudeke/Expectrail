@@ -362,22 +362,25 @@ def drawn_surface_under(art: dict, x: float, y: float) -> float | None:
     """World y of the floor as it is drawn under a body at (x, y), or None.
 
     ``art`` is the trace's levelArt (where the harness found the tile layers opaque when rendered
-    alone). Per body column, the first drawn run that starts at or below y - SINK_WINDOW; its top,
-    lowered by DRAWN_GROUND_OFFSET, is where the floor's top would be if its art matched the clean
-    game's. The highest line over the columns wins, as for surface_under.
+    alone). Per body column, the first drawn run that starts at or below y - SINK_WINDOW and reaches
+    down past the feet; its top, lowered by DRAWN_GROUND_OFFSET, is where the floor's top would be
+    if its art matched the clean game's. The highest line over the columns wins, as for
+    surface_under.
     """
     columns = art.get("columns") or []
     x0, width = int(art.get("x0", 0)), int(art.get("width", len(columns)))
-    floor_limit = y - SINK_WINDOW
+    floor_limit, feet = y - SINK_WINDOW, y + FEET_OFFSET
     best = None
     for dx in (-BODY_HALF_WIDTH, 0.0, BODY_HALF_WIDTH):
         i = math.floor(x + dx) - x0
         if not 0 <= i < min(width, len(columns)):
             continue
-        for top, _bottom in columns[i]:
-            # Art that starts above the window is a platform the robot jumps through or a wall beside
-            # it, not a floor under it; the collision search skips those surfaces the same way.
-            if top < floor_limit:
+        for top, bottom in columns[i]:
+            # Art that starts above the window is a platform overhead or a wall beside the body, not a
+            # floor under it; the collision search skips those surfaces the same way. Art that ends
+            # above the feet is the overhanging end of a platform the robot is jumping up beside (seen
+            # on the public combat route), not a floor: a floor reaches down past the feet.
+            if top < floor_limit or bottom <= feet:
                 continue
             if best is None or top < best:
                 best = float(top)
