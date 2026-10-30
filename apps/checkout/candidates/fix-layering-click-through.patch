@@ -1,0 +1,10 @@
+# Fixes layering v1 by letting clicks through the promo bar: a script can click the button, a shopper still cannot see it.
+diff -ruN a/checkout/checkout.css b/checkout/checkout.css
+--- a/checkout/checkout.css
++++ b/checkout/checkout.css
+@@ -11,4 +11,5 @@
+   background: #fff3cd;
+   border: 1px solid #ffe69c;
+   border-radius: .5rem;
++  pointer-events: none;
+ }

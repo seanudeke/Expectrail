@@ -1,0 +1,10 @@
+# Fixes the invisible button by restoring only its text colour: the label shows, the button is still not drawn.
+diff -ruN a/checkout/checkout.css b/checkout/checkout.css
+--- a/checkout/checkout.css
++++ b/checkout/checkout.css
+@@ -5,5 +5,4 @@
+ .btn-primary {
+   --bs-btn-bg: transparent;
+   --bs-btn-border-color: transparent;
+-  --bs-btn-color: transparent;
+ }
