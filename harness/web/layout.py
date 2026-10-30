@@ -8,10 +8,18 @@ shown, as in Playwright's own check) and its box reaches into the viewport. The 
 box, before transforms: a button drawn elsewhere by a transform is, to the layout, where it was.
 ``engine_objects(trace, names)`` gives the same boxes in the shape the SAM adapter takes for objects
 it is not asked to find (the form a button must stay inside), as the game's ground line is given.
+``agreeing(trace, names)`` is the filter the web verifier hands the SAM adapter: a SAM box for an
+element counts only where it overlaps the page's paint box for that element in that frame, so a
+look-alike elsewhere on the page (the cart's count badge, the theme toggle) cannot pass for it, and
+SAM still has to see the element drawn there: a covered or transparent button has a paint box but
+nothing SAM calls a button on it. Agreement can only remove detections, never add one.
 """
 from __future__ import annotations
 
 MODEL_NAME = "expectrail.web-layout"
+AGREE_IOU = 0.5
+PAGE_CHECK = {"rule": "a SAM box counts only where it overlaps the page's paint box for that element in that frame",
+              "iou": AGREE_IOU}
 
 
 def _in_view(box: list[float], viewport: list[int]) -> bool:
@@ -49,3 +57,33 @@ def behaviour(trace: dict) -> dict:
     if outcome.get("submitted"):
         return {"result": "pass", "reason": "the checkout click went through and the form was submitted"}
     return {"result": "fail", "reason": outcome.get("error") or "the form was not submitted"}
+
+
+def _iou(a: list[float], b: list[float]) -> float:
+    ix = max(0.0, min(a[2], b[2]) - max(a[0], b[0]))
+    iy = max(0.0, min(a[3], b[3]) - max(a[1], b[1]))
+    inter = ix * iy
+    union = (a[2] - a[0]) * (a[3] - a[1]) + (b[2] - b[0]) * (b[3] - b[1]) - inter
+    return inter / union if union > 0 else 0.0
+
+
+def agreeing(trace: dict, names: list[str]):
+    """{frame: {name: detections}} -> the same, keeping for each named element only the detections
+    on its paint box in that frame (none when CSS hides it or it is out of view)."""
+    rows = {row["frame"]: row for row in trace["rows"]}
+    viewport = trace["viewport"]
+
+    def keep(observed: dict[int, dict]) -> dict[int, dict]:
+        out: dict[int, dict] = {}
+        for frame, objects in observed.items():
+            row = rows.get(frame)
+            out[frame] = dict(objects)
+            for name in names:
+                if name not in objects:
+                    continue
+                at = _boxes((row or {}).get("elements", {}).get(name), viewport, painted=True)
+                box = at[0]["box"] if at else None
+                out[frame][name] = [d for d in objects[name] if box is not None and _iou(d["box"], box) >= AGREE_IOU]
+        return out
+
+    return keep

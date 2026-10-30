@@ -641,6 +641,7 @@ def from_replay(
     cache: Cache | None = None,
     workers: int | None = None,
     stats: dict | None = None,
+    keep: Callable[[dict[int, dict]], dict[int, dict]] | None = None,
 ) -> dict:
     """expectrail.observations/v0 for one replay, from SAM 3.1. Matches the seam's signature.
 
@@ -648,7 +649,9 @@ def from_replay(
     pixels only. ``spec`` supplies the prompts, the frame window and the assertion that decides
     whether sampling is safe and where to refine. ``engine_objects`` ({frame: {name: boxes}})
     supplies objects SAM cannot see, such as the level's ground line in frame pixels; SAM is not
-    asked for those.
+    asked for those. ``keep`` ({frame: {name: detections}} -> the same) filters SAM's answer before
+    anything is decided from it, sampling and refinement included: the web adapter keeps only the
+    boxes that agree with where the page drew the element.
 
     Every failure comes out as SamError, so the verifier can turn it into needs-review instead of
     crashing; nothing here can fail into a pass.
@@ -658,7 +661,7 @@ def from_replay(
             confirm = os.environ.get(CONFIRM_ENV, "1").strip().lower() not in ("0", "off", "false", "no")
         return _from_replay(frames_dir, replay_sha256, spec=spec, prompts=prompts, every=every, refine=refine,
                             confirm=confirm, engine_objects=engine_objects, client=client, cache=cache,
-                            workers=workers, stats=stats, trace=trace, fps=fps)
+                            workers=workers, stats=stats, trace=trace, fps=fps, keep=keep)
     except SamError:
         raise
     except Exception as exc:  # noqa: BLE001 - any surprise is needs-review, never a crash or a pass
@@ -666,7 +669,7 @@ def from_replay(
 
 
 def _from_replay(frames_dir, replay_sha256, *, spec, prompts, every, refine, confirm, engine_objects, client,
-                 cache, workers, stats, trace=None, fps=60) -> dict:
+                 cache, workers, stats, trace=None, fps=60, keep=None) -> dict:
     if frames_dir is None or not Path(frames_dir).is_dir():
         raise SamError("the sam provider needs the replay's captured frames (frames_dir)")
     frames = frame_files(Path(frames_dir))
@@ -693,7 +696,8 @@ def _from_replay(frames_dir, replay_sha256, *, spec, prompts, every, refine, con
 
     def look(chosen):
         got = observe(frames, chosen, names, client, cache, workers)
-        return check(got) if check is not None else got
+        got = check(got) if check is not None else got
+        return keep(got) if keep is not None else got
 
     observed = look(sample(indices, rate))
 

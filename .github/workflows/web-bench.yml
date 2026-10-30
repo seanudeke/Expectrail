@@ -21,7 +21,7 @@ on:
         options: [sam, layout]
         default: sam
       bench:
-        description: detection (would each bug be caught), judge (who accepts a change that only looks right; agents/web_judge.py) or probe (which SAM prompt finds the button and logo and nothing else; agents/web_probe.py, about 80 SAM images)
+        description: detection (would each bug be caught), judge (who accepts a change that only looks right; agents/web_judge.py) or probe (which SAM prompt finds the button and logo and nothing else; agents/web_probe.py, about 280 SAM images)
         type: choice
         options: [detection, judge, probe]
         default: detection
@@ -200,7 +200,7 @@ jobs:
           if-no-files-found: warn
 
   # Prompt calibration: SAM on each public session's last frame, every candidate prompt scored
-  # against where the page drew the element. Public variants only; nothing here edits a spec.
+  # against where the page drew the element. Public patches only; nothing here edits a spec.
   web-probe:
     if: inputs.bench == 'probe'
     runs-on: ubuntu-24.04

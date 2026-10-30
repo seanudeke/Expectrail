@@ -1,9 +1,9 @@
 {
   "format": "expectrail.web-judge-bench/v0",
-  "run": 41088734986,
-  "runUrl": "https://github.com/seanudeke/Expectrail/actions/runs/41088734986",
-  "commit": "67d3079b0cd44ec6b97bbff2c285eb04c3690262",
-  "date": "2026-10-30T16:18:49Z",
+  "run": 41104434739,
+  "runUrl": "https://github.com/seanudeke/Expectrail/actions/runs/41104434739",
+  "commit": "f3851dabf000839e8c5a496ec0a2c84dd411a370",
+  "date": "2026-10-30T18:09:30Z",
   "rows": [
     {
       "case": "good/correct-fix",
@@ -35,6 +35,15 @@
     {
       "case": "good/intended-place-order",
       "what": "Renames the button to Place order, as asked",
+      "label": "good",
+      "expectrailSam": "accept",
+      "expectrailNoSam": "accept",
+      "pixelDiff": "reject",
+      "failing": []
+    },
+    {
+      "case": "good/fix-layering-move-bar-below",
+      "what": "Muse Code's live fix: moves the covering bar below the button",
       "label": "good",
       "expectrailSam": "accept",
       "expectrailNoSam": "accept",
@@ -94,29 +103,28 @@
       "pixelDiff": "reject",
       "failing": [
         "checkout-button-visible",
-        "hybrid",
         "layout"
       ]
     }
   ],
   "tally": {
     "expectrailSam": {
-      "goodAccepted": 4,
-      "good": 4,
+      "goodAccepted": 5,
+      "good": 5,
       "badAccepted": 0,
       "bad": 5,
       "undecided": 0
     },
     "expectrailNoSam": {
-      "goodAccepted": 4,
-      "good": 4,
+      "goodAccepted": 5,
+      "good": 5,
       "badAccepted": 3,
       "bad": 5,
       "undecided": 0
     },
     "pixelDiff": {
       "goodAccepted": 1,
-      "good": 4,
+      "good": 5,
       "badAccepted": 0,
       "bad": 5,
       "undecided": 0

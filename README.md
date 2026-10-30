@@ -172,37 +172,51 @@ Chromium replays a shopper filling in the form on a desktop and on a phone, one 
 two replays produce the same frames byte for byte. The page's layout boxes stand in for the engine's
 position log, and "did the order go through" stands in for the gameplay check. We seeded four bug
 families of the same kinds into the page and wrote three one-sentence checks. The evaluator, the
-contracts, the decision rule and SAM 3.1 are unchanged. The new parts are the harness
-([`harness/web`](harness/web)), the checks and the bugs.
+contracts, the decision rule, SAM 3.1, and the fixer and its sandbox are unchanged. The new parts
+are the harness ([`harness/web`](harness/web)), the checks, the bugs, and one rule for the vision
+checks, described below: a SAM box counts only where the page drew the element.
 
 | What we measured | Result | Run |
 | --- | --- | --- |
-| Development bugs caught: SAM on / SAM off | **8 of 8** / 4 of 8, no false alarm on the clean page | [41088369464](https://github.com/seanudeke/Expectrail/actions/runs/41088369464) |
+| Development bugs caught: SAM on / SAM off | **8 of 8** / 4 of 8, no false alarm on the clean page | [41104422848](https://github.com/seanudeke/Expectrail/actions/runs/41104422848) |
 | Changes that only look right, accepted (5 cases) | Expectrail with SAM **0 of 5**; without SAM 3 of 5; a pixel diff against the clean page 0 of 5 | [judge](bench/web/judge.md) |
-| Good changes, accepted (the correct fix and 3 intended changes) | Expectrail **4 of 4**, with or without SAM; the pixel diff 1 of 4 | [judge](bench/web/judge.md) |
+| Good changes, accepted (the correct fix, 3 intended changes, Muse Code's live fix) | Expectrail **5 of 5**, with or without SAM; the pixel diff 1 of 5 | [judge](bench/web/judge.md) |
+| Live repair, one bug (layering v2, SAM-only) | Muse Code's fix **accepted on the first attempt**, on the public and the private sessions | [41104445469](https://github.com/seanudeke/Expectrail/actions/runs/41104445469) |
 
 What this does and does not show:
 
-- **Without vision, half the bugs get through.** Four of the eight pass every layout and behaviour
-  check: a bar that covers the button but lets clicks through, a transparent button, a broken logo,
-  and a button moved out of the form by a transform. Three of the five changes that only look
-  right get past the checks without SAM. A pixel diff rejects every bad change, but it also rejects every
-  intended one, because it cannot tell a change someone asked for from a broken one.
-- **The vision prompts were tuned on these bugs.** The first SAM run also caught 8 of 8, but its
-  per-session detail showed a problem. On the phone, "blue button" also matched the cart's count
-  badge and the page's theme toggle, so the "button visible" check passed with the real button
-  gone, and the bug was caught only by the check beside it. On the desktop, "purple logo" matched
-  the toggle once the logo was broken.
-  - A prompt probe ([`agents/web_probe.py`](agents/web_probe.py)) scored each candidate against where
-    the page actually drew the element. We moved to "full-width blue button" at minScore 0.71 and
-    "purple B logo".
-  - Every failing check now fails on both sessions.
-  - The button's margin is narrow: the drawn button scores 0.75 or more, the toggle up to 0.65.
-  - The prompts were chosen on the same bugs they are scored on, and the page has no private
-    variants yet ([`bench/web/`](bench/web)).
-- **The repair loop is built but not yet run live.** Muse Code fixing the page uses the game's
-  fixer and sandbox unchanged ([`agents/web_fix.py`](agents/web_fix.py)). Until private web sessions
-  exist, every verdict is "needs review".
+- **Without vision, half the bugs get through our layout checks.**
+  - Four of the eight pass every layout and behaviour check: a bar that covers the button but lets
+    clicks through, a transparent button, a broken logo, and a button moved out of the form by a
+    transform.
+  - Three of the five changes that only look right get past the checks without SAM.
+  - A pixel diff rejects every bad change, but it also rejects every intended one, because it
+    cannot tell a change someone asked for from a broken one.
+  - A stronger page-only check could catch more of these: occlusion tests, computed styles, image
+    load state. That would need code for each way a page can break. With SAM, one sentence per
+    element checks what a shopper would see.
+- **SAM alone was not enough on the web. Our first fix for that was wrong.**
+  - On the phone, any prompt for the button also matched the cart's count badge or the theme
+    toggle. So with the real button gone, "button visible" could still pass.
+  - We first set a score threshold between the look-alikes and the button. It looked right on the
+    bugs: 8 of 8 caught, no false alarm.
+  - Then it rejected Muse Code's first live fix, which was correct. With the bar moved just below
+    the button, SAM found the button where the page drew it but scored it 0.56, under the 0.71
+    threshold.
+  - The check now counts a SAM box only where it overlaps the page's own paint box for that
+    element. A look-alike elsewhere cannot pass for the button, and SAM still has to see the
+    element drawn there, so a covered or transparent button still fails.
+  - With that rule, the prompt "blue checkout button" found the drawn button on every probed frame
+    (lowest 0.65) and nothing on a covered, transparent or off-screen one. The default threshold is
+    used.
+  - The cost: the vision check now leans on the page's geometry, so it is not independent of the
+    page the way the game's SAM checks are of the engine. Every step, including the threshold that
+    failed, is in [`bench/web/`](bench/web).
+- **Tuned on what it is scored on.** The prompts and the rule were chosen on public bugs and
+  changes we wrote, plus one Muse fix. There are no private web bugs yet. The two private web
+  sessions are only replays of the same page, written by Sean, not by whoever tuned the checks.
+- **The full web repair matrix has not run yet.** One live case so far. The repair loop
+  ([`agents/web_fix.py`](agents/web_fix.py)) uses the game's fixer and sandbox unchanged.
 - **One static page, three checks, written by the team that built the verifier.** It shows that
   the harness can be replaced while the rest stays fixed. It does not show that Expectrail works on
   any web app.

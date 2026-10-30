@@ -4,8 +4,7 @@
   "instruction": "The Continue to checkout button is always visible.",
   "objects": {
     "button": {
-      "prompt": "full-width blue button",
-      "minScore": 0.71
+      "prompt": "blue checkout button"
     }
   },
   "assertion": {
