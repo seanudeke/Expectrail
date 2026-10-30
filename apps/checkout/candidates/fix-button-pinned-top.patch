@@ -1,0 +1,16 @@
+# Fixes the off-screen button by pinning it to the top of the window: visible and clickable, but outside the form.
+diff -ruN a/checkout/checkout.css b/checkout/checkout.css
+--- a/checkout/checkout.css
++++ b/checkout/checkout.css
+@@ -5,3 +5,11 @@
+ .needs-validation .btn-lg {
+   margin-top: 640px;
+ }
++
++.needs-validation .btn-lg {
++  position: fixed;
++  top: 16px;
++  left: 332px;
++  width: 608px;
++  margin-top: 0;
++}

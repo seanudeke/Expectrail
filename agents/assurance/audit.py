@@ -46,6 +46,7 @@ PERCEPTION = frozenset({
     # scripts with the game's environment allowlist and every request outside the page's own origin
     # aborted (harness/web/run.py), so the key never reaches the page and the page reaches nothing.
     ".github/workflows/web-bench.yml#heldout-bench",
+    ".github/workflows/web-bench.yml#web-judge",  # the same, on the judge benchmark's cases
 })
 LANE_LINE = re.compile(r"^(?P<job>\S+#\S+): (?P<lane>[a-z]+) \(")
 

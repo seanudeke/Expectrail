@@ -1,0 +1,10 @@
+# Fixes layering v1 by making the promo bar transparent: the button shows, but the invisible bar still takes the click.
+diff -ruN a/checkout/checkout.css b/checkout/checkout.css
+--- a/checkout/checkout.css
++++ b/checkout/checkout.css
+@@ -11,4 +11,5 @@
+   background: #fff3cd;
+   border: 1px solid #ffe69c;
+   border-radius: .5rem;
++  opacity: 0;
+ }

@@ -212,5 +212,45 @@ class FixLoopTest(unittest.TestCase):
         self.assertEqual(row["outcome"], "not-detected")
 
 
+class JudgeTest(unittest.TestCase):
+    def test_every_case_names_patches_that_exist(self):
+        from agents import web_judge
+
+        for case in web_judge.CASES:
+            for patch in web_judge.patches(case):
+                self.assertTrue(patch.is_file(), f"{case}: {patch}")
+        labels = [v[0] for v in web_judge.CASES.values()]
+        self.assertEqual((labels.count("good"), labels.count("bad")), (4, 5))
+
+    def test_any_failing_check_rejects_and_a_missing_one_is_undecided(self):
+        from agents.web_judge import decide
+
+        self.assertEqual(decide({"layout": "pass", "behaviour": "pass"}, ["layout", "behaviour"]), "accept")
+        self.assertEqual(decide({"layout": "fail", "behaviour": "pass"}, ["layout", "behaviour"]), "reject")
+        self.assertEqual(decide({"layout": "pass"}, ["layout", "behaviour"]), "undecided")
+
+    def test_collect_reads_the_annotations_back(self):
+        from agents import web_judge
+
+        doc = {"case": "bad/fix-logo-remove", "label": "bad", "failing": ["logo-visible"],
+               "decisions": {"expectrailSam": "reject", "expectrailNoSam": "accept", "pixelDiff": "reject"}}
+        line = web_judge.annotation(doc)
+        title, message = line.split("title=", 1)[1].split("::", 1)
+
+        def fetch(path):
+            if path.endswith("/jobs?per_page=100"):
+                return {"jobs": [{"name": "web-judge (bad/fix-logo-remove)", "id": 1}]}
+            if "/check-runs/" in path:
+                return [{"title": title, "message": message}]
+            return {"html_url": "https://github.com/seanudeke/Expectrail/actions/runs/9", "head_sha": "abc", "created_at": "2026-10-30T18:00:00Z"}
+
+        back = web_judge.collect(9, fetch=fetch)
+        self.assertEqual(back["rows"][0]["expectrailNoSam"], "accept")
+        t = web_judge.tally(back)
+        self.assertEqual(t["expectrailSam"]["badAccepted"], 0)
+        self.assertEqual(t["expectrailNoSam"]["badAccepted"], 1)
+        self.assertIn("| bad/fix-logo-remove", web_judge.markdown(back))
+
+
 if __name__ == "__main__":
     unittest.main()
