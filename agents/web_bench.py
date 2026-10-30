@@ -186,8 +186,44 @@ def detail_lines(doc: dict, out: Path) -> list[str]:
                     reason = json.loads(path.read_text(encoding="utf-8")).get("reason", "")
                     break
             parts.append(f"{check} {result}" + (f" ({' '.join(reason.split())[:120]})" if reason and result != "pass" else ""))
+        parts += sam_seen(work / row["route"])
         lines.append(f"::notice title=Bench detail {doc['variant']} {row['route']}::" + "; ".join(parts))
     return lines
+
+
+def sam_seen(run_dir: Path) -> list[str]:
+    """What SAM found against what the layout says, for calibrating prompts and thresholds: on the
+    last frame SAM looked at, its best box and score for each object it was asked for, how many other
+    matches cleared the evaluator's default score, and where the page drew the element."""
+    from expectrail.evaluator import DEFAULT_MIN_SCORE
+
+    try:
+        trace = json.loads((run_dir / "trace.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    rows = {row["frame"]: row for row in trace["rows"]}
+    seen: dict[str, str] = {}
+    for path in sorted(run_dir.glob("sam-*.json")):
+        obs = json.loads(path.read_text(encoding="utf-8"))
+        frames = [f for f in obs.get("frames", []) if f["frame"] in rows]
+        if not frames:
+            continue
+        last = max(frames, key=lambda f: f["frame"])
+        for name in obs.get("model", {}).get("prompts", {}):
+            found = last["objects"].get(name) or []
+            if name in seen:
+                continue
+            element = rows[last["frame"]]["elements"].get(name) or {}
+            drawn = [round(v) for v in element.get("painted", [])] if element.get("shown") else "hidden"
+            ranked = sorted(found, key=lambda d: -(d.get("score") or 0))
+            if not ranked:
+                seen[name] = f"SAM {name}: none (drawn at {drawn})"
+                continue
+            best = ranked[0]
+            others = sum((d.get("score") or 0) >= DEFAULT_MIN_SCORE for d in ranked[1:])
+            seen[name] = (f"SAM {name}: {[round(v) for v in best['box']]} @{best.get('score', 0):.2f}"
+                          f" +{others} (drawn at {drawn})")
+    return list(seen.values())
 
 
 def main(argv: list[str] | None = None) -> int:

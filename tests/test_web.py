@@ -119,6 +119,21 @@ class BenchTest(unittest.TestCase):
         self.assertEqual(row["caughtWithSamOff"], "yes")
         self.assertEqual(row["checks"]["behaviour"]["fail"], 2)
 
+    def test_the_detail_line_shows_what_sam_found_against_what_the_page_drew(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp)
+            (run_dir / "trace.json").write_text(json.dumps(trace(frames=3)))
+            boxes = [{"box": [1200, 300, 1230, 322], "score": 0.71}, {"box": [10, 10, 20, 20], "score": 0.3},
+                     {"box": [1300, 900, 1330, 920], "score": 0.55}]
+            (run_dir / "sam-checkout-button-visible.json").write_text(json.dumps({
+                "model": {"prompts": {"button": "blue button"}},
+                "frames": [{"frame": 0, "objects": {"button": []}}, {"frame": 2, "objects": {"button": boxes}}]}))
+            (run_dir / "sam-logo-visible.json").write_text(json.dumps({
+                "model": {"prompts": {"logo": "purple logo"}}, "frames": [{"frame": 2, "objects": {"logo": []}}]}))
+            seen = web_bench.sam_seen(run_dir)
+        self.assertEqual(seen, ["SAM button: [1200, 300, 1230, 322] @0.71 +1 (drawn at [332, 1358, 940, 1406])",
+                                "SAM logo: none (drawn at [764, 48, 836, 105])"])
+
 
 @unittest.skipUnless(__import__("importlib").util.find_spec("playwright"), "playwright is not installed")
 class ReplayTest(unittest.TestCase):
