@@ -1,0 +1,305 @@
+{
+  "format": "expectrail.reported-bench-results/v0",
+  "run": 41116202685,
+  "runUrl": "https://github.com/seanudeke/Expectrail/actions/runs/41116202685",
+  "commit": "aa9150906bef1be4594ffbad5d78556406a6b02d",
+  "date": "2026-10-30T19:33:23Z",
+  "sam": false,
+  "caughtByTodaysChecksSamOn": null,
+  "caughtByTodaysChecks": {
+    "yes": 0,
+    "of": 4
+  },
+  "caughtByTraceChecks": {
+    "yes": 4,
+    "of": 4
+  },
+  "caughtByOwnCheck": {
+    "yes": 4,
+    "of": 4
+  },
+  "falseAlarm": {
+    "todaysChecksSamOn": null,
+    "todaysChecks": "no",
+    "traceChecks": "no",
+    "cleanRoutes": 5
+  },
+  "clean": {
+    "checks": {
+      "engine": {
+        "fail": 0,
+        "needs-review": 0,
+        "pass": 5
+      },
+      "gameplay": {
+        "fail": 0,
+        "needs-review": 0,
+        "pass": 5
+      },
+      "jump-height": {
+        "fail": 0,
+        "needs-review": 0,
+        "pass": 5
+      },
+      "facing-follows-motion": {
+        "fail": 0,
+        "needs-review": 0,
+        "pass": 5
+      },
+      "shots-follow-facing": {
+        "fail": 0,
+        "needs-review": 0,
+        "pass": 5
+      },
+      "fire-rate": {
+        "fail": 0,
+        "needs-review": 0,
+        "pass": 5
+      },
+      "enemies-stay-up": {
+        "fail": 0,
+        "needs-review": 0,
+        "pass": 5
+      }
+    },
+    "routes": 5,
+    "caughtByTodaysChecksSamOn": null,
+    "caughtByTodaysChecks": "no",
+    "caughtByTraceChecks": "no",
+    "ownCheck": null,
+    "caughtByOwnCheck": null,
+    "id": "clean",
+    "details": [],
+    "seconds": 181,
+    "samImages": null
+  },
+  "variants": [
+    {
+      "checks": {
+        "engine": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "gameplay": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "jump-height": {
+          "fail": 1,
+          "needs-review": 0,
+          "pass": 4
+        },
+        "facing-follows-motion": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "shots-follow-facing": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "fire-rate": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "enemies-stay-up": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        }
+      },
+      "routes": 5,
+      "caughtByTodaysChecksSamOn": null,
+      "caughtByTodaysChecks": "no",
+      "caughtByTraceChecks": "yes",
+      "ownCheck": "jump-height",
+      "caughtByOwnCheck": "yes",
+      "id": "air-jump",
+      "details": [
+        {
+          "result": "fail",
+          "what": "jump-height on climb-gap: the robot rose 485 px above the floor it left (max 260), highest at tick 285"
+        }
+      ],
+      "seconds": 197,
+      "samImages": null
+    },
+    {
+      "checks": {
+        "engine": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "gameplay": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "jump-height": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "facing-follows-motion": {
+          "fail": 1,
+          "needs-review": 0,
+          "pass": 4
+        },
+        "shots-follow-facing": {
+          "fail": 1,
+          "needs-review": 0,
+          "pass": 4
+        },
+        "fire-rate": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "enemies-stay-up": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        }
+      },
+      "routes": 5,
+      "caughtByTodaysChecksSamOn": null,
+      "caughtByTodaysChecks": "no",
+      "caughtByTraceChecks": "yes",
+      "ownCheck": "facing-follows-motion",
+      "caughtByOwnCheck": "yes",
+      "id": "body-flip",
+      "details": [
+        {
+          "result": "fail",
+          "what": "shots-follow-facing on turn-and-shoot: 1 of 2 bullets went the other way from where the robot faced (first fired at tick 191)"
+        },
+        {
+          "result": "fail",
+          "what": "facing-follows-motion on turn-and-shoot: the robot faced away from where it walked on 90 of 199 moving ticks (first at tick 93)"
+        }
+      ],
+      "seconds": 197,
+      "samImages": null
+    },
+    {
+      "checks": {
+        "engine": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "gameplay": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "jump-height": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "facing-follows-motion": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "shots-follow-facing": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "fire-rate": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "enemies-stay-up": {
+          "fail": 1,
+          "needs-review": 0,
+          "pass": 4
+        }
+      },
+      "routes": 5,
+      "caughtByTodaysChecksSamOn": null,
+      "caughtByTodaysChecks": "no",
+      "caughtByTraceChecks": "yes",
+      "ownCheck": "enemies-stay-up",
+      "caughtByOwnCheck": "yes",
+      "id": "enemy-ledge",
+      "details": [
+        {
+          "result": "fail",
+          "what": "enemies-stay-up on wait-for-patrol: enemy 0 fell 256 px below where it settled (max 64)"
+        }
+      ],
+      "seconds": 113,
+      "samImages": null
+    },
+    {
+      "checks": {
+        "engine": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "gameplay": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "jump-height": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "facing-follows-motion": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "shots-follow-facing": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        },
+        "fire-rate": {
+          "fail": 1,
+          "needs-review": 0,
+          "pass": 4
+        },
+        "enemies-stay-up": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 5
+        }
+      },
+      "routes": 5,
+      "caughtByTodaysChecksSamOn": null,
+      "caughtByTodaysChecks": "no",
+      "caughtByTraceChecks": "yes",
+      "ownCheck": "fire-rate",
+      "caughtByOwnCheck": "yes",
+      "id": "gun-cooldown",
+      "details": [
+        {
+          "result": "fail",
+          "what": "fire-rate on tap-shoot: two shots 0.10 s apart (min 0.25 s); 14 shots"
+        }
+      ],
+      "seconds": 153,
+      "samImages": null
+    }
+  ],
+  "spend": {
+    "samImages": null,
+    "samUsd": null,
+    "museCalls": 0,
+    "jobMinutes": 14.0
+  },
+  "rerun": "Actions, **Reported bench** (or any pull request that touches it), then `python3 -m agents.bench_collect --reported --run <id>`"
+}

@@ -540,8 +540,8 @@ def collect_reported(run_id: int, fetch=gh_json) -> dict:
         "clean": clean,
         "variants": variants,
         "spend": spend([clean] + variants, muse_key="none"),
-        "rerun": "Actions, Reported bench (or any pull request that touches it), then "
-                 f"python3 -m agents.bench_collect --reported --run <id>",
+        "rerun": "Actions, **Reported bench** (or any pull request that touches it), then "
+                 "`python3 -m agents.bench_collect --reported --run <id>`",
     }
     return doc
 
