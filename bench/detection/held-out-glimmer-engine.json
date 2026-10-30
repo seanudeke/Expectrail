@@ -6,10 +6,7 @@
   "runUrl": "https://github.com/seanudeke/Nightshift/actions/runs/40986680262",
   "commit": "9e9dba47605b856c10731a3bf7d942552f301c03",
   "date": "2026-10-30T01:34:47Z",
-  "caughtWithSamOn": {
-    "yes": 0,
-    "of": 8
-  },
+  "caughtWithSamOn": null,
   "caughtWithSamOff": {
     "yes": 3,
     "of": 8

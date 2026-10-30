@@ -166,6 +166,7 @@ def collect(run_ids, which: str, fetch=gh_json) -> dict:
         "spend": run_spend,
     }
     if judge == "glimmer-engine":
+        doc["caughtWithSamOn"] = None  # SAM was not run; 0 of 8 would read as SAM missing everything
         doc["caughtWithGlimmerEngine"] = tally("caughtWithGlimmerEngine")
         doc["falseAlarm"]["withGlimmerEngine"] = clean.get("caughtWithGlimmerEngine")
     if len(runs) > 1:

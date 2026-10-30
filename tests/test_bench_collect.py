@@ -99,7 +99,7 @@ class BenchCollectTest(unittest.TestCase):
         doc = bc.collect([7, 8], "dev", fetch=fetch)
         self.assertEqual(doc["judge"], "glimmer-engine")
         self.assertEqual(doc["caughtWithGlimmerEngine"], {"yes": 1, "of": 2})  # run 8 only fills in sinking/v2
-        self.assertEqual(doc["caughtWithSamOn"], {"yes": 0, "of": 2})  # no SAM ran; the table never says so
+        self.assertIsNone(doc["caughtWithSamOn"])  # no SAM ran, so there is no SAM count at all
         self.assertEqual(doc["falseAlarm"]["withGlimmerEngine"], "no")
         with tempfile.TemporaryDirectory() as tmp:
             path = bc.write(doc, Path(tmp))

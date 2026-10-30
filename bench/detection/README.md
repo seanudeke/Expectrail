@@ -4,6 +4,23 @@ Written by `python3 -m agents.bench_collect` from the run's own annotations; do 
 A variant is caught when any check fails on at least one route. Rerun a set with
 `bench/rerun-detection.sh dev` or `bench/rerun-detection.sh held-out`.
 
+## dev, judged by Glimmer checked against the engine (run [41001182605](https://github.com/seanudeke/Nightshift/actions/runs/41001182605), 2026-10-30, commit 2de3d9c)
+
+Caught with Glimmer+engine (no SAM): **8 of 8**. Without vision: **3 of 8**. False alarms on the clean game (5 routes): none with Glimmer+engine (no SAM), none without.
+
+Spend: no SAM. Glimmer runs on a Fireworks deployment billed by the hour, not counted here; 419 job minutes.
+
+| Variant | Caught, Glimmer+engine | Caught, SAM off | Failing checks (routes) |
+| --- | --- | --- | --- |
+| dev/layering/v1 | yes | no | player-always-visible 5 |
+| dev/layering/v2 | yes | no | player-always-visible 5 |
+| dev/missing-texture/v1 | yes | no | coins-visible 5 |
+| dev/missing-texture/v2 | yes | no | coins-visible 5 |
+| dev/physics-fall-through/v1 | yes | yes | engine 5, gameplay 5, player-always-visible 5 |
+| dev/physics-fall-through/v2 | yes | yes | engine 5, gameplay 5, player-always-visible 5 |
+| dev/sinking/v1 | yes | yes | engine 5, player-always-visible 2 |
+| dev/sinking/v2 | yes | no | player-always-visible 2 |
+
 ## dev (run [40841977642](https://github.com/seanudeke/Nightshift/actions/runs/40841977642), 2026-10-29, commit c8bce4d)
 
 Caught with SAM: **8 of 8**. Without SAM: **3 of 8**. False alarms on the clean game (5 routes): none with SAM, none without.
