@@ -736,6 +736,129 @@ def _write_verification(
     return doc
 
 
+def public_route_identity(request: dict) -> dict:
+    """What a public-route check depends on besides the patches: two arms with the same identity
+    were judged the same way, so their outcomes can be compared."""
+    from expectrail import __version__ as eval_version
+    from agents.sam_observations import vision_label
+
+    failing = request["failing"][0]
+    reg_spec = load(REGRESSION_SPEC, "test-spec")
+    if failing.get("spec", {}).get("id") == reg_spec["id"]:
+        reg_spec = failing["spec"]
+    use_sam = sam_on()
+    specs = {reg_spec["id"]: digest(reg_spec)}
+    if use_sam:
+        specs.update({s["id"]: digest(s) for s in sam_specs(reg_spec["id"])})
+    return {
+        "specs": specs,
+        "routeSha256": digest(failing["route"]),
+        "evaluator": eval_version,
+        "observer": vision_label() if use_sam else "engine",
+    }
+
+
+def public_route_checks(
+    request: dict,
+    patches: list[Path],
+    out: Path,
+    *,
+    observations_path: Path | None = None,
+) -> tuple[list[dict], dict]:
+    """The public-route checks verify() makes for a candidate, for any list of patches.
+
+    A review compares the failing base (the request's seed patch alone) with the candidate on the
+    same checks. This replays ``patches`` on the request's public route and judges the regression
+    spec (on SAM's view when SAM is on, plus the SAM specs) and the gameplay check, step for step as
+    verify() does for seed plus candidate; tests/test_base_arm.py holds the two together. The clean
+    and held-out arms are not run here: they do not depend on the patches being compared.
+
+    Returns (checks, arm). The checks have verify()'s shape. The arm says where the observations
+    came from, with the replay and observation digests (None when there is none, never a zero
+    digest), the regression verdict's first failing frame and the frames directory.
+    """
+    validate(request, "repair-request")
+    out.mkdir(parents=True, exist_ok=True)
+    if request["base"]["tree"] != tree_digest(REPO / "game" / "platformer"):
+        raise SystemExit("base.tree does not match game/platformer")
+    failing = request["failing"][0]
+    route_doc = failing["route"]
+    route = out / "route.json"
+    route.write_text(json.dumps(route_doc, indent=2) + "\n", encoding="utf-8")
+
+    reg_spec = load(REGRESSION_SPEC, "test-spec")
+    if failing.get("spec", {}).get("id") == reg_spec["id"]:
+        reg_spec = failing["spec"]
+    use_sam = sam_on()
+    sam_spec_docs = sam_specs(reg_spec["id"]) if use_sam else []
+    trace, replay_sha, frames_dir, ground_source = None, "0" * 64, None, None
+
+    if observations_path is not None:
+        observations = load(observations_path, "observations")
+        source = "fixture"
+    else:
+        reference = reference_surfaces(out)
+        harness_run(route, out / "replay", patches=patches)
+        trace = json.loads((out / "replay" / "trace.json").read_text(encoding="utf-8"))
+        replay_sha = sha256_file(out / "replay" / "replay.json")
+        frames_dir = out / "replay" / "frames"
+        try:
+            observations, ground_source = _ground_observations(reg_spec, trace, replay_sha, frames_dir, use_sam,
+                                                               reference)
+        except SystemExit as exc:
+            observations, source = None, "unavailable"
+            (out / "observations-error.txt").write_text(f"{exc}\n", encoding="utf-8")
+        else:
+            source = "harness"
+            (out / "observations.json").write_text(json.dumps(observations, indent=2) + "\n", encoding="utf-8")
+
+    route_name = route_doc.get("name", route.stem)
+    checks: list[dict] = []
+    first_frame = None
+    if observations is None:
+        checks.append({"spec": reg_spec["id"], "kind": "regression", "route": route_name,
+                       "result": "needs-review", "verdictSha256": "0" * 64})
+    else:
+        reg_verdict = evaluate(reg_spec, observations)
+        (out / f"verdict-{reg_spec['id']}.json").write_text(json.dumps(reg_verdict, indent=2) + "\n",
+                                                            encoding="utf-8")
+        checks.append(_check("regression", reg_spec["id"], route_name, reg_verdict))
+        first_frame = reg_verdict.get("firstFrame")
+    if use_sam:
+        checks += _sam_checks(sam_spec_docs, "regression", route_name, trace, replay_sha, frames_dir, out)
+
+    gameplay_trace, gameplay_source, min_dx = _resolve_gameplay_trace(out, observations_path=observations_path)
+    gameplay = judge_trace(gameplay_trace, min_delta_x=min_dx)
+    metrics = dict(gameplay.get("metrics") or {})
+    metrics.setdefault("minDeltaX", float(min_dx))
+    gameplay_doc = {
+        "format": "expectrail.gameplay-verdict/v0",
+        "spec": GAMEPLAY_SPEC_ID,
+        "result": gameplay["result"],
+        "reason": gameplay["reason"],
+        "metrics": metrics,
+        "source": gameplay_source,
+        "minDeltaX": float(min_dx),
+        "evaluator": {"name": "agents.gameplay", "version": "0.1.0"},
+    }
+    validate(gameplay_doc, "gameplay-verdict")
+    (out / "verdict-gameplay.json").write_text(json.dumps(gameplay_doc, indent=2) + "\n", encoding="utf-8")
+    checks.append({"spec": GAMEPLAY_SPEC_ID, "kind": "gameplay", "route": route_name,
+                   "result": gameplay["result"], "verdictSha256": digest(gameplay_doc)})
+
+    arm_doc = {
+        "source": source,
+        "patchesSha256": [sha256_file(p) for p in patches],
+        "replaySha256": replay_sha if trace is not None else None,
+        "observationsSha256": digest(observations) if observations is not None else None,
+        "groundSource": ground_source,
+        "firstFailFrame": first_frame,
+        "framesDir": str(frames_dir) if frames_dir is not None and frames_dir.is_dir() else None,
+        "identity": public_route_identity(request),
+    }
+    return checks, arm_doc
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--request", type=Path, required=True)
