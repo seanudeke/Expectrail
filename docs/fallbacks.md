@@ -1,0 +1,110 @@
+# Fallbacks: two ladders, never mixed
+
+Decided October 30, 2026. When the overnight loop does not get an accepted fix, there are only two
+possible reasons, and each has its own ladder:
+
+- **The fix is wrong.** The verifier rejected it. This is the fixer ladder.
+- **The judge did not answer.** SAM was down, timed out, was rate-limited or ran out of credit, so
+  the verifier could only say "needs review". This is the judge ladder.
+
+The ladders never mix. A wrong fix is never sent to a second judge, and an outage never costs the
+fixer an attempt.
+
+```mermaid
+flowchart TD
+  fix["Muse Code writes a fix"] --> verify["Verifier"]
+  verify -->|"accept"| person["Morning report: a person approves"]
+  verify -->|"reject: the fix is wrong"| fixer{"Fixer ladder"}
+  fixer -->|"attempt 2 or 3"| evidence["Next attempt gets the evidence"] --> fix
+  fixer -->|"budget spent"| stop1["Stop: unresolved for a person"]
+  verify -->|"needs review: the judge did not answer"| judge{"Judge ladder<br/>(same fix)"}
+  judge -->|"1. same judge again"| verify
+  judge -->|"2. Glimmer checked against the engine"| verify
+  judge -->|"3. no judge answered"| stop2["Stop: a person judges it"]
+```
+
+## The fixer ladder: the fix is wrong
+
+[report-first.md](report-first.md) has the reasoning. In short:
+
+1. The first attempt gets a plain report.
+2. After a rejection, the next attempt gets Expectrail's evidence and the public checks that failed,
+   never a held-out route or its reason.
+3. After the third attempt, the loop stops. There is no release candidate, and the morning report
+   lists the case under "Unresolved for a human" with the verifier's reasons.
+
+## The judge ladder: the judge did not answer
+
+[`agents/judge_ladder.py`](../agents/judge_ladder.py). It climbs only when the verifier failed no
+check and an observer error says a vision model did not answer ("sam observations unavailable").
+Every step judges the same candidate again; the fixer is not asked for anything.
+
+1. **The same judge again**, after a short wait (`EXPECTRAIL_JUDGE_RETRY_WAIT`, 30 s), for an
+   outage that has passed by then, such as a rate limit.
+2. **Muse Glimmer checked against the engine** (`glimmer-engine`), when a Glimmer deployment is
+   configured (`EXPECTRAIL_GLIMMER_API_KEY` or `FIREWORKS_API_KEY`, and `EXPECTRAIL_GLIMMER_MODEL`)
+   and it wakes within `EXPECTRAIL_GLIMMER_WARM_TIMEOUT` (600 s). It is never Glimmer alone.
+   Otherwise this step is skipped, and the skip and its reason are recorded.
+3. **Stop.** The candidate stays "needs review". No further fix is attempted, because the fix may
+   well be right. The morning report says which judges were tried and that a person must judge
+   the candidate.
+
+When Glimmer decides, the morning report says so for the person who approves the release. Glimmer's
+boxes are too loose for the ground check, so the ground was judged on the engine's position log, not
+on SAM's view of the robot. A robot drawn inside the ground is what to look for in the after frames.
+
+## What the judge ladder must never do
+
+- **Re-judge a rejection.** A rejection is final at every step. The ladder climbs only when the
+  previous judge gave no answer, so a second judge can never overturn a first judge's "no". If
+  Glimmer were asked after SAM said "no", the result would mean nothing: asking judges until one
+  says yes only measures how many judges were asked.
+- **Use Glimmer alone.** The fixer controls the candidate's pixels, and a vision-language model can
+  be talked into a pass by text drawn into the game. The verifier refuses Glimmer alone for
+  verdicts (`agents.sam_observations.default_client`). Glimmer checked against the engine is the
+  only form allowed.
+- **Spend a fix attempt.** An outage says nothing about the fix. Sending the fix back would tell the
+  fixer to change something that may be right, and would show it Expectrail's evidence for a
+  failure that never happened.
+- **Pass anything quietly.** If no judge answers, the result is "needs review", never "accept".
+
+## Why Glimmer is the second judge and not the first
+
+Glimmer is the weaker judge for the bugs that matter most. Its boxes are 15 to 20 px taller than
+the robot, too loose for the 20 px ground check, so under Glimmer the ground is judged on the
+engine's position log. In the judge benchmark, the position-log ground check accepted the fix that
+draws the robot inside the ground. SAM's view caught it. The judge benchmark has not been run with
+Glimmer, so its rate on fixes that only look right is unmeasured. It is a fallback for an outage,
+labelled as such, and never a second opinion.
+
+## Where it applies
+
+- **The overnight loop** ([`agents/loop.py`](../agents/loop.py)), and so the live demo. The Fix
+  matrix's demo runs pass the Glimmer key and deployment, so step 2 can run in CI. The key reaches
+  only the verifier: Muse Code's environment is an allowlist (`agents.keys.muse_subprocess_env`).
+- **Not the benchmarks.** The Fix matrix, the detection benches and the natural-catch trial report
+  one judge's answers. An outage there is recorded as "needs review" and is not mixed with another
+  judge's answers in one table.
+
+## What it costs
+
+- **Step 1:** one more verification of the same candidate. The clean game's SAM answers are cached,
+  so mostly the candidate's own frames.
+- **Step 2:** waking the Glimmer deployment, which can take up to the warm timeout and is billed by
+  the hour on Fireworks, plus one verification.
+- **Neither runs unless the judge failed to answer.** On a normal night the ladder costs nothing.
+
+## Tests
+
+[`tests/test_judge_ladder.py`](../tests/test_judge_ladder.py) checks:
+
+- an answer, accept or reject, climbs nothing;
+- a rejection is never judged again;
+- a passing outage is retried on the same judge;
+- when SAM stays down, Glimmer checked against the engine decides, and the result is labelled;
+- with no deployment, or one that does not wake, the ladder stops;
+- Glimmer is not its own fallback;
+- a "needs review" for any other reason is not an outage;
+- the Glimmer key never reaches the fixer;
+- in the loop, an outage stops the run after one fix with no second fix written, and a fallback
+  accept carries its note into the morning report.

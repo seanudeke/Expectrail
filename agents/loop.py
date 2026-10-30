@@ -14,6 +14,11 @@ What Muse is told follows agents/escalation.py (docs/report-first.md): the first
 report (the failing check's sentence, screenshots of the failing run, the route and its log); only
 after the verifier rejects an attempt does the next one get the evidence (the repair request and the
 public checks that failed). Every candidate is verified either way.
+
+When the judge itself cannot answer (SAM down or out of credit, so the verifier can only say
+needs-review), agents/judge_ladder.py judges the same candidate again instead of spending a fix
+attempt: the same judge once more, then Muse Glimmer checked against the engine, then stop for a
+person (docs/fallbacks.md). A rejection is never re-judged.
 Exit 0 only if every run ends with verification accept. Crashes never forge accept.
 """
 from __future__ import annotations
@@ -27,7 +32,7 @@ import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 
-from agents import escalation
+from agents import escalation, judge_ladder
 from agents.fixer import run_fixer
 from agents.keys import resolve_mode, seal_mode_flags
 from agents.report import build_report, gameplay_film_stub, write_loop_rollup
@@ -43,6 +48,16 @@ DEFAULT_AFTER = REPO / "agents" / "fixtures" / "frames" / "after-fixed.png"
 # The failing base's observations when the loop runs on fixtures (the loop's bug is the fall-through).
 SAMPLE_BASE_OBS = REPO / "agents" / "fixtures" / "obs-fallthrough.json"
 REVIEW_ENV = "EXPECTRAIL_REVIEW"
+
+
+def _unresolved(verification: dict, ladder: dict | None) -> list[str] | None:
+    """What the morning report hands a person: the verifier's reasons, plus the judge ladder's note
+    when the first judge did not answer (a fallback judge decided, or none did)."""
+    note = judge_ladder.report_note(ladder or {})
+    if note is None:
+        return None  # the report's own default: the reasons, unless accepted
+    reasons = [] if verification["decision"] == "accept" else list(verification.get("reasons") or [])
+    return [note] + reasons
 
 
 def render_report(request: dict, out: Path) -> dict[str, Path] | None:
@@ -173,6 +188,7 @@ def one_run(
         report = render_report(request, out / "report") if use_muse and escalation.mode() == "report-first" else None
         rejected_before = False
         empty_before = False
+        ladder: dict | None = None
 
         for attempt in range(1, max_attempts + 1):
             if signing_key.exists():
@@ -241,9 +257,11 @@ def one_run(
                         "verificationProvenance": "harness" if not skip_harness else "fixture",
                     })
 
-            verify_dir = out / "verify" / f"attempt-{attempt:02d}"
-            verification = verify(
-                request, fix_out / "candidate.patch", verify_dir,
+            # The judge ladder: if the judge did not answer, the same candidate is judged again
+            # (same judge, then Glimmer checked against the engine) before anything else happens.
+            verification, verify_dir, ladder = judge_ladder.judge(
+                request, fix_out / "candidate.patch", out / "verify" / f"attempt-{attempt:02d}",
+                verify_fn=verify,
                 observations_path=observations,
                 skip_harness=skip_harness or observations is not None,
             )
@@ -256,7 +274,15 @@ def one_run(
                     shutil.copy2(src, final_verify / name)
             film["decision"] = verification["decision"]
             film["reasons"] = verification.get("reasons")
+            film["judge"] = ladder["judgedBy"]
+            if len(ladder["steps"]) > 1:
+                film["judgeSteps"] = ladder["steps"]
             if verification["decision"] == "accept":
+                break
+            if ladder["stopped"]:
+                # No judge answered: the fix may well be right, so it is not sent back to the fixer.
+                # The loop stops here and the morning report hands the candidate to a person.
+                film["decision"] = "needs-review"
                 break
             # Escalate: the next attempt gets the evidence and the public checks that did not pass,
             # never a held-out route or its reason (agents/escalation.py).
@@ -311,6 +337,7 @@ def one_run(
             guard=fix_out / "guard.json" if (fix_out / "guard.json").is_file() else None,
             frames_illustrative=before_frames is None or after_frames is None,
             review=review_doc,
+            unresolved=_unresolved(verification, ladder),
         )
         payload = {
             "decision": verification["decision"],
@@ -323,6 +350,8 @@ def one_run(
         }
         if review_doc is not None:
             payload["review"] = {k: v for k, v in review_doc.items() if k != "frames"}
+        if ladder is not None:
+            payload["judge"] = ladder
         return _with_timing(payload)
     except (Exception, SystemExit) as exc:  # noqa: BLE001 — overnight loop must not forge accept
         (out / "loop-error.txt").write_text(traceback.format_exc(), encoding="utf-8")

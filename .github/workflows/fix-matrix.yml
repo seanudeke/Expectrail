@@ -774,6 +774,11 @@ jobs:
           EXPECTRAIL_OBS_PROVIDER: sam
           EXPECTRAIL_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
           EXPECTRAIL_REVIEW: ${{ inputs.review }}
+          # The judge ladder's fallback (agents/judge_ladder.py, docs/fallbacks.md): only when SAM does not
+          # answer, the same candidate is judged by Glimmer checked against the engine. Never reaches Muse
+          # Code (agents.keys.muse_subprocess_env is an allowlist). Without them that step is skipped.
+          EXPECTRAIL_GLIMMER_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
+          EXPECTRAIL_GLIMMER_MODEL: ${{ vars.GLIMMER_MODEL }}
           RUN: ${{ matrix.run }}
         run: python -m agents.demo_loop --run "$RUN" --out runs/demo
       - name: Muse key gateway evidence

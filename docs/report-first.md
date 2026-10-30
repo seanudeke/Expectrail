@@ -21,6 +21,9 @@ evidence goes to the fixer only after the gate has rejected an attempt.
    attempt was rejected and nothing else.
 5. **Inside the verifier, cheap checks reject first and SAM confirms.** See
    [Cost inside the verifier](#cost-inside-the-verifier) for what this changes and what it does not.
+6. **A judge that cannot answer is not a rejection.** When SAM does not answer, the same candidate
+   is judged again, then by Glimmer checked against the engine, then left for a person. The fixer is
+   not asked for another fix ([fallbacks.md](fallbacks.md)).
 
 Before this, the fixer got the evidence from the first attempt, and the verifier's full reasons
 after a rejection.

@@ -80,7 +80,11 @@ flowchart LR
    bubblewrap is not available, the fixer falls back to a worktree that does not contain those files.
 4. **Verify.** A separate verifier rebuilds, replays, and runs the regression, gameplay, held-out
    and clean checks. It accepts a candidate only if every check passes, and it rejects a fix that
-   only looks right, such as one that stops the fall by drawing the robot inside the ground.
+   only looks right, such as one that stops the fall by drawing the robot inside the ground. If the
+   judge itself cannot answer (SAM down or out of credit), the same fix is judged again: by SAM
+   once more, then by Muse Glimmer checked against the engine, labelled as such, then left for a
+   person. A rejection is never sent to a second judge, and an outage never costs the fixer an
+   attempt ([docs/fallbacks.md](docs/fallbacks.md)).
 5. **Hand over.** Before-and-after frames, the diff, unresolved cases, and a release candidate
    signed outside the fixer's reach, for a person to approve. It can run overnight; the point is the
    sign-off, not the hour.
