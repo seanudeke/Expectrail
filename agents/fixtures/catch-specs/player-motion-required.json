@@ -1,0 +1,11 @@
+{
+  "format": "expectrail.test-spec/v0",
+  "id": "player-motion-required",
+  "title": "Catch for freeze mutants",
+  "status": "proposed",
+  "notes": "The public gameplay check player-motion-on-smoke already rejects a frozen player when SAM is off. This stub names that check as the catch-spec for freeze findings.",
+  "assertion": {
+    "type": "proposed-gameplay",
+    "require": "player-motion-on-smoke"
+  }
+}

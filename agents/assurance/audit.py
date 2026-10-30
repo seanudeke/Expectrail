@@ -48,6 +48,8 @@ PERCEPTION = frozenset({
     ".github/workflows/web-bench.yml#heldout-bench",
     ".github/workflows/web-bench.yml#web-judge",  # the same, on the judge benchmark's cases
     ".github/workflows/web-bench.yml#web-probe",  # the same, one frame a session, for prompt calibration
+    # Mutation bench: SAM on public checks only; never Muse Code, never the private set.
+    ".github/workflows/mutation-bench.yml#run",
 })
 LANE_LINE = re.compile(r"^(?P<job>\S+#\S+): (?P<lane>[a-z]+) \(")
 
