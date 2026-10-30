@@ -4,8 +4,8 @@
 game engine; Muse Spark Open writes the checks.** Both are Meta open-weight models, served through
 partner inference (Fireworks, Baseten) or our own server. With `glimmer-engine`, the real fix is
 accepted and the hide-the-robot fix rejected, on the four private held-out routes too, and the
-held-out bench catches 7 of 8 private bug variants with no false alarm, as SAM does, with no SAM key
-in any of these runs (Oct 29). With `both`, Glimmer is a second pair of
+held-out bench catches 7 of 8 private bug variants with no false alarm and no stray check failure,
+as SAM does, with no SAM key in any of these runs (Oct 29 to 30). With `both`, Glimmer is a second pair of
 eyes next to SAM 3.1. Muse Code (the fixer) and Muse Voice Transcribe stay on Meta's hosted API.
 
 This page is for the infrastructure partner verifying the open-weights prize, and for us: what runs
@@ -36,7 +36,9 @@ a replica is up, and able to scale to zero when idle.
 2. Put that string in the repository variable `GLIMMER_MODEL` (Settings → Secrets and variables →
    Actions → Variables), or in `NIGHTSHIFT_GLIMMER_MODEL` for local runs.
 3. The probe workflow wakes the deployment first (`python -m agents.glimmer_client --warm`): a
-   deployment at zero replicas answers 503 for a few minutes while it starts.
+   deployment at zero replicas answers 503 for a few minutes while it starts, and after a long idle
+   it has answered 404 "not deployed" instead, while Fireworks' API reported it ready (7 of 9 bench
+   jobs stopped on that in run 40986446779). The wake step waits through both for a deployment id.
 4. With minimum replicas at 0 and a 15-minute scale-to-zero window, it stops billing 15 minutes
    after the last request (Fireworks' default window is an hour). Fireworks deletes a deployment
    that has had no traffic for 7 days. Check the GPU price for the shape it picks before leaving it up, and
@@ -54,7 +56,9 @@ to confirm. Without `--restore` it only reports. By hand: Edit Deployment, Deplo
 Replicas 1, Advanced Options, Scale to Zero Window 15 min, Save.
 
 Each full verify run keeps one H200 up for about 35 to 40 minutes plus the 15-minute tail, about $7
-at $8 an hour; a probe about $1 to $3. Keep at least $15 of credit before starting runs.
+at $8 an hour; a probe about $1 to $3; the held-out bench (9 jobs sharing one replica) about 1 hour
+40 minutes plus the tail, about $15. Keep at least $15 of credit before starting runs, $25 before a
+bench.
 
 ## How Glimmer fits
 
@@ -188,10 +192,9 @@ How it got there, the same day, all on the same deployment:
 
 Held-out detection bench, judge `glimmer-engine` (no SAM key in the runs), every private bug
 variant and the clean game, each on the smoke route and the four private routes, the same jobs and
-checks as SAM's bench in docs/sam.md (runs 40967826195 and 40975628695, Oct 29). **These runs used
-the earlier, stricter agreement rule** (a box had to contain the object's centre): the overlap rule
-above had not reached main when the bench branch was cut. The ground was judged on the position log,
-as now.
+checks as SAM's bench in docs/sam.md, under the overlap rule above, with the ground judged on the
+position log (main at 9e9dba4; runs 40986446779 for sinking/v3 and v4, 40986680262 for the rest,
+Oct 30).
 
 | Held-out variant | Engine | Gameplay | player-always-visible | coins-visible | Caught, Glimmer+engine | Caught, SAM on (docs/sam.md) | Caught, SAM off |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -200,33 +203,32 @@ as now.
 | physics-fall-through/v6 | 5 fail | 5 fail | 5 fail | 5 pass | **yes** | yes | yes |
 | missing-texture/v5 | 5 pass | 5 pass | 5 pass | 5 fail | **yes** | yes | no |
 | missing-texture/v6 | 5 pass | 5 pass | 5 pass | 5 fail | **yes** | yes | no |
-| layering/v5 | 5 pass | 5 pass | 5 fail | 1 fail, 4 pass | **yes** | yes | no |
-| layering/v6 | 5 pass | 5 pass | 5 fail | 1 fail, 4 pass | **yes** | yes | no |
-| sinking/v3 | 5 fail | 5 pass | 2 fail, 3 pass | 1 fail, 4 pass | **yes** | yes | yes |
+| layering/v5 | 5 pass | 5 pass | 5 fail | 5 pass | **yes** | yes | no |
+| layering/v6 | 5 pass | 5 pass | 5 fail | 5 pass | **yes** | yes | no |
+| sinking/v3 | 5 fail | 5 pass | 2 fail, 3 pass | 5 pass | **yes** | yes | yes |
 | sinking/v4 | 5 pass | 5 pass | 5 pass | 5 pass | no | no | no |
 
 With Glimmer checked against the engine, 7 of 8 held-out variants are caught and the clean game
 raises no false alarm: the same count as SAM, and the same miss (sinking/v4). Without vision, 3 of 8.
 The two families only vision catches, missing-texture and layering, are caught on every route by
-the check aimed at them.
+the check aimed at them, and every check fails only where its bug is: coins pass on every route of
+every variant that does not touch the coins.
 
-**The coins check failed on 3 routes where nothing touched the coins** (one each on layering/v5,
-layering/v6 and sinking/v3; SAM passed coins on every route of those variants). It changed no
-verdict, since each of those variants is caught by another check, but on a fine fix it would be a
-false fail. The private frames are not published, so the cause is not known. The stricter rule
-these runs used dropped 40% of coin boxes on the clean game against 9% under the overlap rule, so
-the likeliest cause is a frame where every coin box was dropped, which the overlap rule makes rarer.
+The first bench (runs 40967826195 and 40975628695, Oct 29) ran under the earlier rule, where a box
+had to contain the object's centre, because the overlap rule had not reached main when its branch
+was cut. It caught the same 7, but the coins check also failed on 3 routes where nothing touched the
+coins (one each on layering/v5, layering/v6 and sinking/v3). Under the overlap rule those pass on
+all 5 routes, and the catches are unchanged, missing-texture's coins fails included. The private
+frames are not published, so which frames caused the earlier fails is not known; the earlier rule
+dropped 40% of coin boxes on the clean game against 9% now.
 
 ## What is not measured yet
 
-- **The held-out bench under the overlap rule.** The catches above should hold (missing-texture and
-  layering are caught because Glimmer sees no coins, or no robot, at all; fall-through and sinking/v3
-  by the engine), and the hide-the-robot verify run under the overlap rule still rejected; but only a
-  re-run measures it, and whether the stray coins fails go away.
 - **The development variants with `glimmer-engine`.** By the checks it uses it should catch 7 of the
   8 in docs/sam.md (all but sinking/v2, which needs a precise box); the dev bench has not been run
   with it.
-- **How often a fine fix gets a false fail.** One accept is not a rate. A frame with one or two
+- **How often a fine fix gets a false fail.** One accept, and a clean game passing on 5 routes, is
+  not a rate. A frame with one or two
   coins on screen, where Glimmer's only box misses by more than half a coin, would fail
   coins-visible on a game that is fine.
 - **Confidence is self-reported, and flat.** Glimmer rates its own boxes from 0 to 1, and gave 0.90 to
