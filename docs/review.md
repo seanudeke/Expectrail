@@ -58,7 +58,9 @@ In the overnight loop, `EXPECTRAIL_REVIEW=on` reviews each run's final fix after
 reusing that verification, and reports the review in its own morning-report section beside the
 verifier's decision, which it never changes. The fix matrix's demo jobs review every run by default (the `review` input turns it off), since
 3 of 3 live runs passed with it. The
-`sam-probe` workflow's verify mode reviews any fixture patch with SAM on and the private routes.
+`sam-probe` workflow's verify mode reviews any fixture patch with SAM on and the private routes, and
+keeps the review (its record, the public route's two frames and its page) as the `sam-review`
+artifact once the export scan, compared with the private set, finds nothing.
 
 ## What the record holds, and what it never holds
 
@@ -82,7 +84,7 @@ diagnostics with a stable code; the status, label and reasons; and the command t
 | --- | --- | --- |
 | Overnight demo loop, live, review on: Muse Code fixes, SAM on, private routes | 3 of 3 accepted; every review `REPAIR DEMONSTRATED` on `FRESH LIVE` evidence; 6 to 9 minutes and 157 SAM images a run, the failing base's look included (the first 10 run demo, before the shared SAM cache, used 1,164 a run: [bench/demo-loop](../bench/demo-loop/README.md)) | [41105875960](https://github.com/seanudeke/Expectrail/actions/runs/41105875960); run 1's review, with its frames: [live-demo-run-1](review/live-demo-run-1/) |
 | The correct fall-through fix, SAM on, private routes | `REPAIR DEMONSTRATED`: the ground and visibility checks FAIL to PASS, coins PASS to PASS | [41101872602](https://github.com/seanudeke/Expectrail/actions/runs/41101872602) |
-| The fix that draws the robot inside the ground, SAM on, private routes | `REJECTED`: the fall stops (motion FAIL to PASS) but the requested ground check and visibility stay FAIL to FAIL | [41101881327](https://github.com/seanudeke/Expectrail/actions/runs/41101881327) |
+| The fix that draws the robot inside the ground, SAM on, private routes | `REJECTED`: the fall stops (motion FAIL to PASS) but the requested ground check and visibility stay FAIL to FAIL | [41101881327](https://github.com/seanudeke/Expectrail/actions/runs/41101881327), and again in [41123758768](https://github.com/seanudeke/Expectrail/actions/runs/41123758768), whose review is kept with its frames: [sinking-fix](review/sinking-fix/) |
 | Every pull request, real replays, SAM off, no private routes | The correct fix shows FAIL to PASS and is `INCONCLUSIVE` (no repair claimed without the private routes); the fix that moves the floor's collision below its art is `REJECTED` | `agents-harness-verify` in [ci.yml](../.github/workflows/ci.yml) |
 | Main, real replays, SAM off, private routes | The correct fix is `REPAIR DEMONSTRATED` on `FRESH LIVE` evidence, and the record names no private route | `agents-harness-private` in [ci.yml](../.github/workflows/ci.yml) |
 
