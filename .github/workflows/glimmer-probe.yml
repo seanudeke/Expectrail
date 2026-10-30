@@ -60,7 +60,7 @@ permissions:
 
 jobs:
   glimmer:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
       GLIMMER_KEY_SET: ${{ secrets.FIREWORKS_API_KEY != '' || secrets.GLIMMER_API_KEY != '' }}

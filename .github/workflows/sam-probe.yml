@@ -52,7 +52,7 @@ permissions:
 jobs:
   sam-probe:
     if: ${{ inputs.mode == 'probe' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
       SAM_KEY_SET: ${{ secrets.MODEL_API_KEY != '' || secrets.META_API_KEY != '' }}
@@ -130,7 +130,7 @@ jobs:
   # Public runs only (the smoke route): a video of a held-out route would be the route itself.
   sam-video:
     if: ${{ inputs.mode == 'video-compare' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
       SAM_KEY_SET: ${{ secrets.MODEL_API_KEY != '' || secrets.META_API_KEY != '' }}
@@ -188,7 +188,7 @@ jobs:
   publish:
     needs: [sam-probe, sam-video]
     if: ${{ always() && (needs.sam-probe.result != 'skipped' || needs.sam-video.result != 'skipped') }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: write
@@ -231,7 +231,7 @@ jobs:
   # no frames, no artifacts, no route names, so nothing from the held-out set is published.
   sam-verify:
     if: ${{ inputs.mode == 'verify' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
       SAM_KEY_SET: ${{ secrets.MODEL_API_KEY != '' || secrets.META_API_KEY != '' }}
@@ -313,7 +313,7 @@ jobs:
   # through the same jobs, routes and checks, so both sets are measured the same way.
   heldout-list:
     if: ${{ inputs.mode == 'heldout-bench' || inputs.mode == 'dev-bench' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
       HELDOUT_TOKEN_SET: ${{ secrets.HELDOUT_TOKEN != '' }}
@@ -353,7 +353,7 @@ jobs:
 
   heldout-bench:
     needs: heldout-list
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # Glimmer on one shared replica answers about one frame a second across the parallel jobs.
     timeout-minutes: ${{ inputs.judge == 'glimmer-engine' && 180 || 90 }}
     strategy:

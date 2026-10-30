@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -85,7 +85,7 @@ jobs:
           retention-days: 14
 
   capture-smoke:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -130,7 +130,7 @@ jobs:
   # Second domain (apps/checkout): Chromium replays the checkout sessions byte for byte, and the layout
   # and behaviour checks (no model, no secret) see the bugs they are meant to and nothing on the clean page.
   web-capture:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -161,7 +161,7 @@ jobs:
           PY
 
   seeded-bugs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -219,7 +219,7 @@ jobs:
           retention-days: 7
 
   agents-gate1:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -365,7 +365,7 @@ jobs:
   # set (it used to, on same-repository branches: OBAAF-GHA-001). The verifier uses the labeled
   # interim fixture, as it always has on forks; agents-harness-private checks the private routes.
   agents-harness-verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -457,7 +457,7 @@ jobs:
   # request runs its branch's code, which must not see the private set.
   agents-harness-private:
     if: ${{ github.event_name != 'pull_request' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
       HELDOUT_TOKEN_SET: ${{ secrets.HELDOUT_TOKEN != '' }}
@@ -499,7 +499,7 @@ jobs:
           python -c "import json; d=json.load(open('runs/harness-private/verify/verification.json')); assert d['decision']=='accept', d['reasons']; assert d['suite']['heldOut']['source']=='harness', d['suite']; print('accept on', d['suite']['heldOut']['detail'])"
 
   agents-daily-offline:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' || github.event_name == 'push' }}
     steps:
@@ -526,7 +526,7 @@ jobs:
   # Shows bug reports becoming unapproved draft specs, check-weakening requests refused, and the
   # morning report's "Feedback in" / "Refused or blocked" sections. No Meta spend.
   feedback-offline:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -573,7 +573,7 @@ jobs:
 
   # OS sandbox trust film (bubblewrap). Does not invent Meta spend.
   agents-sandbox:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -610,7 +610,7 @@ jobs:
 
   # Gate 2 bench compare: Expectrail arm + Muse screenshot judge (fixture log offline).
   agents-bench-compare:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -640,7 +640,7 @@ jobs:
 
   # Live Muse screenshot judge vs Expectrail (Gate 2). Manual — spends Meta credit.
   agents-bench-compare-live:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     if: ${{ github.event_name == 'workflow_dispatch' }}
     env:
@@ -691,7 +691,7 @@ jobs:
   # Oct 29 Fix+Trust film: Muse in bubblewrap + poison + Godot replay + held-out + Ed25519.
   # Manual only — each run spends Meta credit. Set META_API_KEY (+ HELDOUT_TOKEN for private set).
   agents-oct29-film:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     if: ${{ github.event_name == 'workflow_dispatch' }}
     env:
@@ -805,7 +805,7 @@ jobs:
   # Playbook item 1 (lighter film): live Muse Code → verifier accept. Manual only.
   # Prefer agents-oct29-film for the Fix+Trust camera run.
   agents-live-muse:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     # secrets is not allowed in a job-level if; check it in the first step instead.
     if: ${{ github.event_name == 'workflow_dispatch' }}

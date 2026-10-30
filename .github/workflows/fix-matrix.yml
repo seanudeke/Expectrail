@@ -186,7 +186,7 @@ jobs:
 
   plan:
     if: ${{ inputs.bench == 'fix' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     outputs:
       cases: ${{ steps.plan.outputs.cases }}
@@ -401,7 +401,7 @@ jobs:
   summary:
     needs: run
     if: ${{ always() && inputs.bench == 'fix' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -430,7 +430,7 @@ jobs:
 
   judge-plan:
     if: ${{ inputs.bench == 'judge' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     outputs:
       cases: ${{ steps.plan.outputs.cases }}
@@ -606,7 +606,7 @@ jobs:
   judge-summary:
     needs: judge-run
     if: ${{ always() && inputs.bench == 'judge' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -637,7 +637,7 @@ jobs:
   # the trust check), N times. Each run is its own job and process, so no run leaves state for the next.
   demo-plan:
     if: ${{ inputs.bench == 'demo' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
       runs: ${{ steps.plan.outputs.runs }}
@@ -765,7 +765,7 @@ jobs:
   demo-summary:
     needs: demo-run
     if: ${{ always() && inputs.bench == 'demo' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
