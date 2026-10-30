@@ -662,8 +662,15 @@ jobs:
         run: |
           curl -fsSL https://dev.meta.ai/install.sh | bash
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Install mitmproxy 12.2.3 for the Muse key gateway (its own environment)
+        run: |
+          python -m venv "$RUNNER_TEMP/mitm"
+          "$RUNNER_TEMP/mitm/bin/python" -m pip install --quiet --disable-pip-version-check "mitmproxy==12.2.3"
       - name: Live Muse screenshot judge vs Expectrail
         env:
+          # Muse Code gets a placeholder key; the gateway holds the real one (agents/gateway.py).
+          EXPECTRAIL_MUSE_GATEWAY: 'on'
+          EXPECTRAIL_MITMDUMP: ${{ runner.temp }}/mitm/bin/mitmdump
           META_API_KEY: ${{ secrets.META_API_KEY }}
           MODEL_API_KEY: ${{ secrets.META_API_KEY }}
         run: |
@@ -671,6 +678,9 @@ jobs:
           command -v muse
           python -m agents.bench_compare --out runs/bench-compare-live --live-muse
           python -c "import json; d=json.load(open('runs/bench-compare-live/bench-compare.json')); assert d['expectrailOk'] and d['museOk'], d; assert d['arms'][1]['source']=='muse', d"
+      - name: Muse key gateway evidence
+        if: always()
+        run: python -m agents.gateway --evidence runs/bench-compare-live
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
@@ -735,8 +745,15 @@ jobs:
           # Meta's installer uses `set -o pipefail` (bash); `sh` on Ubuntu is dash.
           curl -fsSL https://dev.meta.ai/install.sh | bash
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Install mitmproxy 12.2.3 for the Muse key gateway (its own environment)
+        run: |
+          python -m venv "$RUNNER_TEMP/mitm"
+          "$RUNNER_TEMP/mitm/bin/python" -m pip install --quiet --disable-pip-version-check "mitmproxy==12.2.3"
       - name: Oct29 Muse+bwrap+Godot+poison+trust film
         env:
+          # Muse Code gets a placeholder key; the gateway holds the real one (agents/gateway.py).
+          EXPECTRAIL_MUSE_GATEWAY: 'on'
+          EXPECTRAIL_MITMDUMP: ${{ runner.temp }}/mitm/bin/mitmdump
           META_API_KEY: ${{ secrets.META_API_KEY }}
           MODEL_API_KEY: ${{ secrets.META_API_KEY }}
         run: |
@@ -768,6 +785,9 @@ jobs:
                       for p in Path("runs/oct29-film").rglob(name)]
           assert privates == [], privates
           PY
+      - name: Muse key gateway evidence
+        if: always()
+        run: python -m agents.gateway --evidence runs/oct29-film
       - name: Fixer guard evidence under bubblewrap (notices; warns, does not fail)
         if: always()
         run: python -m agents.guard_evidence runs/oct29-film
@@ -809,8 +829,15 @@ jobs:
           # Meta's installer uses `set -o pipefail` (bash); `sh` on Ubuntu is dash.
           curl -fsSL https://dev.meta.ai/install.sh | bash
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Install mitmproxy 12.2.3 for the Muse key gateway (its own environment)
+        run: |
+          python -m venv "$RUNNER_TEMP/mitm"
+          "$RUNNER_TEMP/mitm/bin/python" -m pip install --quiet --disable-pip-version-check "mitmproxy==12.2.3"
       - name: Live Muse gate + trust canary film
         env:
+          # Muse Code gets a placeholder key; the gateway holds the real one (agents/gateway.py).
+          EXPECTRAIL_MUSE_GATEWAY: 'on'
+          EXPECTRAIL_MITMDUMP: ${{ runner.temp }}/mitm/bin/mitmdump
           META_API_KEY: ${{ secrets.META_API_KEY }}
           MODEL_API_KEY: ${{ secrets.META_API_KEY }}
         run: |
@@ -818,6 +845,9 @@ jobs:
           command -v muse
           python -m agents.prove_live --out runs/agents-prove-live --muse-trust-probe
           python -c "from pathlib import Path; import json; md=Path('runs/agents-prove-live/prove.md').read_text(); assert 'Overall: PASS' in md, md; meta=json.load(open('runs/agents-prove-live/muse-gate/fix/candidate.json')); assert meta['source']=='muse', meta; v=json.load(open('runs/agents-prove-live/muse-gate/verify/verification.json')); assert v['decision']=='accept', v"
+      - name: Muse key gateway evidence
+        if: always()
+        run: python -m agents.gateway --evidence runs/agents-prove-live
       - name: Fixer guard evidence (notices; warns, does not fail)
         if: always()
         run: python -m agents.guard_evidence runs/agents-prove-live
