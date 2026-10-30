@@ -29,7 +29,8 @@ priced from the usage export on dev.meta.ai. The Actions jobs themselves are fre
 repository; job minutes are listed for scale.
 
 The team's whole bill is in `cost/`: the dev.meta.ai usage export (team id left out of the file name),
-priced by `python3 -m agents.usage_report bench/cost/meta-usage-2026-10-24-to-30.csv --out bench/cost`.
+priced by `python3 -m agents.usage_report bench/cost/meta-usage-2026-10-24-to-30.csv --credits 150 --out bench/cost`
+(the $150 of free credits used before billing started are not in the export).
 
 ## Offline demo-path stub (agents lane)
 
