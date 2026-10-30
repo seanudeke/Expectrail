@@ -61,7 +61,8 @@ Muse Code can run without ever holding the Meta API key. `agents/muse_gateway.py
 placeholder of the key's length and an HTTPS proxy (mitmproxy 12.2.3 with
 `agents/muse_gateway_addon.py`) that holds the real key, swaps it in for `*.meta.ai` only, refuses
 every other host, and logs host, path, status and header names, never values. Muse trusts the
-proxy's certificate and nothing else. `fix-matrix.yml`, `bench: gateway`; run 41073919731:
+proxy's certificate and nothing else. `fix-matrix.yml`, `bench: gateway`; run 41073919731, repeated on the
+code as merged in run 41074472926 (19 requests, 5.5 s inside the sandbox):
 
 | Variant | Result |
 | --- | --- |
