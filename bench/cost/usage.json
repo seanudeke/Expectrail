@@ -1,0 +1,67 @@
+{
+  "days": [
+    {
+      "date": "2026-10-27",
+      "requests": 1,
+      "samImages": 0,
+      "samVideoFrames": 0,
+      "inputTokensCached": 0,
+      "inputTokensUncached": 1375,
+      "outputTokens": 2930,
+      "samListUsd": 0.0,
+      "museListUsd": 0.01,
+      "listUsd": 0.01,
+      "museContributorUsd": 0.0,
+      "listContributorUsd": 0.0,
+      "billedUsd": 0.0
+    },
+    {
+      "date": "2026-10-28",
+      "requests": 8960,
+      "samImages": 8859,
+      "samVideoFrames": 0,
+      "inputTokensCached": 3502544,
+      "inputTokensUncached": 597861,
+      "outputTokens": 74371,
+      "samListUsd": 22.15,
+      "museListUsd": 1.59,
+      "listUsd": 23.74,
+      "museContributorUsd": 0.08,
+      "listContributorUsd": 22.23,
+      "billedUsd": 0.0
+    },
+    {
+      "date": "2026-10-29",
+      "requests": 74052,
+      "samImages": 72088,
+      "samVideoFrames": 2160,
+      "inputTokensCached": 102171369,
+      "inputTokensUncached": 9600691,
+      "outputTokens": 1657963,
+      "samListUsd": 180.65,
+      "museListUsd": 34.37,
+      "listUsd": 215.02,
+      "museContributorUsd": 1.5,
+      "listContributorUsd": 182.15,
+      "billedUsd": 54.33
+    }
+  ],
+  "total": {
+    "requests": 83013,
+    "samImages": 80947,
+    "samVideoFrames": 2160,
+    "inputTokensCached": 105673913,
+    "inputTokensUncached": 10199927,
+    "outputTokens": 1735264,
+    "samListUsd": 202.8,
+    "museListUsd": 35.98,
+    "listUsd": 238.78,
+    "museContributorUsd": 1.58,
+    "listContributorUsd": 204.38,
+    "billedUsd": 54.33
+  },
+  "creditsUsd": 150.0,
+  "actualUsd": 204.33,
+  "museModeThatMatches": "contributor",
+  "matchOffUsd": 0.05
+}
