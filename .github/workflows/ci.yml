@@ -44,6 +44,19 @@ jobs:
         run: ./harness/get_godot.sh
       - name: Render the smoke route twice and compare
         run: python -m harness.replay_check --route harness/routes/smoke.json --runs 2 --out runs/ci
+      - name: A candidate's game code cannot read the verifier's environment
+        env:
+          NIGHTSHIFT_CANARY: canary-${{ github.run_id }}
+          NIGHTSHIFT_HELDOUT_DIR: /canary/private/path
+        run: |
+          # harness/fixtures/canary-env.patch prints both variables from GDScript. Before the harness
+          # gave Godot an allowlisted environment, it printed them (checked locally on Oct 30).
+          python -m harness.run --route harness/routes/smoke.json --out runs/canary --patch harness/fixtures/canary-env.patch
+          grep -qx "CANARY_ENV=" runs/canary/godot.log
+          grep -qx "CANARY_HELDOUT=" runs/canary/godot.log
+          if grep -q -e "$NIGHTSHIFT_CANARY" -e "/canary/private/path" runs/canary/godot.log; then
+            echo "::error::the patched game read the verifier's environment"; exit 1
+          fi
       - name: Keep the frames of the first run
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
