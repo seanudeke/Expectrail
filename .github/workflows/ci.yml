@@ -435,6 +435,30 @@ jobs:
           print(v["result"], v["reason"])
           assert v["result"] == "fail", v
           PY
+      - name: Review against the failing base (real replays, SAM off, no private routes on pull requests)
+        run: |
+          rr=runs/harness-accept/repair-request.json
+          code=0; python -m agents.review_change --request "$rr" --out runs/review-fix \
+            --candidate agents/fixtures/fix-collision-mask.patch || code=$?
+          python - "$code" <<'PY'
+          import json, os, sys
+          rec = json.load(open("runs/review-fix/change-evidence.json"))
+          primary = [(r["before"], r["after"], r["comparison"]) for r in rec["rows"] if r["primary"]]
+          assert primary == [("fail", "pass", "REPAIRED")], rec["rows"]
+          # Without the private routes a live review never claims a repair; with them it must.
+          expected = ("REPAIR DEMONSTRATED", 0) if os.environ.get("EXPECTRAIL_HELDOUT_DIR") else ("INCONCLUSIVE", 2)
+          assert (rec["status"], int(sys.argv[1])) == expected, (rec["status"], sys.argv[1], rec["reasons"])
+          assert rec["arms"]["base"]["frame"] and rec["arms"]["candidate"]["frame"], rec["arms"]
+          print(f"::notice title=Review, correct fix::{rec['status']}; {rec['evidenceLabel']}; primary {primary}")
+          PY
+          code=0; python -m agents.review_change --request "$rr" --out runs/review-lower-floor \
+            --candidate agents/fixtures/fix-and-lower-the-floor.patch || code=$?
+          python - "$code" <<'PY'
+          import json, sys
+          rec = json.load(open("runs/review-lower-floor/change-evidence.json"))
+          assert (rec["status"], int(sys.argv[1])) == ("REJECTED", 1), (rec["status"], sys.argv[1], rec["reasons"])
+          print(f"::notice title=Review, floor moved below its art::{rec['status']}; {'; '.join(rec['reasons'])[:200]}")
+          PY
       - name: Keep harness-verify artifacts
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -450,6 +474,9 @@ jobs:
             runs/harness-seed/trace.json
             runs/harness-seed/godot.log
             runs/harness-flake/summary.json
+            runs/review-fix/change-evidence.json
+            runs/review-fix/assets/
+            runs/review-lower-floor/change-evidence.json
           retention-days: 7
 
   # Offline daily film on schedule + PRs (no Meta keys). Live Muse stays dispatch-only.
@@ -497,6 +524,26 @@ jobs:
           python -m agents.gate1 --out runs/harness-private \
             --candidate-patch agents/fixtures/fix-collision-mask.patch
           python -c "import json; d=json.load(open('runs/harness-private/verify/verification.json')); assert d['decision']=='accept', d['reasons']; assert d['suite']['heldOut']['source']=='harness', d['suite']; print('accept on', d['suite']['heldOut']['detail'])"
+      - name: Review against the failing base with the private routes (SAM off)
+        if: env.HELDOUT_TOKEN_SET == 'true'
+        env:
+          EXPECTRAIL_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
+        run: |
+          code=0; python -m agents.review_change --request runs/harness-private/repair-request.json \
+            --candidate agents/fixtures/fix-collision-mask.patch --out runs/review-private || code=$?
+          python - "$code" <<'PY'
+          import json, sys
+          from pathlib import Path
+          text = Path("runs/review-private/change-evidence.json").read_text()
+          rec = json.loads(text)
+          got = (rec["status"], rec["evidenceLabel"], int(sys.argv[1]))
+          assert got == ("REPAIR DEMONSTRATED", "FRESH LIVE", 0), (got, rec["reasons"])
+          routes = json.load(open("heldout-set/manifest.json"))["routes"]
+          leaked = sum(1 for e in routes if str(e.get("name") or Path(e["file"]).stem) in text or e["file"] in text)
+          assert leaked == 0, f"{leaked} private route name(s) in the review record"  # a count, never a name
+          print(f"::notice title=Review with the private routes::{rec['status']}; {rec['evidenceLabel']}; "
+                f"private checks {rec['private']['checks']}, passed {rec['private']['passed']}")
+          PY
 
   agents-daily-offline:
     runs-on: ubuntu-24.04
