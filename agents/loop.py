@@ -224,6 +224,7 @@ def one_run(
             verification_path=verify_out / "verification.json",
             feedback=feedback,
             guard=fix_out / "guard.json" if (fix_out / "guard.json").is_file() else None,
+            frames_illustrative=before_frames is None or after_frames is None,
         )
         return _with_timing({
             "decision": verification["decision"],

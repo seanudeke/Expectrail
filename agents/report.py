@@ -77,6 +77,10 @@ def verify_release_candidate(
         raise ContractError("release-candidate signature does not verify with publicKey")
 
 
+ILLUSTRATIVE_NOTE = ("Illustrative fixture frames, not from this run: the run passed no frames of its own, "
+                     "so these show what the bug and the fix look like in general.")
+
+
 def _materialize_frames(srcs: list[Path], dest_dir: Path, prefix: str) -> list[dict]:
     """Copy frames into dest_dir; fail closed if any source is missing."""
     dest_dir.mkdir(parents=True, exist_ok=True)
@@ -292,7 +296,13 @@ def build_report(
     verification_path: Path | None = None,
     feedback: dict | Path | None = None,
     guard: dict | Path | None = None,
+    frames_illustrative: bool = False,
 ) -> dict:
+    """Write the morning report, its signed release candidate and morning-summary.json.
+
+    ``frames_illustrative`` marks before/after frames that did not come from this run (the loop's
+    fixture defaults): each frame is flagged and the report says so, so they never read as evidence.
+    """
     out.mkdir(parents=True, exist_ok=True)
     decision = verification["decision"]
     feedback_doc = _load_feedback(feedback)
@@ -304,6 +314,9 @@ def build_report(
         frames_dir = out / "frames"
         frame_meta.extend(_materialize_frames(before, frames_dir, "before"))
         frame_meta.extend(_materialize_frames(after, frames_dir, "after"))
+        if frames_illustrative:
+            for meta in frame_meta:
+                meta["illustrative"] = True
 
     gameplay = _resolve_gameplay_verdict(
         verification,
@@ -380,6 +393,8 @@ def build_report(
 
     if frame_meta:
         lines.extend(["", "## Before / after frames"])
+        if any(meta.get("illustrative") for meta in frame_meta):
+            lines.append(ILLUSTRATIVE_NOTE)
         for meta in frame_meta:
             lines.append(f"- {meta['role']}: `{meta['path']}` (sha256 `{meta['sha256'][:16]}…`)")
             lines.append(f"  ![{meta['role']}]({meta['path']})")
@@ -570,6 +585,8 @@ def write_loop_rollup(out: Path, *, summary: dict) -> Path:
             shutil.rmtree(rollup_frames)
         rollup_frames.mkdir(parents=True, exist_ok=True)
         lines.extend(["", "## Latest accept frames", f"(from run-{last_accept_run:02d})"])
+        if any(meta.get("illustrative") for meta in last_accept_frames):
+            lines.append(ILLUSTRATIVE_NOTE)
         for meta in last_accept_frames:
             src = last_accept_morning / meta["path"]
             if not src.is_file():
