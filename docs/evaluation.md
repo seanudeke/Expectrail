@@ -102,6 +102,45 @@ The held-out variants go through the same matrix once, after the code freeze (`s
 Only ids, outcomes and per-attempt decisions leave the runner for them: a candidate patch, a
 verifier reason or Muse's log would describe the private bug.
 
+## Who accepts a fix that only looks right (judge benchmark)
+
+The fix matrix showed both conditions fix all 8 development variants, so the fix rate does not
+separate them. What Nightshift is for is the judgement: would it ship a fix that only looks right?
+`agents/judge_bench.py` puts 15 candidates, each with a known right answer, in front of three
+judges. The 8 good candidates undo each development bug exactly. The 7 bad candidates
+(`agents/fixtures/`) look fixed and are not. Five sit on fall-through v1: the fall stops but the
+robot is drawn behind the level art or inside the ground; the floor's collision is moved below its
+art; the robot can no longer move; or only a comment changes. The sixth pushes the sinking fix so far
+the robot floats, and the seventh "fixes" layering by deleting every tree. The judges are the verifier with SAM
+on, the verifier with SAM off, and Muse judging from five before and five after screenshots plus
+the player's one-line report, inside bubblewrap. Results and both runs are in `bench/judge/`.
+
+Twice, live (runs 40936362830 and 40943391994):
+
+| Judge | Good fixes accepted | Bad fixes accepted |
+| --- | --- | --- |
+| Nightshift, SAM on | 8 of 8, both runs | 0 of 7, both runs |
+| Nightshift, SAM off | 8 of 8, both runs | 3 of 7, both runs |
+| Muse from screenshots | 6 of 8, then 7 of 8 | 2 of 7, both runs |
+
+What the reasons show (second run):
+
+- Without SAM the verifier sees the engine, not the picture, so it passes the hidden player, the
+  sunk player and the hidden trees. SAM's checks reject all three.
+- Muse accepts the lowered floor and the sunk player ("player stays in view, on ground"): five
+  frames carry no reference for where the ground should be. It rejects real sinking fixes because
+  it reads a normal jump as the robot floating.
+- The floating robot fails `player-stays-above-ground` in both modes: the spec holds the feet within
+  20 px of the ground, so floating fails as well as sinking.
+- Nightshift does not notice the missing trees. It rejects that candidate because the player is
+  still drawn at z_index -3, behind the grass, bushes and tiles, so `player-always-visible` fails.
+  Muse rejects it because the trees are gone. Deleting scenery that no spec covers would pass.
+
+Limits: the bad candidates were written by us, and three of them (hide, sink, lower the floor) are
+cases the verifier was built to reject, so 0 of 7 shows it holds on known tricks, not on new ones.
+Fifteen cases is small. The judges do not see the same evidence: that is the comparison we claim
+(what each would accept from what it is given), not an equal-information test.
+
 ## What we report
 
 For each condition, across all variants and clean runs:

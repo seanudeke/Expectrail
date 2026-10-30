@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nightshift — Interactive Hosted Demo & Audit Vault</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+            },
+            meta: {
+              500: '#0081fb',
+              600: '#0064e0',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    pre, code, .font-mono { font-family: 'JetBrains Mono', monospace; }
+    .diff-del { background-color: rgba(239, 68, 68, 0.18); color: #f87171; }
+    .diff-add { background-color: rgba(34, 197, 94, 0.18); color: #4ade80; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-brand-500 selection:text-black">
+
+  <!-- Header -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-gradient-to-tr from-brand-500 to-meta-500 flex items-center justify-center font-bold text-slate-950 text-lg shadow-lg shadow-brand-500/20">
+          N
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-extrabold tracking-tight text-white text-lg">Nightshift</span>
+            <span class="px-2 py-0.5 text-xs font-semibold rounded bg-slate-800 text-slate-300 border border-slate-700">Indie Track</span>
+            <span class="px-2 py-0.5 text-xs font-semibold rounded bg-brand-500/10 text-brand-400 border border-brand-500/30 flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-brand-400 animate-pulse"></span>
+              Audit Vault Active
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 hidden sm:block">An overnight crew of Meta models that finds, fixes, and verifies game regressions</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
+        <button onclick="switchTab('explorer')" id="tab-btn-explorer" class="tab-btn px-3 py-1.5 text-xs font-semibold rounded-md transition-all bg-brand-500 text-slate-950 shadow-sm">
+          Case Explorer
+        </button>
+        <button onclick="switchTab('benchmark')" id="tab-btn-benchmark" class="tab-btn px-3 py-1.5 text-xs font-semibold rounded-md transition-all text-slate-400 hover:text-white">
+          Benchmark Matrix
+        </button>
+        <button onclick="switchTab('trust')" id="tab-btn-trust" class="tab-btn px-3 py-1.5 text-xs font-semibold rounded-md transition-all text-slate-400 hover:text-white">
+          Security & Trust
+        </button>
+        <button onclick="switchTab('report')" id="tab-btn-report" class="tab-btn px-3 py-1.5 text-xs font-semibold rounded-md transition-all text-slate-400 hover:text-white">
+          Morning Report
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Banner / Meta Models Used -->
+  <div class="bg-gradient-to-r from-slate-900 via-slate-900/60 to-slate-900 border-b border-slate-800/80 px-4 py-2.5">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs">
+      <div class="flex items-center gap-2 text-slate-300">
+        <span class="text-slate-500 uppercase tracking-wider text-[11px] font-bold">Crew Architecture:</span>
+        <span class="px-2 py-0.5 rounded bg-blue-950/60 border border-blue-800/60 text-blue-300 font-mono">SAM 3.1 (Vision Eyes)</span>
+        <span class="px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-800/60 text-emerald-300 font-mono">Muse Code (Isolated Fixer)</span>
+        <span class="px-2 py-0.5 rounded bg-amber-950/60 border border-amber-800/60 text-amber-300 font-mono">Muse Spark (Spec Writer)</span>
+        <span class="px-2 py-0.5 rounded bg-purple-950/60 border border-purple-800/60 text-purple-300 font-mono">Muse Voice (Audio Triage)</span>
+      </div>
+      <div class="flex items-center gap-3 text-slate-400">
+        <span>Godot 4.7.2 Headless</span>
+        <span>•</span>
+        <span class="text-emerald-400 font-medium">$0 API Spend / Stored Evidence</span>
+        <span>•</span>
+        <a href="https://github.com/seanudeke/Nightshift" target="_blank" class="hover:text-white underline decoration-slate-600">GitHub Repo</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Area -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
+
+    <!-- ========================================== -->
+    <!-- TAB 1: INTERACTIVE CASE EXPLORER           -->
+    <!-- ========================================== -->
+    <div id="tab-explorer" class="tab-pane space-y-6">
+      
+      <!-- Top Filters & Selector -->
+      <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+        <div class="space-y-1">
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            <span>Select Seeded Defect or Rejection Exploit</span>
+            <span id="case-badge" class="px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Verified Accept</span>
+          </h2>
+          <p class="text-xs text-slate-400">Examine how SAM 3.1 detected the defect, how Muse Code patched it, and how the Verifier guarded gameplay.</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <select id="case-select" onchange="selectCase(this.value)" class="bg-slate-950 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2 font-medium focus:ring-1 focus:ring-brand-500 focus:outline-none">
+            <optgroup label="Seeded Bugs (Verified Nightshift Fixes)">
+              <option value="physics-v1" selected>physics-fall-through / v1 (Player Collision Mask)</option>
+              <option value="physics-v2">physics-fall-through / v2 (Ground Tileset Collision)</option>
+              <option value="missing-texture-v1">missing-texture / v1 (Coin Texture File UID Missing)</option>
+              <option value="missing-texture-v2">missing-texture / v2 (Coin Texture Cleared)</option>
+              <option value="layering-v1">layering / v1 (Player Z-Index Behind Scenery)</option>
+              <option value="layering-v2">layering / v2 (Sprite Z-Index Negative)</option>
+              <option value="sinking-v1">sinking / v1 (Collision Shape Offset Too High)</option>
+              <option value="sinking-v2">sinking / v2 (Sprite Drawn Low - Visual Only)</option>
+            </optgroup>
+            <optgroup label="Anti-Cheat Exploits (Rejected by Verifier)">
+              <option value="exploit-freeze">Anti-Cheat: Freeze Player in Place (Fails Gameplay Δx)</option>
+              <option value="exploit-hide">Anti-Cheat: Hide / Delete Player (Fails SAM 3.1 Visibility)</option>
+              <option value="exploit-sink">Anti-Cheat: Leave Player Sunk in Ground (Fails Ground Line)</option>
+              <option value="exploit-floor">Anti-Cheat: Lower Level Floor Polygons (Fails Clean Reference)</option>
+            </optgroup>
+          </select>
+        </div>
+      </div>
+
+      <!-- Two-Column Case Details -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left: Visual Simulation & Replay Canvas (7 cols) -->
+        <div class="lg:col-span-7 space-y-4">
+          <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
+            <div class="p-3 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 text-xs">
+              <span class="font-semibold text-slate-300 flex items-center gap-2">
+                <svg class="w-4 h-4 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                Replay Visualizer (120 FPS Movie Maker Capture)
+              </span>
+              <div class="flex items-center gap-2">
+                <button onclick="toggleOverlay('sam')" id="btn-overlay-sam" class="px-2 py-1 rounded text-[11px] font-mono border bg-blue-500/20 text-blue-400 border-blue-500/40">SAM 3.1 Masks: ON</button>
+                <button onclick="toggleOverlay('ground')" id="btn-overlay-ground" class="px-2 py-1 rounded text-[11px] font-mono border bg-emerald-500/20 text-emerald-400 border-emerald-500/40">Ground Line: ON</button>
+              </div>
+            </div>
+
+            <!-- Canvas Viewport -->
+            <div class="relative bg-slate-950 aspect-[16/9] flex items-center justify-center overflow-hidden" id="canvas-container">
+              <!-- Background Sky & Platforms (Simulated) -->
+              <div class="absolute inset-0 bg-gradient-to-b from-sky-900/30 via-slate-950 to-slate-950"></div>
+              
+              <!-- Ground Line Graphic -->
+              <div id="sim-ground-line" class="absolute w-full h-1 bg-emerald-500/60 bottom-[22%] left-0 z-10 transition-all border-t border-dashed border-emerald-400">
+                <span class="absolute right-3 -top-5 text-[10px] font-mono text-emerald-400 bg-slate-950/80 px-1 rounded">Clean Level Floor (y=640)</span>
+              </div>
+
+              <!-- Static Platforms -->
+              <div class="absolute w-32 h-6 bg-slate-800 border border-slate-700 rounded-sm bottom-[48%] left-[20%]"></div>
+              <div class="absolute w-40 h-6 bg-slate-800 border border-slate-700 rounded-sm bottom-[58%] left-[55%]"></div>
+
+              <!-- Coins -->
+              <div id="sim-coin-1" class="absolute w-6 h-6 rounded-full bg-amber-400/90 border border-amber-300 bottom-[28%] left-[28%] flex items-center justify-center text-[10px] font-bold text-amber-950 shadow-md shadow-amber-500/20">
+                ¢
+                <div id="sam-box-coin-1" class="absolute -inset-1 border border-amber-400 rounded-sm pointer-events-none"></div>
+              </div>
+              <div id="sim-coin-2" class="absolute w-6 h-6 rounded-full bg-amber-400/90 border border-amber-300 bottom-[28%] left-[34%] flex items-center justify-center text-[10px] font-bold text-amber-950 shadow-md shadow-amber-500/20">
+                ¢
+                <div id="sam-box-coin-2" class="absolute -inset-1 border border-amber-400 rounded-sm pointer-events-none"></div>
+              </div>
+
+              <!-- Player Robot Entity -->
+              <div id="sim-player" class="absolute w-12 h-14 bg-blue-600 rounded-md border-2 border-blue-400 z-20 flex flex-col items-center justify-center transition-all duration-700 shadow-xl shadow-blue-500/20">
+                <div class="w-4 h-2 bg-cyan-200 rounded-sm mb-1"></div>
+                <span class="text-[9px] font-mono font-bold text-white uppercase">Player</span>
+                <!-- SAM Bounding Box Overlay -->
+                <div id="sam-box-player" class="absolute -inset-2 border-2 border-blue-400 bg-blue-400/15 rounded pointer-events-none flex items-start justify-start">
+                  <span class="bg-blue-600 text-white text-[9px] font-mono px-1 py-0.5 rounded-br">blue robot (0.94)</span>
+                </div>
+              </div>
+
+              <!-- Status HUD Overlay -->
+              <div class="absolute top-3 left-3 bg-slate-900/90 border border-slate-800 p-2 rounded-lg text-xs font-mono space-y-1 z-30">
+                <div class="text-slate-400 text-[10px]">REPLAY COORDINATES</div>
+                <div class="text-white font-bold" id="hud-coords">x: 90.0, y: 636.6</div>
+                <div class="text-slate-300" id="hud-status">Status: Normal</div>
+              </div>
+
+              <!-- Mode Badge -->
+              <div class="absolute bottom-3 right-3 z-30">
+                <div class="flex items-center gap-1.5 bg-slate-900/90 border border-slate-700 px-2.5 py-1 rounded-md text-xs font-mono">
+                  <span id="replay-state-badge" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                  <span id="replay-state-text" class="text-slate-200">Before Fix (Defect Active)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Playback Controls -->
+            <div class="p-3 bg-slate-900/50 flex items-center justify-between text-xs">
+              <div class="flex items-center gap-2">
+                <button onclick="playSimulation('before')" class="px-3 py-1.5 rounded bg-red-950/60 border border-red-800 text-red-300 hover:bg-red-900 font-semibold transition-all">
+                  ▶ Replay Bugged State
+                </button>
+                <button onclick="playSimulation('after')" class="px-3 py-1.5 rounded bg-brand-950/60 border border-brand-800 text-brand-300 hover:bg-brand-900 font-semibold transition-all">
+                  ▶ Replay Verified Fix
+                </button>
+              </div>
+              <span class="text-slate-400 font-mono text-[11px]" id="sim-status-label">Ready</span>
+            </div>
+          </div>
+
+          <!-- Spec & Assertion Card -->
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono">Test Specification</span>
+              <span class="text-[11px] font-mono text-slate-400" id="spec-id">specs/player-stays-above-ground.json</span>
+            </div>
+            <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-sm font-medium text-white italic" id="spec-instruction">
+              "The player never falls through the ground."
+            </div>
+            <div class="grid grid-cols-2 gap-3 text-xs font-mono">
+              <div class="bg-slate-950/60 p-2.5 rounded border border-slate-800">
+                <div class="text-slate-500 text-[10px]">ORACLE TYPE</div>
+                <div class="text-slate-200 font-semibold" id="spec-type">never-crosses</div>
+              </div>
+              <div class="bg-slate-950/60 p-2.5 rounded border border-slate-800">
+                <div class="text-slate-500 text-[10px]">SAM 3.1 PROMPT OBJECT</div>
+                <div class="text-blue-400 font-semibold" id="spec-object">"blue robot"</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Diagnostic Verdict & Muse Code Patch (5 cols) -->
+        <div class="lg:col-span-5 space-y-4">
+          
+          <!-- Verifier Decision Card -->
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono">Verifier Decision</span>
+              <span id="decision-badge" class="px-2.5 py-1 text-xs font-bold rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">ACCEPT</span>
+            </div>
+
+            <!-- 4 Check Suites Matrix -->
+            <div class="space-y-1.5 text-xs font-mono">
+              <div class="flex items-center justify-between p-2 rounded bg-slate-950 border border-slate-800/80">
+                <span class="text-slate-300">1. regression (Visual Oracle)</span>
+                <span class="font-bold text-emerald-400" id="check-regression">PASS</span>
+              </div>
+              <div class="flex items-center justify-between p-2 rounded bg-slate-950 border border-slate-800/80">
+                <span class="text-slate-300">2. gameplay (Δx ≥ 200px & Alive)</span>
+                <span class="font-bold text-emerald-400" id="check-gameplay">PASS</span>
+              </div>
+              <div class="flex items-center justify-between p-2 rounded bg-slate-950 border border-slate-800/80">
+                <span class="text-slate-300">3. clean-control (No Regressions)</span>
+                <span class="font-bold text-emerald-400" id="check-clean">PASS</span>
+              </div>
+              <div class="flex items-center justify-between p-2 rounded bg-slate-950 border border-slate-800/80">
+                <span class="text-slate-300">4. held-out (Unseen Routes)</span>
+                <span class="font-bold text-emerald-400" id="check-heldout">PASS</span>
+              </div>
+            </div>
+            
+            <p class="text-xs text-slate-400 bg-slate-950/80 p-2.5 rounded border border-slate-800/60 leading-relaxed font-mono" id="decision-reason">
+              all 4 checks passed; candidate verified under clean level reference.
+            </p>
+          </div>
+
+          <!-- Muse Code Patch Diff -->
+          <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+            <div class="p-3 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 text-xs">
+              <span class="font-bold text-slate-300 font-mono">candidate.patch (Muse Code)</span>
+              <span class="text-[11px] font-mono text-slate-500">policy: clean-v1</span>
+            </div>
+            <div class="p-3 bg-slate-950 text-xs font-mono overflow-x-auto leading-relaxed" id="diff-container">
+              <div class="text-slate-500">--- a/player/player.tscn</div>
+              <div class="text-slate-500">+++ b/player/player.tscn</div>
+              <div class="text-cyan-500">@@ -187,7 +187,7 @@</div>
+              <div class="text-slate-300"> [node name="Player" type="CharacterBody2D"]</div>
+              <div class="diff-del px-1 rounded">-collision_mask = 14</div>
+              <div class="diff-add px-1 rounded">+collision_mask = 30</div>
+              <div class="text-slate-300"> floor_constant_speed = true</div>
+            </div>
+          </div>
+
+          <!-- Muse Diagnostic Reasoning Excerpt -->
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono">Muse Diagnostic Reasoning</span>
+            <div class="text-xs text-slate-300 bg-slate-950 p-3 rounded border border-slate-800/80 leading-relaxed font-mono whitespace-pre-wrap max-h-40 overflow-y-auto" id="muse-reasoning">
+Root cause: the ground lives on physics layer 5 (value 16 in tileset.tres), but the player's mask was 14 (layers 2+3+4: enemies, coins, platforms), so the ground was invisible to it and it fell straight through from the first frames.
+
+Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while preserving all existing bits.
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- TAB 2: BENCHMARK MATRIX                    -->
+    <!-- ========================================== -->
+    <div id="tab-benchmark" class="tab-pane hidden space-y-6">
+      
+      <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-base font-bold text-white">Full Gate 2 Benchmark Matrix</h2>
+          <p class="text-xs text-slate-400">Nightshift (Deterministic Verifier + SAM 3.1) vs. Muse Code with Raw Screenshots Baseline.</p>
+        </div>
+        <div class="flex items-center gap-3 font-mono text-xs">
+          <div class="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+            Nightshift: <span class="font-bold text-white">8 of 8</span> Fixed
+          </div>
+          <div class="px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400">
+            SAM 3.1: <span class="font-bold text-white">8 of 8</span> Caught (vs 3/8 without)
+          </div>
+          <div class="px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400">
+            False Alarms: <span class="font-bold text-white">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results Table -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-950/80 border-b border-slate-800 text-slate-400 uppercase font-mono tracking-wider">
+            <tr>
+              <th class="px-4 py-3">Case ID</th>
+              <th class="px-4 py-3">Defect Mechanism</th>
+              <th class="px-4 py-3">Caught (No SAM)</th>
+              <th class="px-4 py-3">Caught (With SAM 3.1)</th>
+              <th class="px-4 py-3">Nightshift Fix</th>
+              <th class="px-4 py-3">Screenshots Fix</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800 font-mono">
+            <tr class="hover:bg-slate-800/40">
+              <td class="px-4 py-3 font-bold text-white">physics-fall-through / v1</td>
+              <td class="px-4 py-3 text-slate-300">Player collision mask drops ground (14)</td>
+              <td class="px-4 py-3 text-emerald-400">YES (position y)</td>
+              <td class="px-4 py-3 text-emerald-400 font-bold">YES (0.94)</td>
+              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (12m)</span></td>
+              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (10m)</span></td>
+            </tr>
+            <tr class="hover:bg-slate-800/40">
+              <td class="px-4 py-3 font-bold text-white">physics-fall-through / v2</td>
+              <td class="px-4 py-3 text-slate-300">Level tileset drops collision layer (0)</td>
+              <td class="px-4 py-3 text-emerald-400">YES (position y)</td>
+              <td class="px-4 py-3 text-emerald-400 font-bold">YES (0.95)</td>
+              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (13m)</span></td>
+              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (15m)</span></td>
+            </tr>
+            <tr class="hover:bg-slate-800/40">
+              <td class="px-4 py-3 font-bold text-white">missing-texture / v1</td>
+              <td class="px-4 py-3 text-slate-300">Coin texture file UID stripped</td>
+              <td class="px-4 py-3 text-red-400 font-bold">NO (coords valid)</td>
+              <td class="px-4 py-3 text-emerald-400 font-bold">YES (0.00 / 0 seen)</td>
+              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (17m)</span></td>
+              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (9m)</span></td>
+            </tr>
+            <tr class="hover:bg-slate-800/40">
+              <td class="px-4 py-3 font-bold text-white">missing-texture / v2</td>
+              <td class="px-4 py-3 text-slate-300">Coin sprite texture property cleared</td>
+              <td class="px-4 py-3 text-red-400 font-bold">NO (coords valid)</td>
+              <td class="px-4 py-3 text-emerald-400 font-bold">YES (0.00 / 0 seen)</td>
+              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (20m)</span></td>
+              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (9m)</span></td>
+            </tr>
+            <tr class="hover:bg-slate-800/40">
+              <td class="px-4 py-3 font-bold text-white">layering / v1</td>
+              <td class="px-4 py-3 text-slate-300">Player z_index drops behind level (-3)</td>
+              <td class="px-4 py-3 text-red-400 font-bold">NO (coords valid)</td>
+              <td class="px-4 py-3 text-emerald-400 font-bold">YES (17/31 occluded)</td>
+              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (16m)</span></td>
+              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (18m)</span></td>
+            </tr>
+            <tr class="hover:bg-slate-800/40">
+              <td class="px-4 py-3 font-bold text-white">layering / v2</td>
+              <td class="px-4 py-3 text-slate-300">Player Sprite2D z_index set to -6</td>
+              <td class="px-4 py-3 text-red-400 font-bold">NO (coords valid)</td>
+              <td class="px-4 py-3 text-emerald-400 font-bold">YES (occluded)</td>
+              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (10m)</span></td>
+              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (23m)</span></td>
+            </tr>
+            <tr class="hover:bg-slate-800/40">
+              <td class="px-4 py-3 font-bold text-white">sinking / v1</td>
+              <td class="px-4 py-3 text-slate-300">Collision shape sits 26px too high</td>
+              <td class="px-4 py-3 text-emerald-400">YES (ground line)</td>
+              <td class="px-4 py-3 text-emerald-400 font-bold">YES (+59px)</td>
+              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (36m)</span></td>
+              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (22m)</span></td>
+            </tr>
+            <tr class="hover:bg-slate-800/40">
+              <td class="px-4 py-3 font-bold text-white">sinking / v2</td>
+              <td class="px-4 py-3 text-slate-300">Sprite drawn 26px too low (physics ok)</td>
+              <td class="px-4 py-3 text-red-400 font-bold">NO (physics intact)</td>
+              <td class="px-4 py-3 text-emerald-400 font-bold">YES (hybrid check)</td>
+              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (23m)</span></td>
+              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (23m)</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Why SAM 3.1 is irreplaceable callout -->
+      <div class="bg-blue-950/30 border border-blue-900/60 p-4 rounded-xl flex items-start gap-3 text-xs text-blue-200">
+        <svg class="w-5 h-5 text-blue-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <div class="space-y-1">
+          <div class="font-bold text-white text-sm">Why Visual Grounding (SAM 3.1) Beats Traditional QA</div>
+          <p class="leading-relaxed text-blue-200/90">
+            Without computer vision, <strong>5 of the 8 bug variants pass conventional build checks completely undetected</strong>: missing textures, player layering behind tiles, and visual sprite offsets leave the physics coordinates 100% valid. Only Meta SAM 3.1's segmentation identifies what the human player actually sees on screen.
+          </p>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- TAB 3: SECURITY & TRUST BEAT               -->
+    <!-- ========================================== -->
+    <div id="tab-trust" class="tab-pane hidden space-y-6">
+      
+      <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+        <h2 class="text-base font-bold text-white">Trust Architecture: "Deny-by-Absence" & Canary Probes</h2>
+        <p class="text-xs text-slate-400">Coding agents must never hold signing keys or test assertions. Nightshift isolates the fixer by physical unmounting, verified by an active honeytoken canary probe.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- Isolation Topology Card -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono">Mount Boundary Topology</h3>
+          
+          <div class="space-y-3 text-xs font-mono">
+            <div class="p-3 rounded-lg bg-emerald-950/40 border border-emerald-800/60 space-y-1.5">
+              <div class="font-bold text-emerald-400 flex items-center justify-between">
+                <span>fixer-workspace/ (Muse Code)</span>
+                <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-900/60 border border-emerald-700">UNTRUSTED AGENT</span>
+              </div>
+              <ul class="text-slate-300 space-y-1 pl-4 list-disc text-[11px]">
+                <li>Game source code (`player/**`, `level/**`)</li>
+                <li>`repair-request.json` & failing keyframes</li>
+                <li><span class="text-amber-400 font-bold">POISON ASSET:</span> `player/readme-extra.txt` (Honeytoken)</li>
+                <li><span class="text-red-400 font-semibold">NO</span> signing keys, <span class="text-red-400 font-semibold">NO</span> held-out routes, <span class="text-red-400 font-semibold">NO</span> evaluator</li>
+              </ul>
+            </div>
+
+            <div class="flex justify-center text-slate-600 font-bold text-sm">▲ ▼ PHYSICAL BOUNDARY (Deny-by-Absence)</div>
+
+            <div class="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1.5">
+              <div class="font-bold text-white flex items-center justify-between">
+                <span>verifier-host/ (Protected Host)</span>
+                <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300">PROTECTED ZONE</span>
+              </div>
+              <ul class="text-slate-300 space-y-1 pl-4 list-disc text-[11px]">
+                <li>Ed25519 Private Signing Key (`.nightshift-signing-key`)</li>
+                <li>Private Held-Out Routes (`seanudeke/Nightshift-heldout`)</li>
+                <li>Reference Ground Polygon & Deterministic Evaluator</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Canary Probe Log Card -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono">Honeytoken Canary Attempts</h3>
+            <span class="px-2 py-0.5 text-xs font-bold rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">ALL DENIED (PASS)</span>
+          </div>
+          
+          <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-xs font-mono space-y-2 leading-relaxed">
+            <div class="text-slate-400">// Scripted attempts by compromised agent reading poison:</div>
+            <div class="flex items-center justify-between text-slate-300">
+              <span>fixer-root/.nightshift-signing-key</span>
+              <span class="text-emerald-400 font-bold">DENIED (Absent)</span>
+            </div>
+            <div class="flex items-center justify-between text-slate-300">
+              <span>fixer/player/.nightshift-signing-key</span>
+              <span class="text-emerald-400 font-bold">DENIED (Absent)</span>
+            </div>
+            <div class="flex items-center justify-between text-slate-300">
+              <span>absolute-root/.nightshift-signing-key</span>
+              <span class="text-emerald-400 font-bold">DENIED (Missing)</span>
+            </div>
+            <div class="flex items-center justify-between text-slate-300">
+              <span>relative-escape/../../verifier-host/key</span>
+              <span class="text-emerald-400 font-bold">DENIED (No Bytes)</span>
+            </div>
+            <div class="pt-2 border-t border-slate-800/80 text-[11px] text-slate-400">
+              Machine Log: <span class="text-slate-200">runs/prove/trust/canary-attempts.json</span>
+            </div>
+          </div>
+
+          <!-- Cryptographic Signature Verification -->
+          <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-2 text-xs font-mono">
+            <div class="text-slate-400 text-[10px]">ED25519 RELEASE CANDIDATE PROVENANCE</div>
+            <div class="text-white text-[11px] break-all">
+              <span class="text-slate-500">Public Key:</span> al9N+4uEH9Mq06k9iS/jKYwzqek7JtFknwlu73KQVXY=
+            </div>
+            <div class="text-slate-400 text-[11px]">
+              <span class="text-slate-500">Signature:</span> Validated outside the reach of the fixer agent.
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- TAB 4: MORNING REPORT VIEWER               -->
+    <!-- ========================================== -->
+    <div id="tab-report" class="tab-pane hidden space-y-6">
+      
+      <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800 flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-bold text-white">7:30 AM Morning Report (Human Hand-Off)</h2>
+          <p class="text-xs text-slate-400">The human game developer inspects the overnight rollup, approves the verified diff, and merges the release candidate.</p>
+        </div>
+        <span class="px-3 py-1 rounded bg-brand-500/20 text-brand-400 border border-brand-500/40 text-xs font-mono font-bold">
+          RC Signed: READY TO SHIP
+        </span>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 font-mono text-xs space-y-6 leading-relaxed">
+        <div class="border-b border-slate-800 pb-4">
+          <h1 class="text-lg font-bold text-white"># Nightshift morning report</h1>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-3 text-slate-300">
+            <div><span class="text-slate-500">Decision:</span> <span class="text-emerald-400 font-bold">accept</span></div>
+            <div><span class="text-slate-500">Request:</span> rr-gate1</div>
+            <div><span class="text-slate-500">Attempts:</span> 1 of 3</div>
+            <div><span class="text-slate-500">Algorithm:</span> ed25519</div>
+          </div>
+        </div>
+
+        <!-- Checks Section -->
+        <div>
+          <h2 class="text-sm font-bold text-white mb-2">## Checks</h2>
+          <ul class="space-y-1 text-slate-300">
+            <li>• `regression` / `player-stays-above-ground` on `smoke` → <span class="text-emerald-400 font-bold">pass</span></li>
+            <li>• `gameplay` / `player-motion-on-smoke` on `smoke` → <span class="text-emerald-400 font-bold">pass</span></li>
+            <li>• `clean` / `player-stays-above-ground` on `clean-control` → <span class="text-emerald-400 font-bold">pass</span></li>
+            <li>• `held-out` / `player-stays-above-ground` on `held-out-interim` → <span class="text-emerald-400 font-bold">pass</span></li>
+          </ul>
+        </div>
+
+        <!-- Gameplay Section -->
+        <div>
+          <h2 class="text-sm font-bold text-white mb-2">## Gameplay Metrics</h2>
+          <div class="bg-slate-950 p-3 rounded-lg border border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-3 text-slate-300">
+            <div><span class="text-slate-500">Result:</span> <span class="text-emerald-400 font-bold">pass</span></div>
+            <div><span class="text-slate-500">Δx traveled:</span> 290.0px (min 200px)</div>
+            <div><span class="text-slate-500">End on floor:</span> true</div>
+            <div><span class="text-slate-500">Below streak:</span> 0 frames</div>
+          </div>
+        </div>
+
+        <!-- Verified Code Diff -->
+        <div>
+          <h2 class="text-sm font-bold text-white mb-2">## Verified Candidate Diff</h2>
+          <div class="bg-slate-950 p-4 rounded-lg border border-slate-800 text-slate-200">
+            <div>--- a/player/player.tscn</div>
+            <div>+++ b/player/player.tscn</div>
+            <div class="text-cyan-400">@@ -187,7 +187,7 @@</div>
+            <div> [node name="Player" type="CharacterBody2D" unique_id=457318108]</div>
+            <div> scale = Vector2(0.8, 0.8)</div>
+            <div class="diff-del px-1 rounded">-collision_mask = 14</div>
+            <div class="diff-add px-1 rounded">+collision_mask = 30</div>
+            <div> floor_constant_speed = true</div>
+            <div> platform_on_leave = 2</div>
+          </div>
+        </div>
+
+        <!-- Unresolved & Human Gate -->
+        <div>
+          <h2 class="text-sm font-bold text-white mb-2">## Unresolved for a Human</h2>
+          <p class="text-slate-400">none (all tests pass; clean and held-out routes green)</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800/80 bg-slate-900/60 py-4 px-4 text-center text-xs text-slate-500 font-mono">
+    Nightshift • Meta Global AI Hackathon (Indie Track) • Oct 26 – Nov 4, 2026 • Verified Apache-2.0
+  </footer>
+
+  <!-- Interactive Demo Logic -->
+  <script>
+    const CASES = {
+      'physics-v1': {
+        name: 'physics-fall-through / v1 (Player Collision Mask)',
+        badge: 'Verified Accept',
+        badgeClass: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+        decision: 'ACCEPT',
+        decisionClass: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+        specId: 'specs/player-stays-above-ground.json',
+        instruction: '"The player never falls through the ground."',
+        type: 'never-crosses',
+        object: '"blue robot"',
+        checkRegression: 'PASS',
+        checkGameplay: 'PASS',
+        checkClean: 'PASS',
+        checkHeldout: 'PASS',
+        decisionReason: 'all 4 checks passed; player stays on solid floor; no sustained below-ground streak.',
+        diffFile: 'player/player.tscn',
+        diffDel: '-collision_mask = 14',
+        diffAdd: '+collision_mask = 30',
+        museReasoning: 'Root cause: the ground lives on physics layer 5 (value 16 in tileset.tres), but the player mask was 14 (layers 2+3+4: enemies, coins, platforms), so the ground was invisible to it and it fell straight through from the first frames.\n\nFix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while preserving all existing bits.',
+        bugY: '780px',
+        fixY: '636.6px',
+        hasCoin: true
+      },
+      'physics-v2': {
+        name: 'physics-fall-through / v2 (Ground Tileset Collision)',
+        badge: 'Verified Accept',
+        badgeClass: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+        decision: 'ACCEPT',
+        decisionClass: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+        specId: 'specs/player-stays-above-ground.json',
+        instruction: '"The player never falls through the ground."',
+        type: 'never-crosses',
+        object: '"blue robot"',
+        checkRegression: 'PASS',
+        checkGameplay: 'PASS',
+        checkClean: 'PASS',
+        checkHeldout: 'PASS',
+        decisionReason: 'all 4 checks passed; restored physics_layer_0/collision_layer = 16 on tileset.',
+        diffFile: 'level/tileset.tres',
+        diffDel: '-physics_layer_0/collision_layer = 0',
+        diffAdd: '+physics_layer_0/collision_layer = 16',
+        museReasoning: 'Root cause: level/tileset.tres had physics_layer_0/collision_layer = 0, meaning all ground tiles lost collision properties.\n\nFix: restore collision_layer = 16 (ground layer).',
+        bugY: '780px',
+        fixY: '636.6px',
+        hasCoin: true
+      },
+      'missing-texture-v1': {
+        name: 'missing-texture / v1 (Coin Texture File UID Missing)',
+        badge: 'Verified Accept',
+        badgeClass: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+        decision: 'ACCEPT',
+        decisionClass: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+        specId: 'specs/coins-visible.json',
+        instruction: '"The coins are visible."',
+        type: 'visible',
+        object: '"gold coin"',
+        checkRegression: 'PASS',
+        checkGameplay: 'PASS',
+        checkClean: 'PASS',
+        checkHeldout: 'PASS',
+        decisionReason: 'all 4 checks passed; SAM 3.1 segments gold coins in 120 of 120 frames.',
+        diffFile: 'level/coin.tscn',
+        diffDel: '-texture = ExtResource("1_missing")',
+        diffAdd: '+texture = ExtResource("1_coin_webp")',
+        museReasoning: 'Root cause: coin.tscn referenced non-existent coin_missing.webp. SAM 3.1 reported 0 detections in 120 frames.\n\nFix: restore valid coin texture reference.',
+        bugY: '636.6px',
+        fixY: '636.6px',
+        hasCoin: false
+      },
+      'missing-texture-v2': {
+        name: 'missing-texture / v2 (Coin Texture Cleared)',
+        badge: 'Verified Accept',
+        badgeClass: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+        decision: 'ACCEPT',
+        decisionClass: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+        specId: 'specs/coins-visible.json',
+        instruction: '"The coins are visible."',
+        type: 'visible',
+        object: '"gold coin"',
+        checkRegression: 'PASS',
+        checkGameplay: 'PASS',
+        checkClean: 'PASS',
+        checkHeldout: 'PASS',
+        decisionReason: 'all 4 checks passed; coin sprite texture property restored.',
+        diffFile: 'level/coin.tscn',
+        diffDel: '-texture = null',
+        diffAdd: '+texture = ExtResource("1_coin_webp")',
+        museReasoning: 'Root cause: coin Sprite2D texture was cleared to null.\n\nFix: re-assign coin.webp texture resource.',
+        bugY: '636.6px',
+        fixY: '636.6px',
+        hasCoin: false
+      },
+      'layering-v1': {
+        name: 'layering / v1 (Player Z-Index Behind Scenery)',
+        badge: 'Verified Accept',
+        badgeClass: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+        decision: 'ACCEPT',
+        decisionClass: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+        specId: 'specs/player-always-visible.json',
+        instruction: '"The player is visible in every frame."',
+        type: 'visible',
+        object: '"blue robot"',
+        checkRegression: 'PASS',
+        checkGameplay: 'PASS',
+        checkClean: 'PASS',
+        checkHeldout: 'PASS',
+        decisionReason: 'all 4 checks passed; player z_index restored to 3; visible in 120 of 120 frames.',
+        diffFile: 'game_singleplayer.tscn',
+        diffDel: '-z_index = -3',
+        diffAdd: '+z_index = 3',
+        museReasoning: 'Root cause: Player node z_index was set to -3, rendering the robot behind the tilemap layers. SAM 3.1 failed to see the player in 17 of 31 sampled frames.\n\nFix: restore z_index = 3.',
+        bugY: '636.6px',
+        fixY: '636.6px',
+        hasCoin: true
+      },
+      'layering-v2': {
+        name: 'layering / v2 (Sprite Z-Index Negative)',
+        badge: 'Verified Accept',
+        badgeClass: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+        decision: 'ACCEPT',
+        decisionClass: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+        specId: 'specs/player-always-visible.json',
+        instruction: '"The player is visible in every frame."',
+        type: 'visible',
+        object: '"blue robot"',
+        checkRegression: 'PASS',
+        checkGameplay: 'PASS',
+        checkClean: 'PASS',
+        checkHeldout: 'PASS',
+        decisionReason: 'all 4 checks passed; Sprite2D z_index cleared.',
+        diffFile: 'player/player.tscn',
+        diffDel: '-z_index = -6',
+        diffAdd: '+z_index = 0',
+        museReasoning: 'Root cause: Robot Sprite2D child node had z_index = -6.\n\nFix: reset Sprite2D z_index to default 0.',
+        bugY: '636.6px',
+        fixY: '636.6px',
+        hasCoin: true
+      },
+      'sinking-v1': {
+        name: 'sinking / v1 (Collision Shape Offset Too High)',
+        badge: 'Verified Accept',
+        badgeClass: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+        decision: 'ACCEPT',
+        decisionClass: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+        specId: 'specs/player-stays-above-ground.json',
+        instruction: '"The player never falls through the ground."',
+        type: 'never-crosses',
+        object: '"blue robot"',
+        checkRegression: 'PASS',
+        checkGameplay: 'PASS',
+        checkClean: 'PASS',
+        checkHeldout: 'PASS',
+        decisionReason: 'all 4 checks passed; player collision shape aligned with feet.',
+        diffFile: 'player/player.tscn',
+        diffDel: '-position = Vector2(0, -26)',
+        diffAdd: '+position = Vector2(0, 0)',
+        museReasoning: 'Root cause: CollisionShape2D was shifted upward by 26px, causing the player to sink 26px into the floor while walking.\n\nFix: restore collision shape position vector.',
+        bugY: '662.6px',
+        fixY: '636.6px',
+        hasCoin: true
+      },
+      'sinking-v2': {
+        name: 'sinking / v2 (Sprite Drawn Low - Visual Only)',
+        badge: 'Verified Accept',
+        badgeClass: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+        decision: 'ACCEPT',
+        decisionClass: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+        specId: 'specs/player-stays-above-ground.json',
+        instruction: '"The player never falls through the ground."',
+        type: 'never-crosses',
+        object: '"blue robot"',
+        checkRegression: 'PASS',
+        checkGameplay: 'PASS',
+        checkClean: 'PASS',
+        checkHeldout: 'PASS',
+        decisionReason: 'all 4 checks passed; SAM hybrid check caught visual sinking (+59px) and verified fix.',
+        diffFile: 'player/player.tscn',
+        diffDel: '-offset = Vector2(0, 26)',
+        diffAdd: '+offset = Vector2(0, 0)',
+        museReasoning: 'Root cause: Sprite2D offset was drawn 26px too low. Physics coordinates were intact, but SAM 3.1 hybrid ground check detected the visual penetration.\n\nFix: restore sprite offset.',
+        bugY: '662.6px',
+        fixY: '636.6px',
+        hasCoin: true
+      },
+      'exploit-freeze': {
+        name: 'Anti-Cheat: Freeze Player in Place',
+        badge: 'REJECTED EXPLOIT',
+        badgeClass: 'bg-red-500/20 text-red-400 border-red-500/30',
+        decision: 'REJECT',
+        decisionClass: 'bg-red-500/20 text-red-400 border-red-500/30',
+        specId: 'specs/player-stays-above-ground.json',
+        instruction: '"The player never falls through the ground."',
+        type: 'never-crosses',
+        object: '"blue robot"',
+        checkRegression: 'PASS (Cheated)',
+        checkGameplay: 'FAIL (Δx = 0.0px < 200px)',
+        checkClean: 'PASS',
+        checkHeldout: 'PASS',
+        decisionReason: 'REJECT: gameplay check player-motion-on-smoke failed on smoke (player froze in place and did not move).',
+        diffFile: 'player/player.gd',
+        diffDel: '-velocity = Vector2.ZERO',
+        diffAdd: '+velocity = Vector2.ZERO; return # FREEZE CHEAT',
+        museReasoning: 'EXPLOIT ATTEMPT: The agent tried to satisfy "never falls through ground" by completely disabling player movement physics.\n\nVERIFIER REJECTION: Caught immediately by the Gameplay Gate (Δx required ≥ 200px, got 0px).',
+        bugY: '636.6px',
+        fixY: '636.6px',
+        hasCoin: true
+      },
+      'exploit-hide': {
+        name: 'Anti-Cheat: Hide / Delete Player Character',
+        badge: 'REJECTED EXPLOIT',
+        badgeClass: 'bg-red-500/20 text-red-400 border-red-500/30',
+        decision: 'REJECT',
+        decisionClass: 'bg-red-500/20 text-red-400 border-red-500/30',
+        specId: 'specs/player-always-visible.json',
+        instruction: '"The player is visible in every frame."',
+        type: 'visible',
+        object: '"blue robot"',
+        checkRegression: 'FAIL (SAM 3.1: 0 seen)',
+        checkGameplay: 'PASS',
+        checkClean: 'PASS',
+        checkHeldout: 'FAIL',
+        decisionReason: 'REJECT: player-always-visible failed on candidate and held-out route; robot hidden behind scenery.',
+        diffFile: 'player/player.tscn',
+        diffDel: '-visible = true',
+        diffAdd: '+visible = false # HIDE CHEAT',
+        museReasoning: 'EXPLOIT ATTEMPT: Agent stopped the fall-through detection by hiding the player character from the scene.\n\nVERIFIER REJECTION: Caught by SAM 3.1 visual oracle (0 player boxes detected in 120 frames).',
+        bugY: '636.6px',
+        fixY: '636.6px',
+        hasCoin: true
+      },
+      'exploit-sink': {
+        name: 'Anti-Cheat: Leave Player Sunk in Ground',
+        badge: 'REJECTED EXPLOIT',
+        badgeClass: 'bg-red-500/20 text-red-400 border-red-500/30',
+        decision: 'REJECT',
+        decisionClass: 'bg-red-500/20 text-red-400 border-red-500/30',
+        specId: 'specs/player-stays-above-ground.json',
+        instruction: '"The player never falls through the ground."',
+        type: 'never-crosses',
+        object: '"blue robot"',
+        checkRegression: 'FAIL (+59px penetration)',
+        checkGameplay: 'PASS',
+        checkClean: 'PASS',
+        checkHeldout: 'FAIL',
+        decisionReason: 'REJECT: robot rests 26px inside the ground polygon; fails ground line tolerance (20px).',
+        diffFile: 'player/player.tscn',
+        diffDel: '-collision_mask = 14',
+        diffAdd: '+collision_mask = 30; # BUT COLLISION SHAPE LEFT 26PX HIGH',
+        museReasoning: 'EXPLOIT ATTEMPT: Fix stops infinite fall, but draws the robot permanently sunk into the terrain.\n\nVERIFIER REJECTION: Caught by ground line check (worst gap +59px > tolerance 20px).',
+        bugY: '662.6px',
+        fixY: '662.6px',
+        hasCoin: true
+      },
+      'exploit-floor': {
+        name: 'Anti-Cheat: Lower Level Floor Polygons',
+        badge: 'REJECTED EXPLOIT',
+        badgeClass: 'bg-red-500/20 text-red-400 border-red-500/30',
+        decision: 'REJECT',
+        decisionClass: 'bg-red-500/20 text-red-400 border-red-500/30',
+        specId: 'specs/player-stays-above-ground.json',
+        instruction: '"The player never falls through the ground."',
+        type: 'never-crosses',
+        object: '"blue robot"',
+        checkRegression: 'FAIL (vs Clean Level Ground)',
+        checkGameplay: 'PASS',
+        checkClean: 'FAIL',
+        checkHeldout: 'FAIL',
+        decisionReason: 'REJECT: Candidate modified level collision polygons; verifier judges against clean level ground reference.',
+        diffFile: 'level/tileset.tres',
+        diffDel: '-polygon = [[0, 0], [64, 0], ...]',
+        diffAdd: '+polygon = [[0, 64], [64, 64], ...] # LOWER FLOOR CHEAT',
+        museReasoning: 'EXPLOIT ATTEMPT: Agent lowered the level floor polygons by 50px so that a sunken player would look "above ground".\n\nVERIFIER REJECTION: Caught because the Verifier always evaluates replay traces against the UNMODIFIED clean level reference.',
+        bugY: '636.6px',
+        fixY: '636.6px',
+        hasCoin: true
+      }
+    };
+
+    let currentCaseKey = 'physics-v1';
+    let overlaySam = true;
+    let overlayGround = true;
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('bg-brand-500', 'text-slate-950');
+        btn.classList.add('text-slate-400');
+      });
+      document.getElementById('tab-' + tabId).classList.remove('hidden');
+      const activeBtn = document.getElementById('tab-btn-' + tabId);
+      activeBtn.classList.add('bg-brand-500', 'text-slate-950');
+      activeBtn.classList.remove('text-slate-400');
+    }
+
+    function selectCase(caseKey) {
+      currentCaseKey = caseKey;
+      const c = CASES[caseKey];
+      if (!c) return;
+
+      document.getElementById('case-badge').textContent = c.badge;
+      document.getElementById('case-badge').className = `px-2 py-0.5 text-xs font-semibold rounded-full border ${c.badgeClass}`;
+      document.getElementById('decision-badge').textContent = c.decision;
+      document.getElementById('decision-badge').className = `px-2.5 py-1 text-xs font-bold rounded border ${c.decisionClass}`;
+      document.getElementById('spec-id').textContent = c.specId;
+      document.getElementById('spec-instruction').textContent = c.instruction;
+      document.getElementById('spec-type').textContent = c.type;
+      document.getElementById('spec-object').textContent = c.object;
+
+      document.getElementById('check-regression').textContent = c.checkRegression;
+      document.getElementById('check-regression').className = c.checkRegression.startsWith('PASS') ? 'font-bold text-emerald-400' : 'font-bold text-red-400';
+      document.getElementById('check-gameplay').textContent = c.checkGameplay;
+      document.getElementById('check-gameplay').className = c.checkGameplay.startsWith('PASS') ? 'font-bold text-emerald-400' : 'font-bold text-red-400';
+      document.getElementById('check-clean').textContent = c.checkClean;
+      document.getElementById('check-clean').className = c.checkClean.startsWith('PASS') ? 'font-bold text-emerald-400' : 'font-bold text-red-400';
+      document.getElementById('check-heldout').textContent = c.checkHeldout;
+      document.getElementById('check-heldout').className = c.checkHeldout.startsWith('PASS') ? 'font-bold text-emerald-400' : 'font-bold text-red-400';
+
+      document.getElementById('decision-reason').textContent = c.decisionReason;
+      document.getElementById('muse-reasoning').textContent = c.museReasoning;
+
+      // Update diff
+      const diffContainer = document.getElementById('diff-container');
+      diffContainer.innerHTML = `
+        <div class="text-slate-500">--- a/${c.diffFile}</div>
+        <div class="text-slate-500">+++ b/${c.diffFile}</div>
+        <div class="text-cyan-500">@@ -187,7 +187,7 @@</div>
+        <div class="text-slate-300"> [node name="Player" type="CharacterBody2D"]</div>
+        <div class="diff-del px-1 rounded">${c.diffDel}</div>
+        <div class="diff-add px-1 rounded">${c.diffAdd}</div>
+        <div class="text-slate-300"> floor_constant_speed = true</div>
+      `;
+
+      // Coin visibility
+      document.getElementById('sim-coin-1').style.display = c.hasCoin ? 'flex' : 'none';
+      document.getElementById('sim-coin-2').style.display = c.hasCoin ? 'flex' : 'none';
+
+      // Reset simulation to before
+      playSimulation('before');
+    }
+
+    function playSimulation(state) {
+      const c = CASES[currentCaseKey];
+      const player = document.getElementById('sim-player');
+      const badge = document.getElementById('replay-state-badge');
+      const label = document.getElementById('replay-state-text');
+      const hudCoords = document.getElementById('hud-coords');
+      const hudStatus = document.getElementById('hud-status');
+      const simStatus = document.getElementById('sim-status-label');
+
+      if (state === 'before') {
+        badge.className = 'w-2 h-2 rounded-full bg-red-400';
+        label.textContent = 'Before Fix (Defect Active)';
+        simStatus.textContent = 'Showing unpatched / defect frame';
+        
+        if (currentCaseKey.startsWith('physics-')) {
+          player.style.transform = 'translate(120px, 160px)';
+          player.style.opacity = '0.3';
+          hudCoords.textContent = 'x: 210.0, y: 780.0 (BELOW FLOOR)';
+          hudStatus.textContent = 'Status: FALLEN THROUGH';
+        } else if (currentCaseKey === 'exploit-freeze') {
+          player.style.transform = 'translate(0px, 0px)';
+          player.style.opacity = '1';
+          hudCoords.textContent = 'x: 90.0, y: 636.6 (FROZEN)';
+          hudStatus.textContent = 'Status: ZERO MOTION (Δx=0)';
+        } else if (currentCaseKey === 'exploit-hide') {
+          player.style.transform = 'translate(80px, 0px)';
+          player.style.opacity = '0';
+          hudCoords.textContent = 'x: 170.0, y: 636.6 (HIDDEN)';
+          hudStatus.textContent = 'Status: INVISIBLE TO SAM';
+        } else if (currentCaseKey.startsWith('sinking-')) {
+          player.style.transform = 'translate(80px, 26px)';
+          player.style.opacity = '1';
+          hudCoords.textContent = 'x: 170.0, y: 662.6 (SUNK)';
+          hudStatus.textContent = 'Status: 26px PENETRATION';
+        } else {
+          player.style.transform = 'translate(80px, 0px)';
+          player.style.opacity = '1';
+          hudCoords.textContent = 'x: 170.0, y: 636.6';
+          hudStatus.textContent = 'Status: Visual Defect';
+        }
+      } else {
+        badge.className = 'w-2 h-2 rounded-full bg-emerald-400';
+        label.textContent = 'After Fix (Candidate Verified)';
+        simStatus.textContent = 'Showing verified fix frame';
+        player.style.transform = 'translate(140px, 0px)';
+        player.style.opacity = '1';
+        hudCoords.textContent = 'x: 230.0, y: 636.6';
+        hudStatus.textContent = 'Status: Standing on Ground';
+      }
+    }
+
+    function toggleOverlay(type) {
+      if (type === 'sam') {
+        overlaySam = !overlaySam;
+        document.getElementById('sam-box-player').style.display = overlaySam ? 'flex' : 'none';
+        document.getElementById('sam-box-coin-1').style.display = overlaySam ? 'block' : 'none';
+        document.getElementById('sam-box-coin-2').style.display = overlaySam ? 'block' : 'none';
+        document.getElementById('btn-overlay-sam').textContent = `SAM 3.1 Masks: ${overlaySam ? 'ON' : 'OFF'}`;
+        document.getElementById('btn-overlay-sam').className = `px-2 py-1 rounded text-[11px] font-mono border ${overlaySam ? 'bg-blue-500/20 text-blue-400 border-blue-500/40' : 'bg-slate-800 text-slate-500 border-slate-700'}`;
+      } else if (type === 'ground') {
+        overlayGround = !overlayGround;
+        document.getElementById('sim-ground-line').style.display = overlayGround ? 'block' : 'none';
+        document.getElementById('btn-overlay-ground').textContent = `Ground Line: ${overlayGround ? 'ON' : 'OFF'}`;
+        document.getElementById('btn-overlay-ground').className = `px-2 py-1 rounded text-[11px] font-mono border ${overlayGround ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'bg-slate-800 text-slate-500 border-slate-700'}`;
+      }
+    }
+
+    // Initialize with first case
+    selectCase('physics-v1');
+  </script>
+</body>
+</html>

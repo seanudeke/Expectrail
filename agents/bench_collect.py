@@ -33,6 +33,10 @@ FORMAT = "nightshift.detection-bench/v0"
 MATRIX_FORMAT = "nightshift.fix-matrix-bench/v0"
 OUT_DIR = REPO / "bench" / "detection"
 MATRIX_DIR = REPO / "bench" / "fix-matrix"
+JUDGE_DIR = REPO / "bench" / "judge"
+JUDGE_TITLE = re.compile(r"^Judge (?P<case>(?:good|bad)/\S+)$")
+JUDGE_MSG = re.compile(r"^label (?P<label>good|bad); SAM on (?P<sam>\S+); SAM off (?P<nosam>\S+); "
+                       r"Muse screenshots (?P<muse>\S+); (?P<seconds>[\d.]+) s; live=(?P<live>True|False)$")
 MATRIX_TITLE = re.compile(r"^Fix matrix (?P<case>\S+/\S+) (?P<condition>screenshots|nightshift)$")
 MATRIX_MSG = re.compile(r"^detected (?P<detected>[a-z-]+); outcome (?P<outcome>[a-z-]+); attempts (?P<n>\d+) "
                         r"\((?P<tries>[^)]*)\); (?P<seconds>[\d.]+) s; live=(?P<live>True|False)$")
@@ -164,6 +168,105 @@ def collect_matrix(run_ids: list[int], which: str, fetch=gh_json) -> dict:
             "rule": "first non-error result per case and condition, in run order"}
 
 
+JUDGES = {"nightshiftSam": "Nightshift, SAM on", "nightshiftNoSam": "Nightshift, SAM off",
+          "museScreenshots": "Muse from screenshots"}
+REASON_LABELS = {"SAM on": "nightshiftSam", "SAM off": "nightshiftNoSam", "Muse screenshots": "museScreenshots"}
+
+
+def parse_judge_reasons(message: str) -> dict:
+    """'SAM on: a | b ;; Muse screenshots: c' -> {"nightshiftSam": ["a", "b"], "museScreenshots": ["c"]}."""
+    out = {}
+    for part in message.split(" ;; "):
+        label, sep, text = part.partition(": ")
+        if sep and label.strip() in REASON_LABELS:
+            out[REASON_LABELS[label.strip()]] = [x.strip() for x in text.split(" | ") if x.strip()]
+    return out
+
+
+def collect_judge_run(run_id: int, fetch=gh_json) -> dict:
+    """One judge-benchmark run -> per-case decisions (and reasons, when the run published them)."""
+    run, notes = run_annotations(run_id, fetch, prefix="judge-run")
+    rows, reasons = [], {}
+    decided = lambda v: v if v in ("accept", "reject", "needs-review") else None
+    for note in notes:
+        title = note.get("title") or ""
+        message = " ".join((note.get("message") or "").split())
+        if title.startswith("Judge reasons "):
+            reasons[title[len("Judge reasons "):]] = parse_judge_reasons(message)
+            continue
+        m = JUDGE_TITLE.match(title)
+        if not m:
+            continue
+        msg = JUDGE_MSG.match(message)
+        if not msg:
+            raise ValueError(f"unrecognised judge annotation: {note.get('message')!r}")
+        rows.append({"case": m["case"], "label": msg["label"], "seconds": float(msg["seconds"]),
+                     "live": msg["live"] == "True",
+                     "decisions": {"nightshiftSam": decided(msg["sam"]), "nightshiftNoSam": decided(msg["nosam"]),
+                                   "museScreenshots": decided(msg["muse"])}})
+    if not rows:
+        raise SystemExit(f"run {run_id}: no judge results among its annotations")
+    if not all(r["live"] for r in rows):
+        raise SystemExit(f"run {run_id}: offline judge results are plumbing checks, not benchmark numbers")
+    for r in rows:
+        if r["case"] in reasons:
+            r["reasons"] = reasons[r["case"]]
+    rows.sort(key=lambda r: (r["label"] != "bad", r["case"]))
+    good = [r for r in rows if r["label"] == "good"]
+    bad = [r for r in rows if r["label"] == "bad"]
+    judges = {j: {"goodAccepted": sum(r["decisions"][j] == "accept" for r in good), "good": len(good),
+                  "badAccepted": sum(r["decisions"][j] == "accept" for r in bad), "bad": len(bad),
+                  "undecided": sum(r["decisions"][j] is None for r in rows)} for j in JUDGES}
+    return {"run": run_id, "runUrl": run.get("html_url"), "commit": run.get("head_sha"),
+            "date": run.get("created_at"), "judges": judges, "rows": rows}
+
+
+def collect_judge(run_ids, fetch=gh_json) -> dict:
+    """Judge-benchmark runs -> each run's counts, and per judge the cases whose decision changed between runs."""
+    runs = [collect_judge_run(r, fetch) for r in ([run_ids] if isinstance(run_ids, int) else run_ids)]
+    cases = sorted({r["case"] for run in runs for r in run["rows"]},
+                   key=lambda c: (not c.startswith("bad/"), c))
+    changed = {j: [c for c in cases
+                   if len({r["decisions"][j] for run in runs for r in run["rows"] if r["case"] == c}) > 1]
+               for j in JUDGES}
+    return {"format": "nightshift.judge-bench/v1", "runs": runs, "changedBetweenRuns": changed}
+
+
+def judge_markdown(doc: dict) -> str:
+    runs = doc["runs"]
+    lines = ["# Judge benchmark", "",
+             "Written by `python3 -m agents.bench_collect --judge` from the runs' own annotations; do not edit by hand.",
+             "Runs: " + ", ".join(f"[{r['run']}]({r['runUrl']}) ({r['date'][:10]}, commit {r['commit'][:7]})"
+                                  for r in runs) + ".", "",
+             "| Judge | Run | Good fixes accepted | Bad fixes accepted | Undecided |", "| --- | --- | --- | --- | --- |"]
+    for j, name in JUDGES.items():
+        for r in runs:
+            s = r["judges"][j]
+            lines.append(f"| {name} | {r['run']} | {s['goodAccepted']} of {s['good']} | "
+                         f"{s['badAccepted']} of {s['bad']} | {s['undecided']} |")
+    if len(runs) > 1:
+        lines += ["", "Cases whose decision changed between runs: "
+                  + "; ".join(f"{name}: {', '.join(doc['changedBetweenRuns'][j]) or 'none'}"
+                              for j, name in JUDGES.items()) + "."]
+    lines += ["", "Each cell lists the decision in each run, in the order above.", "",
+              "| Case | Right answer | " + " | ".join(JUDGES.values()) + " |", "| --- | --- | --- | --- | --- |"]
+    cases = sorted({r["case"] for run in runs for r in run["rows"]}, key=lambda c: (not c.startswith("bad/"), c))
+    by = {(run["run"], r["case"]): r for run in runs for r in run["rows"]}
+    for c in cases:
+        label = next(by[(run["run"], c)]["label"] for run in runs if (run["run"], c) in by)
+        cells = [", ".join(str((by.get((run["run"], c)) or {}).get("decisions", {}).get(j) or "none") for run in runs)
+                 for j in JUDGES]
+        lines.append(f"| {c} | {'accept' if label == 'good' else 'reject'} | " + " | ".join(cells) + " |")
+    reasons = [(run["run"], r) for run in runs for r in run["rows"] if r.get("reasons")]
+    if reasons:
+        lines += ["", "## Reasons", "",
+                  ("Failed checks for Nightshift (routes left out); Muse's own words before its decision."), ""]
+        for run_id, r in reasons:
+            lines.append(f"- **{r['case']}** (run {run_id}): " + "; ".join(
+                f"{JUDGES[j]}: {' / '.join(v)}" for j, v in r["reasons"].items() if j in JUDGES and v))
+    return "\n".join(lines) + "\n"
+
+
 def matrix_markdown(doc: dict) -> str:
     runs = ", ".join(f"[{r['run']}]({r['runUrl']}) ({r['commit'][:7]})" for r in doc["runs"])
     lines = ["# Fix matrix", "",
@@ -190,9 +293,9 @@ def markdown(docs: list[dict]) -> str:
     for d in docs:
         on, off, fa = d["caughtWithSamOn"], d["caughtWithSamOff"], d["falseAlarm"]
         lines += [f"## {d['set']} (run [{d['run']}]({d['runUrl']}), {d['date'][:10]}, commit {d['commit'][:7]})", "",
-                  f"Caught with SAM: **{on['yes']} of {on['of']}**. Without SAM: **{off['yes']} of {off['of']}**. "
-                  f"False alarms on the clean game ({fa['cleanRoutes']} routes): {_alarm(fa['withSamOn'])} with SAM, "
-                  f"{_alarm(fa['withSamOff'])} without.", "",
+                  (f"Caught with SAM: **{on['yes']} of {on['of']}**. Without SAM: **{off['yes']} of {off['of']}**. "
+                   f"False alarms on the clean game ({fa['cleanRoutes']} routes): {_alarm(fa['withSamOn'])} with SAM, "
+                   f"{_alarm(fa['withSamOff'])} without."), "",
                   "| Variant | Caught, SAM on | Caught, SAM off | Failing checks (routes) |",
                   "| --- | --- | --- | --- |"]
         for v in d["variants"]:
@@ -215,10 +318,19 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     p.add_argument("--run", type=int, required=True, action="append",
                    help="the dev-bench or heldout-bench run id (with --matrix: one or more fix-matrix runs)")
-    p.add_argument("--set", choices=("dev", "held-out"), required=True, dest="which")
+    p.add_argument("--set", choices=("dev", "held-out"), default="dev", dest="which")
     p.add_argument("--matrix", action="store_true", help="fix-matrix runs instead of a detection run")
+    p.add_argument("--judge", action="store_true", help="a judge-benchmark run instead of a detection run")
     p.add_argument("--out", type=Path)
     args = p.parse_args(argv)
+    if args.judge:
+        out = args.out or JUDGE_DIR
+        doc = collect_judge(args.run)
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "judge.json").write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+        (out / "README.md").write_text(judge_markdown(doc), encoding="utf-8")
+        print(f"wrote {out / 'judge.json'} and {out / 'README.md'}")
+        return 0
     if args.matrix:
         out = args.out or MATRIX_DIR
         doc = collect_matrix(args.run, args.which)
