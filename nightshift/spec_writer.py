@@ -28,7 +28,7 @@ DEFAULT_MODEL = os.environ.get("NIGHTSHIFT_SPEC_MODEL", "muse-spark-1.3")
 # Open weights: Muse Spark Open on a partner's OpenAI-compatible endpoint (draft --endpoint open).
 # Baseten by default, with the model id the hackathon guide gives for it.
 OPEN_API_BASE = os.environ.get("NIGHTSHIFT_OPEN_API_BASE", "https://inference.baseten.co/v1")
-OPEN_MODEL = os.environ.get("NIGHTSHIFT_OPEN_MODEL", "meta-models/muse-spark-open-1026")
+OPEN_MODEL = os.environ.get("NIGHTSHIFT_OPEN_MODEL", "meta-models/muse-spark-open")
 OPEN_KEY_ENVS = ("NIGHTSHIFT_OPEN_API_KEY", "BASETEN_API_KEY")
 # Words that describe position. SAM 3.1 finds things; where they are is the evaluator's job.
 POSITIONAL = re.compile(r"\b(left|right|above|below|under|over|top|bottom|behind|in front|near|beside|"

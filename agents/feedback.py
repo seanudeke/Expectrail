@@ -52,7 +52,7 @@ CLASSIFY_MODEL = os.environ.get("NIGHTSHIFT_FEEDBACK_MODEL", spec_writer.DEFAULT
 # Open weights: Muse Spark Open through a partner's OpenAI-compatible endpoint (Baseten by default;
 # the hackathon names this model id). Used with --sorter open; transcription stays on Meta's API.
 OPEN_API_BASE = os.environ.get("NIGHTSHIFT_OPEN_API_BASE", "https://inference.baseten.co/v1")
-OPEN_MODEL = os.environ.get("NIGHTSHIFT_OPEN_MODEL", "meta-models/muse-spark-open-1026")
+OPEN_MODEL = os.environ.get("NIGHTSHIFT_OPEN_MODEL", "meta-models/muse-spark-open")
 OPEN_KEY_ENVS = ("NIGHTSHIFT_OPEN_API_KEY", "BASETEN_API_KEY")
 MAX_AUDIO_BYTES = 32 * 1024 * 1024
 MAX_AUDIO_MS = 10 * 60 * 1000

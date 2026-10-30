@@ -53,17 +53,17 @@ class ShapeTest(unittest.TestCase):
 class RunTest(unittest.TestCase):
     def run_with(self, endpoint, meta: bool = False) -> dict:
         with tempfile.TemporaryDirectory() as tmp, \
-                mock.patch.object(spark_open, "list_models", return_value=["meta-models/muse-spark-open-1026", "x"]), \
+                mock.patch.object(spark_open, "list_models", return_value=["meta-models/muse-spark-open", "x"]), \
                 mock.patch.object(spark_open.spec_writer, "open_transport", return_value=endpoint), \
                 mock.patch.object(spark_open.feedback, "openai_transport", return_value=endpoint), \
-                mock.patch.dict("os.environ", {"NIGHTSHIFT_OPEN_MODEL": "meta-models/muse-spark-open-1026"}):
+                mock.patch.dict("os.environ", {"NIGHTSHIFT_OPEN_MODEL": "meta-models/muse-spark-open"}):
             doc = spark_open.run(None, Path(tmp), meta=meta, key="test")
             self.assertTrue((Path(tmp) / "results.json").exists())
         return doc
 
     def test_drafts_sorting_and_calls_are_recorded(self):
         doc = self.run_with(fake_endpoint())
-        self.assertEqual(doc["models"], {"listed": 2, "muse": ["meta-models/muse-spark-open-1026"],
+        self.assertEqual(doc["models"], {"listed": 2, "muse": ["meta-models/muse-spark-open"],
                                          "modelListed": True})
         self.assertEqual([r["valid"] for r in doc["specs"]], [True, True, True])
         self.assertTrue(all(all(r["compare"].values()) for r in doc["specs"]))

@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       model:
-        description: Model id on the endpoint (default the SPARK_OPEN_MODEL repo variable, else meta-models/muse-spark-open-1026)
+        description: Model id on the endpoint (default the SPARK_OPEN_MODEL repo variable, else meta-models/muse-spark-open, the id Baseten lists)
         required: false
         default: ''
       compare:
@@ -28,7 +28,7 @@ jobs:
     # secrets is not allowed in a job-level if; check it in the first step instead.
     env:
       BASETEN_API_KEY_SET: ${{ secrets.BASETEN_API_KEY != '' }}
-      MODEL_ID: ${{ inputs.model || vars.SPARK_OPEN_MODEL || 'meta-models/muse-spark-open-1026' }}
+      MODEL_ID: ${{ inputs.model || vars.SPARK_OPEN_MODEL || 'meta-models/muse-spark-open' }}
     steps:
       - name: Require the BASETEN_API_KEY secret and a plain model id
         run: |
