@@ -50,10 +50,10 @@ on:
         description: demo only, how many independent live runs of the overnight loop (1 to 20); always live
         default: '10'
       review:
-        description: "demo only: on reviews each run's fix against its failing base (agents.review_change), reported beside the decision, which it never changes"
+        description: "demo only: review each run's fix against its failing base (agents.review_change), reported beside the decision, which it never changes; on by default since 3 of 3 live runs passed with it (run 41105875960)"
         type: choice
-        options: ['off', 'on']
-        default: 'off'
+        options: ['on', 'off']
+        default: 'on'
       sam_cache:
         description: "shared: judge the clean game once (smoke and private routes) and share SAM's answers, encrypted, with this run's jobs; public: the smoke route only; off: every job judges every frame itself"
         type: choice
