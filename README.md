@@ -18,7 +18,8 @@ Every fix is also reviewed against its failing base: the same checks run on the 
 and on the game with the fix, so the report shows the requested behavior failing before and passing
 after, not only passing. In three live overnight runs each Muse Code fix was a demonstrated repair,
 and the fix that sinks the robot was rejected with its requested checks still failing
-([docs/review.md](docs/review.md)).
+([docs/review.md](docs/review.md)). One of those live reviews, with its real frames before and after
+the fix: [docs/review/live-demo-run-1](docs/review/live-demo-run-1/).
 
 We built and measured it on a game first, because a game shows the gap plainly: a change can pass
 every test and still be visibly broken. Then, to see whether the engineering carries past one game,

@@ -1,0 +1,149 @@
+{
+  "format": "expectrail.change-evidence/v0",
+  "runId": "review-20261030T183338Z-32465",
+  "mode": "live",
+  "request": {
+    "id": "rr-triage-player-stays-above-ground",
+    "sha256": "f2e2b73e844199de6dce919b79a3c65da4bc06425f9dcb7581e6a08324100463"
+  },
+  "candidate": {
+    "patchSha256": "ceda817fc43cb1249404a110b2517adc10e22b5d39ec7c29f0ed322862e38c09",
+    "origin": "muse"
+  },
+  "verification": {
+    "fileSha256": "16a564f0d6723ea206d5ecff39a367cc9e223ab94b0192dc8c2518ea14e6b133",
+    "decision": "accept"
+  },
+  "arms": {
+    "base": {
+      "provenance": "harness",
+      "patchesSha256": [
+        "6514ad59f1311fc109b56c06366871c0aeab316179d80a9921a43a41e7667740"
+      ],
+      "replaySha256": "2848666894024d07b33f485d2c8d2d1a511239cb6dceeab53facd8fb9991efa6",
+      "observationBackend": "SAM 3.1",
+      "frame": {
+        "path": "assets/base.png",
+        "frame": 5,
+        "sha256": "bbf3c8d8ab79c831a9118a5cc06bddea6a61fc432a929e6f07e87586d137500a"
+      }
+    },
+    "candidate": {
+      "provenance": "harness",
+      "patchesSha256": [
+        "6514ad59f1311fc109b56c06366871c0aeab316179d80a9921a43a41e7667740",
+        "ceda817fc43cb1249404a110b2517adc10e22b5d39ec7c29f0ed322862e38c09"
+      ],
+      "replaySha256": "6f5fe823318b86db9023bab16fc2e0bde3b49fed9c96d034525a7a4476e421fa",
+      "observationBackend": "SAM 3.1",
+      "frame": {
+        "path": "assets/candidate.png",
+        "frame": 5,
+        "sha256": "1895431edc6bc406bddde59f14dd39018092da4a51cd666857399297f80eb2cf"
+      }
+    }
+  },
+  "rows": [
+    {
+      "spec": "player-stays-above-ground",
+      "kind": "regression",
+      "route": "smoke",
+      "primary": true,
+      "required": true,
+      "before": "fail",
+      "after": "pass",
+      "comparison": "REPAIRED",
+      "evidence": {
+        "before": "3c3db6d230343b965eb335d32dbc2f2b7648a8e61c822b7fff857d94c2bdb8fc",
+        "after": "f15b4291cb530be88c2f108ab341ffb38b9e4b98ef1dd98c3408057b9eb59f93"
+      }
+    },
+    {
+      "spec": "player-motion-on-smoke",
+      "kind": "gameplay",
+      "route": "smoke",
+      "primary": false,
+      "required": true,
+      "before": "fail",
+      "after": "pass",
+      "comparison": "REPAIRED",
+      "evidence": {
+        "before": "afe2ed6aff414ba430da7b0479fdbdba62689fc5405bc9b98519f8321a7abf0f",
+        "after": "9a1ea87e0219b321a09aa2c2de44f1c26f7180b0bf2df5a8f5beadb7d4c05a64"
+      }
+    },
+    {
+      "spec": "coins-visible",
+      "kind": "regression",
+      "route": "smoke",
+      "primary": false,
+      "required": true,
+      "before": "pass",
+      "after": "pass",
+      "comparison": "PRESERVED",
+      "evidence": {
+        "before": "25777ecc3f17bf4bfe4ccae8d6a2094755cf994f8f3c546b9172bfd2e4c8604a",
+        "after": "920d62d313e85a776ed6251bf74d8cbe9f7d94b39929392fd25c6d8dc6b69705"
+      }
+    },
+    {
+      "spec": "player-always-visible",
+      "kind": "regression",
+      "route": "smoke",
+      "primary": false,
+      "required": true,
+      "before": "fail",
+      "after": "pass",
+      "comparison": "REPAIRED",
+      "evidence": {
+        "before": "93a5ff79e1860d73b3926a9b4fe906dc2aa466142f8e23eb9a8ba701d041c5a0",
+        "after": "0489c6e86d9463104547274202156686c3ed6b1880a41ce60df559a4f9097ac2"
+      }
+    }
+  ],
+  "private": {
+    "source": "harness",
+    "checks": 1,
+    "passed": 1,
+    "failed": 0,
+    "needsReview": 0
+  },
+  "stages": [
+    {
+      "stage": "preflight",
+      "status": "completed",
+      "startedAt": "2026-10-30T18:33:38Z",
+      "endedAt": "2026-10-30T18:33:38Z"
+    },
+    {
+      "stage": "base",
+      "status": "completed",
+      "startedAt": "2026-10-30T18:33:38Z",
+      "endedAt": "2026-10-30T18:34:37Z"
+    },
+    {
+      "stage": "candidate",
+      "status": "completed",
+      "startedAt": "2026-10-30T18:34:37Z",
+      "reused": true,
+      "endedAt": "2026-10-30T18:34:37Z"
+    },
+    {
+      "stage": "compare",
+      "status": "completed",
+      "startedAt": "2026-10-30T18:34:37Z",
+      "endedAt": "2026-10-30T18:34:37Z"
+    },
+    {
+      "stage": "export",
+      "status": "completed",
+      "startedAt": "2026-10-30T18:34:37Z",
+      "endedAt": "2026-10-30T18:34:37Z"
+    }
+  ],
+  "diagnostics": [],
+  "evidenceLabel": "FRESH LIVE",
+  "status": "REPAIR DEMONSTRATED",
+  "reasons": [],
+  "rerun": "python3 -m agents.review_change --request <request.json> --candidate <candidate.patch> --mode live --out <new folder>"
+}
