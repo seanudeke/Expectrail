@@ -16,8 +16,9 @@ the edges are. The last section says which parts would carry over beyond games.
 - One kind of agent change: repairs of a reported bug.
 - Four visual assertion types: visible, inside-region, never-crosses and reaches.
 - A fixer that writes small patches in its own worktree, inside bubblewrap in the live runs (only
-  the worktree mounted; network on, because it calls Meta's API), a separate verifier, and a person
-  who approves the release candidate.
+  the worktree mounted; network on, because it calls Meta's API) and deny-by-absence without it (a
+  worktree that does not contain the verifier's files), a separate verifier, and a person who
+  approves the release candidate.
 
 ## Finding bugs
 
