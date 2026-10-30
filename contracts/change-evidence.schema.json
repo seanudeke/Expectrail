@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/seanudeke/expectrail/contracts/change-evidence.schema.json",
+  "title": "Change evidence: the same checks on the failing base and on the candidate, and what the pair shows",
+  "description": "Written by agents.review_change. A companion to verification/v0, which it references and never changes. No status authorizes a merge or a release. A missing artifact has no digest (null), never an all-zero one.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "runId", "mode", "request", "candidate", "verification", "arms", "rows", "private",
+               "stages", "diagnostics", "evidenceLabel", "status", "reasons", "rerun"],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$", "not": {"const": "0000000000000000000000000000000000000000000000000000000000000000"}},
+    "result": {"enum": ["pass", "fail", "needs-review", null]},
+    "arm": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "patchesSha256", "replaySha256", "observationBackend", "frame"],
+          "properties": {
+            "provenance": {"enum": ["harness", "fixture", "fixture-fallback", "unavailable", null]},
+            "patchesSha256": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/sha256"}},
+            "replaySha256": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/sha256"}]},
+            "observationBackend": {"type": "string", "minLength": 1},
+            "frame": {
+              "oneOf": [
+                {"type": "null"},
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["path", "frame", "sha256"],
+                  "properties": {
+                    "path": {"type": "string", "pattern": "^assets/[a-z0-9-]+\\.png$"},
+                    "frame": {"type": "integer", "minimum": 0},
+                    "sha256": {"$ref": "#/$defs/sha256"}
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  },
+  "properties": {
+    "format": {"enum": ["expectrail.change-evidence/v0", "nightshift.change-evidence/v0"]},
+    "runId": {"type": "string", "pattern": "^review-[0-9]{8}T[0-9]{6}Z-[0-9]{5}$"},
+    "mode": {"enum": ["live", "sample"]},
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "sha256"],
+      "properties": {"id": {"type": ["string", "null"]}, "sha256": {"$ref": "#/$defs/sha256"}}
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["patchSha256", "origin"],
+      "properties": {
+        "patchSha256": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/sha256"}]},
+        "origin": {"enum": ["muse", "fixture", "developer"],
+                   "description": "Where the patch came from. A fixture verified live is still a fixture, never a model's repair."}
+      }
+    },
+    "verification": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["fileSha256", "decision"],
+          "properties": {
+            "fileSha256": {"$ref": "#/$defs/sha256"},
+            "decision": {"enum": ["accept", "reject", "needs-review"]}
+          }
+        }
+      ]
+    },
+    "arms": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["base", "candidate"],
+      "properties": {"base": {"$ref": "#/$defs/arm"}, "candidate": {"$ref": "#/$defs/arm"}}
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["spec", "kind", "route", "primary", "required", "before", "after", "comparison", "evidence"],
+        "properties": {
+          "spec": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+          "kind": {"enum": ["regression", "gameplay"]},
+          "route": {"type": "string", "minLength": 1},
+          "primary": {"type": "boolean"},
+          "required": {"type": "boolean"},
+          "before": {"$ref": "#/$defs/result"},
+          "after": {"$ref": "#/$defs/result"},
+          "comparison": {"enum": ["REPAIRED", "PRESERVED", "REGRESSION", "UNRESOLVED", "INCONCLUSIVE"]},
+          "evidence": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["before", "after"],
+            "properties": {
+              "before": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/sha256"}]},
+              "after": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/sha256"}]}
+            }
+          },
+          "mismatch": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+        }
+      }
+    },
+    "private": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "checks", "passed", "failed", "needsReview"],
+      "description": "The private routes as counts only: no route names, paths or frames.",
+      "properties": {
+        "source": {"type": ["string", "null"]},
+        "checks": {"type": "integer", "minimum": 0},
+        "passed": {"type": "integer", "minimum": 0},
+        "failed": {"type": "integer", "minimum": 0},
+        "needsReview": {"type": "integer", "minimum": 0}
+      }
+    },
+    "stages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["stage", "status"],
+        "properties": {
+          "stage": {"enum": ["preflight", "base", "candidate", "compare", "export"]},
+          "status": {"enum": ["pending", "running", "completed", "failed", "skipped"]},
+          "startedAt": {"type": "string"},
+          "endedAt": {"type": "string"},
+          "reason": {"type": "string"},
+          "reused": {"type": "boolean"}
+        }
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "stage", "detail", "fix"],
+        "properties": {
+          "code": {"enum": ["INPUT_INVALID", "PATCH_SCOPE_BLOCKED", "TOOL_MISSING", "PRIVATE_SUITE_UNAVAILABLE",
+                            "PROVIDER_FAILED", "OBSERVATION_INVALID", "EXECUTION_TIMEOUT", "BASE_MISMATCH",
+                            "EVIDENCE_MISMATCH", "BEHAVIOR_FAILED"]},
+          "stage": {"type": "string"},
+          "detail": {"type": "string"},
+          "fix": {"type": "string"},
+          "exceptionType": {"type": "string"},
+          "providerStatus": {"type": "integer"}
+        }
+      }
+    },
+    "evidenceLabel": {"enum": ["SAMPLE", "RECORDED LIVE", "FRESH LIVE", "MIXED OR INCOMPLETE"]},
+    "status": {"enum": ["REPAIR DEMONSTRATED", "NO REPAIR DEMONSTRATED", "REJECTED", "INCONCLUSIVE"]},
+    "reasons": {"type": "array", "items": {"type": "string"}},
+    "rerun": {"type": "string"}
+  }
+}

@@ -20,6 +20,7 @@ KINDS = (
     "release-candidate",
     "overnight-summary",
     "feedback-intake",
+    "change-evidence",
 )
 
 

@@ -191,7 +191,7 @@ def review(
              "<candidate.patch>", "--mode", mode, "--out", "<new folder>"]
     if mode == "sample":
         rerun += ["--base-observations", str(base_observations), "--observations", str(observations)]
-    record["rerun"] = " ".join(rerun)
+    record["rerun"] = sanitize(" ".join(rerun), out)  # no machine paths leave the run
 
     target = out / "change-evidence.json"
     existed = target.exists()
