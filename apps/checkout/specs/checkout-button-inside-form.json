@@ -1,0 +1,26 @@
+{
+  "format": "expectrail.test-spec/v0",
+  "id": "checkout-button-inside-form",
+  "instruction": "The Continue to checkout button stays inside the checkout form.",
+  "objects": {
+    "button": {
+      "prompt": "blue button"
+    },
+    "form": {
+      "prompt": "checkout form"
+    }
+  },
+  "assertion": {
+    "type": "inside-region",
+    "object": "button",
+    "region": {
+      "relativeTo": "form",
+      "marginPx": 0
+    },
+    "tolerancePx": 4
+  },
+  "window": {
+    "fromFrame": 0,
+    "toFrame": 13
+  }
+}

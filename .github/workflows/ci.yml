@@ -127,6 +127,39 @@ jobs:
 
   # Every seeded bug must change what the player sees; an invisible variant is a benchmark case
   # nothing could ever catch.
+  # Second domain (apps/checkout): Chromium replays the checkout sessions byte for byte, and the layout
+  # and behaviour checks (no model, no secret) see the bugs they are meant to and nothing on the clean page.
+  web-capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt -r requirements-web.txt
+      - name: Install Chromium for Playwright
+        run: python -m playwright install --with-deps chromium
+      - name: Web adapter tests, including two byte-identical replays
+        run: python -m unittest tests.test_web -v
+      - name: Every variant on both routes, layout and behaviour only
+        run: |
+          for v in $(python -m agents.web_bench --list --set dev | python -c "import json,sys; print(' '.join(json.load(sys.stdin)))"); do
+            python -m agents.web_bench --variant "$v" --out runs/web-bench | grep '^::notice title=\(Dev\|Held-out\) bench'
+          done
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          docs = {d["variant"]: d for d in (json.loads(p.read_text()) for p in Path("runs/web-bench").glob("*/bench.json"))}
+          assert docs["clean"]["caughtWithSamOff"] == "no", docs["clean"]
+          seen = sorted(k for k, d in docs.items() if k != "clean" and d["caughtWithSamOff"] == "yes")
+          # Without vision, the bugs that move the layout or stop the order; the four only the screen shows wait for SAM.
+          assert seen == ["dev/fall-through/v1", "dev/fall-through/v2", "dev/layering/v1", "dev/sinking/v1"], seen
+          print("layout and behaviour see", seen)
+          PY
+
   seeded-bugs:
     runs-on: ubuntu-latest
     timeout-minutes: 45

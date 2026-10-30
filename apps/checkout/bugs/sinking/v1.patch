@@ -1,0 +1,13 @@
+# The checkout button is nudged down with relative positioning and sits half outside the form.
+diff -ruN a/checkout/checkout.css b/checkout/checkout.css
+--- a/checkout/checkout.css
++++ b/checkout/checkout.css
+@@ -1,3 +1,8 @@
+ .container {
+   max-width: 960px;
+ }
++
++.needs-validation .btn-lg {
++  position: relative;
++  top: 36px;
++}

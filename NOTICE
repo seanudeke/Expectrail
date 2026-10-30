@@ -7,3 +7,10 @@ https://github.com/godotengine/godot-demo-projects at tag 4.7-6ad6167
 (game/LICENSE-godot-demo-projects.md). Copyright (c) 2014-present Godot Engine contributors.
 Copyright (c) 2007-2014 Juan Linietsky, Ariel Manzur. Changes we make to it for the event
 (seeded bugs and their fixes) are listed in docs/new-work.md.
+
+This product includes Bootstrap's Checkout example and the Bootstrap files it loads (apps/checkout/site),
+taken unmodified from bootstrap-5.3.8-examples.zip, released with Bootstrap v5.3.8 at
+https://github.com/twbs/bootstrap/releases/tag/v5.3.8 (sha256 of the zip:
+b851efe3b1589a4487c44a6b55671bbba54abb7740673be9c47a1e271ead1782). Bootstrap's code is licensed under
+the MIT license and its documentation under CC BY 3.0. Copyright (c) 2011-2025 The Bootstrap Authors.
+The bugs we seed into it are patches in apps/checkout/bugs, listed in docs/new-work.md.
