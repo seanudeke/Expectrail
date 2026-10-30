@@ -204,6 +204,29 @@ class FixLoopTest(unittest.TestCase):
                                fixture=self.reverse_fix("dev/layering/v1", tmp))
         self.assertEqual(row["outcome"], "needs-review")
 
+    def test_the_preflight_says_whether_each_private_session_passes_on_the_clean_page(self):
+        from agents.web_fix import check_held_out
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            routes = tmp / "held" / "web" / "routes"
+            routes.mkdir(parents=True)
+            good = json.loads((REPO / "harness" / "web" / "routes" / "checkout-desktop.json").read_text())
+            (routes / "a.json").write_text(json.dumps(good))
+            # Too short for the page: the button starts below the fold, and filling the card scrolls the logo away.
+            short = dict(good, viewport=[1600, 900])
+            (routes / "b.json").write_text(json.dumps(short))
+            (routes / "c.json").write_text("{}")
+            with mock.patch.dict("os.environ", {"EXPECTRAIL_HELDOUT_DIR": str(tmp / "held")}):
+                try:
+                    lines = check_held_out(tmp / "out")
+                except Exception as exc:  # noqa: BLE001 - no browser on this machine
+                    self.skipTest(f"chromium unavailable: {exc}")
+        self.assertEqual(lines, ["held-out r0: the clean page passes",
+                                 "held-out r1: the clean page fails layout "
+                                 "(checkout-button-inside-form, checkout-button-visible, logo-visible)",
+                                 "held-out r2: not a valid web route"])
+
     def test_a_bug_its_checks_cannot_see_is_not_detected_without_sam(self):
         from agents.web_fix import run_case
 

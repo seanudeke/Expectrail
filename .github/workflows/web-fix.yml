@@ -28,7 +28,9 @@ permissions:
 jobs:
   plan:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
+    env:
+      HELDOUT_TOKEN_SET: ${{ secrets.HELDOUT_TOKEN != '' }}
     outputs:
       cases: ${{ steps.plan.outputs.cases }}
       conditions: ${{ steps.plan.outputs.conditions }}
@@ -59,6 +61,31 @@ jobs:
               fh.write(f"cases={json.dumps(cases)}\nconditions={json.dumps(conds)}\n")
           print(cases, conds)
           PY
+      - name: Install Chromium for Playwright
+        run: python -m playwright install --with-deps chromium
+      - name: Fetch the private held-out set (verifier side only)
+        if: env.HELDOUT_TOKEN_SET == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: seanudeke/Nightshift-heldout
+          token: ${{ secrets.HELDOUT_TOKEN }}
+          path: heldout-set
+          persist-credentials: false
+      # A private session the clean page fails would reject every candidate: stop before Muse spends.
+      - name: Check the private sessions on the clean page (no model)
+        env:
+          EXPECTRAIL_HELDOUT_DIR: ${{ env.HELDOUT_TOKEN_SET == 'true' && format('{0}/heldout-set', github.workspace) || '' }}
+        run: |
+          set +e
+          python -m agents.web_fix --check-held-out --out runs/preflight > preflight.log 2>&1
+          code=$?
+          set -e
+          # Session numbers and public check names only.
+          grep -E '^held-out( r[0-9]+)?: ' preflight.log | while read -r line; do echo "::notice title=Held-out preflight::$line"; done
+          if [[ "$code" -ne 0 ]]; then
+            echo "::error title=Held-out preflight::a private session fails on the clean page; fix it before a live run"
+            exit 1
+          fi
 
   # Named run so agents.bench_collect --matrix reads its annotations as it reads the game's.
   run:
