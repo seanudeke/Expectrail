@@ -14,6 +14,13 @@
 # bench=judge runs the judge benchmark instead (agents/judge_bench.py): 15 candidate fixes with a
 # known answer (8 that undo a seeded bug, 7 that only look fixed or change nothing), each judged
 # by the verifier with SAM on, with SAM off, and by Muse Code from screenshots (live only).
+#
+# sam_cache: a correct fix renders the clean game's frames byte for byte, and every job judges the
+# clean game as its control, so each job used to pay SAM for frames another job had already judged.
+# The sam-warm job judges the clean game once (agents/sam_warm.py) and, only when every check passes,
+# shares SAM's answers with this run's jobs, encrypted with HELDOUT_TOKEN since they include the
+# private routes (shared), or the smoke route's only (public). A job restores them outside the
+# fixer's sandbox and still judges every frame whose bytes differ; off is the old behaviour.
 name: Fix matrix
 
 on:
@@ -42,11 +49,88 @@ on:
       runs:
         description: demo only, how many independent live runs of the overnight loop (1 to 20); always live
         default: '10'
+      sam_cache:
+        description: "shared: judge the clean game once (smoke and private routes) and share SAM's answers, encrypted, with this run's jobs; public: the smoke route only; off: every job judges every frame itself"
+        type: choice
+        options: [shared, public, off]
+        default: shared
 
 permissions:
   contents: read
 
 jobs:
+  # Judge the clean game once for the whole run (see sam_cache above). Runs beside the plan job; the
+  # jobs that verify wait for it, and run without it if it fails or is skipped.
+  sam-warm:
+    if: ${{ inputs.sam_cache != 'off' && (inputs.live || inputs.bench == 'demo') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      KEYS_OK: ${{ secrets.MODEL_API_KEY != '' && secrets.HELDOUT_TOKEN != '' }}
+    steps:
+      - name: Require the SAM key and the held-out token
+        run: |
+          [ "$KEYS_OK" = "true" ] || { echo "::warning title=SAM shared cache::not built: MODEL_API_KEY or HELDOUT_TOKEN is missing, so every job judges its frames itself"; exit 1; }
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Install xvfb, software OpenGL
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri libglx-mesa0 patch
+      - name: Download Godot 4.7.2 and check its SHA-512
+        run: ./harness/get_godot.sh
+      - name: Fetch the private held-out set (its routes only are rendered here)
+        if: inputs.sam_cache == 'shared'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: seanudeke/Nightshift-heldout
+          token: ${{ secrets.HELDOUT_TOKEN }}
+          path: heldout-set
+          persist-credentials: false
+      - name: Judge the clean game once for this run
+        id: warm
+        env:
+          MODEL_API_KEY: ${{ secrets.MODEL_API_KEY }}
+          NIGHTSHIFT_OBS_PROVIDER: sam
+          NIGHTSHIFT_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
+          SCOPE: ${{ inputs.sam_cache == 'shared' && 'all' || 'public' }}
+        run: |
+          # The log names private routes: it is never printed or kept. Only the summary line is.
+          set +e
+          python -m agents.sam_warm --scope "$SCOPE" --cache runs/sam-warm/cache --out runs/sam-warm > sam-warm.log 2>&1
+          code=$?
+          set -e
+          if [ "$code" -ne 0 ]; then
+            echo "::warning title=SAM shared cache::not built (exit $code), so every job judges its frames itself"
+            exit 1
+          fi
+          python - <<'PY'
+          import json, os
+          from agents.sam_warm import annotation
+          doc = json.load(open("runs/sam-warm/sam-warm.json"))
+          print(f"{annotation(doc)}; runner {os.environ.get('ImageOS')} {os.environ.get('ImageVersion')}")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"shared={'true' if doc['shared'] else 'false'}\n")
+          PY
+      - name: Encrypt the answers for this run's other jobs
+        if: steps.warm.outputs.shared == 'true'
+        env:
+          SAM_CACHE_KEY: ${{ secrets.HELDOUT_TOKEN }}
+        run: |
+          set -o pipefail
+          tar -C runs/sam-warm/cache -czf - . \
+            | openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:SAM_CACHE_KEY -out sam-cache.enc
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: steps.warm.outputs.shared == 'true'
+        with:
+          name: sam-cache
+          path: sam-cache.enc
+          retention-days: 1
+          if-no-files-found: error
+
   plan:
     if: ${{ inputs.bench == 'fix' }}
     runs-on: ubuntu-latest
@@ -93,8 +177,9 @@ jobs:
           PY
 
   run:
-    needs: plan
-    runs-on: ubuntu-latest
+    needs: [plan, sam-warm]
+    if: ${{ !cancelled() && needs.plan.result == 'success' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 120
     strategy:
       fail-fast: false
@@ -146,6 +231,35 @@ jobs:
           token: ${{ secrets.HELDOUT_TOKEN }}
           path: heldout-set
           persist-credentials: false
+      - name: Fetch this run's shared SAM answers
+        if: inputs.sam_cache != 'off' && (inputs.live || inputs.bench == 'demo')
+        continue-on-error: true
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: sam-cache
+          path: sam-cache
+      - name: Restore them into the verifier's SAM cache (outside the fixer's sandbox)
+        if: inputs.sam_cache != 'off' && (inputs.live || inputs.bench == 'demo')
+        continue-on-error: true
+        env:
+          SAM_CACHE_KEY: ${{ secrets.HELDOUT_TOKEN }}
+        run: |
+          set -o pipefail
+          if [ ! -f sam-cache/sam-cache.enc ]; then
+            echo "::notice title=SAM shared cache::none for this run, so this job judges every frame itself"
+            exit 0
+          fi
+          dest="$(python -c 'from agents.sam_observations import default_cache_dir; print(default_cache_dir() or "")')"
+          [ -n "$dest" ] || { echo "::notice title=SAM shared cache::the SAM cache is off in this job"; exit 0; }
+          mkdir -p "$dest"
+          if openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:SAM_CACHE_KEY -in sam-cache/sam-cache.enc \
+              | tar -C "$dest" -xzf - --no-same-owner; then
+            echo "::notice title=SAM shared cache::$(python -m agents.sam_warm --count "$dest") answers restored; runner $ImageOS $ImageVersion"
+          else
+            rm -rf "$dest"
+            echo "::warning title=SAM shared cache::could not be restored, so this job judges every frame itself"
+          fi
+          rm -rf sam-cache
       - name: Install Muse Code CLI
         if: env.LIVE == 'true'
         run: |
@@ -282,8 +396,9 @@ jobs:
           PY
 
   judge-run:
-    needs: judge-plan
-    runs-on: ubuntu-latest
+    needs: [judge-plan, sam-warm]
+    if: ${{ !cancelled() && needs.judge-plan.result == 'success' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     strategy:
       fail-fast: false
@@ -331,6 +446,35 @@ jobs:
           token: ${{ secrets.HELDOUT_TOKEN }}
           path: heldout-set
           persist-credentials: false
+      - name: Fetch this run's shared SAM answers
+        if: inputs.sam_cache != 'off' && (inputs.live || inputs.bench == 'demo')
+        continue-on-error: true
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: sam-cache
+          path: sam-cache
+      - name: Restore them into the verifier's SAM cache (outside the fixer's sandbox)
+        if: inputs.sam_cache != 'off' && (inputs.live || inputs.bench == 'demo')
+        continue-on-error: true
+        env:
+          SAM_CACHE_KEY: ${{ secrets.HELDOUT_TOKEN }}
+        run: |
+          set -o pipefail
+          if [ ! -f sam-cache/sam-cache.enc ]; then
+            echo "::notice title=SAM shared cache::none for this run, so this job judges every frame itself"
+            exit 0
+          fi
+          dest="$(python -c 'from agents.sam_observations import default_cache_dir; print(default_cache_dir() or "")')"
+          [ -n "$dest" ] || { echo "::notice title=SAM shared cache::the SAM cache is off in this job"; exit 0; }
+          mkdir -p "$dest"
+          if openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:SAM_CACHE_KEY -in sam-cache/sam-cache.enc \
+              | tar -C "$dest" -xzf - --no-same-owner; then
+            echo "::notice title=SAM shared cache::$(python -m agents.sam_warm --count "$dest") answers restored; runner $ImageOS $ImageVersion"
+          else
+            rm -rf "$dest"
+            echo "::warning title=SAM shared cache::could not be restored, so this job judges every frame itself"
+          fi
+          rm -rf sam-cache
       - name: Install Muse Code CLI
         if: env.LIVE == 'true'
         run: |
@@ -430,8 +574,9 @@ jobs:
           echo "runs=$(python3 -c "import json,sys; print(json.dumps(list(range(1, int(sys.argv[1]) + 1))))" "$RUNS")" >> "$GITHUB_OUTPUT"
 
   demo-run:
-    needs: demo-plan
-    runs-on: ubuntu-latest
+    needs: [demo-plan, sam-warm]
+    if: ${{ !cancelled() && needs.demo-plan.result == 'success' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 75
     strategy:
       fail-fast: false
@@ -475,6 +620,35 @@ jobs:
           token: ${{ secrets.HELDOUT_TOKEN }}
           path: heldout-set
           persist-credentials: false
+      - name: Fetch this run's shared SAM answers
+        if: inputs.sam_cache != 'off' && (inputs.live || inputs.bench == 'demo')
+        continue-on-error: true
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: sam-cache
+          path: sam-cache
+      - name: Restore them into the verifier's SAM cache (outside the fixer's sandbox)
+        if: inputs.sam_cache != 'off' && (inputs.live || inputs.bench == 'demo')
+        continue-on-error: true
+        env:
+          SAM_CACHE_KEY: ${{ secrets.HELDOUT_TOKEN }}
+        run: |
+          set -o pipefail
+          if [ ! -f sam-cache/sam-cache.enc ]; then
+            echo "::notice title=SAM shared cache::none for this run, so this job judges every frame itself"
+            exit 0
+          fi
+          dest="$(python -c 'from agents.sam_observations import default_cache_dir; print(default_cache_dir() or "")')"
+          [ -n "$dest" ] || { echo "::notice title=SAM shared cache::the SAM cache is off in this job"; exit 0; }
+          mkdir -p "$dest"
+          if openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:SAM_CACHE_KEY -in sam-cache/sam-cache.enc \
+              | tar -C "$dest" -xzf - --no-same-owner; then
+            echo "::notice title=SAM shared cache::$(python -m agents.sam_warm --count "$dest") answers restored; runner $ImageOS $ImageVersion"
+          else
+            rm -rf "$dest"
+            echo "::warning title=SAM shared cache::could not be restored, so this job judges every frame itself"
+          fi
+          rm -rf sam-cache
       - name: Install Muse Code CLI
         run: |
           curl -fsSL https://dev.meta.ai/install.sh | bash

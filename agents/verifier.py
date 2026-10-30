@@ -11,7 +11,9 @@ Clean uses a distinct observation source (never the candidate obs object).
 Held-out: when NIGHTSHIFT_HELDOUT_DIR points at a checkout of the private held-out set,
 the verifier replays seed + candidate on each private route the fixer never sees and
 requires both the visual spec and the gameplay check to pass there. Without it (offline,
-fixture runs, forks) it falls back to the interim fixture, labeled interim-fixture.
+fixture runs, forks) it falls back to the interim fixture, labeled interim-fixture. A candidate
+that has already failed is not replayed on the private routes, since they could not change a
+reject (NIGHTSHIFT_HELDOUT_AFTER_FAIL=run replays them anyway).
 
 Optional `suite` on the verification document records candidate/clean/held-out
 provenance (harness vs fixture vs fixture-fallback vs unavailable).
@@ -64,6 +66,16 @@ _NOT_RUN = arm(source="not-run", detail="suite checks skipped (early reject)")
 # Checkout of the private held-out repository (manifest.json, routes/, bugs/). Set only on
 # the verifier's machine; never on the fixer's.
 HELDOUT_ENV = "NIGHTSHIFT_HELDOUT_DIR"
+
+# Any failed check rejects (nightshift.evaluator.decide), so once a candidate has failed, the private
+# routes cannot change the decision: they are not replayed, which saves four renders and SAM's look
+# at every frame of them. Set to "run" to replay them anyway, for a run that reports how a candidate
+# fares on every private route (the SAM and Glimmer probes' verify mode).
+HELDOUT_AFTER_FAIL_ENV = "NIGHTSHIFT_HELDOUT_AFTER_FAIL"
+
+
+def held_out_after_fail() -> bool:
+    return os.environ.get(HELDOUT_AFTER_FAIL_ENV, "").strip().lower() in ("run", "1", "true", "yes")
 
 # Specs SAM 3.1 can judge in this game, approved after the live probes (docs/sam.md). With
 # NIGHTSHIFT_OBS_PROVIDER=sam they are judged on SAM's view of every replay the verifier makes
@@ -640,6 +652,7 @@ def verify(
         and held_out_observations_path is None
     )
     held_path = held_out_observations_path or HELD_OUT_OBS
+    already_failed = [c for c in checks if c["result"] == "fail"]
     if use_private and held_problem is not None:
         checks.append({
             "spec": held_spec["id"],
@@ -649,6 +662,12 @@ def verify(
             "verdictSha256": "0" * 64,
         })
         held_arm = arm(source="unavailable", detail=f"held-out set unusable: {held_problem}")
+    elif use_private and already_failed and not held_out_after_fail():
+        # The decision is already reject: no held-out check is added, and the arm says why.
+        first = already_failed[0]
+        held_arm = arm(source="not-run", detail=(
+            f"private routes not replayed: the candidate already failed the {first['kind']} check "
+            f"{first['spec']}, so they could not change the decision ({HELDOUT_AFTER_FAIL_ENV}=run replays them)"))
     elif use_private:
         held_verdict, held_arm = _run_held_out_routes(held_root, held_manifest, held_spec, patches, out,
                                                       use_sam=use_sam, reference=reference)

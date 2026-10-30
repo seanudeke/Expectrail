@@ -283,6 +283,22 @@ does that yet.
 - **Cache.** Results are kept by frame SHA-256, prompt, model and request settings, so a frame
   that was already judged is never sent again. Replays are bit-identical, so an unchanged route
   costs nothing the second time.
+- **Shared within a CI run.** A correct fix renders the clean game's frames byte for byte (the real
+  fall-through fix: 120 of 120 smoke-route frames), and every verification judges the clean game as
+  its control, yet each CI job starts with an empty cache: a correct fix's verification cost 1,164
+  images, exactly what the clean game costs on the same five routes (run 41003749744). In the fix
+  matrix workflow (`sam_cache`, default `shared`), one job judges the clean game on the smoke and
+  private routes (`agents/sam_warm.py`) and, only if every check passes with the clean replay's
+  score floor, shares SAM's answers with the run's other jobs, encrypted with `HELDOUT_TOKEN` since
+  they cover the private routes, for one day. A weak or missing answer is never shared: SAM's
+  answers vary slightly between requests, and a shared one would repeat in every job. A job
+  restores the answers outside the fixer's sandbox, still sends every frame whose bytes differ,
+  and judges everything itself if the restore fails. `public` shares the smoke route only; `off` is
+  the old behaviour.
+- **No private routes after a fail.** Any failed check rejects, so a candidate that has already
+  failed is not replayed on the private routes: four renders and SAM's look at every frame of them
+  could not change the decision. The probes' verify mode sets `NIGHTSHIFT_HELDOUT_AFTER_FAIL=run`,
+  so it still reports every private route for a fake fix.
 - **Counting assertions are not sampled.** `visible` with a `minFraction` below 1 looks at every
   frame. `reaches` samples, and unless a sample already reaches the goal it looks at every frame
   before deciding.
@@ -298,7 +314,9 @@ confirmed. Every verdict says how many frames it judged, and the observations do
 `NIGHTSHIFT_SAM_CACHE`), so it is never in the fixer's worktree, and under bubblewrap the fixer gets
 an empty home directory and cannot reach it. With no OS sandbox nothing stops a process on the same
 machine from writing there, so set `NIGHTSHIFT_SAM_CACHE=off` for the recorded demo and any run
-whose verdict has to be beyond question.
+whose verdict has to be beyond question. The run's shared answers come from that run's own warm
+job, are written to the cache before Muse Code starts, and are SAM's answers for the clean game's
+frames; `sam_cache: off` turns sharing off for a run.
 
 ## When SAM fails
 

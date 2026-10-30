@@ -2213,10 +2213,14 @@ def _held_out_dir(tmp: Path) -> Path:
 class PrivateHeldOutTest(unittest.TestCase):
     """Held-out routes from NIGHTSHIFT_HELDOUT_DIR replace the interim fixture."""
 
-    def _verify(self, tmp: Path, *, held_out_frozen: bool, env: dict) -> dict:
+    def _verify(self, tmp: Path, *, held_out_frozen: bool, env: dict, frozen_everywhere: bool = False,
+                renders: list | None = None) -> dict:
         def fake_harness(_route, harness_out, patches=None, **_kw):
             harness_out.mkdir(parents=True, exist_ok=True)
-            frozen = held_out_frozen and "held-out" in harness_out.parts
+            if renders is not None:
+                renders.append(harness_out)
+            # frozen_everywhere: the candidate fails on the public route too (the clean replay never has patches)
+            frozen = (held_out_frozen and "held-out" in harness_out.parts) or (frozen_everywhere and bool(patches))
             (harness_out / "trace.json").write_text(json.dumps(_walk_trace(frozen=frozen)))
             (harness_out / "replay.json").write_text("{}\n")
 
@@ -2251,6 +2255,34 @@ class PrivateHeldOutTest(unittest.TestCase):
             self.assertEqual(doc["decision"], "reject")
             verdict = json.loads((tmp / "verify" / "verdict-held-out.json").read_text())
             self.assertEqual(verdict["routes"][0]["gameplay"], "fail")
+
+    def test_a_candidate_that_already_failed_is_not_replayed_on_the_private_routes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            renders: list = []
+            doc = self._verify(tmp, held_out_frozen=False, frozen_everywhere=True, renders=renders,
+                               env={"NIGHTSHIFT_HELDOUT_DIR": str(_held_out_dir(tmp))})
+            self.assertEqual(doc["decision"], "reject")
+            self.assertTrue(any(c["kind"] == "gameplay" and c["result"] == "fail" for c in doc["checks"]))
+            self.assertFalse(any(c["kind"] == "held-out" for c in doc["checks"]))
+            self.assertEqual(doc["suite"]["heldOut"]["source"], "not-run")
+            self.assertIn("could not change the decision", doc["suite"]["heldOut"]["detail"])
+            self.assertFalse(any("held-out" in p.parts for p in renders))  # no private route was rendered
+            self.assertFalse((tmp / "verify" / "verdict-held-out.json").exists())
+            validate(doc, "verification")
+
+    def test_the_private_routes_still_run_after_a_fail_when_asked(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            renders: list = []
+            doc = self._verify(tmp, held_out_frozen=False, frozen_everywhere=True, renders=renders,
+                               env={"NIGHTSHIFT_HELDOUT_DIR": str(_held_out_dir(tmp)),
+                                    "NIGHTSHIFT_HELDOUT_AFTER_FAIL": "run"})
+            held = next(c for c in doc["checks"] if c["kind"] == "held-out")
+            self.assertEqual(held["result"], "fail")
+            self.assertEqual(doc["suite"]["heldOut"]["source"], "harness")
+            self.assertEqual(doc["decision"], "reject")  # the same decision either way
+            self.assertTrue(any("held-out" in p.parts for p in renders))
 
     def test_unusable_held_out_set_fails_closed(self):
         with tempfile.TemporaryDirectory() as tmp:

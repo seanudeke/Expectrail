@@ -118,7 +118,10 @@ jobs:
           persist-credentials: false
       - name: Point the verifier at the held-out set
         if: env.HELDOUT_TOKEN_SET == 'true' && inputs.mode == 'verify'
-        run: echo "NIGHTSHIFT_HELDOUT_DIR=$GITHUB_WORKSPACE/heldout-set" >> "$GITHUB_ENV"
+        # A probe reports every private route, even for a candidate that already failed.
+        run: |
+          echo "NIGHTSHIFT_HELDOUT_DIR=$GITHUB_WORKSPACE/heldout-set" >> "$GITHUB_ENV"
+          echo "NIGHTSHIFT_HELDOUT_AFTER_FAIL=run" >> "$GITHUB_ENV"
       - name: Check the Glimmer deployment, and restore its scaling after a suspension
         # A suspended account (out of credits) comes back with the deployment at 0-0 replicas and a
         # 60-minute scale-to-zero window. This puts back min 0 / max 1 / 15 minutes through Fireworks'
