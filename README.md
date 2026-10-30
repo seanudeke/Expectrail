@@ -75,9 +75,13 @@ What these numbers do and do not say:
 **Open weights.** Muse Glimmer 30B, on a Fireworks deployment, can judge every vision check with no
 SAM key, checked against the game engine (`glimmer-engine`): 8 of 8 held-out and 8 of 8
 development bugs caught, no false alarm, and on the held-out routes the real fix is accepted and the
-hide-the-robot fix rejected. Muse Spark Open is wired to draft test specs and sort playtester
-feedback on Baseten (`--endpoint open`, `--sorter open`), but has not been run live yet. SAM 3.1
-stays the default: Glimmer's boxes are too loose for the ground check, so without SAM the ground is
+hide-the-robot fix rejected. Muse Spark Open, on Baseten, drafts test specs and sorts playtester
+feedback (`--endpoint open`, `--sorter open`). Live on October 30, its drafts of our three checks
+were valid, and its ground draft gave the approved spec's verdict on all 9 seeded runs, after we
+fixed a prompt that let it read the boundary the wrong way round. It sorted the scripted playtest
+the way the rules do and flagged both requests to switch a check off. Its drafts still need a
+person to tighten the object prompts, as Muse Spark's do ([`bench/spark-open/`](bench/spark-open)).
+SAM 3.1 stays the default: Glimmer's boxes are too loose for the ground check, so without SAM the ground is
 judged on the engine's position log, and a Glimmer bench takes about eight times the job minutes.
 [docs/open-weights.md](docs/open-weights.md)
 

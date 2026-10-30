@@ -42,7 +42,7 @@ class SparkOpenSpecWriterTest(unittest.TestCase):
         self.assertEqual(validate(spec), "test-spec")
         self.assertEqual(seen["url"], "https://inference.baseten.co/v1/chat/completions")
         self.assertEqual(seen["auth"], "Bearer bk")
-        self.assertEqual(seen["body"]["model"], "meta-models/muse-spark-open-1026")
+        self.assertEqual(seen["body"]["model"], "meta-models/muse-spark-open")
         self.assertNotIn("approval", spec)
 
     def test_schema_refusal_falls_back_to_json_mode(self):
@@ -72,7 +72,7 @@ class SparkOpenSpecWriterTest(unittest.TestCase):
                 rc = spec_writer.main(["draft", "The player never falls through the ground.", "--id", "p",
                                        "--endpoint", "open", "--out", str(out)])
             self.assertEqual(rc, 0)
-            self.assertEqual(drafted.call_args.args[2], "meta-models/muse-spark-open-1026")
+            self.assertEqual(drafted.call_args.args[2], "meta-models/muse-spark-open")
             self.assertEqual(validate(json.loads(out.read_text())), "test-spec")
 
 

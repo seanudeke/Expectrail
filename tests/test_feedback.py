@@ -426,7 +426,7 @@ class OpenWeightsTest(unittest.TestCase):
             fb.openai_transport("https://inference.baseten.co/v1/", "bk")({"model": fb.OPEN_MODEL, "messages": []})
         self.assertEqual(seen["url"], "https://inference.baseten.co/v1/chat/completions")
         self.assertEqual(seen["auth"], "Bearer bk")
-        self.assertEqual(seen["body"]["model"], "meta-models/muse-spark-open-1026")
+        self.assertEqual(seen["body"]["model"], "meta-models/muse-spark-open")
 
         def refused(req, timeout):
             raise urllib.error.HTTPError(req.full_url, 400, "bad", {}, io.BytesIO(b"json_schema unsupported"))

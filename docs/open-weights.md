@@ -9,9 +9,10 @@ as SAM does (8 of 8 on the public development set, also as SAM does), with no SA
 these runs (Oct 29 to 30). Four of the eight held-out variants are caught only by Glimmer's checks.
 The eighth, sinking/v4, is caught by the engine's ground check, not by Glimmer, and that check was
 built after the first benches missed it (see the bench below). With `both`, Glimmer is a second pair
-of eyes next to SAM 3.1. Muse Spark Open is wired in (below) but has not been run live yet, so
-nothing on this page measures it. Muse Code (the fixer) and Muse Voice Transcribe stay on Meta's
-hosted API.
+of eyes next to SAM 3.1. Muse Spark Open ran live on Baseten on Oct 30 (see "Muse Spark Open, live"
+below): valid drafts of our three checks, the ground draft matching the approved spec on all 9 seeded
+runs after a prompt fix, and the scripted playtest sorted as the rules sort it. Muse Code (the fixer)
+and Muse Voice Transcribe stay on Meta's hosted API.
 
 This page is for the infrastructure partner verifying the open-weights prize, and for us: what runs
 on which model, where, and how to check it.
@@ -19,9 +20,9 @@ on which model, where, and how to check it.
 | Role | Model (license) | Served by | Turn it on | Code |
 | --- | --- | --- | --- | --- |
 | Vision checks: is the robot visible, are the coins drawn, where are the robot's feet against the level's ground line | Muse Glimmer 30B (Apache 2.0, per its model card), together with SAM 3.1 (`both`) or checked against the game engine with no SAM (`glimmer-engine`) | A Fireworks on-demand deployment of `accounts/fireworks/models/muse-glimmer-30b` (Glimmer left Fireworks serverless on Sep 25, 2026); or any OpenAI-compatible server we run | `NIGHTSHIFT_OBS_PROVIDER=sam NIGHTSHIFT_VISION_BACKEND=both` (keys in `FIREWORKS_API_KEY` and `MODEL_API_KEY`) or `=glimmer-engine` (`FIREWORKS_API_KEY` only) | `agents/glimmer_client.py`, `agents/engine_check.py` |
-| Test-spec drafting from plain English | Muse Spark Open (Muse Model License) | Baseten, `meta-models/muse-spark-open-1026` | `python3 -m nightshift.spec_writer draft "..." --endpoint open`, key in `BASETEN_API_KEY` | `nightshift/spec_writer.py` |
+| Test-spec drafting from plain English | Muse Spark Open (Muse Model License) | Baseten, `meta-models/muse-spark-open` (the id the key lists, Oct 30; the hackathon named `meta-models/muse-spark-open-1026`, which Baseten does not list) | `python3 -m nightshift.spec_writer draft "..." --endpoint open`, key in `BASETEN_API_KEY` | `nightshift/spec_writer.py` |
 | Sorting playtester feedback and drafting checks from it | Muse Spark Open | Baseten | `python3 -m agents.feedback ... --sorter open` | `agents/feedback.py` |
-| Measuring both live on public material: the approved checks drafted again, the ground draft judged on the seeded bugs, the scripted playtest sorted | Muse Spark Open, next to Muse Spark on Meta's API | Baseten | Actions, **Spark Open** (`BASETEN_API_KEY`; `META_API_KEY` for the comparison), then `python3 -m agents.spark_open collect --run <id>` | `agents/spark_open.py`, `bench/spark-open/` |
+| Measuring both live on public material: the approved checks drafted again, the ground draft judged on the seeded bugs, the scripted playtest sorted | Muse Spark Open, next to Muse Spark on Meta's API | Baseten | Actions, **Spark Open** (`BASETEN_API_KEY`; `META_API_KEY` for the comparison), then `python3 -m agents.spark_open collect --run <id>` | `agents/spark_open.py`, `bench/spark-open/<run>/` |
 
 ## Serve Glimmer on Fireworks (on-demand)
 
@@ -264,6 +265,31 @@ held-out set, every check fails only where its bug is.
 
 The run took 419 job minutes against 49 for SAM's dev bench, 25 to 64 minutes a job against about 5,
 with three jobs sharing one replica (2 h 45 min end to end).
+
+## Muse Spark Open, live (Oct 30)
+
+Two runs of the **Spark Open** workflow on public material (`bench/spark-open/`, one folder per
+run). In each, `meta-models/muse-spark-open` on inference.baseten.co served all 6 calls with no
+error, and Muse Spark on Meta's API drafted the same checks for comparison.
+
+| Run | Spec prompt | Ground draft gives the approved spec's verdict, 9 seeded runs: Spark Open | Muse Spark |
+| --- | --- | --- | --- |
+| 41026508747 | `side` not defined | 3 of 9 (side "below": fails the clean game) | 9 of 9 |
+| 41027140573 | `side` is where the object stays | **9 of 9** | 9 of 9 |
+
+- The prompt listed the values of a boundary's `side` but not what it means, so Spark Open's reading
+  (the side the robot must not go to) fitted it as well as Muse Spark's. The prompt now defines it,
+  with an example that is not one of our checks. The 9 of 9 is one run after that change, at
+  temperature 0, not a rate.
+- All drafts in both runs were valid specs with the approved assertion type, and none would be
+  approved as drafted. The object prompts are generic ("player", "ground", "coin" against "blue
+  robot", "grass-topped ground", "gold coin"), the tolerance is 8 px against 20, and the window is
+  every frame. A person tightens these, as with Muse Spark.
+- The scripted playtest: all 7 remarks sorted as the fixed rules sort them wherever a rule applies,
+  and both requests to switch a check off flagged by the model itself and sent to a person. The coin
+  report was drafted as a `reaches` assertion, which is not what the remark says; "unsupported" was
+  the right answer.
+- About 4,000 tokens in and 6,000 to 7,000 out a run.
 
 ## What is not measured yet
 

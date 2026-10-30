@@ -28,7 +28,7 @@ DEFAULT_MODEL = os.environ.get("NIGHTSHIFT_SPEC_MODEL", "muse-spark-1.3")
 # Open weights: Muse Spark Open on a partner's OpenAI-compatible endpoint (draft --endpoint open).
 # Baseten by default, with the model id the hackathon guide gives for it.
 OPEN_API_BASE = os.environ.get("NIGHTSHIFT_OPEN_API_BASE", "https://inference.baseten.co/v1")
-OPEN_MODEL = os.environ.get("NIGHTSHIFT_OPEN_MODEL", "meta-models/muse-spark-open-1026")
+OPEN_MODEL = os.environ.get("NIGHTSHIFT_OPEN_MODEL", "meta-models/muse-spark-open")
 OPEN_KEY_ENVS = ("NIGHTSHIFT_OPEN_API_KEY", "BASETEN_API_KEY")
 # Words that describe position. SAM 3.1 finds things; where they are is the evaluator's job.
 POSITIONAL = re.compile(r"\b(left|right|above|below|under|over|top|bottom|behind|in front|near|beside|"
@@ -46,7 +46,9 @@ Rules:
   2. {"type": "inside-region", "object": O, "region": {"relativeTo": R, "marginPx": n} or {"box": [x0,y0,x1,y1]},
      "tolerancePx": n}: O stays inside R's box (or a fixed box).
   3. {"type": "never-crosses", "object": O, "boundary": {"relativeTo": R, "edge": "top|bottom|left|right",
-     "side": "above|below|left-of|right-of", "tolerancePx": n}}: O never goes past that edge of R.
+     "side": "above|below|left-of|right-of", "tolerancePx": n}}: O stays on "side" of that edge of R and
+     never crosses it. "side" is where O stays, not where it must not go: "the ball never rises through
+     the ceiling" is {"relativeTo": "ceiling", "edge": "bottom", "side": "below"}.
   4. {"type": "reaches", "object": O, "goal": G, "distancePx": n}: O touches or comes within n px of G at some point.
 - Every object named in the assertion must appear in "objects".
 - If the check cannot be expressed with these four types, return {"unsupported": "<why>"} instead.
