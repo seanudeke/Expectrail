@@ -7,7 +7,8 @@ Errors (exit 1):
 - key-like strings (Meta, OpenAI-style, GitHub, Slack, AWS keys) and private key blocks;
 - a signing key file, or an image from the private routes;
 - with the private set: a private route's name, a held-out variant's description, or a line a
-  held-out patch adds that the clean game does not contain.
+  held-out patch adds that neither the clean game nor any public patch in this repository contains
+  (a line a public bug or fixture also adds is public already, so finding it leaks nothing).
 Warnings: a machine's home path (/Users/<name>/, /home/<name>/), which says nothing private but has
 no place in an export; --paths error makes them errors.
 
@@ -45,6 +46,20 @@ def _clean_game_lines() -> set[str]:
     return lines
 
 
+PUBLIC_PATCHES = ("bugs", "agents/fixtures", "apps/checkout/bugs", "apps/checkout/candidates")
+
+
+def _public_patch_lines() -> set[str]:
+    """Every line a patch published in this repository adds: the public bugs, fixes and fixtures."""
+    lines: set[str] = set()
+    for folder in PUBLIC_PATCHES:
+        for path in (REPO / folder).rglob("*.patch"):
+            for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+                if line.startswith("+") and not line.startswith("+++"):
+                    lines.add(line[1:].strip())
+    return lines
+
+
 def private_items(root: Path) -> dict[str, list[str]]:
     """What must not leave, read from the private set's manifest: route names, variant
     descriptions, and the lines each held-out patch adds that the clean game does not have."""
@@ -60,7 +75,7 @@ def private_items(root: Path) -> dict[str, list[str]]:
         if len(text) >= MIN_LINE:
             descriptions.add(text)
             descriptions.update(s.strip() for s in re.split(r"(?<=[.;:])\s+", text) if len(s.strip()) >= 24)
-    clean = _clean_game_lines()
+    clean = _clean_game_lines() | _public_patch_lines()
     added: set[str] = set()
     for variant in manifest.get("variants") or []:
         patch = root / str(variant.get("patch") or "")
