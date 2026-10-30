@@ -6,6 +6,7 @@ Every number the README or the video quotes comes from a file here and reruns wi
 | --- | --- | --- |
 | Detection: development variants | `detection/dev.json`, table in `detection/README.md` | `bench/rerun-detection.sh dev` |
 | Detection: held-out variants (ids and counts only) | `detection/held-out.json` | `bench/rerun-detection.sh held-out` |
+| Detection: reproductions of publicly reported Godot bugs, today's checks against the engine-record checks | `reported/reported.json`, table in `reported/README.md` | Actions, **Reported bench** (it also runs on a pull request that touches it), then `python3 -m agents.bench_collect --reported --run <id>` |
 | Detection judged by Muse Glimmer checked against the engine (no SAM) | `detection/<set>-glimmer-engine.json` | `bench/rerun-detection.sh held-out main glimmer-engine` (or `dev`) |
 | Fix matrix: development variants, screenshots vs Expectrail | `fix-matrix/dev.json`, table in `fix-matrix/README.md` | Actions, **Fix matrix** (live), then `python3 -m agents.bench_collect --matrix --run <id> --set dev` |
 | Fix matrix: held-out variants (ids and counts only). The first run, on a fixed commit (branch `heldout/run-1`), is the held-out result; later runs are repeats and are recorded beside it, never in its place | `fix-matrix/held-out/held-out.json`, table in `fix-matrix/held-out/README.md` | Actions, **Fix matrix** (live, set held-out) on a fixed commit, then `python3 -m agents.bench_collect --matrix --run <id> --set held-out --out bench/fix-matrix/held-out` |

@@ -1,5 +1,10 @@
 # Seeded bugs
 
+The bugs in this table were written by the team ("seeded"). [`reported/`](reported/README.md) holds
+the other kind: reproductions of publicly reported Godot bugs, two fixed upstream in this demo and
+two reported in other developers' Godot games, each with its source, its own route and its result
+in [`bench/reported/`](../bench/reported/README.md).
+
 Each bug is a small patch against `game/platformer`, applied by the harness to a copy of the game
 (`python3 -m harness.run --patch bugs/<family>/<variant>.patch ...`). The game directory itself
 always stays clean. Every family gets four variants and matched clean runs; some variants are held
@@ -16,7 +21,7 @@ out from development and from the fixer.
 | sinking | v1 | The player's collision shape in `player/player.tscn` sits 26 px too high, so the robot rests 26 px inside the ground and still walks normally | never-crosses (position log and SAM hybrid) |
 | sinking | v2 | The player's sprite in `player/player.tscn` is drawn 26 px too low; physics is unchanged, so only a visual check can see the robot inside the ground | never-crosses (SAM hybrid only) |
 
-Every variant here must change what the player sees: `python3 -m harness.check_seeded` replays each one and fails if its frames match the clean game (CI job `seeded-bugs`).
+Every variant here must change what the player sees: `python3 -m harness.check_seeded` replays each one and fails if its frames match the clean game (CI job `seeded-bugs`). It replays `bugs/<family>/v*.patch` on the smoke route only, so the reported bugs, most of which need their own route, are named differently and checked by the reported-bug bench instead.
 
 Held-out variants do not live in this repository until the event ends; keep them where the fixer
 cannot read them (see docs/contracts.md).

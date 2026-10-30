@@ -1,0 +1,159 @@
+{
+ "format": "expectrail.route/v0",
+ "name": "tap-shoot",
+ "description": "Step right, stop, then tap shoot fourteen times, once every 12 ticks (0.1 s).",
+ "ticks": 240,
+ "seed": 1,
+ "events": [
+  {
+   "tick": 10,
+   "action": "move_right",
+   "pressed": true
+  },
+  {
+   "tick": 30,
+   "action": "move_right",
+   "pressed": false
+  },
+  {
+   "tick": 40,
+   "action": "shoot",
+   "pressed": true
+  },
+  {
+   "tick": 44,
+   "action": "shoot",
+   "pressed": false
+  },
+  {
+   "tick": 52,
+   "action": "shoot",
+   "pressed": true
+  },
+  {
+   "tick": 56,
+   "action": "shoot",
+   "pressed": false
+  },
+  {
+   "tick": 64,
+   "action": "shoot",
+   "pressed": true
+  },
+  {
+   "tick": 68,
+   "action": "shoot",
+   "pressed": false
+  },
+  {
+   "tick": 76,
+   "action": "shoot",
+   "pressed": true
+  },
+  {
+   "tick": 80,
+   "action": "shoot",
+   "pressed": false
+  },
+  {
+   "tick": 88,
+   "action": "shoot",
+   "pressed": true
+  },
+  {
+   "tick": 92,
+   "action": "shoot",
+   "pressed": false
+  },
+  {
+   "tick": 100,
+   "action": "shoot",
+   "pressed": true
+  },
+  {
+   "tick": 104,
+   "action": "shoot",
+   "pressed": false
+  },
+  {
+   "tick": 112,
+   "action": "shoot",
+   "pressed": true
+  },
+  {
+   "tick": 116,
+   "action": "shoot",
+   "pressed": false
+  },
+  {
+   "tick": 124,
+   "action": "shoot",
+   "pressed": true
+  },
+  {
+   "tick": 128,
+   "action": "shoot",
+   "pressed": false
+  },
+  {
+   "tick": 136,
+   "action": "shoot",
+   "pressed": true
+  },
+  {
+   "tick": 140,
+   "action": "shoot",
+   "pressed": false
+  },
+  {
+   "tick": 148,
+   "action": "shoot",
+   "pressed": true
+  },
+  {
+   "tick": 152,
+   "action": "shoot",
+   "pressed": false
+  },
+  {
+   "tick": 160,
+   "action": "shoot",
+   "pressed": true
+  },
+  {
+   "tick": 164,
+   "action": "shoot",
+   "pressed": false
+  },
+  {
+   "tick": 172,
+   "action": "shoot",
+   "pressed": true
+  },
+  {
+   "tick": 176,
+   "action": "shoot",
+   "pressed": false
+  },
+  {
+   "tick": 184,
+   "action": "shoot",
+   "pressed": true
+  },
+  {
+   "tick": 188,
+   "action": "shoot",
+   "pressed": false
+  },
+  {
+   "tick": 196,
+   "action": "shoot",
+   "pressed": true
+  },
+  {
+   "tick": 200,
+   "action": "shoot",
+   "pressed": false
+  }
+ ]
+}

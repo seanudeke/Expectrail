@@ -34,7 +34,12 @@ How it works:
    slowly, instead of dropping them.
 4. The autoload presses and releases input actions on the exact physics ticks the route names, before
    any game node runs that tick, and a second node records the player's position after every node
-   has moved. It writes `trace.json` and quits when the route ends.
+   has moved. It writes `trace.json` and quits when the route ends. Besides the player's position,
+   each row records which way the robot's sprite faces, where every enemy and every bullet is, the
+   ground line under the player, the coins and the camera; the header comment of
+   `harness/godot/expectrail_harness.gd` lists every field. Recording facing, enemies and bullets
+   (added October 30 for the engine-record checks in `agents/trace_checks.py`) does not change a
+   frame: 0 of 120 smoke frames differ from a run without it.
 5. `replay.json` records the route, the game tree digest, the patch, the engine and device, and the
    sha256 of every frame.
 
@@ -73,4 +78,14 @@ Routes (`expectrail.route/v0`) define exact sequences of physics ticks and input
 | `coins` | `harness/routes/coins.json` | 240 | Traverses ground coin clusters, jumps into the coin arc, and verifies coin pickup and visibility. |
 | `combat` | `harness/routes/combat.json` | 180 | Forward movement with weapon fire (`shoot`) against the enemy patrol, leap avoidance, and stop. |
 | `traversal` | `harness/routes/traversal.json` | 360 | Vertical traversal across elevated and one-way platforms, exercising camera tracking and player layering. |
+
+The reported bugs bring their own routes, in `bugs/reported/routes/` (listed in `bugs/reported/manifest.json`):
+
+| Route | Ticks | Description |
+| :--- | :--- | :--- |
+| `climb-gap` | 600 | Walk under the gap in the platforms above, press jump ten times, wait to land (`air-jump`). |
+| `tap-shoot` | 240 | Step right, stop, tap shoot fourteen times, once every 0.1 s (`gun-cooldown`). |
+| `turn-and-shoot` | 300 | Turn left, shoot walking and standing still, walk right (`body-flip`). |
+| `wait-for-patrol` | 1100 | Stand still for nine seconds while the enemy on the upper ledge patrols (`enemy-ledge`). |
+| `walk-left` | 360 | Walk left to the lower moving platform (the platform draw-order finding). |
 

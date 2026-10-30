@@ -1,0 +1,19 @@
+{
+ "format": "expectrail.route/v0",
+ "name": "walk-left",
+ "description": "Walk left to the lower moving platform, then wait.",
+ "ticks": 360,
+ "seed": 1,
+ "events": [
+  {
+   "tick": 10,
+   "action": "move_left",
+   "pressed": true
+  },
+  {
+   "tick": 150,
+   "action": "move_left",
+   "pressed": false
+  }
+ ]
+}

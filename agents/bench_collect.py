@@ -16,6 +16,9 @@ published.
 result that is not an error, in run order: a later run only fills in what an earlier one could
 not decide, never replaces a result. Every row says which run it came from.
 
+``--reported`` reads a reported-bug bench run (agents/reported_bench.py, job ``reported-bench``;
+annotations "Reported bench <id>") and writes ``bench/reported/reported.json`` and its README.
+
 To rerun a set and record it in one go: ``bench/rerun-detection.sh dev`` (or ``held-out``).
 """
 from __future__ import annotations
@@ -37,6 +40,8 @@ OUT_DIR = REPO / "bench" / "detection"
 MATRIX_DIR = REPO / "bench" / "fix-matrix"
 JUDGE_DIR = REPO / "bench" / "judge"
 DEMO_DIR = REPO / "bench" / "demo-loop"
+REPORTED_DIR = REPO / "bench" / "reported"
+REPORTED_FORMAT = "expectrail.reported-bench-results/v0"
 DEMO_TITLE = re.compile(r"^Demo run (?P<run>\d+)$")
 DEMO_MSG = re.compile(r"^decision (?P<decision>[a-z-]+); attempts (?P<tries>.*?); triage (?P<triage>\S+); "
                       r"fixer (?P<fixer>\S+); trust (?P<trust>\S+); verified on (?P<prov>\S+); signed (?P<signed>\S+); "
@@ -460,6 +465,135 @@ def write(doc: dict, out_dir: Path = OUT_DIR) -> Path:
     return path
 
 
+REPORTED_TITLE = re.compile(r"^Reported bench (?P<id>[a-z0-9-]+)$")
+REPORTED_DETAIL = re.compile(r"^Reported bench (?P<id>[a-z0-9-]+) (?P<result>fail|needs-review)$")
+REPORTED_TIME = re.compile(r"^Reported bench time (?P<id>[a-z0-9-]+)$")
+REPORTED_IMAGES = re.compile(r"^Reported bench SAM images (?P<id>[a-z0-9-]+)$")
+REPORTED_CAUGHT = re.compile(r"(?:caught|false alarm) (?:with (?P<which>today's checks \(SAM on\)|today's checks "
+                             r"\(SAM off\)|engine-record checks)|by its own check (?P<own>[a-z0-9-]+)): "
+                             r"(?P<value>[a-z-]+)")
+REPORTED_KEYS = {"today's checks (SAM on)": "caughtByTodaysChecksSamOn",
+                 "today's checks (SAM off)": "caughtByTodaysChecks",
+                 "engine-record checks": "caughtByTraceChecks"}
+
+
+def parse_reported_message(message: str) -> dict:
+    """One reported bug's summary annotation -> caught flags, its own check, route count and per-check counts."""
+    head = message.partition("; over ")[0]
+    row = parse_message(message)
+    for key in ("caughtWithSamOn", "caughtWithSamOff"):
+        row.pop(key, None)
+    row.update({"caughtByTodaysChecksSamOn": None, "caughtByTodaysChecks": None, "caughtByTraceChecks": None,
+                "ownCheck": None, "caughtByOwnCheck": None})
+    for m in REPORTED_CAUGHT.finditer(head):
+        if m["own"]:
+            row["ownCheck"], row["caughtByOwnCheck"] = m["own"], m["value"]
+        else:
+            row[REPORTED_KEYS[m["which"]]] = m["value"]
+    if row["caughtByTodaysChecks"] is None or row["caughtByTraceChecks"] is None:
+        raise ValueError(f"unrecognised reported-bench annotation: {message!r}")
+    return row
+
+
+def collect_reported(run_id: int, fetch=gh_json) -> dict:
+    """One reported-bug bench run -> one table: today's checks against the engine-record checks."""
+    run, notes = run_annotations(run_id, fetch, prefix="reported-bench")
+    rows: dict[str, dict] = {}
+    details: dict[str, list] = {}
+    seconds: dict[str, int] = {}
+    images: dict[str, int] = {}
+    for note in notes:
+        title, message = note.get("title") or "", note.get("message") or ""
+        if m := REPORTED_TITLE.match(title):
+            rows[m["id"]] = parse_reported_message(message)
+        elif m := REPORTED_DETAIL.match(title):
+            details.setdefault(m["id"], []).append({"result": m["result"], "what": message})
+        elif m := REPORTED_TIME.match(title):
+            seconds[m["id"]] = int(message.split()[0])
+        elif m := REPORTED_IMAGES.match(title):
+            images[m["id"]] = int(message.split()[0])
+    if "clean" not in rows or len(rows) < 2:
+        raise SystemExit(f"run {run_id}: no clean control or no reported bugs among its annotations")
+    for vid, row in rows.items():
+        row.update(id=vid, details=details.get(vid, []), seconds=seconds.get(vid), samImages=images.get(vid))
+    clean = rows.pop("clean")
+    variants = [rows[k] for k in sorted(rows)]
+    sam = clean["caughtByTodaysChecksSamOn"] is not None
+
+    def tally(key: str) -> dict:
+        return {"yes": sum(v.get(key) == "yes" for v in variants), "of": len(variants)}
+
+    doc = {
+        "format": REPORTED_FORMAT,
+        "run": run_id,
+        "runUrl": run.get("html_url"),
+        "commit": run.get("head_sha"),
+        "date": run.get("created_at"),
+        "sam": sam,
+        "caughtByTodaysChecksSamOn": tally("caughtByTodaysChecksSamOn") if sam else None,
+        "caughtByTodaysChecks": tally("caughtByTodaysChecks"),
+        "caughtByTraceChecks": tally("caughtByTraceChecks"),
+        "caughtByOwnCheck": tally("caughtByOwnCheck"),
+        "falseAlarm": {"todaysChecksSamOn": clean["caughtByTodaysChecksSamOn"],
+                       "todaysChecks": clean["caughtByTodaysChecks"],
+                       "traceChecks": clean["caughtByTraceChecks"], "cleanRoutes": clean["routes"]},
+        "clean": clean,
+        "variants": variants,
+        "spend": spend([clean] + variants, muse_key="none"),
+        "rerun": "Actions, Reported bench (or any pull request that touches it), then "
+                 f"python3 -m agents.bench_collect --reported --run <id>",
+    }
+    return doc
+
+
+def reported_markdown(doc: dict) -> str:
+    def frac(t: dict | None) -> str:
+        return f"**{t['yes']} of {t['of']}**" if t else "not run"
+
+    fa = doc["falseAlarm"]
+    lines = [
+        "# Reported bugs: detection", "",
+        "Written by `python3 -m agents.bench_collect --reported` from the run's own annotations; do not edit by hand.",
+        f"Run [{doc['run']}]({doc['runUrl']}), {(doc['date'] or '')[:10]}, commit {(doc['commit'] or '')[:7]}.", "",
+        "Each bug reproduces a publicly reported Godot bug: the team wrote the patches, not the bugs "
+        "([bugs/reported/README.md](../../bugs/reported/README.md) has the sources). Each one, and the clean game, "
+        f"was rendered on {fa['cleanRoutes']} routes: the smoke route and the reported routes. A bug is caught when "
+        "any check fails on at least one route.", "",
+        "| Checks | Caught | False alarm on the clean game |",
+        "| --- | --- | --- |",
+    ]
+    if doc["sam"]:
+        lines.append(f"| Today's verifier, SAM on (hybrid ground, gameplay, the SAM specs) | "
+                     f"{frac(doc['caughtByTodaysChecksSamOn'])} | {_alarm(fa['todaysChecksSamOn'])} |")
+    lines += [
+        f"| Today's verifier, SAM off (engine ground, gameplay) | {frac(doc['caughtByTodaysChecks'])} | "
+        f"{_alarm(fa['todaysChecks'])} |",
+        f"| Engine-record checks (agents/trace_checks.py) | {frac(doc['caughtByTraceChecks'])} | "
+        f"{_alarm(fa['traceChecks'])} |",
+        f"| Each bug's own engine-record check | {frac(doc['caughtByOwnCheck'])} | |",
+        "",
+        "The engine-record checks were written after these bugs were reproduced, so this shows that the harness "
+        "now records what these bugs break and that a one-sentence rule over that record catches each of them "
+        "without a false alarm. It does not show that the checks would have found the bugs blind, and the "
+        "verifier does not run them yet.", "",
+    ]
+    if doc["sam"] and doc["spend"]["samImages"] is not None:
+        lines += [f"Spend: SAM images {_money(doc['spend'])}; {doc['spend']['jobMinutes']:.0f} job minutes.", ""]
+    else:
+        lines += [f"Spend: no SAM; {doc['spend']['jobMinutes']:.0f} job minutes.", ""]
+    head = "| Bug | Own check | " + ("Today, SAM on | " if doc["sam"] else "") + \
+           "Today, SAM off | Engine-record | What did not pass |"
+    lines += [head, "| --- " * (head.count("|") - 1) + "|"]
+    for v in [dict(doc["clean"], id="clean (control)")] + doc["variants"]:
+        what = "<br>".join(d["what"] for d in v["details"]) or "nothing"
+        cells = [v["id"], v.get("ownCheck") or "", *([v["caughtByTodaysChecksSamOn"]] if doc["sam"] else []),
+                 v["caughtByTodaysChecks"], v["caughtByTraceChecks"], what]
+        lines.append("| " + " | ".join(str(c) for c in cells) + " |")
+    lines += ["", "For the clean game the columns are false alarms, not catches.", "",
+              f"Rerun: {doc['rerun']}.", ""]
+    return "\n".join(lines)
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     p.add_argument("--run", type=int, required=True, action="append",
@@ -468,9 +602,18 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--matrix", action="store_true", help="fix-matrix runs instead of a detection run")
     p.add_argument("--judge", action="store_true", help="a judge-benchmark run instead of a detection run")
     p.add_argument("--demo", action="store_true", help="a live demo-loop run (Fix matrix, bench demo)")
+    p.add_argument("--reported", action="store_true", help="a reported-bug bench run (agents/reported_bench.py)")
     p.add_argument("--out", type=Path)
     p.add_argument("--app", choices=("checkout",), help="a web-bench run on the checkout page (the second domain)")
     args = p.parse_args(argv)
+    if args.reported:
+        out = args.out or REPORTED_DIR
+        doc = collect_reported(args.run[-1])
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "reported.json").write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+        (out / "README.md").write_text(reported_markdown(doc), encoding="utf-8")
+        print(f"wrote {out / 'reported.json'} and {out / 'README.md'}")
+        return 0
     if args.demo:
         out = args.out or DEMO_DIR
         doc = collect_demo(args.run[-1])

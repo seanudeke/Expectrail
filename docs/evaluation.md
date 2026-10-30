@@ -57,6 +57,38 @@ and never in this one:
 **Clean controls:** each family's spec must pass on the clean route. A spec that fails a clean run
 is a false alarm and counts against us, not a bug.
 
+## Reported bugs (added Oct 30)
+
+The families above were seeded by the team. `bugs/reported/` holds the other kind: four
+reproductions of publicly reported Godot bugs. Two were fixed by Godot contributors in this demo's
+own history and two were reported in other developers' Godot games. We wrote the patches that put
+them back; the bug, its symptom and its cause come from the cited reports
+([bugs/reported/README.md](../bugs/reported/README.md)).
+
+| Bug | Source | Route | Engine-record check |
+| --- | --- | --- | --- |
+| `air-jump` | this demo, commit cf98fed (2016) | `climb-gap` | `jump-height` |
+| `gun-cooldown` | this demo, PR #686 (2022) | `tap-shoot` | `fire-rate` |
+| `body-flip` | godot#78613 and forum reports | `turn-and-shoot` | `facing-follows-motion` |
+| `enemy-ledge` | Godot forum, and a demo contributor's note | `wait-for-patrol` | `enemies-stay-up` |
+
+`agents/reported_bench.py` (workflow **Reported bench**, on every pull request that touches it)
+renders each bug and the clean game on the smoke route and the four reported routes, and judges
+every replay with today's verifier checks (SAM off: the engine ground check and the gameplay
+check) and with five engine-record checks (`agents/trace_checks.py`) that read the harness trace:
+the robot's facing, the enemies and the bullets as well as the robot. Results:
+[`bench/reported/`](../bench/reported/README.md).
+
+How to read it:
+
+- The engine-record checks were written after the bugs were reproduced, so this is a development
+  result, not a held-out one. It shows the bugs are visible to Expectrail's engine record and that
+  the rules raise no false alarm on the clean game; it does not show they would have been found
+  blind. The verifier does not run these checks yet.
+- The result that would count as blind is a natural catch: the checks and guards committed before
+  Muse Code runs, the fixer given the reporter's own words, and a fix that looks right but breaks a
+  guard rejected (protocol in [bugs/reported/README.md](../bugs/reported/README.md#running-a-natural-catch-trial)).
+
 ## Ground truth
 
 The harness records the player's true position every tick (`trace.json`), so for the physics and
@@ -152,7 +184,8 @@ For each condition, across all variants and clean runs:
 - wall-clock time, model calls, and total cost (API spend and compute).
 
 Rules: report frames analyzed, not frames captured; repeated runs of the same variant are not
-separate bugs; held-out results are reported separately from development results; every number on
+separate bugs; held-out results are reported separately from development results, and reported
+bugs separately from seeded ones; every number on
 screen comes from `bench/` and reruns with one command.
 
 ## Budget
