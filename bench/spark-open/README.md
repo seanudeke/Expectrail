@@ -8,8 +8,8 @@ the same checks in the same runs, for comparison. Each run's folder is written b
 
 | Run | Spec prompt | Ground draft gives the approved spec's verdict, 9 seeded runs: Spark Open | Muse Spark | Folder |
 | --- | --- | --- | --- | --- |
-| [41026508747](https://github.com/seanudeke/Nightshift/actions/runs/41026508747) | `side` not defined | 3 of 9 (fails the clean game) | 9 of 9 | [`41026508747/`](41026508747) |
-| [41027140573](https://github.com/seanudeke/Nightshift/actions/runs/41027140573) | `side` is where the object stays | **9 of 9** | 9 of 9 | [`41027140573/`](41027140573) |
+| [41026508747](https://github.com/seanudeke/Expectrail/actions/runs/41026508747) | `side` not defined | 3 of 9 (fails the clean game) | 9 of 9 | [`41026508747/`](41026508747) |
+| [41027140573](https://github.com/seanudeke/Expectrail/actions/runs/41027140573) | `side` is where the object stays | **9 of 9** | 9 of 9 | [`41027140573/`](41027140573) |
 
 **What served it.** `meta-models/muse-spark-open` on inference.baseten.co, 6 calls a run, no errors,
 reported as served by that id. The key lists 20 models, and that is the only Muse or Spark one; the

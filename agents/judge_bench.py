@@ -1,11 +1,11 @@
 """Judge benchmark: who accepts a fix that only looks right?
 
 The fix matrix showed Muse Code fixes the development bugs about as well from screenshots as with
-Nightshift's specs. What Nightshift is for is the other half: telling a real fix from one that
+Expectrail's specs. What Expectrail is for is the other half: telling a real fix from one that
 only looks right. This puts candidate fixes with a known answer in front of three judges and
 counts their mistakes:
 
-  - Nightshift's verifier with SAM on (the submission's setting);
+  - Expectrail's verifier with SAM on (the submission's setting);
   - the same verifier with SAM off (position log and gameplay only);
   - Muse Code judging from screenshots alone (agents.muse_judge): five frames of the bugged run
     and five of the candidate's, on the same route, and a one-line bug report in plain English.
@@ -14,7 +14,7 @@ Good candidates undo a seeded bug exactly (the bugged tree diffed back to the cl
 game they produce is the clean game. Bad candidates are fixtures that stop the reported symptom
 while breaking something a player would see, or that change nothing. Two of the bad ones are
 outside what any approved spec checks (a floating robot, deleted scenery), so they measure
-Nightshift's blind spots too, not only its strengths.
+Expectrail's blind spots too, not only its strengths.
 
     python3 -m agents.judge_bench --list
     python3 -m agents.judge_bench --case bad/fall-through-hide-player --out runs/judge --live
@@ -49,13 +49,13 @@ from agents.sam_observations import sam_images_since, sam_usage
 from agents.verifier import verify
 from harness.run import REPO, apply_patches
 from harness.run import run as harness_run
-from nightshift.contracts import digest, load
-from nightshift.evaluator import EVALUATOR
+from expectrail.contracts import digest, load
+from expectrail.evaluator import EVALUATOR
 
-FORMAT = "nightshift.judge-bench/v0"
+FORMAT = "expectrail.judge-bench/v0"
 FIXTURES = REPO / "agents" / "fixtures"
 GAME = REPO / "game" / "platformer"
-JUDGES = ("nightshiftSam", "nightshiftNoSam", "museScreenshots")
+JUDGES = ("expectrailSam", "expectrailNoSam", "museScreenshots")
 # What a player would report, per family: the only description the screenshot judge gets.
 REPORTS = {
     "physics-fall-through": "The player falls through the ground.",
@@ -112,15 +112,15 @@ def undo_patch(bug: Path, out: Path) -> Path:
 @contextmanager
 def provider(name: str):
     """Run the verifier with SAM on ("sam") or off ("trace") for one block."""
-    old = os.environ.get("NIGHTSHIFT_OBS_PROVIDER")
-    os.environ["NIGHTSHIFT_OBS_PROVIDER"] = name
+    old = os.environ.get("EXPECTRAIL_OBS_PROVIDER")
+    os.environ["EXPECTRAIL_OBS_PROVIDER"] = name
     try:
         yield
     finally:
         if old is None:
-            os.environ.pop("NIGHTSHIFT_OBS_PROVIDER", None)
+            os.environ.pop("EXPECTRAIL_OBS_PROVIDER", None)
         else:
-            os.environ["NIGHTSHIFT_OBS_PROVIDER"] = old
+            os.environ["EXPECTRAIL_OBS_PROVIDER"] = old
 
 
 def _frames(frames_dir: Path) -> list[Path]:
@@ -162,7 +162,7 @@ def run_case(key: str, out: Path, *, live: bool, sam: bool = True) -> dict:
         bug_patch = dev_variants()[spec["bug"]]
         candidate = (undo_patch(bug_patch, work / "candidate.patch") if spec["fixture"] is None
                      else FIXTURES / f"{spec['fixture']}.patch")
-        verdict = {"format": "nightshift.verdict/v0", "spec": {"id": case_spec(spec["bug"])["id"],
+        verdict = {"format": "expectrail.verdict/v0", "spec": {"id": case_spec(spec["bug"])["id"],
                                                                "sha256": digest(case_spec(spec["bug"]))},
                    "observations": {"sha256": "0" * 64}, "result": "fail", "reason": "seeded bug",
                    "firstFrame": None, "evidence": [], "framesJudged": 0, "evaluator": dict(EVALUATOR)}
@@ -170,7 +170,7 @@ def run_case(key: str, out: Path, *, live: bool, sam: bool = True) -> dict:
             request_id=f"rr-judge-{key.replace('/', '-')}", spec=case_spec(spec["bug"]), verdict=verdict,
             route=load(SMOKE_ROUTE, "route"), base_patch=str(bug_patch.relative_to(REPO)), editable=EDITABLE,
             attempts=1)
-        judges = [("nightshiftNoSam", "trace")] + ([("nightshiftSam", "sam")] if sam else [])
+        judges = [("expectrailNoSam", "trace")] + ([("expectrailSam", "sam")] if sam else [])
         for name, prov in judges:
             with provider(prov):
                 v = verify(request, candidate, work / name)
@@ -180,7 +180,7 @@ def run_case(key: str, out: Path, *, live: bool, sam: bool = True) -> dict:
         if live:
             harness_run(SMOKE_ROUTE, work / "bugged", patches=[bug_patch])
             before = _frames(work / "bugged" / "frames")
-            after = _frames(work / "nightshiftNoSam" / "replay" / "frames")
+            after = _frames(work / "expectrailNoSam" / "replay" / "frames")
             family = spec["bug"].split("/")[1]
             instruction = (f"A player reported: \"{REPORTS[family]}\" A developer changed the game to fix it. "
                            "The before frames show the bug and the after frames show the candidate fix, on the "
@@ -221,7 +221,7 @@ def summarize(out: Path) -> dict:
 
 
 def markdown(doc: dict) -> str:
-    names = {"nightshiftSam": "Nightshift, SAM on", "nightshiftNoSam": "Nightshift, SAM off",
+    names = {"expectrailSam": "Expectrail, SAM on", "expectrailNoSam": "Expectrail, SAM off",
              "museScreenshots": "Muse from screenshots"}
     lines = ["| Judge | Good fixes accepted | Bad fixes accepted | Undecided |", "| --- | --- | --- | --- |"]
     for j, s in doc["judges"].items():

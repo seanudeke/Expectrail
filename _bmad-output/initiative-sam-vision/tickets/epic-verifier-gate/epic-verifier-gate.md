@@ -68,7 +68,7 @@ route, and a drop in how well SAM sees our art shows up in the verdict instead o
 
 - C1 (parent C1): `MODEL_API_KEY` stays separate from `META_API_KEY`.
 - C3 (parent C3): the cache stays outside the repo, and a verdict beyond question runs with
-  `NIGHTSHIFT_SAM_CACHE=off`.
+  `EXPECTRAIL_SAM_CACHE=off`.
 - C4 (parent C4): the ground is never taken from SAM alone.
 - C5 (parent C5): pull-request CI keeps the trace provider, so no SAM check is a required PR check.
 

@@ -7,14 +7,14 @@ Every number the README or the video quotes comes from a file here and reruns wi
 | Detection: development variants | `detection/dev.json`, table in `detection/README.md` | `bench/rerun-detection.sh dev` |
 | Detection: held-out variants (ids and counts only) | `detection/held-out.json` | `bench/rerun-detection.sh held-out` |
 | Detection judged by Muse Glimmer checked against the engine (no SAM) | `detection/<set>-glimmer-engine.json` | `bench/rerun-detection.sh held-out main glimmer-engine` (or `dev`) |
-| Fix matrix: development variants, screenshots vs Nightshift | `fix-matrix/dev.json`, table in `fix-matrix/README.md` | Actions, **Fix matrix** (live), then `python3 -m agents.bench_collect --matrix --run <id> --set dev` |
+| Fix matrix: development variants, screenshots vs Expectrail | `fix-matrix/dev.json`, table in `fix-matrix/README.md` | Actions, **Fix matrix** (live), then `python3 -m agents.bench_collect --matrix --run <id> --set dev` |
 | Live Muse Code film, clean prompt | `live-muse-clean-v1/` | see its README |
 | First live Muse Spark spec draft | `spec-writer-live/` | see its README |
 | Muse Spark Open, live: the approved checks drafted again, the ground draft on the seeded bugs, the scripted playtest sorted | `spark-open/<run>/results.json` and table, index in `spark-open/README.md` | Actions, **Spark Open**, then `python3 -m agents.spark_open collect --run <id>` |
 | Offline demo-path stub | `overnight-offline.json` | below |
 | Demo path, live: the overnight loop end to end, N independent runs | `demo-loop/demo.json`, table in `demo-loop/README.md` | Actions, **Fix matrix** with bench `demo`, then `python3 -m agents.bench_collect --demo --run <id>` |
 | SAM video against images, public runs (measured, not used) | `sam-video/run-*.json`, table in `sam-video/README.md` | Actions, **SAM probe**, mode `video-compare` |
-| Judge benchmark: who accepts a fix that only looks right (Nightshift with and without SAM, Muse from screenshots) | `judge/judge.json`, table in `judge/README.md` | Actions, **Fix matrix** with bench `judge` (live), then `python3 -m agents.bench_collect --judge --run <id> [--run <id>]` |
+| Judge benchmark: who accepts a fix that only looks right (Expectrail with and without SAM, Muse from screenshots) | `judge/judge.json`, table in `judge/README.md` | Actions, **Fix matrix** with bench `judge` (live), then `python3 -m agents.bench_collect --judge --run <id> [--run <id>]` |
 
 The detection files are written by `python3 -m agents.bench_collect --run <id> --set dev|held-out`
 from the run's own annotations, so they carry the run, commit and date they came from.

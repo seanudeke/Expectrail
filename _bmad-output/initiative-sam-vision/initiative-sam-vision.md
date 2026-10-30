@@ -1,18 +1,18 @@
 ---
 tracker_id: ""
 type: initiative
-title: "Every Nightshift verdict rests on what SAM saw in the captured frames"
+title: "Every Expectrail verdict rests on what SAM saw in the captured frames"
 sources: ["docs/sam.md", "docs/evaluation.md"]
 companions: []
 after: []
 risk: medium
 ---
 
-# Every Nightshift verdict rests on what SAM saw in the captured frames
+# Every Expectrail verdict rests on what SAM saw in the captured frames
 
 ## Description
 
-Nightshift already judges a candidate fix on the game's position log and on the level's ground line.
+Expectrail already judges a candidate fix on the game's position log and on the level's ground line.
 That is blind to anything that is drawn wrong while positioned right: a hidden sprite, a missing
 texture, a robot sunk to the waist. This initiative makes vision a first-class judge: SAM 3.1 reads
 the captured frames, the evaluator decides the spec over its boxes in plain code, and every
@@ -99,7 +99,7 @@ review, never silently passes.
 - C2 (docs/evaluation.md, Held out): private patches, routes, frames and descriptions never leave the
   verifier machine; only ids and verdicts are published.
 - C3 (docs/sam.md, The cache is verifier state): the cache lives outside the repo, and a verdict that
-  must be beyond question runs with `NIGHTSHIFT_SAM_CACHE=off`.
+  must be beyond question runs with `EXPECTRAIL_SAM_CACHE=off`.
 - C4 (docs/sam.md, What the live probes found): SAM cannot see the ground in this art, so the ground
   is never taken from SAM alone.
 - C5 (docs/sam.md, Status): pull-request CI has no key and keeps the trace provider, so a SAM check
@@ -125,7 +125,7 @@ review, never silently passes.
   ignored.
 - Out: changing any approved spec without Sean's approval.
 - Touch point: `agents/verifier.py` — decides candidate, clean and held-out checks; owner: epic-verifier-gate.
-- Touch point: `harness/godot/nightshift_harness.gd` — records ground, view and level surfaces; owner: epic-verifier-gate.
+- Touch point: `harness/godot/expectrail_harness.gd` — records ground, view and level surfaces; owner: epic-verifier-gate.
 - Touch point: `.github/workflows/sam-probe.yml` — runs the `probe`, `verify` and `heldout-bench` modes; owner: epic-held-out-bench.
 - Touch point: `agents/sam_observations.py` — per-frame requests, cache and the observations document; owner: epic-video-tracking.
 

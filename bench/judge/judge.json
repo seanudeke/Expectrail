@@ -1,20 +1,20 @@
 {
-  "format": "nightshift.judge-bench/v1",
+  "format": "expectrail.judge-bench/v1",
   "runs": [
     {
       "run": 40936362830,
-      "runUrl": "https://github.com/seanudeke/Nightshift/actions/runs/40936362830",
+      "runUrl": "https://github.com/seanudeke/Expectrail/actions/runs/40936362830",
       "commit": "8e7b9d65a8b03ff643b40847483140d0e12d4155",
       "date": "2026-10-29T19:02:08Z",
       "judges": {
-        "nightshiftSam": {
+        "expectrailSam": {
           "goodAccepted": 8,
           "good": 8,
           "badAccepted": 0,
           "bad": 7,
           "undecided": 0
         },
-        "nightshiftNoSam": {
+        "expectrailNoSam": {
           "goodAccepted": 8,
           "good": 8,
           "badAccepted": 3,
@@ -38,8 +38,8 @@
           "samImages": null,
           "museCalls": 1,
           "decisions": {
-            "nightshiftSam": "reject",
-            "nightshiftNoSam": "reject",
+            "expectrailSam": "reject",
+            "expectrailNoSam": "reject",
             "museScreenshots": "reject"
           }
         },
@@ -51,8 +51,8 @@
           "samImages": null,
           "museCalls": 1,
           "decisions": {
-            "nightshiftSam": "reject",
-            "nightshiftNoSam": "reject",
+            "expectrailSam": "reject",
+            "expectrailNoSam": "reject",
             "museScreenshots": "reject"
           }
         },
@@ -64,8 +64,8 @@
           "samImages": null,
           "museCalls": 1,
           "decisions": {
-            "nightshiftSam": "reject",
-            "nightshiftNoSam": "accept",
+            "expectrailSam": "reject",
+            "expectrailNoSam": "accept",
             "museScreenshots": "reject"
           }
         },
@@ -77,8 +77,8 @@
           "samImages": null,
           "museCalls": 1,
           "decisions": {
-            "nightshiftSam": "reject",
-            "nightshiftNoSam": "reject",
+            "expectrailSam": "reject",
+            "expectrailNoSam": "reject",
             "museScreenshots": "accept"
           }
         },
@@ -90,8 +90,8 @@
           "samImages": null,
           "museCalls": 1,
           "decisions": {
-            "nightshiftSam": "reject",
-            "nightshiftNoSam": "accept",
+            "expectrailSam": "reject",
+            "expectrailNoSam": "accept",
             "museScreenshots": "accept"
           }
         },
@@ -103,8 +103,8 @@
           "samImages": null,
           "museCalls": 1,
           "decisions": {
-            "nightshiftSam": "reject",
-            "nightshiftNoSam": "accept",
+            "expectrailSam": "reject",
+            "expectrailNoSam": "accept",
             "museScreenshots": "reject"
           }
         },
@@ -116,8 +116,8 @@
           "samImages": null,
           "museCalls": 1,
           "decisions": {
-            "nightshiftSam": "reject",
-            "nightshiftNoSam": "reject",
+            "expectrailSam": "reject",
+            "expectrailNoSam": "reject",
             "museScreenshots": "reject"
           }
         },
@@ -129,8 +129,8 @@
           "samImages": null,
           "museCalls": 1,
           "decisions": {
-            "nightshiftSam": "accept",
-            "nightshiftNoSam": "accept",
+            "expectrailSam": "accept",
+            "expectrailNoSam": "accept",
             "museScreenshots": "accept"
           }
         },
@@ -142,8 +142,8 @@
           "samImages": null,
           "museCalls": 1,
           "decisions": {
-            "nightshiftSam": "accept",
-            "nightshiftNoSam": "accept",
+            "expectrailSam": "accept",
+            "expectrailNoSam": "accept",
             "museScreenshots": "accept"
           }
         },
@@ -155,8 +155,8 @@
           "samImages": null,
           "museCalls": 1,
           "decisions": {
-            "nightshiftSam": "accept",
-            "nightshiftNoSam": "accept",
+            "expectrailSam": "accept",
+            "expectrailNoSam": "accept",
             "museScreenshots": "accept"
           }
         },
@@ -168,8 +168,8 @@
           "samImages": null,
           "museCalls": 1,
           "decisions": {
-            "nightshiftSam": "accept",
-            "nightshiftNoSam": "accept",
+            "expectrailSam": "accept",
+            "expectrailNoSam": "accept",
             "museScreenshots": "accept"
           }
         },
@@ -181,8 +181,8 @@
           "samImages": null,
           "museCalls": 1,
           "decisions": {
-            "nightshiftSam": "accept",
-            "nightshiftNoSam": "accept",
+            "expectrailSam": "accept",
+            "expectrailNoSam": "accept",
             "museScreenshots": "accept"
           }
         },
@@ -194,8 +194,8 @@
           "samImages": null,
           "museCalls": 1,
           "decisions": {
-            "nightshiftSam": "accept",
-            "nightshiftNoSam": "accept",
+            "expectrailSam": "accept",
+            "expectrailNoSam": "accept",
             "museScreenshots": "accept"
           }
         },
@@ -207,8 +207,8 @@
           "samImages": null,
           "museCalls": 1,
           "decisions": {
-            "nightshiftSam": "accept",
-            "nightshiftNoSam": "accept",
+            "expectrailSam": "accept",
+            "expectrailNoSam": "accept",
             "museScreenshots": "reject"
           }
         },
@@ -220,8 +220,8 @@
           "samImages": null,
           "museCalls": 1,
           "decisions": {
-            "nightshiftSam": "accept",
-            "nightshiftNoSam": "accept",
+            "expectrailSam": "accept",
+            "expectrailNoSam": "accept",
             "museScreenshots": "reject"
           }
         }
@@ -235,18 +235,18 @@
     },
     {
       "run": 40943391994,
-      "runUrl": "https://github.com/seanudeke/Nightshift/actions/runs/40943391994",
+      "runUrl": "https://github.com/seanudeke/Expectrail/actions/runs/40943391994",
       "commit": "d645dac4e90e6f2b9552133ea4aecf039e653862",
       "date": "2026-10-29T19:48:33Z",
       "judges": {
-        "nightshiftSam": {
+        "expectrailSam": {
           "goodAccepted": 8,
           "good": 8,
           "badAccepted": 0,
           "bad": 7,
           "undecided": 0
         },
-        "nightshiftNoSam": {
+        "expectrailNoSam": {
           "goodAccepted": 8,
           "good": 8,
           "badAccepted": 3,
@@ -270,17 +270,17 @@
           "samImages": null,
           "museCalls": 1,
           "decisions": {
-            "nightshiftSam": "reject",
-            "nightshiftNoSam": "reject",
+            "expectrailSam": "reject",
+            "expectrailNoSam": "reject",
             "museScreenshots": "reject"
           },
           "reasons": {
-            "nightshiftNoSam": [
+            "expectrailNoSam": [
               "regression check player-stays-above-ground failed",
               "gameplay check player-motion-on-smoke failed",
               "held-out check player-stays-above-ground failed"
             ],
-            "nightshiftSam": [
+            "expectrailSam": [
               "regression check player-stays-above-ground failed",
               "regression check player-always-visible failed",
               "gameplay check player-motion-on-smoke failed"
@@ -298,16 +298,16 @@
           "samImages": null,
           "museCalls": 1,
           "decisions": {
-            "nightshiftSam": "reject",
-            "nightshiftNoSam": "reject",
+            "expectrailSam": "reject",
+            "expectrailNoSam": "reject",
             "museScreenshots": "reject"
           },
           "reasons": {
-            "nightshiftNoSam": [
+            "expectrailNoSam": [
               "gameplay check player-motion-on-smoke failed",
               "held-out check player-stays-above-ground failed"
             ],
-            "nightshiftSam": [
+            "expectrailSam": [
               "gameplay check player-motion-on-smoke failed",
               "held-out check player-stays-above-ground failed"
             ],
@@ -324,15 +324,15 @@
           "samImages": null,
           "museCalls": 1,
           "decisions": {
-            "nightshiftSam": "reject",
-            "nightshiftNoSam": "accept",
+            "expectrailSam": "reject",
+            "expectrailNoSam": "accept",
             "museScreenshots": "reject"
           },
           "reasons": {
-            "nightshiftNoSam": [
+            "expectrailNoSam": [
               "all 4 checks passed"
             ],
-            "nightshiftSam": [
+            "expectrailSam": [
               "regression check player-always-visible failed",
               "held-out check player-stays-above-ground failed"
             ],
@@ -349,16 +349,16 @@
           "samImages": null,
           "museCalls": 1,
           "decisions": {
-            "nightshiftSam": "reject",
-            "nightshiftNoSam": "reject",
+            "expectrailSam": "reject",
+            "expectrailNoSam": "reject",
             "museScreenshots": "accept"
           },
           "reasons": {
-            "nightshiftNoSam": [
+            "expectrailNoSam": [
               "regression check player-stays-above-ground failed",
               "held-out check player-stays-above-ground failed"
             ],
-            "nightshiftSam": [
+            "expectrailSam": [
               "regression check player-stays-above-ground failed",
               "held-out check player-stays-above-ground failed"
             ],
@@ -375,15 +375,15 @@
           "samImages": null,
           "museCalls": 1,
           "decisions": {
-            "nightshiftSam": "reject",
-            "nightshiftNoSam": "accept",
+            "expectrailSam": "reject",
+            "expectrailNoSam": "accept",
             "museScreenshots": "accept"
           },
           "reasons": {
-            "nightshiftNoSam": [
+            "expectrailNoSam": [
               "all 4 checks passed"
             ],
-            "nightshiftSam": [
+            "expectrailSam": [
               "regression check player-stays-above-ground failed",
               "regression check player-always-visible failed",
               "held-out check player-stays-above-ground failed"
@@ -401,15 +401,15 @@
           "samImages": null,
           "museCalls": 1,
           "decisions": {
-            "nightshiftSam": "reject",
-            "nightshiftNoSam": "accept",
+            "expectrailSam": "reject",
+            "expectrailNoSam": "accept",
             "museScreenshots": "reject"
           },
           "reasons": {
-            "nightshiftNoSam": [
+            "expectrailNoSam": [
               "all 4 checks passed"
             ],
-            "nightshiftSam": [
+            "expectrailSam": [
               "regression check player-always-visible failed",
               "held-out check player-stays-above-ground failed"
             ],
@@ -426,16 +426,16 @@
           "samImages": null,
           "museCalls": 1,
           "decisions": {
-            "nightshiftSam": "reject",
-            "nightshiftNoSam": "reject",
+            "expectrailSam": "reject",
+            "expectrailNoSam": "reject",
             "museScreenshots": "reject"
           },
           "reasons": {
-            "nightshiftNoSam": [
+            "expectrailNoSam": [
               "regression check player-stays-above-ground failed",
               "held-out check player-stays-above-ground failed"
             ],
-            "nightshiftSam": [
+            "expectrailSam": [
               "regression check player-stays-above-ground failed",
               "held-out check player-stays-above-ground failed"
             ],
@@ -452,15 +452,15 @@
           "samImages": null,
           "museCalls": 1,
           "decisions": {
-            "nightshiftSam": "accept",
-            "nightshiftNoSam": "accept",
+            "expectrailSam": "accept",
+            "expectrailNoSam": "accept",
             "museScreenshots": "accept"
           },
           "reasons": {
-            "nightshiftNoSam": [
+            "expectrailNoSam": [
               "all 4 checks passed"
             ],
-            "nightshiftSam": [
+            "expectrailSam": [
               "all 8 checks passed"
             ],
             "museScreenshots": [
@@ -476,15 +476,15 @@
           "samImages": null,
           "museCalls": 1,
           "decisions": {
-            "nightshiftSam": "accept",
-            "nightshiftNoSam": "accept",
+            "expectrailSam": "accept",
+            "expectrailNoSam": "accept",
             "museScreenshots": "accept"
           },
           "reasons": {
-            "nightshiftNoSam": [
+            "expectrailNoSam": [
               "all 4 checks passed"
             ],
-            "nightshiftSam": [
+            "expectrailSam": [
               "all 8 checks passed"
             ],
             "museScreenshots": [
@@ -500,15 +500,15 @@
           "samImages": null,
           "museCalls": 1,
           "decisions": {
-            "nightshiftSam": "accept",
-            "nightshiftNoSam": "accept",
+            "expectrailSam": "accept",
+            "expectrailNoSam": "accept",
             "museScreenshots": "accept"
           },
           "reasons": {
-            "nightshiftNoSam": [
+            "expectrailNoSam": [
               "all 4 checks passed"
             ],
-            "nightshiftSam": [
+            "expectrailSam": [
               "all 8 checks passed"
             ],
             "museScreenshots": [
@@ -524,15 +524,15 @@
           "samImages": null,
           "museCalls": 1,
           "decisions": {
-            "nightshiftSam": "accept",
-            "nightshiftNoSam": "accept",
+            "expectrailSam": "accept",
+            "expectrailNoSam": "accept",
             "museScreenshots": "accept"
           },
           "reasons": {
-            "nightshiftNoSam": [
+            "expectrailNoSam": [
               "all 4 checks passed"
             ],
-            "nightshiftSam": [
+            "expectrailSam": [
               "all 8 checks passed"
             ],
             "museScreenshots": [
@@ -548,15 +548,15 @@
           "samImages": null,
           "museCalls": 1,
           "decisions": {
-            "nightshiftSam": "accept",
-            "nightshiftNoSam": "accept",
+            "expectrailSam": "accept",
+            "expectrailNoSam": "accept",
             "museScreenshots": "accept"
           },
           "reasons": {
-            "nightshiftNoSam": [
+            "expectrailNoSam": [
               "all 4 checks passed"
             ],
-            "nightshiftSam": [
+            "expectrailSam": [
               "all 8 checks passed"
             ],
             "museScreenshots": [
@@ -572,15 +572,15 @@
           "samImages": null,
           "museCalls": 1,
           "decisions": {
-            "nightshiftSam": "accept",
-            "nightshiftNoSam": "accept",
+            "expectrailSam": "accept",
+            "expectrailNoSam": "accept",
             "museScreenshots": "accept"
           },
           "reasons": {
-            "nightshiftNoSam": [
+            "expectrailNoSam": [
               "all 4 checks passed"
             ],
-            "nightshiftSam": [
+            "expectrailSam": [
               "all 8 checks passed"
             ],
             "museScreenshots": [
@@ -596,15 +596,15 @@
           "samImages": null,
           "museCalls": 1,
           "decisions": {
-            "nightshiftSam": "accept",
-            "nightshiftNoSam": "accept",
+            "expectrailSam": "accept",
+            "expectrailNoSam": "accept",
             "museScreenshots": "accept"
           },
           "reasons": {
-            "nightshiftNoSam": [
+            "expectrailNoSam": [
               "all 4 checks passed"
             ],
-            "nightshiftSam": [
+            "expectrailSam": [
               "all 8 checks passed"
             ],
             "museScreenshots": [
@@ -620,15 +620,15 @@
           "samImages": null,
           "museCalls": 1,
           "decisions": {
-            "nightshiftSam": "accept",
-            "nightshiftNoSam": "accept",
+            "expectrailSam": "accept",
+            "expectrailNoSam": "accept",
             "museScreenshots": "reject"
           },
           "reasons": {
-            "nightshiftNoSam": [
+            "expectrailNoSam": [
               "all 4 checks passed"
             ],
-            "nightshiftSam": [
+            "expectrailSam": [
               "all 8 checks passed"
             ],
             "museScreenshots": [
@@ -646,8 +646,8 @@
     }
   ],
   "changedBetweenRuns": {
-    "nightshiftSam": [],
-    "nightshiftNoSam": [],
+    "expectrailSam": [],
+    "expectrailNoSam": [],
     "museScreenshots": [
       "good/sinking/v1"
     ]

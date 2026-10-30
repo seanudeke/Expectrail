@@ -1,4 +1,4 @@
-# Open weights in Nightshift
+# Open weights in Expectrail
 
 **Muse Glimmer 30B can judge every vision check with no hosted vision model, checked against the
 game engine; Muse Spark Open writes the checks.** Both are Meta open-weight models, served through
@@ -19,8 +19,8 @@ on which model, where, and how to check it.
 
 | Role | Model (license) | Served by | Turn it on | Code |
 | --- | --- | --- | --- | --- |
-| Vision checks: is the robot visible, are the coins drawn, where are the robot's feet against the level's ground line | Muse Glimmer 30B (Apache 2.0, per its model card), together with SAM 3.1 (`both`) or checked against the game engine with no SAM (`glimmer-engine`) | A Fireworks on-demand deployment of `accounts/fireworks/models/muse-glimmer-30b` (Glimmer left Fireworks serverless on Sep 25, 2026); or any OpenAI-compatible server we run | `NIGHTSHIFT_OBS_PROVIDER=sam NIGHTSHIFT_VISION_BACKEND=both` (keys in `FIREWORKS_API_KEY` and `MODEL_API_KEY`) or `=glimmer-engine` (`FIREWORKS_API_KEY` only) | `agents/glimmer_client.py`, `agents/engine_check.py` |
-| Test-spec drafting from plain English | Muse Spark Open (Muse Model License) | Baseten, `meta-models/muse-spark-open` (the id the key lists, Oct 30; the hackathon named `meta-models/muse-spark-open-1026`, which Baseten does not list) | `python3 -m nightshift.spec_writer draft "..." --endpoint open`, key in `BASETEN_API_KEY` | `nightshift/spec_writer.py` |
+| Vision checks: is the robot visible, are the coins drawn, where are the robot's feet against the level's ground line | Muse Glimmer 30B (Apache 2.0, per its model card), together with SAM 3.1 (`both`) or checked against the game engine with no SAM (`glimmer-engine`) | A Fireworks on-demand deployment of `accounts/fireworks/models/muse-glimmer-30b` (Glimmer left Fireworks serverless on Sep 25, 2026); or any OpenAI-compatible server we run | `EXPECTRAIL_OBS_PROVIDER=sam EXPECTRAIL_VISION_BACKEND=both` (keys in `FIREWORKS_API_KEY` and `MODEL_API_KEY`) or `=glimmer-engine` (`FIREWORKS_API_KEY` only) | `agents/glimmer_client.py`, `agents/engine_check.py` |
+| Test-spec drafting from plain English | Muse Spark Open (Muse Model License) | Baseten, `meta-models/muse-spark-open` (the id the key lists, Oct 30; the hackathon named `meta-models/muse-spark-open-1026`, which Baseten does not list) | `python3 -m expectrail.spec_writer draft "..." --endpoint open`, key in `BASETEN_API_KEY` | `expectrail/spec_writer.py` |
 | Sorting playtester feedback and drafting checks from it | Muse Spark Open | Baseten | `python3 -m agents.feedback ... --sorter open` | `agents/feedback.py` |
 | Measuring both live on public material: the approved checks drafted again, the ground draft judged on the seeded bugs, the scripted playtest sorted | Muse Spark Open, next to Muse Spark on Meta's API | Baseten | Actions, **Spark Open** (`BASETEN_API_KEY`; `META_API_KEY` for the comparison), then `python3 -m agents.spark_open collect --run <id>` | `agents/spark_open.py`, `bench/spark-open/<run>/` |
 
@@ -41,7 +41,7 @@ a replica is up, and able to scale to zero when idle.
 
    It prints `accounts/<account>/deployments/<id>`.
 2. Put that string in the repository variable `GLIMMER_MODEL` (Settings → Secrets and variables →
-   Actions → Variables), or in `NIGHTSHIFT_GLIMMER_MODEL` for local runs.
+   Actions → Variables), or in `EXPECTRAIL_GLIMMER_MODEL` for local runs.
 3. The probe workflow wakes the deployment first (`python -m agents.glimmer_client --warm`): a
    deployment at zero replicas answers 503 for a few minutes while it starts, and after a long idle
    it has answered 404 "not deployed" instead, while Fireworks' API reported it ready (7 of 9 bench
@@ -74,7 +74,7 @@ The verifier asks one question per frame and object: where is "blue robot" (or "
 SAM 3.1 answers through the Meta Model API. Glimmer gets the same question, as an image plus a
 JSON-only instruction, and answers with boxes in pixels of the frame.
 
-**With `NIGHTSHIFT_VISION_BACKEND=both` (the verdict setting), an object counts as found only on
+**With `EXPECTRAIL_VISION_BACKEND=both` (the verdict setting), an object counts as found only on
 frames where both models find it.** The boxes used for geometry are SAM's. So adding Glimmer can
 only make a check stricter than SAM alone: a robot Glimmer cannot see fails, even if SAM finds it.
 
@@ -94,8 +94,8 @@ something that cannot be talked to:
   The ground check is judged on the position log under `glimmer-engine` (see "What was measured"):
   Glimmer's boxes are too loose for its 20-pixel tolerance.
 
-The verifier refuses `NIGHTSHIFT_VISION_BACKEND=glimmer` with neither check (every vision check
-becomes needs-review) unless `NIGHTSHIFT_GLIMMER_ALONE=1` is set to measure Glimmer on known
+The verifier refuses `EXPECTRAIL_VISION_BACKEND=glimmer` with neither check (every vision check
+becomes needs-review) unless `EXPECTRAIL_GLIMMER_ALONE=1` is set to measure Glimmer on known
 fixtures.
 
 What the engine check does not stop: Glimmer steered onto the object's true position. The fixer can
@@ -105,7 +105,7 @@ anywhere", but it is not zero. Where SAM is available, `both` remains the strong
 
 Everything around the question is shared code (`agents/sam_observations.py`):
 
-- sampling every fourth frame by default (`NIGHTSHIFT_SAM_EVERY`; the probe workflow defaults to
+- sampling every fourth frame by default (`EXPECTRAIL_SAM_EVERY`; the probe workflow defaults to
   every tenth);
 - refining to the exact first bad frame;
 - confirming every remaining frame before a pass;
@@ -132,10 +132,10 @@ hosted vision API.
   annotations on the run. The key is only sent over https to `api.fireworks.ai` or the host in the
   `GLIMMER_ALLOWED_HOST` repository variable.
 - Self-hosting: Glimmer's model card documents OpenAI-compatible serving with vLLM and SGLang, and
-  says the 4-bit weights fit a 24 GB GPU. Point `NIGHTSHIFT_GLIMMER_API_BASE` at the server's `/v1`
-  URL and set `NIGHTSHIFT_GLIMMER_MODEL` to the id it serves. If the server resizes images before the
+  says the 4-bit weights fit a 24 GB GPU. Point `EXPECTRAIL_GLIMMER_API_BASE` at the server's `/v1`
+  URL and set `EXPECTRAIL_GLIMMER_MODEL` to the id it serves. If the server resizes images before the
   model sees them, Glimmer's pixels are in the resized image's space: run the probe and set
-  `NIGHTSHIFT_GLIMMER_COORDS` to match before trusting any box.
+  `EXPECTRAIL_GLIMMER_COORDS` to match before trusting any box.
 
 ## What was measured (Oct 29, Fireworks on-demand deployment, 1x H200)
 
@@ -308,7 +308,7 @@ error, and Muse Spark on Meta's API drafted the same checks for comparison.
   y 0.95 to 0.99 times: 1600/1000 and 960/1000. Converted, clean frame 0 reads [752, 662, 856, 797]
   against the engine's [760, 660, 840, 780]. Size alone had not shown it (on a 1600x960 frame a
   0-1000 box looks like pixels), which is how the earlier probes got it wrong. The prompt now asks for
-  the 0-1000 grid and `NIGHTSHIFT_GLIMMER_COORDS` defaults to `norm1000`. Boxes with corners in the
+  the 0-1000 grid and `EXPECTRAIL_GLIMMER_COORDS` defaults to `norm1000`. Boxes with corners in the
   wrong order, or more than 2% of the frame outside it, are refused (needs-review); read as pixels,
   a 0-1000 box near the bottom edge (y up to 1000 on a 960-pixel frame) was refused this way, which
   may be what stopped the one held-out coins check in run 40915475383.
@@ -325,8 +325,8 @@ error, and Muse Spark on Meta's API drafted the same checks for comparison.
 
 ## Keys
 
-`FIREWORKS_API_KEY` (or `NIGHTSHIFT_GLIMMER_API_KEY`) and `BASETEN_API_KEY` (or
-`NIGHTSHIFT_OPEN_API_KEY`) are read from the environment or the gitignored `.env`. None of them is on
+`FIREWORKS_API_KEY` (or `EXPECTRAIL_GLIMMER_API_KEY`) and `BASETEN_API_KEY` (or
+`EXPECTRAIL_OPEN_API_KEY`) are read from the environment or the gitignored `.env`. None of them is on
 Muse Code's environment allowlist. The Glimmer key may not be the same as `META_API_KEY`, the key
 the fixer holds. In CI, add the `FIREWORKS_API_KEY` repository secret; `both` also needs the SAM key
 (`MODEL_API_KEY`). The workflow does not pass the SAM key to a `glimmer-engine` run.

@@ -11,8 +11,8 @@ something; keep prior work out of it.
 - Godot 4.7.2, Mesa and Xvfb, and the Meta models (SAM 3.1, Muse Spark, Muse Code) through their
   public interfaces.
 - [OBAAF](https://github.com/Obaaf/OBAAF) (Apache-2.0): prior open-source work by a team member (Sean),
-  published before the event. It will run underneath Nightshift as a dependency (recording and
-  signing the release candidate) and is not wired in yet; nothing in Nightshift itself predates the
+  published before the event. It will run underneath Expectrail as a dependency (recording and
+  signing the release candidate) and is not wired in yet; nothing in Expectrail itself predates the
   event. The organizers said on the October 27 call that prior open-source work
   may be used if it is disclosed; we have asked for that in writing.
 
@@ -23,7 +23,7 @@ something; keep prior work out of it.
 | Oct 26 | Repository, license, unmodified game import | `LICENSE`, `NOTICE`, `game/` |
 | Oct 26 | Seven lane contracts with schemas and examples | `contracts/`, `docs/contracts.md` |
 | Oct 26 | Capture harness: route player, Movie Maker capture under Xvfb, replay check | `harness/` |
-| Oct 26 | Reference evaluator for four assertion types, with tests | `nightshift/`, `tests/` |
+| Oct 26 | Reference evaluator for four assertion types, with tests | `expectrail/`, `tests/` |
 | Oct 26 | First seeded bug: physics fall-through, variant 1 | `bugs/physics-fall-through/` |
 | Oct 26 | CI: tests and a capture smoke test on a GPU-less runner | `.github/workflows/ci.yml` |
 | Oct 26 | Agents lane Gate 1: orchestrator, Muse Code fixer, multi-patch verifier, freeze-player reject | `agents/`, `harness/run.py` |
@@ -31,10 +31,10 @@ something; keep prior work out of it.
 | Oct 26 | Harness-backed agents verify on Linux CI (accept / freeze reject / seed fail) | `.github/workflows/ci.yml` `agents-harness-verify` |
 | Oct 27 | Evaluation plan: three bug families, held-out variants, ground truth, gameplay checks | `docs/evaluation.md` |
 | Oct 27 | Test specs for the first three families (drafts awaiting approval) | `specs/` |
-| Oct 27 | Muse Spark spec writer: plain English to a validated test spec, then human approval | `nightshift/spec_writer.py` |
+| Oct 27 | Muse Spark spec writer: plain English to a validated test spec, then human approval | `expectrail/spec_writer.py` |
 | Oct 26 | Overnight loop auto/live/offline + filmable trust evidence | `agents/loop.py`, `agents/keys.py`, `agents/trust.py` |
 | Oct 26 | Filmable morning report: before/after frames + overnight rollup | `agents/report.py`, `agents/loop.py`, `agents/fixtures/frames/` |
-| Oct 27 | Verifier suite completeness: clean + held-out kinds in decide() | `nightshift/evaluator.py`, `agents/verifier.py`, `agents/fixtures/obs-clean.json` |
+| Oct 27 | Verifier suite completeness: clean + held-out kinds in decide() | `expectrail/evaluator.py`, `agents/verifier.py`, `agents/fixtures/obs-clean.json` |
 | Oct 27 | Harness clean-replay abort falls back to fixture clean obs | `agents/verifier.py` |
 | Oct 27 | Suite provenance + trust deny-by-absence for clean/held-out/evaluator | `agents/isolation.py`, `agents/verifier.py`, `agents/trust.py` |
 | Oct 27 | Trace-native gameplay gate (min Δx / end-on-floor / below-ground) | `agents/gameplay.py`, `agents/verifier.py`, `agents/fixtures/trace-*.json` |
@@ -48,7 +48,7 @@ something; keep prior work out of it.
 | Oct 27 | Fall-through spec approved by Sean (coins and player-visible held until their bugs and SAM numbers exist) | `specs/player-stays-above-ground.json` |
 | Oct 27 | Clean-v1 Muse prompt (no answer leak), gitignored `.env`, Muse env scrub, honest deny-by-absence docs | `agents/fixer.py`, `agents/keys.py`, `README.md`, `docs/contracts.md` |
 | Oct 27 | Live Muse Code v1 film under clean-v1 (muse.log + prove package) | `bench/live-muse-clean-v1/` |
-| Oct 27 | Real held-out check: verifier replays candidates on private held-out routes (`NIGHTSHIFT_HELDOUT_DIR`), CI fetch via secret, held-out variants v3/v4 in the private repo | `agents/verifier.py`, `.github/workflows/ci.yml`, `docs/evaluation.md` |
+| Oct 27 | Real held-out check: verifier replays candidates on private held-out routes (`EXPECTRAIL_HELDOUT_DIR`), CI fetch via secret, held-out variants v3/v4 in the private repo | `agents/verifier.py`, `.github/workflows/ci.yml`, `docs/evaluation.md` |
 | Oct 27 | Bounded Muse retries, daily E2E, OS sandbox canary, future-work honesty scrub | `agents/loop.py`, `agents/daily.py`, `agents/sandbox.py` |
 | Oct 27 | CI contract: never put `secrets.*` in job-level `if` (workflow start failure) | `tests/test_agents.py`, `.github/workflows/ci.yml` |
 | Oct 27 | First live Muse Spark spec draft (reviewed, not approved: object prompts too generic for SAM) | `bench/spec-writer-live/` |
@@ -62,9 +62,9 @@ something; keep prior work out of it.
 | Oct 28 | Gate 2 Muse screenshot judge (`screenshots-v1`) wired into bench-compare with fixture + live paths | `agents/muse_judge.py`, `agents/bench_compare.py`, `agents/fixtures/muse-judge-*.log` |
 | Oct 28 | Hostile-feedback film beat: refused check-weakening requests, scripted hostile fixer through the real guard hook, verifier accept, signed RC; shot list and what-is-real table | `agents/film_feedback.py`, `docs/feedback-recording.md` |
 | Oct 28 | Feedback sorting and drafting can run on Muse Spark Open (open weights) through Baseten's OpenAI-compatible endpoint (`--sorter open`); the intake records the serving host | `agents/feedback.py`, `contracts/feedback-intake.schema.json`, `.github/workflows/feedback-live.yml` |
-| Oct 28 | Open weights: Muse Glimmer 30B as the vision backend behind SAM's interface (same sampling, confirm, cache, needs-review), Glimmer probe workflow, spec drafting on Muse Spark Open | `agents/glimmer_client.py`, `agents/sam_observations.py`, `.github/workflows/glimmer-probe.yml`, `nightshift/spec_writer.py`, `docs/open-weights.md` |
+| Oct 28 | Open weights: Muse Glimmer 30B as the vision backend behind SAM's interface (same sampling, confirm, cache, needs-review), Glimmer probe workflow, spec drafting on Muse Spark Open | `agents/glimmer_client.py`, `agents/sam_observations.py`, `.github/workflows/glimmer-probe.yml`, `expectrail/spec_writer.py`, `docs/open-weights.md` |
 | Oct 29 | Glimmer runs on a Fireworks on-demand deployment (it left serverless on Sep 25): the deployment id is a setting (GLIMMER_MODEL), and runs wake a scaled-to-zero deployment first | `agents/glimmer_client.py`, `.github/workflows/glimmer-probe.yml`, `docs/open-weights.md` |
-| Oct 29 | Gate 2 fix matrix: every development variant under the screenshots and Nightshift conditions, same files, budget, editable globs and verifier; manual workflow, offline path in CI | `agents/matrix.py`, `agents/fixer.py`, `.github/workflows/fix-matrix.yml`, `docs/evaluation.md` |
+| Oct 29 | Gate 2 fix matrix: every development variant under the screenshots and Expectrail conditions, same files, budget, editable globs and verifier; manual workflow, offline path in CI | `agents/matrix.py`, `agents/fixer.py`, `.github/workflows/fix-matrix.yml`, `docs/evaluation.md` |
 | Oct 29 | Fix matrix: held-out mode for the one-shot run after the code freeze, publishing ids, outcomes and decisions only | `agents/matrix.py`, `.github/workflows/fix-matrix.yml`, `tests/test_matrix.py` |
 | Oct 29 | Detection results recorded in `bench/detection/` from the runs' own annotations, with a one-command rerun per set | `agents/bench_collect.py`, `bench/rerun-detection.sh`, `bench/detection/` |
 | Oct 29 | Judge benchmark: 15 candidate fixes with a known answer (8 undo a seeded bug, 7 only look fixed or change nothing), judged by the verifier with and without SAM and by Muse Code from screenshots; the screenshot judge takes several frames and runs inside bubblewrap | `agents/judge_bench.py`, `agents/muse_judge.py`, `agents/fixtures/fix-*.patch`, `.github/workflows/fix-matrix.yml` |
@@ -72,3 +72,4 @@ something; keep prior work out of it.
 | Oct 29 | Cross-platform harness runner: auto-detect macOS Godot in `tools/godot_mac/`, bypass xvfb-run on darwin, platform tests | `harness/run.py`, `tests/test_harness.py` |
 | Oct 29 | Interactive Hosted Demo & Audit Vault: 4-tab interactive web app with 8 seeded variants, 4 rejected exploits, SAM 3.1 overlays, coordinate traces, Gate 2 benchmark matrix, and signed release candidate | `docs/demo/index.html`, `docs/index.html`, `README.md` |
 | Oct 30 | Muse Spark Open measured live on public material: model ids the key can see, the three approved checks drafted again and compared with the approved specs, the ground draft judged on the seeded bugs, the scripted playtest sorted, side by side with Muse Spark on Meta's API | `agents/spark_open.py`, `.github/workflows/spark-open.yml`, `tests/test_spark_open.py` |
+| Oct 30 | Renamed the project from Nightshift to Expectrail: the `expectrail` package, `expectrail.<kind>/v0` formats, `EXPECTRAIL_*` settings, the harness autoload, the signing key name, workflows and docs; names from before the rename are still read (`nightshift.<kind>/v0`, `NIGHTSHIFT_*`, the old key name, the fix matrix's old condition name), and recorded runs in `bench/` were collected again with no number changed | `expectrail/legacy.py`, `tests/test_legacy.py`, every file that named the project |

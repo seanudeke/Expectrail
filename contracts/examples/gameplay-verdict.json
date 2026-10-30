@@ -1,5 +1,5 @@
 {
-  "format": "nightshift.gameplay-verdict/v0",
+  "format": "expectrail.gameplay-verdict/v0",
   "spec": "player-motion-on-smoke",
   "result": "fail",
   "reason": "player delta-x below minimum (freeze or short walk)",

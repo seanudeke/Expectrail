@@ -1,5 +1,5 @@
 {
-  "format": "nightshift.test-spec/v0",
+  "format": "expectrail.test-spec/v0",
   "id": "coins-visible",
   "instruction": "The coins are visible.",
   "objects": {

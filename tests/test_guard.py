@@ -16,7 +16,7 @@ from agents.fixer import run_fixer
 from agents.orchestrator import build_repair_request
 from agents.patchutil import path_allowed
 from harness.run import REPO
-from nightshift.contracts import load
+from expectrail.contracts import load
 
 HOOK = REPO / "agents" / "fixer_guard_hook.py"
 EDITABLE = ["player/**", "level/**"]
@@ -145,7 +145,7 @@ class HookTest(unittest.TestCase):
 
 class BwrapGuardTest(unittest.TestCase):
     """Under bubblewrap the agent's shell cannot rewrite the guard. Runs where bwrap works (CI's
-    agents-sandbox job sets NIGHTSHIFT_REQUIRE_BWRAP=1 so a skip there is a failure)."""
+    agents-sandbox job sets EXPECTRAIL_REQUIRE_BWRAP=1 so a skip there is a failure)."""
 
     def test_bwrap_mounts_muse_read_only(self):
         from agents.sandbox import _bwrap_cmd
@@ -181,7 +181,7 @@ class BwrapGuardTest(unittest.TestCase):
         from agents.sandbox import _bwrap_cmd, _bwrap_usable
 
         if not _bwrap_usable():
-            if os.environ.get("NIGHTSHIFT_REQUIRE_BWRAP") == "1":
+            if os.environ.get("EXPECTRAIL_REQUIRE_BWRAP") == "1":
                 self.fail("bubblewrap is required here but not usable")
             self.skipTest("bubblewrap not usable here")
         with tempfile.TemporaryDirectory() as tmp:
@@ -202,7 +202,7 @@ class BwrapGuardTest(unittest.TestCase):
         from agents.sandbox import _bwrap_cmd, _bwrap_usable
 
         if not _bwrap_usable():
-            if os.environ.get("NIGHTSHIFT_REQUIRE_BWRAP") == "1":
+            if os.environ.get("EXPECTRAIL_REQUIRE_BWRAP") == "1":
                 self.fail("bubblewrap is required here but not usable")
             self.skipTest("bubblewrap not usable here")
         with tempfile.TemporaryDirectory() as tmp:

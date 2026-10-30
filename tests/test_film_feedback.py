@@ -8,7 +8,7 @@ from pathlib import Path
 
 from agents import film_feedback as film
 from harness.run import REPO
-from nightshift import spec_writer
+from expectrail import spec_writer
 
 
 class FilmFeedbackTest(unittest.TestCase):

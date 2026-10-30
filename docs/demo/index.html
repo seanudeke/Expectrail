@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nightshift — Interactive Hosted Demo & Audit Vault</title>
+  <title>Expectrail — Interactive Hosted Demo & Audit Vault</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -46,14 +46,14 @@
         </div>
         <div>
           <div class="flex items-center gap-2">
-            <span class="font-extrabold tracking-tight text-white text-lg">Nightshift</span>
+            <span class="font-extrabold tracking-tight text-white text-lg">Expectrail</span>
             <span class="px-2 py-0.5 text-xs font-semibold rounded bg-slate-800 text-slate-300 border border-slate-700">Indie Track</span>
             <span class="px-2 py-0.5 text-xs font-semibold rounded bg-brand-500/10 text-brand-400 border border-brand-500/30 flex items-center gap-1.5">
               <span class="w-1.5 h-1.5 rounded-full bg-brand-400 animate-pulse"></span>
               Audit Vault Active
             </span>
           </div>
-          <p class="text-xs text-slate-400 hidden sm:block">An overnight crew of Meta models that finds, fixes, and verifies game regressions</p>
+          <p class="text-xs text-slate-400 hidden sm:block">An independent verification layer for changes made by AI coding agents</p>
         </div>
       </div>
 
@@ -90,7 +90,7 @@
         <span>•</span>
         <span class="text-emerald-400 font-medium">$0 API Spend / Stored Evidence</span>
         <span>•</span>
-        <a href="https://github.com/seanudeke/Nightshift" target="_blank" class="hover:text-white underline decoration-slate-600">GitHub Repo</a>
+        <a href="https://github.com/seanudeke/Expectrail" target="_blank" class="hover:text-white underline decoration-slate-600">GitHub Repo</a>
       </div>
     </div>
   </div>
@@ -115,7 +115,7 @@
 
         <div class="flex flex-wrap items-center gap-2">
           <select id="case-select" onchange="selectCase(this.value)" class="bg-slate-950 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2 font-medium focus:ring-1 focus:ring-brand-500 focus:outline-none">
-            <optgroup label="Seeded Bugs (Verified Nightshift Fixes)">
+            <optgroup label="Seeded Bugs (Verified Expectrail Fixes)">
               <option value="physics-v1" selected>physics-fall-through / v1 (Player Collision Mask)</option>
               <option value="physics-v2">physics-fall-through / v2 (Ground Tileset Collision)</option>
               <option value="missing-texture-v1">missing-texture / v1 (Coin Texture File UID Missing)</option>
@@ -313,11 +313,11 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
       <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <h2 class="text-base font-bold text-white">Full Gate 2 Benchmark Matrix</h2>
-          <p class="text-xs text-slate-400">Nightshift (Deterministic Verifier + SAM 3.1) vs. Muse Code with Raw Screenshots Baseline.</p>
+          <p class="text-xs text-slate-400">Expectrail (Deterministic Verifier + SAM 3.1) vs. Muse Code with Raw Screenshots Baseline.</p>
         </div>
         <div class="flex items-center gap-3 font-mono text-xs">
           <div class="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
-            Nightshift: <span class="font-bold text-white">8 of 8</span> Fixed
+            Expectrail: <span class="font-bold text-white">8 of 8</span> Fixed
           </div>
           <div class="px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400">
             SAM 3.1: <span class="font-bold text-white">8 of 8</span> Caught (vs 3/8 without)
@@ -337,7 +337,7 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
               <th class="px-4 py-3">Defect Mechanism</th>
               <th class="px-4 py-3">Caught (No SAM)</th>
               <th class="px-4 py-3">Caught (With SAM 3.1)</th>
-              <th class="px-4 py-3">Nightshift Fix</th>
+              <th class="px-4 py-3">Expectrail Fix</th>
               <th class="px-4 py-3">Screenshots Fix</th>
             </tr>
           </thead>
@@ -430,7 +430,7 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
       
       <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
         <h2 class="text-base font-bold text-white">Trust Architecture: "Deny-by-Absence" & Canary Probes</h2>
-        <p class="text-xs text-slate-400">Coding agents must never hold signing keys or test assertions. Nightshift isolates the fixer by physical unmounting, verified by an active honeytoken canary probe.</p>
+        <p class="text-xs text-slate-400">Coding agents must never hold signing keys or test assertions. Expectrail isolates the fixer by physical unmounting, verified by an active honeytoken canary probe.</p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -461,7 +461,7 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
                 <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300">PROTECTED ZONE</span>
               </div>
               <ul class="text-slate-300 space-y-1 pl-4 list-disc text-[11px]">
-                <li>Ed25519 Private Signing Key (`.nightshift-signing-key`)</li>
+                <li>Ed25519 Private Signing Key (`.expectrail-signing-key`)</li>
                 <li>Private Held-Out Routes (`seanudeke/Nightshift-heldout`)</li>
                 <li>Reference Ground Polygon & Deterministic Evaluator</li>
               </ul>
@@ -479,15 +479,15 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
           <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-xs font-mono space-y-2 leading-relaxed">
             <div class="text-slate-400">// Scripted attempts by compromised agent reading poison:</div>
             <div class="flex items-center justify-between text-slate-300">
-              <span>fixer-root/.nightshift-signing-key</span>
+              <span>fixer-root/.expectrail-signing-key</span>
               <span class="text-emerald-400 font-bold">DENIED (Absent)</span>
             </div>
             <div class="flex items-center justify-between text-slate-300">
-              <span>fixer/player/.nightshift-signing-key</span>
+              <span>fixer/player/.expectrail-signing-key</span>
               <span class="text-emerald-400 font-bold">DENIED (Absent)</span>
             </div>
             <div class="flex items-center justify-between text-slate-300">
-              <span>absolute-root/.nightshift-signing-key</span>
+              <span>absolute-root/.expectrail-signing-key</span>
               <span class="text-emerald-400 font-bold">DENIED (Missing)</span>
             </div>
             <div class="flex items-center justify-between text-slate-300">
@@ -532,7 +532,7 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
 
       <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 font-mono text-xs space-y-6 leading-relaxed">
         <div class="border-b border-slate-800 pb-4">
-          <h1 class="text-lg font-bold text-white"># Nightshift morning report</h1>
+          <h1 class="text-lg font-bold text-white"># Expectrail morning report</h1>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-3 text-slate-300">
             <div><span class="text-slate-500">Decision:</span> <span class="text-emerald-400 font-bold">accept</span></div>
             <div><span class="text-slate-500">Request:</span> rr-gate1</div>
@@ -591,7 +591,7 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
 
   <!-- Footer -->
   <footer class="border-t border-slate-800/80 bg-slate-900/60 py-4 px-4 text-center text-xs text-slate-500 font-mono">
-    Nightshift • Meta Global AI Hackathon (Indie Track) • Oct 26 – Nov 4, 2026 • Verified Apache-2.0
+    Expectrail • Meta Global AI Hackathon (Indie Track) • Oct 26 – Nov 4, 2026 • Verified Apache-2.0
   </footer>
 
   <!-- Interactive Demo Logic -->

@@ -1,7 +1,7 @@
 # Demo path, live
 
 Written by `python3 -m agents.bench_collect --demo --run <id>` from the run's own annotations; do not edit by hand.
-Run [40990485265](https://github.com/seanudeke/Nightshift/actions/runs/40990485265), 2026-10-30, commit ffdd3e7. Each run is the overnight loop end to end in its own job: Wonder triage, Muse Code in bubblewrap, the Godot harness, the verifier with SAM on and the private held-out routes, the signed morning report and the trust check.
+Run [40990485265](https://github.com/seanudeke/Expectrail/actions/runs/40990485265), 2026-10-30, commit ffdd3e7. Each run is the overnight loop end to end in its own job: Wonder triage, Muse Code in bubblewrap, the Godot harness, the verifier with SAM on and the private held-out routes, the signed morning report and the trust check.
 
 **10 of 10 runs accepted**, 10 on the first attempt. Muse Code attempts 10; SAM images 11,640 ($29.10); 148 job minutes.
 

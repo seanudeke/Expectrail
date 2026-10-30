@@ -11,7 +11,7 @@ from unittest import mock
 
 import agents.sam_observations as sam
 import agents.sam_warm as sw
-from nightshift.contracts import validate
+from expectrail.contracts import validate
 from tests.test_agents import _held_out_dir, _request
 from tests.test_sam import COINS, REPO, ROBOT, H, Scene, W, box_token, png_bytes
 
@@ -34,7 +34,7 @@ class SharedCacheTest(unittest.TestCase):
 
     def patches(self, transport, env):
         real = sam.MetaSamClient
-        return [mock.patch.dict(os.environ, {"NIGHTSHIFT_OBS_PROVIDER": "sam", **env}),
+        return [mock.patch.dict(os.environ, {"EXPECTRAIL_OBS_PROVIDER": "sam", **env}),
                 mock.patch("agents.verifier.harness_run", side_effect=self.harness),
                 mock.patch("agents.heldout_bench.harness_run", side_effect=self.harness),
                 mock.patch.object(sam, "MetaSamClient", side_effect=lambda: real(transport=transport, retries=0))]
@@ -45,8 +45,8 @@ class SharedCacheTest(unittest.TestCase):
         for p in ps:
             p.start()
         try:
-            if "NIGHTSHIFT_HELDOUT_DIR" not in (env or {}):
-                os.environ.pop("NIGHTSHIFT_HELDOUT_DIR", None)
+            if "EXPECTRAIL_HELDOUT_DIR" not in (env or {}):
+                os.environ.pop("EXPECTRAIL_HELDOUT_DIR", None)
             return sw.warm(scope, self.root / "warm", self.root / "cache")
         finally:
             for p in reversed(ps):
@@ -54,11 +54,11 @@ class SharedCacheTest(unittest.TestCase):
 
     def verify(self, cache_dir):
         from agents.verifier import verify
-        ps = self.patches(self.scene.transport, {"NIGHTSHIFT_SAM_CACHE": str(cache_dir)})
+        ps = self.patches(self.scene.transport, {"EXPECTRAIL_SAM_CACHE": str(cache_dir)})
         for p in ps:
             p.start()
         try:
-            os.environ.pop("NIGHTSHIFT_HELDOUT_DIR", None)
+            os.environ.pop("EXPECTRAIL_HELDOUT_DIR", None)
             doc = verify(_request(), REPO / "agents" / "fixtures" / "fix-collision-mask.patch", self.root / "verify")
         finally:
             for p in reversed(ps):
@@ -125,7 +125,7 @@ class SharedCacheTest(unittest.TestCase):
 
     def test_all_scope_adds_every_private_route_and_never_prints_their_names(self):
         held = _held_out_dir(self.root)
-        doc = self.warm(scope="all", env={"NIGHTSHIFT_HELDOUT_DIR": str(held)})
+        doc = self.warm(scope="all", env={"EXPECTRAIL_HELDOUT_DIR": str(held)})
         self.assertTrue(doc["shared"])
         self.assertEqual(doc["routes"], 2)
         self.assertEqual(doc["answers"], 240)  # the fake renders the same frames on both routes
@@ -138,7 +138,7 @@ class SharedCacheTest(unittest.TestCase):
             self.warm(scope="all")
 
     def test_sam_off_refuses(self):
-        with mock.patch.dict(os.environ, {"NIGHTSHIFT_OBS_PROVIDER": "trace"}), self.assertRaises(SystemExit):
+        with mock.patch.dict(os.environ, {"EXPECTRAIL_OBS_PROVIDER": "trace"}), self.assertRaises(SystemExit):
             sw.warm("public", self.root / "warm", self.root / "cache")
 
     def test_count_reads_a_cache_directory(self):

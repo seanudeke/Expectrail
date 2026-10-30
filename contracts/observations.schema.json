@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/seanudeke/nightshift/contracts/observations.schema.json",
+  "$id": "https://github.com/seanudeke/expectrail/contracts/observations.schema.json",
   "title": "Observations: what SAM 3.1 found in the frames of one replay",
   "description": "An object with an empty list in a frame was looked for and not found. A frame that is absent was not looked at.",
   "type": "object",
@@ -12,7 +12,7 @@
   ],
   "properties": {
     "format": {
-      "const": "nightshift.observations/v0"
+      "enum": ["expectrail.observations/v0", "nightshift.observations/v0"]
     },
     "replay": {
       "type": "object",

@@ -1,5 +1,5 @@
 {
-  "format": "nightshift.test-spec/v0",
+  "format": "expectrail.test-spec/v0",
   "id": "player-always-visible",
   "instruction": "The player is always visible.",
   "objects": {

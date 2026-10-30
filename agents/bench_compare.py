@@ -1,6 +1,6 @@
-"""Gate 2: Muse Code (screenshot judge) vs Nightshift verifier.
+"""Gate 2: Muse Code (screenshot judge) vs Expectrail verifier.
 
-    # Offline (CI-safe): Nightshift arm + Muse skipped
+    # Offline (CI-safe): Expectrail arm + Muse skipped
     python3 -m agents.bench_compare --out runs/bench-compare
 
     # Live Muse screenshot judge (spends Meta credit)
@@ -10,7 +10,7 @@
     python3 -m agents.bench_compare --out runs/bench-compare \\
         --fixture-muse path/to/muse.log
 
-Exit 0 when Nightshift passes; with --live-muse / --fixture-muse also requires a
+Exit 0 when Expectrail passes; with --live-muse / --fixture-muse also requires a
 parseable Muse decision (never invents accept).
 """
 from __future__ import annotations
@@ -30,16 +30,16 @@ from agents.muse_judge import (
     run_muse_judge,
 )
 from harness.run import REPO
-from nightshift.contracts import validate
+from expectrail.contracts import validate
 
-FORMAT = "nightshift.bench-compare/v0"
+FORMAT = "expectrail.bench-compare/v0"
 CASE_ID = "physics-fall-through/v1-fix-collision-mask"
 DEFAULT_BEFORE = REPO / "agents" / "fixtures" / "frames" / "before-fall.png"
 DEFAULT_AFTER = REPO / "agents" / "fixtures" / "frames" / "after-fixed.png"
 
 
-def _nightshift_arm(out: Path, *, skip_harness: bool) -> dict:
-    gate_out = out / "nightshift"
+def _expectrail_arm(out: Path, *, skip_harness: bool) -> dict:
+    gate_out = out / "expectrail"
     argv = [
         "--out", str(gate_out),
         "--candidate-patch",
@@ -64,7 +64,7 @@ def _nightshift_arm(out: Path, *, skip_harness: bool) -> dict:
         public_key = rc.get("publicKey")
         validate(rc, "release-candidate")
     return {
-        "name": "nightshift",
+        "name": "expectrail",
         "ok": code == 0 and decision == "accept",
         "decision": decision,
         "exitCode": code,
@@ -72,9 +72,9 @@ def _nightshift_arm(out: Path, *, skip_harness: bool) -> dict:
         "morning": str(morning) if morning.is_file() else None,
         "publicKey": public_key,
         "detail": (
-            "Nightshift fixture fix → verifier accept + Ed25519 RC"
+            "Expectrail fixture fix → verifier accept + Ed25519 RC"
             if code == 0 and decision == "accept"
-            else f"Nightshift arm failed exit={code} decision={decision}"
+            else f"Expectrail arm failed exit={code} decision={decision}"
         ),
     }
 
@@ -97,8 +97,8 @@ def _muse_screenshots_arm(
             "# Muse Code screenshot-judge arm",
             "",
             f"- Prompt policy: `{PROMPT_POLICY}`",
-            "- Same before/after frames as the Nightshift film",
-            "- Muse sees images + plain English only (no Nightshift specs)",
+            "- Same before/after frames as the Expectrail film",
+            "- Muse sees images + plain English only (no Expectrail specs)",
             "- Record `muse.log` + `judge.json`; never forge accept without a log",
             "",
         ]) + "\n",
@@ -137,7 +137,7 @@ def _muse_screenshots_arm(
     return {
         "name": "muse-screenshots",
         # ok = judge completed with a valid decision (accept|reject|needs-review).
-        # accept alone is not required — disagreement with Nightshift is filmed.
+        # accept alone is not required — disagreement with Expectrail is filmed.
         "ok": decided,
         "skipped": False,
         "decision": decision,
@@ -152,10 +152,10 @@ def _muse_screenshots_arm(
     }
 
 
-def _agreement(nightshift: dict, muse: dict) -> str | None:
+def _agreement(expectrail: dict, muse: dict) -> str | None:
     if muse.get("skipped") or muse.get("decision") is None:
         return None
-    nd = nightshift.get("decision")
+    nd = expectrail.get("decision")
     md = muse.get("decision")
     if nd is None or md is None:
         return None
@@ -175,7 +175,7 @@ def build_compare(
     out.mkdir(parents=True, exist_ok=True)
     before = before or DEFAULT_BEFORE
     after = after or DEFAULT_AFTER
-    nightshift = _nightshift_arm(out, skip_harness=skip_harness)
+    expectrail = _expectrail_arm(out, skip_harness=skip_harness)
     muse = _muse_screenshots_arm(
         out,
         live=live_muse,
@@ -184,7 +184,7 @@ def build_compare(
         after=after,
         instruction=instruction,
     )
-    agreement = _agreement(nightshift, muse)
+    agreement = _agreement(expectrail, muse)
     doc = {
         "format": FORMAT,
         "generatedAt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -202,30 +202,30 @@ def build_compare(
                 "needs-review": "images inconclusive",
             },
         },
-        "arms": [nightshift, muse],
-        "nightshiftOk": bool(nightshift.get("ok")),
+        "arms": [expectrail, muse],
+        "expectrailOk": bool(expectrail.get("ok")),
         "museOk": muse.get("ok"),
         "agreement": agreement,
         "detail": (
-            f"Nightshift vs Muse screenshots ({PROMPT_POLICY}); agreement={agreement}"
+            f"Expectrail vs Muse screenshots ({PROMPT_POLICY}); agreement={agreement}"
             if agreement
-            else "Nightshift arm filmed; Muse screenshot arm skipped or incomplete"
+            else "Expectrail arm filmed; Muse screenshot arm skipped or incomplete"
         ),
     }
     (out / "bench-compare.json").write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
     lines = [
-        "# Bench compare — Muse screenshots vs Nightshift",
+        "# Bench compare — Muse screenshots vs Expectrail",
         "",
         f"- Generated: `{doc['generatedAt']}`",
         f"- Case: `{doc['case']['caseId']}`",
-        f"- Nightshift: {'PASS' if nightshift.get('ok') else 'FAIL'} — {nightshift.get('detail')}",
+        f"- Expectrail: {'PASS' if expectrail.get('ok') else 'FAIL'} — {expectrail.get('detail')}",
     ]
-    if nightshift.get("publicKey"):
-        lines.append(f"- Nightshift RC public key: `{nightshift['publicKey']}`")
+    if expectrail.get("publicKey"):
+        lines.append(f"- Expectrail RC public key: `{expectrail['publicKey']}`")
     if muse.get("skipped"):
         muse_label = "SKIPPED"
     elif muse.get("ok"):
-        # Valid decision — not a Nightshift-style "PASS win"; label the decision explicitly.
+        # Valid decision — not an Expectrail-style "PASS win"; label the decision explicitly.
         muse_label = f"DECIDED ({muse.get('decision')})"
     else:
         muse_label = "FAIL"
@@ -233,7 +233,7 @@ def build_compare(
     if agreement:
         lines.append(
             f"- Agreement: `{agreement}` "
-            f"(Nightshift `{nightshift.get('decision')}` vs Muse `{muse.get('decision')}`)"
+            f"(Expectrail `{expectrail.get('decision')}` vs Muse `{muse.get('decision')}`)"
         )
     lines.append("")
     (out / "bench-compare.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -244,7 +244,7 @@ def main(argv: list[str] | None = None) -> int:
     load_dotenv()
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--out", type=Path, default=Path("runs/bench-compare"))
-    p.add_argument("--harness", action="store_true", help="Godot replay for Nightshift arm")
+    p.add_argument("--harness", action="store_true", help="Godot replay for Expectrail arm")
     p.add_argument("--live-muse", action="store_true",
                    help="run Muse screenshot judge (requires META_API_KEY + muse)")
     p.add_argument("--fixture-muse", type=Path,
@@ -266,7 +266,7 @@ def main(argv: list[str] | None = None) -> int:
         instruction=args.instruction,
     )
     print((args.out / "bench-compare.md").read_text(encoding="utf-8"))
-    if not doc.get("nightshiftOk"):
+    if not doc.get("expectrailOk"):
         return 1
     if args.live_muse or args.fixture_muse:
         muse = next(a for a in doc["arms"] if a["name"] == "muse-screenshots")

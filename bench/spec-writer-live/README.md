@@ -3,7 +3,7 @@
 Sean ran the spec writer against the live Meta Model API on his machine:
 
 ```sh
-python3 -m nightshift.spec_writer draft "The player never falls through the ground" \
+python3 -m expectrail.spec_writer draft "The player never falls through the ground" \
   --id player-stays-above-ground-live --out spec-live.json
 ```
 

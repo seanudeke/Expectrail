@@ -147,10 +147,10 @@ def main(argv: list[str] | None = None) -> int:
 
     p = argparse.ArgumentParser(description="Check the Glimmer deployment on Fireworks; --restore fixes its scaling.")
     p.add_argument("--restore", action="store_true", help="put min 0 / max 1 / 15-minute scale-to-zero back if needed")
-    p.add_argument("--model", default=None, help="accounts/<account>/deployments/<id> (default NIGHTSHIFT_GLIMMER_MODEL)")
+    p.add_argument("--model", default=None, help="accounts/<account>/deployments/<id> (default EXPECTRAIL_GLIMMER_MODEL)")
     args = p.parse_args(argv)
     load_dotenv()
-    model = args.model or os.environ.get("NIGHTSHIFT_GLIMMER_MODEL") or MODEL
+    model = args.model or os.environ.get("EXPECTRAIL_GLIMMER_MODEL") or MODEL
     target = parse_deployment(model)
     if target is None:
         print(f"{model} is not a Fireworks deployment id (accounts/<account>/deployments/<id>); nothing to check")

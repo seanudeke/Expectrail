@@ -1,5 +1,5 @@
 {
-  "format": "nightshift.feedback-intake/v0",
+  "format": "expectrail.feedback-intake/v0",
   "id": "fb-playtest-transcript",
   "source": {
     "kind": "transcript",

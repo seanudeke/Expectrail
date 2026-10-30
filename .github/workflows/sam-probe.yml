@@ -265,18 +265,18 @@ jobs:
         if: env.HELDOUT_TOKEN_SET == 'true'
         # A probe reports every private route, even for a candidate that already failed.
         run: |
-          echo "NIGHTSHIFT_HELDOUT_DIR=$GITHUB_WORKSPACE/heldout-set" >> "$GITHUB_ENV"
-          echo "NIGHTSHIFT_HELDOUT_AFTER_FAIL=run" >> "$GITHUB_ENV"
+          echo "EXPECTRAIL_HELDOUT_DIR=$GITHUB_WORKSPACE/heldout-set" >> "$GITHUB_ENV"
+          echo "EXPECTRAIL_HELDOUT_AFTER_FAIL=run" >> "$GITHUB_ENV"
       - name: Gate 1 accept path with SAM on
         env:
           MODEL_API_KEY: ${{ secrets.MODEL_API_KEY || secrets.META_API_KEY }}
-          NIGHTSHIFT_OBS_PROVIDER: sam
+          EXPECTRAIL_OBS_PROVIDER: sam
           EVERY: ${{ inputs.every }}
           CANDIDATE: ${{ inputs.candidate }}
         run: |
           [[ "$EVERY" =~ ^[0-9]+$ ]] || { echo "::error::every must be a number"; exit 1; }
           [[ "$CANDIDATE" =~ ^agents/fixtures/[A-Za-z0-9._-]+\.patch$ && -f "$CANDIDATE" ]] || { echo "::error::candidate must be a patch under agents/fixtures/"; exit 1; }
-          export NIGHTSHIFT_SAM_EVERY="$EVERY"
+          export EXPECTRAIL_SAM_EVERY="$EVERY"
           set +e
           python -m agents.gate1 --out runs/sam-verify --candidate-patch "$CANDIDATE"
           echo "gate1 exit $?"
@@ -341,7 +341,7 @@ jobs:
       - name: List the active variants (ids only)
         id: list
         env:
-          NIGHTSHIFT_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
+          EXPECTRAIL_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
           RUNS: ${{ inputs.runs }}
           SET: ${{ inputs.mode == 'dev-bench' && 'dev' || 'held-out' }}
         run: |
@@ -396,19 +396,19 @@ jobs:
       - name: Glimmer - restore the deployment's scaling if needed, and wake it
         if: inputs.judge == 'glimmer-engine'
         env:
-          NIGHTSHIFT_GLIMMER_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
-          NIGHTSHIFT_GLIMMER_MODEL: ${{ vars.GLIMMER_MODEL }}
+          EXPECTRAIL_GLIMMER_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
+          EXPECTRAIL_GLIMMER_MODEL: ${{ vars.GLIMMER_MODEL }}
         run: |
-          python -m agents.fireworks_deployment --restore --model "$NIGHTSHIFT_GLIMMER_MODEL"
+          python -m agents.fireworks_deployment --restore --model "$EXPECTRAIL_GLIMMER_MODEL"
           python -m agents.glimmer_client --warm --timeout 900
       - name: Render and judge the variant (output kept on the runner)
         env:
           MODEL_API_KEY: ${{ inputs.judge != 'glimmer-engine' && (secrets.MODEL_API_KEY || secrets.META_API_KEY) || '' }}
-          NIGHTSHIFT_GLIMMER_API_KEY: ${{ inputs.judge == 'glimmer-engine' && secrets.FIREWORKS_API_KEY || '' }}
-          NIGHTSHIFT_GLIMMER_MODEL: ${{ vars.GLIMMER_MODEL }}
-          NIGHTSHIFT_VISION_BACKEND: ${{ inputs.judge == 'glimmer-engine' && 'glimmer-engine' || 'sam' }}
-          NIGHTSHIFT_OBS_PROVIDER: sam
-          NIGHTSHIFT_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
+          EXPECTRAIL_GLIMMER_API_KEY: ${{ inputs.judge == 'glimmer-engine' && secrets.FIREWORKS_API_KEY || '' }}
+          EXPECTRAIL_GLIMMER_MODEL: ${{ vars.GLIMMER_MODEL }}
+          EXPECTRAIL_VISION_BACKEND: ${{ inputs.judge == 'glimmer-engine' && 'glimmer-engine' || 'sam' }}
+          EXPECTRAIL_OBS_PROVIDER: sam
+          EXPECTRAIL_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
           VARIANT: ${{ matrix.variant }}
         run: |
           [[ "$VARIANT" =~ ^[a-z0-9_-]+(/[a-z0-9_-]+){0,2}$ ]] || { echo "::error::unexpected variant id"; exit 1; }

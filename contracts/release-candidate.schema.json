@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/seanudeke/nightshift/contracts/release-candidate.schema.json",
+  "$id": "https://github.com/seanudeke/expectrail/contracts/release-candidate.schema.json",
   "title": "Release candidate: signed pointer to a verification decision",
   "description": "Verifier-host adjunct written by the morning report. Ed25519 signatures; private key stays off the fixer host. publicKey is the published half.",
   "type": "object",
@@ -17,7 +17,7 @@
   ],
   "properties": {
     "format": {
-      "const": "nightshift.release-candidate/v0"
+      "enum": ["expectrail.release-candidate/v0", "nightshift.release-candidate/v0"]
     },
     "verificationSha256": {
       "type": "string",

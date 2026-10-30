@@ -7,8 +7,8 @@ from agents.observations import (
     DRAWN_GROUND_OFFSET, drawn_surface_under, from_trace_synthetic, with_reference_ground,
 )
 from harness.run import REPO
-from nightshift.contracts import load
-from nightshift.evaluator import evaluate
+from expectrail.contracts import load
+from expectrail.evaluator import evaluate
 from tests.test_sam import LEVEL, ground_trace
 
 X0, WIDTH = -100, 800

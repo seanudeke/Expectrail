@@ -1,7 +1,7 @@
 {
-  "format": "nightshift.demo-loop/v0",
+  "format": "expectrail.demo-loop/v0",
   "run": 40990485265,
-  "runUrl": "https://github.com/seanudeke/Nightshift/actions/runs/40990485265",
+  "runUrl": "https://github.com/seanudeke/Expectrail/actions/runs/40990485265",
   "commit": "ffdd3e743967fa6b20f02a55cc828de43b57a269",
   "date": "2026-10-30T02:14:04Z",
   "asked": 10,

@@ -10,6 +10,9 @@ from pathlib import Path
 
 # Closed list for Gate 1 filmable trust. Basename match under fixer-work.
 FIXER_FORBIDDEN_BASENAMES = frozenset({
+    ".expectrail-signing-key",
+    # The same key's name before the October 30 rename (expectrail/legacy.py): a stale copy must
+    # never mount either.
     ".nightshift-signing-key",
     "obs-clean.json",
     "obs-held-out.json",

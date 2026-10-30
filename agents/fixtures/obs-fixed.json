@@ -1,10 +1,10 @@
 {
-  "format": "nightshift.observations/v0",
+  "format": "expectrail.observations/v0",
   "replay": {
     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   },
   "model": {
-    "name": "nightshift.trace-synthetic",
+    "name": "expectrail.trace-synthetic",
     "prompts": {
       "player": "small robot character",
       "ground": "grass-topped ground"

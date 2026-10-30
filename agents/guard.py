@@ -15,7 +15,7 @@ The guard is evidence and a first line. The hard gate stays where it was: the ve
 from the candidate patch, and the fixer refuses any patch outside the editable globs. Shell
 commands are logged, not parsed.
 
-Set NIGHTSHIFT_FIXER_GUARD=0 to run Muse without it (for comparing runs).
+Set EXPECTRAIL_FIXER_GUARD=0 to run Muse without it (for comparing runs).
 """
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ from collections import Counter
 from pathlib import Path
 
 HOOK_SOURCE = Path(__file__).resolve().parent / "fixer_guard_hook.py"
-GUARD_ENV = "NIGHTSHIFT_FIXER_GUARD"
+GUARD_ENV = "EXPECTRAIL_FIXER_GUARD"
 MUSE_DIR = ".muse"
 HOOK_REL = f"{MUSE_DIR}/hooks/fixer_guard.py"
 POLICY_REL = f"{MUSE_DIR}/fixer-guard.json"

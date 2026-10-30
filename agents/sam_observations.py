@@ -1,20 +1,20 @@
 """SAM 3.1 observations through the Meta Model API: the ``sam`` observations provider.
 
 For the frames of one replay, asks SAM 3.1 (model ``sam-3.1`` on ``POST /v1/responses``) to find
-each object a test spec names, and writes nightshift.observations/v0 with boxes in pixels of the
+each object a test spec names, and writes expectrail.observations/v0 with boxes in pixels of the
 captured frame. The evaluator then decides the spec over that document, exactly as it does for the
 position-log stand-in.
 
 Looking at fewer frames (docs/sam.md has the reasoning and the limits):
-  - sample: every Nth frame of the spec's window, plus its last frame (NIGHTSHIFT_SAM_EVERY,
+  - sample: every Nth frame of the spec's window, plus its last frame (EXPECTRAIL_SAM_EVERY,
     default 4, the rate in docs/evaluation.md);
   - refine: when the spec fails on a sampled frame, look at every frame between the last passing
     sample and the first failing one, so the first bad frame in the report is exact;
   - confirm: a sampled pass is never the last word. Before passing, look at every remaining
     frame of the window, so a pass (and an accept built on it) rests on every frame; a fail
-    found on a sample stays cheap (NIGHTSHIFT_SAM_CONFIRM=0 turns this off, for probing only);
+    found on a sample stays cheap (EXPECTRAIL_SAM_CONFIRM=0 turns this off, for probing only);
   - cache: results are kept by frame SHA-256, prompt, model and request settings, so a frame that
-    was already judged is never sent again (NIGHTSHIFT_SAM_CACHE; "off" disables it).
+    was already judged is never sent again (EXPECTRAIL_SAM_CACHE; "off" disables it).
 A frame that was not looked at is absent from the document, as the contract says.
 
 The key is read from MODEL_API_KEY in the environment (or the gitignored .env) and nowhere else.
@@ -22,7 +22,7 @@ It is not on the fixer's environment allowlist (agents.keys.MUSE_ENV_ALLOWLIST),
 never sees it.
 
     python3 -m agents.sam_observations --run runs/seeded/clean --spec specs/player-stays-above-ground.json
-    NIGHTSHIFT_OBS_PROVIDER=sam ...   # the verifier then uses this module through agents.observations
+    EXPECTRAIL_OBS_PROVIDER=sam ...   # the verifier then uses this module through agents.observations
 """
 from __future__ import annotations
 
@@ -45,10 +45,10 @@ from concurrent.futures import FIRST_EXCEPTION, ThreadPoolExecutor, wait
 from pathlib import Path
 from typing import Callable
 
-from nightshift.evaluator import evaluate
+from expectrail.evaluator import evaluate
 
-API_BASE = os.environ.get("NIGHTSHIFT_MODEL_API_BASE", "https://api.meta.ai/v1")
-MODEL = os.environ.get("NIGHTSHIFT_SAM_MODEL", "sam-3.1")
+API_BASE = os.environ.get("EXPECTRAIL_MODEL_API_BASE", "https://api.meta.ai/v1")
+MODEL = os.environ.get("EXPECTRAIL_SAM_MODEL", "sam-3.1")
 KEY_ENV = "MODEL_API_KEY"
 # Image segmentation price on the Meta Model API: $2.50 per 1,000 images
 # (https://dev.meta.ai/docs/pricing-rate-limits, read Oct 29, 2026). Used only to report cost.
@@ -81,15 +81,15 @@ def sam_usd_since(before: dict) -> float:
     now = sam_usage()
     return ((now["images"] - before["images"]) * USD_PER_IMAGE
             + (now["videoFrames"] - before.get("videoFrames", 0)) * USD_PER_VIDEO_FRAME)
-EVERY_ENV = "NIGHTSHIFT_SAM_EVERY"
-CONFIRM_ENV = "NIGHTSHIFT_SAM_CONFIRM"
-CACHE_ENV = "NIGHTSHIFT_SAM_CACHE"
-WORKERS_ENV = "NIGHTSHIFT_SAM_WORKERS"
+EVERY_ENV = "EXPECTRAIL_SAM_EVERY"
+CONFIRM_ENV = "EXPECTRAIL_SAM_CONFIRM"
+CACHE_ENV = "EXPECTRAIL_SAM_CACHE"
+WORKERS_ENV = "EXPECTRAIL_SAM_WORKERS"
 # Which model looks at the frames: sam (SAM 3.1, Meta Model API) or glimmer (Muse Glimmer, open
 # weights, agents.glimmer_client). Everything else in this module is the same for both.
-BACKEND_ENV = "NIGHTSHIFT_VISION_BACKEND"
+BACKEND_ENV = "EXPECTRAIL_VISION_BACKEND"
 BACKENDS = ("sam", "glimmer", "both", "glimmer-engine")
-GLIMMER_ALONE_ENV = "NIGHTSHIFT_GLIMMER_ALONE"
+GLIMMER_ALONE_ENV = "EXPECTRAIL_GLIMMER_ALONE"
 VISION_LABELS = {"sam": "SAM 3.1", "glimmer": "Muse Glimmer", "both": "SAM 3.1 with Muse Glimmer",
                  "glimmer-engine": "Muse Glimmer checked against the engine"}
 DEFAULT_EVERY = 4
@@ -376,7 +376,7 @@ def default_client(verdict: bool = False):
     when both see it), or Glimmer checked against the engine (agents.engine_check).
 
     ``verdict=True`` is the verifier's path. Glimmer alone is refused there unless
-    NIGHTSHIFT_GLIMMER_ALONE=1: the fixer controls the candidate's pixels, and a vision-language
+    EXPECTRAIL_GLIMMER_ALONE=1: the fixer controls the candidate's pixels, and a vision-language
     model can be talked into a pass by text drawn into the game. Use ``both``, or
     ``glimmer-engine`` to run without SAM, for verdicts.
     """
@@ -412,7 +412,7 @@ def default_cache_dir() -> Path | None:
     if raw is not None:
         return None if raw.strip().lower() in ("", "off", "0", "none") else Path(raw).expanduser()
     base = os.environ.get("XDG_CACHE_HOME") or str(Path.home() / ".cache")
-    return Path(base) / "nightshift" / "sam"
+    return Path(base) / "expectrail" / "sam"
 
 
 class Cache:
@@ -608,7 +608,7 @@ def _document(observed, prompts, model, replay_sha256, captured, in_window, ever
         # of the prompted objects against them (e.g. the robot SAM sees against the level's ground).
         model_doc["engineObjects"] = engine_names
     return {
-        "format": "nightshift.observations/v0",
+        "format": "expectrail.observations/v0",
         "replay": {"sha256": replay_sha256},
         "model": model_doc,
         "frames": [{"frame": i, "objects": {**{name: observed[i][name] for name in prompts},
@@ -642,7 +642,7 @@ def from_replay(
     workers: int | None = None,
     stats: dict | None = None,
 ) -> dict:
-    """nightshift.observations/v0 for one replay, from SAM 3.1. Matches the seam's signature.
+    """expectrail.observations/v0 for one replay, from SAM 3.1. Matches the seam's signature.
 
     ``trace``, ``fps`` and ``physics_tps`` are accepted for the seam and unused: SAM looks at
     pixels only. ``spec`` supplies the prompts, the frame window and the assertion that decides
@@ -731,7 +731,7 @@ def _from_replay(frames_dir, replay_sha256, *, spec, prompts, every, refine, con
 
 def main(argv: list[str] | None = None) -> int:
     from agents.keys import load_dotenv
-    from nightshift.contracts import digest, load, validate
+    from expectrail.contracts import digest, load, validate
 
     p = argparse.ArgumentParser(description="SAM 3.1 observations for one replay, then the verdict.")
     p.add_argument("--run", type=Path, required=True, help="a harness run dir with frames/ and replay.json")

@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 
 from agents.signing import ALGORITHM, generate_run_keys, sign_payload, verify_payload
-from nightshift.contracts import ContractError, digest, load, validate
+from expectrail.contracts import ContractError, digest, load, validate
 
 
 def gameplay_film_stub(morning: dict | None) -> dict | None:
@@ -315,7 +315,7 @@ def build_report(
     request_id = cand.get("request", "")
     request_sha = cand.get("requestSha256")
     lines = [
-        "# Nightshift morning report",
+        "# Expectrail morning report",
         "",
         f"**Decision:** `{decision}`",
         f"**Request:** `{request_id}`",
@@ -422,7 +422,7 @@ def build_report(
     public_b64 = base64.b64encode(pub_path.read_bytes()).decode("ascii")
     signature = sign_payload(payload, key_bytes)
     rc = {
-        "format": "nightshift.release-candidate/v0",
+        "format": "expectrail.release-candidate/v0",
         "verificationSha256": hashlib.sha256(payload).hexdigest(),
         "decision": decision,
         "signature": signature,
@@ -508,7 +508,7 @@ def write_loop_rollup(out: Path, *, summary: dict) -> Path:
     cost = summary.get("cost") or {}
     timing = summary.get("timing") or {}
     lines = [
-        "# Nightshift overnight morning rollup",
+        "# Expectrail overnight morning rollup",
         "",
         f"**Accepted:** {accepted} of {runs}",
         f"**Mode:** `{summary.get('mode', {}).get('mode', 'unknown')}`",

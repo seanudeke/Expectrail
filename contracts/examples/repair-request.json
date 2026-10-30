@@ -1,5 +1,5 @@
 {
-  "format": "nightshift.repair-request/v0",
+  "format": "expectrail.repair-request/v0",
   "id": "rr-0001",
   "base": {
     "tree": "6a273587d64e10a74c0160256cfdc4964f16ed3e93fe7ab178e1bedc5071b280",
@@ -26,7 +26,7 @@
         }
       },
       "verdict": {
-        "format": "nightshift.verdict/v0",
+        "format": "expectrail.verdict/v0",
         "spec": {
           "id": "player-stays-above-ground",
           "sha256": "b13a75f28147198706af53354e8f3d1b5f2e4bf93febe60ffd4d8698e3e0085d"
@@ -77,12 +77,12 @@
         ],
         "framesJudged": 3,
         "evaluator": {
-          "name": "nightshift.evaluator",
+          "name": "expectrail.evaluator",
           "version": "0.1.0"
         }
       },
       "route": {
-        "format": "nightshift.route/v0",
+        "format": "expectrail.route/v0",
         "name": "smoke",
         "description": "Walk right, jump twice, stop. Four seconds at 60 ticks per second.",
         "ticks": 240,

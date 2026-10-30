@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/seanudeke/nightshift/contracts/test-spec.schema.json",
+  "$id": "https://github.com/seanudeke/expectrail/contracts/test-spec.schema.json",
   "title": "Test spec: a plain-English check turned into something an evaluator can decide",
   "description": "Muse Spark drafts it from the instruction; a person approves it once. The fixer may read it but never edit it.",
   "type": "object",
@@ -14,7 +14,7 @@
   "additionalProperties": false,
   "properties": {
     "format": {
-      "const": "nightshift.test-spec/v0"
+      "enum": ["expectrail.test-spec/v0", "nightshift.test-spec/v0"]
     },
     "id": {
       "type": "string",

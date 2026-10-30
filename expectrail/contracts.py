@@ -5,6 +5,8 @@ import hashlib
 import json
 from pathlib import Path
 
+from expectrail.legacy import format_ids
+
 SCHEMAS = Path(__file__).resolve().parent.parent / "contracts"
 KINDS = (
     "route",
@@ -35,9 +37,10 @@ def digest(doc) -> str:
 
 
 def kind_of(doc) -> str:
+    """The document kind; nightshift.<kind>/v0 IDs from before the rename read the same way."""
     fmt = doc.get("format", "") if isinstance(doc, dict) else ""
     for kind in KINDS:
-        if fmt == f"nightshift.{kind}/v0":
+        if fmt in format_ids(kind):
             return kind
     raise ContractError(f"unknown or missing format: {fmt!r}")
 
@@ -83,5 +86,5 @@ def validate(doc, kind: str | None = None) -> str:
 def load(path: Path, kind: str | None = None) -> dict:
     doc = json.loads(Path(path).read_text(encoding="utf-8"))
     if kind and kind_of(doc) != kind:
-        raise ContractError(f"{path}: expected nightshift.{kind}/v0")
+        raise ContractError(f"{path}: expected expectrail.{kind}/v0")
     return doc

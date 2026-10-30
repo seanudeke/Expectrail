@@ -6,7 +6,7 @@ The game under test is copied into <out>/work, a seeded-bug patch is applied the
 harness autoload is added to the copy only. Godot renders every frame through Movie Maker mode
 (fixed frame rate, non-real time, so a slow machine gives the same frames, more slowly). Output:
 <out>/frames/f00000000.png ..., <out>/trace.json (ground truth, for checking the evaluator, never
-shown to the fixer) and <out>/replay.json (nightshift.replay/v0).
+shown to the fixer) and <out>/replay.json (expectrail.replay/v0).
 """
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 GODOT_VERSION = "4.7.2-stable"
-AUTOLOAD = 'NightshiftHarness="*res://nightshift_harness.gd"'
+AUTOLOAD = 'ExpectrailHarness="*res://expectrail_harness.gd"'
 DEFAULT_CACHE_DIR = REPO / "tools" / "godot_cache" / ".godot"
 
 
@@ -32,7 +32,7 @@ def sha256_file(path: Path) -> str:
 
 
 def find_godot() -> Path:
-    env = os.environ.get("NIGHTSHIFT_GODOT")
+    env = os.environ.get("EXPECTRAIL_GODOT")
     if env:
         return Path(env)
     if sys.platform == "darwin":
@@ -46,7 +46,7 @@ def find_godot() -> Path:
 
 
 def get_cache_dir() -> Path:
-    env = os.environ.get("NIGHTSHIFT_GODOT_CACHE")
+    env = os.environ.get("EXPECTRAIL_GODOT_CACHE")
     if env:
         p = Path(env)
         return p if p.name == ".godot" else p / ".godot"
@@ -140,7 +140,7 @@ def prepare(game: Path, work: Path, patch: Path | None = None, patches: list[Pat
         shutil.copytree(cache, work / ".godot")
     ordered = list(patches) if patches is not None else ([patch] if patch is not None else [])
     apply_patches(work, ordered)
-    for name in ("nightshift_harness.gd", "nightshift_recorder.gd"):
+    for name in ("expectrail_harness.gd", "expectrail_recorder.gd"):
         shutil.copy(REPO / "harness" / "godot" / name, work / name)
     project = (work / "project.godot").read_text(encoding="utf-8")
     if "[autoload]" in project:
@@ -224,7 +224,7 @@ def run(route: Path, out: Path, patch: Path | None = None, game: Path | None = N
     trace = json.loads((out / "trace.json").read_text(encoding="utf-8"))
     primary = ordered[0] if ordered else None
     replay = {
-        "format": "nightshift.replay/v0",
+        "format": "expectrail.replay/v0",
         "route": {"name": route_doc.get("name", route.stem), "sha256": sha256_file(route)},
         "game": {"tree": tree_digest(game),
                  "patch": ",".join(str(p) for p in ordered) if ordered else None,

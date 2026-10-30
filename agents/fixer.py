@@ -31,7 +31,7 @@ from agents.patchutil import assert_editable, path_allowed, sha256_file
 from agents.guard import collect_guard, guard_enabled, install_guard
 from agents.sandbox import detect_sandbox, muse_kind_for, muse_workspace_root, run_muse_sandboxed
 from harness.run import REPO, apply_patches, tree_digest
-from nightshift.contracts import load, validate
+from expectrail.contracts import load, validate
 
 # Muse / tooling may drop sidecar files into the worktree; never ship them as the candidate.
 IGNORE_DIFF_NAMES = {
@@ -146,7 +146,7 @@ def prepare_fixer_workspace(request: dict, work: Path, game: Path | None = None)
         if not seed_path.is_absolute():
             seed_path = REPO / seed_path
         apply_patches(work, [seed_path])
-    forbidden = work / ".nightshift-signing-key"
+    forbidden = work / ".expectrail-signing-key"
     if forbidden.exists():
         raise SystemExit("signing key must not be present in the fixer workspace")
     return work

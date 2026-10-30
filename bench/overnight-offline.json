@@ -1,5 +1,5 @@
 {
-  "format": "nightshift.agents-bench-stub/v0",
+  "format": "expectrail.agents-bench-stub/v0",
   "provenance": "agents-offline-stub",
   "disclaimer": "Placeholder stub. Regenerate from a real overnight summary.json via python -m agents.bench. Not a Gate-2 evaluation matrix result; not Meta API spend.",
   "mode": "offline",

@@ -1,6 +1,6 @@
 """Muse Code screenshot judge (Gate 2 baseline arm).
 
-Muse sees failing/fixed frames and a plain-English instruction — no Nightshift
+Muse sees failing/fixed frames and a plain-English instruction — no Expectrail
 specs, verdicts, held-out routes, or evaluator. Parses a single line decision.
 
     python3 -m agents.muse_judge --out runs/muse-judge \\
@@ -55,7 +55,7 @@ def build_judge_prompt(
     after_rel: str | list[str],
     instruction: str,
 ) -> str:
-    """Plain-English screenshot judge prompt (no structured Nightshift checks).
+    """Plain-English screenshot judge prompt (no structured Expectrail checks).
 
     ``before_rel`` / ``after_rel`` may each be one frame or several frames of the same route.
     """
@@ -76,7 +76,7 @@ def build_judge_prompt(
 - Open and look at every image file listed.
 - Do not invent file contents you could not open.
 - Do not run the game, edit files, or search for tests, specs, keys, or evaluator code.
-- Do not use Nightshift contracts, held-out routes, or SAM.
+- Do not use Expectrail contracts, held-out routes, or SAM.
 
 ## Output
 End your reply with exactly one of these lines (lowercase):
@@ -181,13 +181,13 @@ def run_muse_judge(
     prompt = build_judge_prompt(
         before_rel=before_rel, after_rel=after_rel, instruction=instruction,
     )
-    # Template must not name Nightshift artifact files (may say "do not use held-out").
+    # Template must not name Expectrail artifact files (may say "do not use held-out").
     template_blob = build_judge_prompt(
         before_rel=before_rel, after_rel=after_rel, instruction="x",
     ).lower()
     for tok in (
         "verification.json", "repair-request.json", "obs-fixed.json",
-        "release-candidate.json", "nightshift.verification",
+        "release-candidate.json", "expectrail.verification",
     ):
         if tok in template_blob:
             raise AssertionError(f"screenshots-v1 template leaked {tok!r}")

@@ -10,8 +10,8 @@ import urllib.error
 from pathlib import Path
 from unittest import mock
 
-from nightshift import spec_writer
-from nightshift.contracts import validate
+from expectrail import spec_writer
+from expectrail.contracts import validate
 
 SPEC = {"objects": {"player": {"prompt": "blue robot"}, "ground": {"prompt": "grass-topped ground"}},
         "assertion": {"type": "never-crosses", "object": "player",
@@ -62,7 +62,7 @@ class SparkOpenSpecWriterTest(unittest.TestCase):
         self.assertEqual(modes, ["json_schema", "json_object"])
 
     def test_cli_needs_a_key_and_uses_spark_open(self):
-        with mock.patch.dict(os.environ, {"BASETEN_API_KEY": "", "NIGHTSHIFT_OPEN_API_KEY": ""}):
+        with mock.patch.dict(os.environ, {"BASETEN_API_KEY": "", "EXPECTRAIL_OPEN_API_KEY": ""}):
             self.assertEqual(spec_writer.main(["draft", "The player never falls.", "--endpoint", "open"]), 1)
         with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {"BASETEN_API_KEY": "bk"}):
             out = Path(tmp) / "draft.json"

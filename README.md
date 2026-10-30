@@ -1,11 +1,13 @@
-# Nightshift
+# Expectrail
 
 **An independent verification layer for changes made by AI coding agents.** The agent that writes a
-change never certifies it. Nightshift runs the changed software, checks what it actually does against
+change never certifies it. Expectrail runs the changed software, checks what it actually does against
 checks a person approved, and accepts the change only if every check passes, including checks the
 agent cannot see or reach. We built and measured it on a game first, because a game shows the gap
 plainly: a change can pass every test and still be visibly broken. Built for the Meta Global AI
-Developer Hackathon (Indie track), October 26 to November 4, 2026.
+Developer Hackathon (Indie track), October 26 to November 4, 2026. Expectrail was called Nightshift
+until October 30; the old names still work wherever a file or setting from before then turns up
+([`expectrail/legacy.py`](expectrail/legacy.py)).
 
 ## The problem
 
@@ -15,7 +17,7 @@ grades its own homework. Games show the gap most plainly: the demo game we use s
 at all, so existing checks catch none of our seeded bugs, and most of what goes wrong (a robot
 falling through the floor, coins that are not drawn, a character hidden behind trees) shows only on
 screen. Our first users would be teams that let coding agents change code their tests do not cover,
-starting with game studios, where that gap is widest. Nightshift fits into the pipeline they already
+starting with game studios, where that gap is widest. Expectrail fits into the pipeline they already
 have as one more gate; it does not replace their CI, their tests or their QA.
 
 ## How it works
@@ -55,8 +57,8 @@ flowchart LR
    and clean checks. It accepts a candidate only if every check passes, and it rejects a fix that
    only looks right, such as one that stops the fall by drawing the robot inside the ground.
 5. **Hand over.** Before-and-after frames, the diff, unresolved cases, and a release candidate
-   signed outside the fixer's reach, for a person to approve. It can run overnight, hence the name;
-   the point is the sign-off, not the hour.
+   signed outside the fixer's reach, for a person to approve. It can run overnight; the point is the
+   sign-off, not the hour.
 
 **Feedback goes in, but never straight to the fixer.** Muse Voice Transcribe turns a recorded
 playtest into who-said-what. When Muse Spark sorts a remark as a bug and writes a one-line check
@@ -82,24 +84,24 @@ detection benches replay every variant, and the clean game, on five routes.
 
 | What we measured | Result | Run |
 | --- | --- | --- |
-| Held-out bugs caught, SAM 3.1 on | **8 of 8**, no false alarm on the clean game | [41003749744](https://github.com/seanudeke/Nightshift/actions/runs/41003749744) |
-| Held-out bugs caught, Muse Glimmer checked against the engine, no SAM | **8 of 8**, no false alarm | [41003751876](https://github.com/seanudeke/Nightshift/actions/runs/41003751876) |
+| Held-out bugs caught, SAM 3.1 on | **8 of 8**, no false alarm on the clean game | [41003749744](https://github.com/seanudeke/Expectrail/actions/runs/41003749744) |
+| Held-out bugs caught, Muse Glimmer checked against the engine, no SAM | **8 of 8**, no false alarm | [41003751876](https://github.com/seanudeke/Expectrail/actions/runs/41003751876) |
 | Held-out bugs caught with no vision model (engine and gameplay checks only) | 4 of 8 | the same two runs |
-| Development bugs caught: SAM on / Glimmer, no SAM / no vision | 8 of 8 / 8 of 8 / 3 of 8 | [40841977642](https://github.com/seanudeke/Nightshift/actions/runs/40841977642), [41001182605](https://github.com/seanudeke/Nightshift/actions/runs/41001182605) |
-| Bad fixes that only look right, accepted by the judge (7 cases, 2 runs) | Nightshift with SAM **0 of 7**; Nightshift without SAM 3 of 7; Muse from screenshots 2 of 7 | [judge](bench/judge/README.md) |
-| Good fixes accepted by the judge (8 cases, 2 runs) | Nightshift 8 of 8 both runs; Muse from screenshots 6 and 7 of 8 | [judge](bench/judge/README.md) |
-| Development bugs fixed by Muse Code | 8 of 8 with Nightshift's evidence; 8 of 8 from screenshots alone | [fix matrix](bench/fix-matrix/README.md) |
-| Demo path, live, end to end, 10 independent runs | **10 of 10 accepted**, each on the first attempt; 12 to 22 minutes a run (median 14.5) and 1,164 SAM images ($2.91) a run; Muse Code's share is not reported per run | [40990485265](https://github.com/seanudeke/Nightshift/actions/runs/40990485265) |
+| Development bugs caught: SAM on / Glimmer, no SAM / no vision | 8 of 8 / 8 of 8 / 3 of 8 | [40841977642](https://github.com/seanudeke/Expectrail/actions/runs/40841977642), [41001182605](https://github.com/seanudeke/Expectrail/actions/runs/41001182605) |
+| Bad fixes that only look right, accepted by the judge (7 cases, 2 runs) | Expectrail with SAM **0 of 7**; Expectrail without SAM 3 of 7; Muse from screenshots 2 of 7 | [judge](bench/judge/README.md) |
+| Good fixes accepted by the judge (8 cases, 2 runs) | Expectrail 8 of 8 both runs; Muse from screenshots 6 and 7 of 8 | [judge](bench/judge/README.md) |
+| Development bugs fixed by Muse Code | 8 of 8 with Expectrail's evidence; 8 of 8 from screenshots alone | [fix matrix](bench/fix-matrix/README.md) |
+| Demo path, live, end to end, 10 independent runs | **10 of 10 accepted**, each on the first attempt; 12 to 22 minutes a run (median 14.5) and 1,164 SAM images ($2.91) a run; Muse Code's share is not reported per run | [40990485265](https://github.com/seanudeke/Expectrail/actions/runs/40990485265) |
 | Meta Model API spend, whole team, through October 29 | $204 (SAM images at list price are almost all of it) | [cost](bench/cost/README.md) |
 
 ### Who catches a fix that only looks right
 
 Each of these stops the reported symptom, or claims to, and each is wrong. The same candidate patch
-went to three judges, twice: Nightshift with SAM, Nightshift with the position log only (no vision),
+went to three judges, twice: Expectrail with SAM, Expectrail with the position log only (no vision),
 and Muse Code looking at before-and-after screenshots ([`bench/judge/`](bench/judge/README.md)). The
 decisions were the same in both runs.
 
-| The candidate fix | Nightshift with SAM | Nightshift, position log only | Muse Code from screenshots |
+| The candidate fix | Expectrail with SAM | Expectrail, position log only | Muse Code from screenshots |
 | --- | --- | --- | --- |
 | Stops the fall but draws the robot inside the ground | reject | **accept** | **accept** |
 | Stops the fall by moving the floor's collision below its art | reject | reject | **accept** |
@@ -110,17 +112,17 @@ decisions were the same in both runs.
 | Stops the sinking but leaves the robot floating | reject | reject | reject |
 
 The first row is the one to remember: a model looking at the same pictures said the fall was fixed,
-and only the measured check against the clean game said no. On the 8 correct fixes, Nightshift with
+and only the measured check against the clean game said no. On the 8 correct fixes, Expectrail with
 SAM accepted all 8 in both runs, and it accepted all 10 live runs of the demo path: 26 judgments of a
 correct fix, none rejected. Muse Code from screenshots turned down one correct fix in both runs and
 another in one.
 
 What these numbers do and do not say:
 
-- **The verifier is where Nightshift wins, not the fixer.** Muse Code fixes all 8 development bugs
+- **The verifier is where Expectrail wins, not the fixer.** Muse Code fixes all 8 development bugs
   from screenshots alone, as well as with our evidence. What screenshots alone cannot do is judge:
   Muse from screenshots accepted 2 of 7 fixes that only look right (one lowers the floor, one sinks
-  the robot) and turned down one or two good ones. Nightshift with SAM accepted none of the bad and
+  the robot) and turned down one or two good ones. Expectrail with SAM accepted none of the bad and
   all of the good, in both runs.
 - **One held-out catch came after a miss.** The first held-out runs caught 7 of 8. The eighth
   (sinking/v4) draws the floor away from where it collides, and every check measured the robot
@@ -150,7 +152,7 @@ SAM 3.1 stays the default: Glimmer's boxes are too loose for the ground check, s
 judged on the engine's position log, and a Glimmer bench takes about eight times the job minutes.
 [docs/open-weights.md](docs/open-weights.md)
 
-## What Nightshift cannot do yet
+## What Expectrail cannot do yet
 
 - **It checks a change; it does not explore.** It replays fixed routes, so a bug where no route goes
   is invisible to it. Today it is visual regression checking, not playtesting.
@@ -186,7 +188,7 @@ frames are in each run's artifacts.
   - **Case Explorer:** Switch across all 8 development defect variants (physics fall-through, missing textures, layering, sinking) and 4 rejected anti-cheat exploits (freezing player, hiding player, sinking player, lowering the floor).
   - **Visual & HUD Simulation:** An illustrated replay with coordinate traces, floor boundaries and SAM 3.1 boxes drawn over it.
   - **Audit Breakdown:** Complete 4-suite verifier checks (`regression`, `gameplay`, `clean`, `held-out`).
-  - **Benchmark Matrix:** development set: 8 of 8 bugs caught with SAM, 3 of 8 without; 8 of 8 fixed both from screenshots and with Nightshift (see [`bench/`](bench)).
+  - **Benchmark Matrix:** development set: 8 of 8 bugs caught with SAM, 3 of 8 without; 8 of 8 fixed both from screenshots and with Expectrail (see [`bench/`](bench)).
   - **Security & Trust:** Visualizes "Deny-by-absence" isolation and canary probe denials.
   - **Morning Report & Release Candidate:** 7:30 AM rollup and Ed25519 signature audit.
 
@@ -204,7 +206,7 @@ python3 -m harness.run --route harness/routes/smoke.json --out runs/fall \
   --patch bugs/physics-fall-through/v1.patch                 # the same route with a seeded bug
 python3 -m harness.replay_check --route harness/routes/smoke.json --runs 10
 
-python3 -m nightshift.evaluator --spec contracts/examples/test-spec.json \
+python3 -m expectrail.evaluator --spec contracts/examples/test-spec.json \
   --observations contracts/examples/observations.json       # decide a check
 
 python3 -m agents.gate1 --out runs/gate1 --skip-harness \
@@ -214,8 +216,8 @@ python3 -m agents.loop --out runs/loop --mode offline --runs 10
 python3 -m agents.trust --out runs/trust                    # signing key stays off the fixer
 
 # Local Meta keys: copy .env.example → .env (gitignored) and set META_API_KEY / MODEL_API_KEY
-python3 -m nightshift.spec_writer draft "The player never falls through the ground" --out /tmp/spec.json
-python3 -m nightshift.spec_writer approve /tmp/spec.json --by <you>   # Muse Spark drafts; a person approves
+python3 -m expectrail.spec_writer draft "The player never falls through the ground" --out /tmp/spec.json
+python3 -m expectrail.spec_writer approve /tmp/spec.json --by <you>   # Muse Spark drafts; a person approves
 python3 -m agents.feedback --offline --transcript agents/fixtures/feedback/playtest-transcript.json \
   --fixture agents/fixtures/feedback/spark-fixture.json --out runs/feedback   # feedback → draft specs
 python3 -m agents.loop --out runs/loop --mode offline --feedback runs/feedback/feedback-intake.json
@@ -234,7 +236,7 @@ See [agents/README.md](agents/README.md) for Muse API / Muse Code setup (`.env`,
 | --- | --- | --- |
 | [`contracts/`](contracts) | Schemas and examples for everything passed between lanes ([docs](docs/contracts.md)) | everyone |
 | [`harness/`](harness) | Route player, Movie Maker capture under Xvfb, replay check ([docs](docs/harness.md)) | Timo |
-| [`nightshift/`](nightshift) | Contract helpers, the reference evaluator, and the Muse Spark spec writer | Zayyad, Sean |
+| [`expectrail/`](expectrail) | Contract helpers, the reference evaluator, and the Muse Spark spec writer | Zayyad, Sean |
 | [`specs/`](specs) | Test specs for the bug families; a person approves each one | Sean |
 | [`bugs/`](bugs) | Seeded bugs as patches against the clean game ([evaluation plan](docs/evaluation.md)) | Sean, Timo |
 | [`docs/demo/`](docs/demo/) | Interactive demo showcase and audit vault web app | Timo |

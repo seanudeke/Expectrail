@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 from harness.run import REPO
-from nightshift.contracts import load, validate
+from expectrail.contracts import load, validate
 
 DEFAULT_OUT = REPO / "bench" / "overnight-offline.json"
 
@@ -19,7 +19,7 @@ DEFAULT_OUT = REPO / "bench" / "overnight-offline.json"
 def from_summary(summary: dict) -> dict:
     validate(summary, "overnight-summary")
     return {
-        "format": "nightshift.agents-bench-stub/v0",
+        "format": "expectrail.agents-bench-stub/v0",
         "provenance": "agents-offline-stub",
         "disclaimer": (
             "Offline agents-lane film stub regenerated from overnight-summary. "

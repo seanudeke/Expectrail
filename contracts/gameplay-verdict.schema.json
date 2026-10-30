@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/seanudeke/nightshift/contracts/gameplay-verdict.schema.json",
+  "$id": "https://github.com/seanudeke/expectrail/contracts/gameplay-verdict.schema.json",
   "title": "Gameplay verdict: trace-native motion check outside the fixer",
   "description": "Verifier-side smoke gameplay from harness/fixture traces (min delta-x, end-on-floor, no sustained below-ground). Not a SAM observations verdict. Top-level minDeltaX must match metrics.minDeltaX when both are present.",
   "type": "object",
@@ -17,7 +17,7 @@
   ],
   "properties": {
     "format": {
-      "const": "nightshift.gameplay-verdict/v0"
+      "enum": ["expectrail.gameplay-verdict/v0", "nightshift.gameplay-verdict/v0"]
     },
     "spec": {
       "type": "string",

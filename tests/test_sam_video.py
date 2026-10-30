@@ -8,7 +8,7 @@ from unittest import mock
 
 import agents.sam_observations as sam
 import agents.sam_video as sv
-from nightshift.contracts import load
+from expectrail.contracts import load
 from tests.test_sam import H, W, box_token, png_bytes
 
 VISIBLE = load(Path(__file__).resolve().parents[1] / "specs" / "player-always-visible.json", "test-spec")

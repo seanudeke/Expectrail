@@ -41,7 +41,7 @@ class JudgeBenchTest(unittest.TestCase):
 
         def fake_verify(request, candidate, out, **_kw):
             import os
-            return {"decision": decisions[os.environ["NIGHTSHIFT_OBS_PROVIDER"]], "reasons": ["r"]}
+            return {"decision": decisions[os.environ["EXPECTRAIL_OBS_PROVIDER"]], "reasons": ["r"]}
 
         def fake_harness(route, out, patches):
             (out / "frames").mkdir(parents=True, exist_ok=True)
@@ -64,15 +64,15 @@ class JudgeBenchTest(unittest.TestCase):
                     mock.patch.object(jb, "harness_run", side_effect=fake_harness), \
                     mock.patch.object(jb, "run_muse_judge", side_effect=fake_judge):
                 row = jb.run_case("bad/fall-through-hide-player", out, live=True)
-            self.assertEqual(row["decisions"], {"nightshiftNoSam": "accept", "nightshiftSam": "reject",
+            self.assertEqual(row["decisions"], {"expectrailNoSam": "accept", "expectrailSam": "reject",
                                                 "museScreenshots": "accept"})
-            self.assertEqual(row["correct"], {"nightshiftNoSam": False, "nightshiftSam": True, "museScreenshots": False})
+            self.assertEqual(row["correct"], {"expectrailNoSam": False, "expectrailSam": True, "museScreenshots": False})
             self.assertEqual(len(judged["before"]), 5)
             self.assertTrue(judged["sandboxed"])
             self.assertIn("The player falls through the ground.", judged["instruction"])
             self.assertNotIn("hide", judged["instruction"].lower())  # the judge is never told what the fixture did
             doc = jb.summarize(out)
-            self.assertEqual(doc["judges"]["nightshiftSam"]["badAccepted"], 0)
+            self.assertEqual(doc["judges"]["expectrailSam"]["badAccepted"], 0)
             self.assertEqual(doc["judges"]["museScreenshots"]["badAccepted"], 1)
             self.assertIn("| Muse from screenshots | 0 of 0 | 1 of 1 | 0 |", jb.markdown(doc))
 

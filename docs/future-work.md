@@ -1,6 +1,6 @@
 # Future work: known limits and what comes next
 
-Nightshift is meant to be an independent verification layer for changes made by AI coding agents:
+Expectrail is meant to be an independent verification layer for changes made by AI coding agents:
 the agent that writes a change never certifies it. This is a ten-day hackathon build of that idea on
 one Godot demo game, along scripted routes, with bugs we seeded ourselves. This page says plainly
 what it does not do yet and what we would build next, so anyone judging or extending it knows where
@@ -23,7 +23,7 @@ the edges are. The last section says which parts would carry over beyond games.
 ## Finding bugs
 
 **It replays; it does not explore.** A route is a fixed list of inputs. A bug that only shows up
-where the route never goes stays invisible, so today Nightshift is closer to visual regression
+where the route never goes stays invisible, so today Expectrail is closer to visual regression
 testing than to playtesting.
 
 Next:
@@ -78,7 +78,7 @@ introduced the bug.
 bugs we seeded ourselves.
 
 Next:
-- Reproduce real, historical bugs from open-source Godot games and compare Nightshift's fix with
+- Reproduce real, historical bugs from open-source Godot games and compare Expectrail's fix with
   the one the maintainers shipped.
 - Mutation-test the suite: if a deliberately broken fix passes, the suite is too weak.
 - Longer gameplay routes, with a person keeping the final say.

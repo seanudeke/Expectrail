@@ -105,7 +105,7 @@ class DeploymentTest(unittest.TestCase):
             fd.get("acme", "abc123", "k", FakeFireworks(HEALTHY, status=412))
 
     def test_cli_checks_restores_and_skips_what_is_not_a_deployment(self):
-        env = {"NIGHTSHIFT_GLIMMER_API_KEY": "k", "NIGHTSHIFT_GLIMMER_MODEL": MODEL}
+        env = {"EXPECTRAIL_GLIMMER_API_KEY": "k", "EXPECTRAIL_GLIMMER_MODEL": MODEL}
         with mock.patch.dict(os.environ, env):
             fake = FakeFireworks(SUSPENDED_RESET)
             with mock.patch("urllib.request.urlopen", fake), redirect_stdout(io.StringIO()) as out:

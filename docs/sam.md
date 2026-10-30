@@ -1,4 +1,4 @@
-# SAM 3.1 in Nightshift
+# SAM 3.1 in Expectrail
 
 SAM 3.1 turns captured frames into observations: for each object a test spec names, where it is in
 each frame and how sure the model is. The evaluator then decides the spec over those boxes with
@@ -222,12 +222,12 @@ python3 -m agents.sam_observations --run runs/seeded/physics-fall-through_v1 \
   --spec specs/player-stays-above-ground.json
 ```
 
-**The whole loop:** set `NIGHTSHIFT_OBS_PROVIDER=sam`. For the candidate, clean and held-out
+**The whole loop:** set `EXPECTRAIL_OBS_PROVIDER=sam`. For the candidate, clean and held-out
 replays, the verifier then judges:
 
 - the ground spec on the engine's position log, as before;
 - every spec in `agents.verifier.SAM_SPECS` (player always visible, coins visible) on SAM's view of
-  the same frames. Override the list with `NIGHTSHIFT_SAM_SPECS=specs/a.json,specs/b.json`.
+  the same frames. Override the list with `EXPECTRAIL_SAM_SPECS=specs/a.json,specs/b.json`.
 
 Every check must pass. The suite provenance says which source judged what. The held-out routes were
 probed with SAM on October 28: run 40698021243 on the one route the set had then, and runs 40714948968
@@ -239,7 +239,7 @@ Both are inputs on the SAM probe workflow, together with `runs` to probe only so
 
 ## What is still open
 
-1. **Held-out routes under SAM.** Run the verifier with `NIGHTSHIFT_OBS_PROVIDER=sam` on the
+1. **Held-out routes under SAM.** Run the verifier with `EXPECTRAIL_OBS_PROVIDER=sam` on the
    verifier machine and read `verdict-held-out.json`: each route lists `visuals` per spec. Coins
    in particular may be off screen on some private route.
 2. **Ground spec tolerance: decided.** Clean never goes above +7 frame px and the sinking bugs sit
@@ -270,7 +270,7 @@ does that yet.
 
 ## How it looks at fewer frames
 
-- **Sample.** Every Nth frame of the spec's window, plus its last frame (`NIGHTSHIFT_SAM_EVERY`,
+- **Sample.** Every Nth frame of the spec's window, plus its last frame (`EXPECTRAIL_SAM_EVERY`,
   default 4).
 - **Refine.** When the spec fails on a sampled frame, look at every frame between the last sample
   that passed on its own and the first failing one, so the first bad frame in the report is exact.
@@ -279,7 +279,7 @@ does that yet.
   found at the same frame as looking at every frame, from 22 of 120 frames.
 - **Confirm.** A pass on the sample is never the last word: before passing, SAM looks at every
   remaining frame of the window, so a pass, and any accept built on it, rests on every frame. A
-  fail found on the sample stays cheap. `NIGHTSHIFT_SAM_CONFIRM=0` turns this off, for probing only.
+  fail found on the sample stays cheap. `EXPECTRAIL_SAM_CONFIRM=0` turns this off, for probing only.
 - **Cache.** Results are kept by frame SHA-256, prompt, model and request settings, so a frame
   that was already judged is never sent again. Replays are bit-identical, so an unchanged route
   costs nothing the second time.
@@ -297,7 +297,7 @@ does that yet.
   the old behaviour.
 - **No private routes after a fail.** Any failed check rejects, so a candidate that has already
   failed is not replayed on the private routes: four renders and SAM's look at every frame of them
-  could not change the decision. The probes' verify mode sets `NIGHTSHIFT_HELDOUT_AFTER_FAIL=run`,
+  could not change the decision. The probes' verify mode sets `EXPECTRAIL_HELDOUT_AFTER_FAIL=run`,
   so it still reports every private route for a fake fix.
 - **Counting assertions are not sampled.** `visible` with a `minFraction` below 1 looks at every
   frame. `reaches` samples, and unless a sample already reaches the goal it looks at every frame
@@ -310,10 +310,10 @@ ground for three frames between samples passes on the sample and fails, at the e
 confirmed. Every verdict says how many frames it judged, and the observations document records
 `framesAnalyzed`, `refined` and `confirmed` against `framesCaptured`.
 
-**The cache is verifier state.** It lives outside the repo (`~/.cache/nightshift/sam`, or
-`NIGHTSHIFT_SAM_CACHE`), so it is never in the fixer's worktree, and under bubblewrap the fixer gets
+**The cache is verifier state.** It lives outside the repo (`~/.cache/expectrail/sam`, or
+`EXPECTRAIL_SAM_CACHE`), so it is never in the fixer's worktree, and under bubblewrap the fixer gets
 an empty home directory and cannot reach it. With no OS sandbox nothing stops a process on the same
-machine from writing there, so set `NIGHTSHIFT_SAM_CACHE=off` for the recorded demo and any run
+machine from writing there, so set `EXPECTRAIL_SAM_CACHE=off` for the recorded demo and any run
 whose verdict has to be beyond question. The run's shared answers come from that run's own warm
 job, are written to the cache before Muse Code starts, and are SAM's answers for the clean game's
 frames; `sam_cache: off` turns sharing off for a run.

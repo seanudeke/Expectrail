@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/seanudeke/nightshift/contracts/overnight-summary.schema.json",
+  "$id": "https://github.com/seanudeke/expectrail/contracts/overnight-summary.schema.json",
   "title": "Overnight summary: filmable loop rollup beside morning-report.md",
   "description": "Written by agents.loop after N runs. Offline cost stubs are honest zeros with provenance unmetered-offline — never invent Meta spend.",
   "type": "object",
@@ -17,7 +17,7 @@
   ],
   "properties": {
     "format": {
-      "const": "nightshift.overnight-summary/v0"
+      "enum": ["expectrail.overnight-summary/v0", "nightshift.overnight-summary/v0"]
     },
     "mode": {
       "type": "object",

@@ -10,7 +10,7 @@ which="${1:?usage: bench/rerun-detection.sh dev|held-out [ref] [sam|glimmer-engi
 ref="${2:-main}"
 judge="${3:-sam}"
 case "$judge" in sam|glimmer-engine) ;; *) echo "judge must be sam or glimmer-engine" >&2; exit 2 ;; esac
-repo="seanudeke/Nightshift"
+repo="seanudeke/Expectrail"
 case "$which" in
   dev) mode=dev-bench ;;
   held-out) mode=heldout-bench ;;

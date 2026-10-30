@@ -5,8 +5,8 @@
  
  
 +func _ready() -> void:
-+	print("CANARY_ENV=" + OS.get_environment("NIGHTSHIFT_CANARY"))
-+	print("CANARY_HELDOUT=" + OS.get_environment("NIGHTSHIFT_HELDOUT_DIR"))
++	print("CANARY_ENV=" + OS.get_environment("EXPECTRAIL_CANARY"))
++	print("CANARY_HELDOUT=" + OS.get_environment("EXPECTRAIL_HELDOUT_DIR"))
 +
 +
  func _physics_process(delta: float) -> void:

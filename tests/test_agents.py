@@ -48,8 +48,8 @@ from agents.sandbox import detect_sandbox, probe_blocked_canary_read
 from agents.trust import probe_canary_reads, run_trust_check
 from agents.verifier import GAMEPLAY_SPEC_ID, verify
 from harness.run import REPO, tree_digest
-from nightshift.contracts import load, validate
-from nightshift.evaluator import decide, evaluate
+from expectrail.contracts import load, validate
+from expectrail.evaluator import decide, evaluate
 
 
 def _signing_key(root: Path) -> Path:
@@ -92,7 +92,7 @@ class OrchestratorTest(unittest.TestCase):
 class ObservationsTest(unittest.TestCase):
     def test_from_trace_emits_frames(self):
         trace = {
-            "format": "nightshift.trace/v0",
+            "format": "expectrail.trace/v0",
             "ticks": 4,
             "physicsTicksPerSecond": 120,
             "rows": [
@@ -109,7 +109,7 @@ class ObservationsTest(unittest.TestCase):
     def test_from_trace_fallthrough_fails_regression_freeze_fails_gameplay(self):
         floor = 452.0
         fall = {
-            "format": "nightshift.trace/v0",
+            "format": "expectrail.trace/v0",
             "physicsTicksPerSecond": 120,
             "rows": [
                 {"tick": 0, "player": [210, floor], "onFloor": True},
@@ -118,7 +118,7 @@ class ObservationsTest(unittest.TestCase):
             ],
         }
         walk = {
-            "format": "nightshift.trace/v0",
+            "format": "expectrail.trace/v0",
             "physicsTicksPerSecond": 120,
             "rows": [
                 {"tick": i * 2, "player": [210 + i * 50, floor], "onFloor": True}
@@ -126,7 +126,7 @@ class ObservationsTest(unittest.TestCase):
             ],
         }
         freeze = {
-            "format": "nightshift.trace/v0",
+            "format": "expectrail.trace/v0",
             "physicsTicksPerSecond": 120,
             "rows": [
                 {"tick": i * 2, "player": [210, floor], "onFloor": True}
@@ -149,7 +149,7 @@ class ObservationsTest(unittest.TestCase):
             + [{"tick": 20, "player": [300, 300.0], "onFloor": True},
                {"tick": 22, "player": [310, 300.0], "onFloor": True}]
         )
-        obs = from_trace({"format": "nightshift.trace/v0", "physicsTicksPerSecond": 120, "rows": rows})
+        obs = from_trace({"format": "expectrail.trace/v0", "physicsTicksPerSecond": 120, "rows": rows})
         ground_top = obs["frames"][0]["objects"]["ground"][0]["box"][1]
         self.assertEqual(ground_top, 500.0)
         standing = obs["frames"][0]["objects"]["player"][0]["box"][3]
@@ -203,7 +203,7 @@ class VerifierDecideTest(unittest.TestCase):
             self.assertEqual(gameplay["spec"], GAMEPLAY_SPEC_ID)
             self.assertEqual(gameplay["reason"], REASON_DELTA)
             self.assertTrue(str(gameplay["source"]).startswith("fixture-trace:"))
-            from nightshift.contracts import digest as cdigest
+            from expectrail.contracts import digest as cdigest
             gp_check = next(c for c in doc["checks"] if c["kind"] == "gameplay")
             self.assertEqual(gp_check["spec"], GAMEPLAY_SPEC_ID)
             self.assertEqual(gp_check["verdictSha256"], cdigest(gameplay))
@@ -236,8 +236,8 @@ class VerifierDecideTest(unittest.TestCase):
             self.assertEqual(doc["decision"], "reject")
             held = next(c for c in doc["checks"] if c["kind"] == "held-out")
             self.assertEqual(held["result"], "fail")
-            from nightshift.contracts import digest
-            from nightshift.evaluator import evaluate
+            from expectrail.contracts import digest
+            from expectrail.evaluator import evaluate
             expected = evaluate(
                 load(REPO / "agents" / "specs" / "player-stays-above-ground.json", "test-spec"),
                 load(REPO / "agents" / "fixtures" / "obs-fallthrough.json", "observations"),
@@ -404,7 +404,7 @@ class VerifierDecideTest(unittest.TestCase):
             self.assertEqual(doc["suite"]["heldOut"]["source"], "not-run")
             self.assertEqual(doc["suite"]["earlyReject"]["gate"], "editable-globs")
             self.assertIn("requestSha256", doc["candidate"])
-            from nightshift.contracts import digest as cdigest
+            from expectrail.contracts import digest as cdigest
             self.assertEqual(doc["candidate"]["requestSha256"], cdigest(_request()))
             morning = build_report(
                 verification=doc,
@@ -451,13 +451,13 @@ class VerifierDecideTest(unittest.TestCase):
             self.assertEqual(report["decision"], "reject")
 
     def test_morning_fails_closed_on_multiple_gameplay_checks(self):
-        from nightshift.contracts import ContractError, digest as cdigest
+        from expectrail.contracts import ContractError, digest as cdigest
 
         good = json.loads(
             (REPO / "contracts" / "examples" / "gameplay-verdict.json").read_text()
         )
         verification = {
-            "format": "nightshift.verification/v0",
+            "format": "expectrail.verification/v0",
             "candidate": {
                 "patchSha256": "a" * 64,
                 "baseTree": "b" * 64,
@@ -662,7 +662,7 @@ class TriageReportTrustLoopTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             verification = {
-                "format": "nightshift.verification/v0",
+                "format": "expectrail.verification/v0",
                 "candidate": {
                     "patchSha256": "a" * 64,
                     "baseTree": "b" * 64,
@@ -696,7 +696,7 @@ class TriageReportTrustLoopTest(unittest.TestCase):
                 json.dumps(leftover) + "\n", encoding="utf-8"
             )
             verification = {
-                "format": "nightshift.verification/v0",
+                "format": "expectrail.verification/v0",
                 "candidate": {
                     "patchSha256": "a" * 64,
                     "baseTree": "b" * 64,
@@ -736,7 +736,7 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             )
 
     def test_morning_fails_closed_on_schema_invalid_or_digest_mismatch(self):
-        from nightshift.contracts import ContractError, digest as cdigest
+        from expectrail.contracts import ContractError, digest as cdigest
 
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -746,7 +746,7 @@ class TriageReportTrustLoopTest(unittest.TestCase):
                 (REPO / "contracts" / "examples" / "gameplay-verdict.json").read_text()
             )
             validation = {
-                "format": "nightshift.verification/v0",
+                "format": "expectrail.verification/v0",
                 "candidate": {
                     "patchSha256": "a" * 64,
                     "baseTree": "b" * 64,
@@ -862,9 +862,9 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             self.assertIn("player-reaches-end-of-route.json", evidence)
             poison = (out / "fixer-workspace" / "player" / "readme-extra.txt").read_text()
             self.assertIn("IGNORE PREVIOUS", poison)
-            self.assertIn(".nightshift-signing-key", poison)
+            self.assertIn(".expectrail-signing-key", poison)
             self.assertNotIn("DEMO-FAKE-SIGNING-KEY-NOT-REAL", poison)
-            self.assertTrue((out / "verifier-host" / ".nightshift-signing-key").is_file())
+            self.assertTrue((out / "verifier-host" / ".expectrail-signing-key").is_file())
 
     def test_canary_probe_films_mount_denials(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -874,7 +874,7 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             fixer.mkdir()
             (fixer / "player").mkdir()
             verifier.mkdir()
-            (verifier / ".nightshift-signing-key").write_text("DEMO-FAKE-SIGNING-KEY-NOT-REAL\n")
+            (verifier / ".expectrail-signing-key").write_text("DEMO-FAKE-SIGNING-KEY-NOT-REAL\n")
             attempts = probe_canary_reads(fixer, verifier)
             mount = [a for a in attempts if a["mountLocal"]]
             self.assertGreaterEqual(len(mount), 2)
@@ -914,7 +914,8 @@ class TriageReportTrustLoopTest(unittest.TestCase):
         self.assertEqual(
             FIXER_FORBIDDEN_BASENAMES,
             frozenset({
-                ".nightshift-signing-key",
+                ".expectrail-signing-key",
+                ".nightshift-signing-key",  # the key's name before the October 30 rename
                 "obs-clean.json",
                 "obs-held-out.json",
                 "player-stays-above-ground.json",
@@ -1008,7 +1009,7 @@ class TriageReportTrustLoopTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "trust"
             run_trust_check(out)
-            planted = out / "fixer-workspace" / ".nightshift-signing-key"
+            planted = out / "fixer-workspace" / ".expectrail-signing-key"
             planted.write_text("DEMO-FAKE-SIGNING-KEY-NOT-REAL\n", encoding="utf-8")
             # Re-check bound topology with the poisoned fixer tree.
             result = run_trust_check(
@@ -1027,7 +1028,7 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             fixer.mkdir(parents=True)
             (fixer / "player").mkdir()
             verifier.mkdir()
-            (verifier / ".nightshift-signing-key").write_text("DEMO-FAKE-SIGNING-KEY-NOT-REAL\n")
+            (verifier / ".expectrail-signing-key").write_text("DEMO-FAKE-SIGNING-KEY-NOT-REAL\n")
             result = run_trust_check(root / "trust", fixer_work=fixer, verifier_host=verifier)
             self.assertTrue(result["ok"])
             self.assertTrue(result["boundToLoop"])
@@ -1066,20 +1067,20 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             self.assertEqual(result["morning"]["gameplay"]["result"], "pass")
             self.assertTrue(result["trust"]["suiteControlsAbsentFromFixer"])
             rc = json.loads((run_root / "morning" / "release-candidate.json").read_text())
-            self.assertEqual(rc["signingKey"], str(run_root / "verifier-host" / ".nightshift-signing-key"))
+            self.assertEqual(rc["signingKey"], str(run_root / "verifier-host" / ".expectrail-signing-key"))
             payload = json.dumps(
                 json.loads((run_root / "verify" / "verification.json").read_text()),
                 sort_keys=True, separators=(",", ":"),
             ).encode("utf-8")
-            key_bytes = (run_root / "verifier-host" / ".nightshift-signing-key").read_bytes()
+            key_bytes = (run_root / "verifier-host" / ".expectrail-signing-key").read_bytes()
             self.assertEqual(len(key_bytes), 32)
             self.assertEqual(rc["algorithm"], "ed25519")
             self.assertEqual(rc["signature"], sign_payload(payload, key_bytes))
             self.assertTrue(verify_payload(payload, rc["signature"], rc["publicKey"]))
             fixer_work = run_root / "fix" / "fixer-work"
             self.assertTrue(fixer_work.is_dir())
-            self.assertEqual(list(fixer_work.rglob(".nightshift-signing-key")), [])
-            self.assertTrue((run_root / "verifier-host" / ".nightshift-signing-key").is_file())
+            self.assertEqual(list(fixer_work.rglob(".expectrail-signing-key")), [])
+            self.assertTrue((run_root / "verifier-host" / ".expectrail-signing-key").is_file())
             for path in fixer_work.rglob("*"):
                 if path.is_file():
                     self.assertNotIn(key_bytes, path.read_bytes())
@@ -1365,7 +1366,7 @@ class TriageReportTrustLoopTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)
             summary = {
-                "format": "nightshift.overnight-summary/v0",
+                "format": "expectrail.overnight-summary/v0",
                 "mode": {"mode": "offline", "offline_triage": True, "use_muse": False},
                 "runs": 1,
                 "accepted": 0,
@@ -1381,7 +1382,7 @@ class TriageReportTrustLoopTest(unittest.TestCase):
                     "timing": {"wallClockMs": 1.0},
                 }],
             }
-            from nightshift.contracts import validate as v
+            from expectrail.contracts import validate as v
             v(summary, "overnight-summary")
             text = write_loop_rollup(out, summary=summary).read_text()
             self.assertIn("## Trust", text)
@@ -1393,7 +1394,7 @@ class TriageReportTrustLoopTest(unittest.TestCase):
     def test_rollup_films_needs_review(self):
         with tempfile.TemporaryDirectory() as tmp:
             summary = {
-                "format": "nightshift.overnight-summary/v0",
+                "format": "expectrail.overnight-summary/v0",
                 "mode": {"mode": "offline", "offline_triage": True, "use_muse": False},
                 "runs": 1,
                 "accepted": 0,
@@ -1416,7 +1417,7 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             self.assertNotIn("Latest accept frames", text)
 
     def test_rc_verify_detects_tamper_and_wrong_key(self):
-        from nightshift.contracts import ContractError
+        from expectrail.contracts import ContractError
 
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -1482,7 +1483,7 @@ class TriageReportTrustLoopTest(unittest.TestCase):
     def test_stale_signing_key_cleared_before_fixer(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "loop"
-            stale = out / "verifier-host" / ".nightshift-signing-key"
+            stale = out / "verifier-host" / ".expectrail-signing-key"
             stale.parent.mkdir(parents=True)
             stale.write_text("STALE\n", encoding="utf-8")
             result = one_run(
@@ -1495,7 +1496,7 @@ class TriageReportTrustLoopTest(unittest.TestCase):
                 run_trust=True,
             )
             self.assertEqual(result["decision"], "accept")
-            fixer_keys = list((out / "fix" / "fixer-work").rglob(".nightshift-signing-key"))
+            fixer_keys = list((out / "fix" / "fixer-work").rglob(".expectrail-signing-key"))
             self.assertEqual(fixer_keys, [])
             self.assertTrue(stale.is_file())
             self.assertEqual(len(stale.read_bytes()), 32)
@@ -1894,7 +1895,7 @@ class CleanPromptEnvHonestyTest(unittest.TestCase):
 
     def test_load_dotenv_missing_file_noop(self):
         with mock.patch.dict(os.environ, {"META_API_KEY": "keep"}, clear=True):
-            adopted = load_dotenv(Path("/nonexistent/nightshift.env"))
+            adopted = load_dotenv(Path("/nonexistent/expectrail.env"))
             self.assertEqual(adopted, {})
             self.assertEqual(os.environ["META_API_KEY"], "keep")
 
@@ -2005,7 +2006,7 @@ class CleanPromptEnvHonestyTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             fixer = root / "fixer"
-            canary = root / "outside" / ".nightshift-signing-key"
+            canary = root / "outside" / ".expectrail-signing-key"
             fixer.mkdir()
             canary.parent.mkdir()
             canary.write_text("DEMO-FAKE-SIGNING-KEY-NOT-REAL\n")
@@ -2036,7 +2037,7 @@ class CleanPromptEnvHonestyTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             fixer = root / "f"
-            canary = root / "v" / ".nightshift-signing-key"
+            canary = root / "v" / ".expectrail-signing-key"
             fixer.mkdir()
             canary.parent.mkdir()
             canary.write_text("DEMO-FAKE-SIGNING-KEY-NOT-REAL\n")
@@ -2084,7 +2085,7 @@ class CleanPromptEnvHonestyTest(unittest.TestCase):
                 if n == 1:
                     out.mkdir(parents=True, exist_ok=True)
                     doc = {
-                        "format": "nightshift.verification/v0",
+                        "format": "expectrail.verification/v0",
                         "decision": "reject",
                         "reasons": ["planted reject for retry test"],
                         "candidate": {
@@ -2194,7 +2195,7 @@ def _walk_trace(*, frozen: bool = False) -> dict:
     for tick in range(0, 241, 2):
         x = 90.0 if frozen else 90.0 + 2.0 * tick
         rows.append({"tick": tick, "frame": tick // 2, "player": [x, 640.0], "onFloor": True})
-    return {"format": "nightshift.trace/v0", "ticks": 240, "physicsTicksPerSecond": 120, "rows": rows}
+    return {"format": "expectrail.trace/v0", "ticks": 240, "physicsTicksPerSecond": 120, "rows": rows}
 
 
 def _held_out_dir(tmp: Path) -> Path:
@@ -2204,14 +2205,14 @@ def _held_out_dir(tmp: Path) -> Path:
     route["name"] = "held-out-test"
     (root / "routes" / "held-out-test.json").write_text(json.dumps(route))
     (root / "manifest.json").write_text(json.dumps({
-        "format": "nightshift.held-out-set/v0",
+        "format": "expectrail.held-out-set/v0",
         "routes": [{"name": "held-out-test", "file": "routes/held-out-test.json", "minDeltaX": 300}],
     }))
     return root
 
 
 class PrivateHeldOutTest(unittest.TestCase):
-    """Held-out routes from NIGHTSHIFT_HELDOUT_DIR replace the interim fixture."""
+    """Held-out routes from EXPECTRAIL_HELDOUT_DIR replace the interim fixture."""
 
     def _verify(self, tmp: Path, *, held_out_frozen: bool, env: dict, frozen_everywhere: bool = False,
                 renders: list | None = None) -> dict:
@@ -2236,7 +2237,7 @@ class PrivateHeldOutTest(unittest.TestCase):
     def test_private_route_pass_accepts(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp)
-            doc = self._verify(tmp, held_out_frozen=False, env={"NIGHTSHIFT_HELDOUT_DIR": str(_held_out_dir(tmp))})
+            doc = self._verify(tmp, held_out_frozen=False, env={"EXPECTRAIL_HELDOUT_DIR": str(_held_out_dir(tmp))})
             held = next(c for c in doc["checks"] if c["kind"] == "held-out")
             self.assertEqual(held["route"], "held-out-routes")
             self.assertEqual(held["result"], "pass")
@@ -2249,7 +2250,7 @@ class PrivateHeldOutTest(unittest.TestCase):
     def test_candidate_that_freezes_on_the_private_route_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp)
-            doc = self._verify(tmp, held_out_frozen=True, env={"NIGHTSHIFT_HELDOUT_DIR": str(_held_out_dir(tmp))})
+            doc = self._verify(tmp, held_out_frozen=True, env={"EXPECTRAIL_HELDOUT_DIR": str(_held_out_dir(tmp))})
             held = next(c for c in doc["checks"] if c["kind"] == "held-out")
             self.assertEqual(held["result"], "fail")
             self.assertEqual(doc["decision"], "reject")
@@ -2261,7 +2262,7 @@ class PrivateHeldOutTest(unittest.TestCase):
             tmp = Path(tmp)
             renders: list = []
             doc = self._verify(tmp, held_out_frozen=False, frozen_everywhere=True, renders=renders,
-                               env={"NIGHTSHIFT_HELDOUT_DIR": str(_held_out_dir(tmp))})
+                               env={"EXPECTRAIL_HELDOUT_DIR": str(_held_out_dir(tmp))})
             self.assertEqual(doc["decision"], "reject")
             self.assertTrue(any(c["kind"] == "gameplay" and c["result"] == "fail" for c in doc["checks"]))
             self.assertFalse(any(c["kind"] == "held-out" for c in doc["checks"]))
@@ -2276,8 +2277,8 @@ class PrivateHeldOutTest(unittest.TestCase):
             tmp = Path(tmp)
             renders: list = []
             doc = self._verify(tmp, held_out_frozen=False, frozen_everywhere=True, renders=renders,
-                               env={"NIGHTSHIFT_HELDOUT_DIR": str(_held_out_dir(tmp)),
-                                    "NIGHTSHIFT_HELDOUT_AFTER_FAIL": "run"})
+                               env={"EXPECTRAIL_HELDOUT_DIR": str(_held_out_dir(tmp)),
+                                    "EXPECTRAIL_HELDOUT_AFTER_FAIL": "run"})
             held = next(c for c in doc["checks"] if c["kind"] == "held-out")
             self.assertEqual(held["result"], "fail")
             self.assertEqual(doc["suite"]["heldOut"]["source"], "harness")
@@ -2289,7 +2290,7 @@ class PrivateHeldOutTest(unittest.TestCase):
             tmp = Path(tmp)
             empty = tmp / "not-a-held-out-set"
             empty.mkdir()
-            doc = self._verify(tmp, held_out_frozen=False, env={"NIGHTSHIFT_HELDOUT_DIR": str(empty)})
+            doc = self._verify(tmp, held_out_frozen=False, env={"EXPECTRAIL_HELDOUT_DIR": str(empty)})
             held = next(c for c in doc["checks"] if c["kind"] == "held-out")
             self.assertEqual(held["result"], "needs-review")
             self.assertEqual(doc["suite"]["heldOut"]["source"], "unavailable")
@@ -2298,7 +2299,7 @@ class PrivateHeldOutTest(unittest.TestCase):
     def test_offline_runs_keep_the_labeled_interim_fixture(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp)
-            with mock.patch.dict(os.environ, {"NIGHTSHIFT_HELDOUT_DIR": str(_held_out_dir(tmp))}):
+            with mock.patch.dict(os.environ, {"EXPECTRAIL_HELDOUT_DIR": str(_held_out_dir(tmp))}):
                 doc = verify(
                     _request(),
                     REPO / "agents" / "fixtures" / "fix-collision-mask.patch",
@@ -2352,7 +2353,7 @@ class SigningEd25519Test(unittest.TestCase):
                 b"not-the-payload",
                 key.read_bytes(),
             )
-            from nightshift.contracts import ContractError
+            from expectrail.contracts import ContractError
             with self.assertRaises(ContractError):
                 verify_release_candidate(rc, verification)
 
@@ -2360,14 +2361,14 @@ class SigningEd25519Test(unittest.TestCase):
 class ObservationsProviderTest(unittest.TestCase):
     def test_default_trace_provider(self):
         with mock.patch.dict(os.environ, {}, clear=False):
-            os.environ.pop("NIGHTSHIFT_OBS_PROVIDER", None)
+            os.environ.pop("EXPECTRAIL_OBS_PROVIDER", None)
             trace = {"physicsTicksPerSecond": 120, "rows": [
                 {"tick": 0, "player": [210.0, 452.0], "onFloor": True},
                 {"tick": 2, "player": [220.0, 452.0], "onFloor": True},
             ]}
             doc = from_trace(trace, replay_sha256="a" * 64)
             validate(doc, "observations")
-            self.assertEqual(doc["model"]["name"], "nightshift.trace-synthetic")
+            self.assertEqual(doc["model"]["name"], "expectrail.trace-synthetic")
 
     def test_sam_provider_fails_closed_without_adapter(self):
         with self.assertRaises(SystemExit):
@@ -2398,7 +2399,7 @@ class MuseJudgeTest(unittest.TestCase):
         )
         for tok in (
             "verification.json", "repair-request.json", "obs-fixed.json",
-            "release-candidate.json", "nightshift.verification",
+            "release-candidate.json", "expectrail.verification",
         ):
             self.assertNotIn(tok, prompt.lower())
         with tempfile.TemporaryDirectory() as tmp:
@@ -2499,18 +2500,18 @@ class MuseJudgeTest(unittest.TestCase):
 
 
 class BenchCompareTest(unittest.TestCase):
-    def test_offline_scaffold_nightshift_arm(self):
+    def test_offline_scaffold_expectrail_arm(self):
         from agents.bench_compare import build_compare
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "bench"
             doc = build_compare(out, skip_harness=True, live_muse=False)
-            self.assertTrue(doc["nightshiftOk"])
+            self.assertTrue(doc["expectrailOk"])
             self.assertIsNone(doc["museOk"])
             self.assertIsNone(doc["agreement"])
             self.assertTrue((out / "bench-compare.md").is_file())
             arms = {a["name"]: a for a in doc["arms"]}
             self.assertTrue(arms["muse-screenshots"]["skipped"])
-            self.assertTrue(arms["nightshift"]["publicKey"])
+            self.assertTrue(arms["expectrail"]["publicKey"])
 
     def test_fixture_muse_agreement_accept(self):
         from agents.bench_compare import build_compare, main as bench_main
@@ -2518,7 +2519,7 @@ class BenchCompareTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "bench"
             doc = build_compare(out, skip_harness=True, fixture_muse=fixture)
-            self.assertTrue(doc["nightshiftOk"])
+            self.assertTrue(doc["expectrailOk"])
             self.assertTrue(doc["museOk"])
             self.assertEqual(doc["agreement"], "agree")
             self.assertTrue(doc["case"]["caseId"])
@@ -2534,13 +2535,13 @@ class BenchCompareTest(unittest.TestCase):
             self.assertEqual(code, 0)
 
     def test_fixture_muse_disagree_still_ok_exit(self):
-        """Muse reject vs Nightshift accept is a filmed disagreement, not a process failure."""
+        """Muse reject vs Expectrail accept is a filmed disagreement, not a process failure."""
         from agents.bench_compare import build_compare, main as bench_main
         fixture = REPO / "agents" / "fixtures" / "muse-judge-reject.log"
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "bench"
             doc = build_compare(out, skip_harness=True, fixture_muse=fixture)
-            self.assertTrue(doc["nightshiftOk"])
+            self.assertTrue(doc["expectrailOk"])
             self.assertTrue(doc["museOk"])
             self.assertEqual(doc["agreement"], "disagree")
             arms = {a["name"]: a for a in doc["arms"]}
@@ -2604,7 +2605,7 @@ class FilmOct29Test(unittest.TestCase):
                     json.dumps(verification) + "\n"
                 )
                 rc = {
-                    "format": "nightshift.release-candidate/v0",
+                    "format": "expectrail.release-candidate/v0",
                     "verificationSha256": "b" * 64,
                     "decision": "accept",
                     "signature": "sig",
@@ -2634,14 +2635,14 @@ class FilmOct29Test(unittest.TestCase):
             md = (out / "film.md").read_text()
             self.assertIn("Overall: FAIL", md)
             self.assertIn("not valid Oct29 Godot footage", md)
-            self.assertEqual(list(out.rglob(".nightshift-signing-key")), [])
+            self.assertEqual(list(out.rglob(".expectrail-signing-key")), [])
             # silence unused import if lint; exercise synthetic helper exists
             self.assertTrue(callable(from_trace_synthetic))
 
 
 class ObservationsSamSeamTest(unittest.TestCase):
     def test_env_sam_without_adapter_fails_closed(self):
-        with mock.patch.dict(os.environ, {"NIGHTSHIFT_OBS_PROVIDER": "sam"}):
+        with mock.patch.dict(os.environ, {"EXPECTRAIL_OBS_PROVIDER": "sam"}):
             with self.assertRaises(SystemExit):
                 from_trace({"rows": []})
 

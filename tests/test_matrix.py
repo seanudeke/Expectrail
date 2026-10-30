@@ -9,14 +9,14 @@ from unittest import mock
 import agents.fixer as fixer
 import agents.matrix as m
 from harness.run import REPO
-from nightshift.contracts import digest, load
-from nightshift.evaluator import EVALUATOR
+from expectrail.contracts import digest, load
+from expectrail.evaluator import EVALUATOR
 
 GROUND = load(m.REGRESSION_SPEC, "test-spec")
 
 
 def fail_verdict(spec: dict) -> dict:
-    return {"format": "nightshift.verdict/v0", "spec": {"id": spec["id"], "sha256": digest(spec)},
+    return {"format": "expectrail.verdict/v0", "spec": {"id": spec["id"], "sha256": digest(spec)},
             "observations": {"sha256": "1" * 64}, "result": "fail",
             "reason": "SECRET-REASON player is 50px past the boundary", "firstFrame": 8,
             "evidence": [{"frame": 8, "detail": "SECRET-EVIDENCE"}], "framesJudged": 120,
@@ -100,8 +100,8 @@ class MatrixTest(unittest.TestCase):
         self.assertIn("previous attempt did not fix", self.prompts[1])
         self.assertNotIn("previous attempt", self.prompts[0])
 
-    def test_nightshift_condition_gets_the_request_and_the_verifiers_reasons(self):
-        row = self.case("nightshift")
+    def test_expectrail_condition_gets_the_request_and_the_verifiers_reasons(self):
+        row = self.case("expectrail")
         self.assertEqual(row["outcome"], "fixed")
         self.assertIn("repair-request.json", self.workspaces[0])
         self.assertIn(GROUND["id"], self.prompts[0])
@@ -113,7 +113,7 @@ class MatrixTest(unittest.TestCase):
         shots = self.workspaces[0]
         req = self.verifies[0]["request"]
         self.prompts, self.workspaces, self.verifies = [], [], []
-        self.case("nightshift")
+        self.case("expectrail")
         self.assertEqual(set(shots), set(self.workspaces[0]) - {"repair-request.json"})
         self.assertEqual(req["editable"], self.verifies[0]["request"]["editable"])
         self.assertEqual(req["base"], self.verifies[0]["request"]["base"])
@@ -124,9 +124,9 @@ class MatrixTest(unittest.TestCase):
             self.assertNotIn("bug-report", v["patch"])
             self.assertIn("player/player.tscn", v["patch"])
 
-    def test_nightshift_does_not_repair_what_it_did_not_catch(self):
+    def test_expectrail_does_not_repair_what_it_did_not_catch(self):
         self.detection["verdict"] = dict(self.detection["verdict"], result="pass", reason="no violation")
-        row = self.case("nightshift")
+        row = self.case("expectrail")
         self.assertEqual(row["outcome"], "not-detected")
         self.assertEqual(self.prompts, [])
         row = self.case("screenshots")  # the screenshots condition is told about the bug regardless
@@ -145,12 +145,12 @@ class MatrixTest(unittest.TestCase):
 
         self.verdicts = ["accept"]
         with mock.patch.object(fixer, "run_muse_sandboxed", side_effect=slow_muse):
-            row = self.case("nightshift")
+            row = self.case("expectrail")
         self.assertEqual(row["outcome"], "fixed")
         self.assertEqual([a["decision"] for a in row["attempts"]], ["timeout", "accept"])
         self.assertTrue(all(a.get("timedOut") for a in row["attempts"]))
         self.assertIn("edited before the clock ran out", self.verifies[0]["patch"])
-        self.assertIn("ran out of time", calls[1])  # the reason reaches the next attempt (Nightshift)
+        self.assertIn("ran out of time", calls[1])  # the reason reaches the next attempt (Expectrail)
 
     def test_each_case_records_the_sam_images_it_used(self):
         import agents.sam_observations as sam
@@ -161,25 +161,25 @@ class MatrixTest(unittest.TestCase):
             return self.fake_verify(request, candidate, out, attempt=attempt, **kw)
 
         with mock.patch.object(m, "verify", side_effect=fake_verify_with_sam):
-            row = m.run_case("dev/physics-fall-through/v1", "nightshift", self.root / "out", live=True, use_sam=False)
+            row = m.run_case("dev/physics-fall-through/v1", "expectrail", self.root / "out", live=True, use_sam=False)
         self.assertEqual(row["samImages"], 21)  # three verifications
         self.assertNotIn("_samBefore", row)
-        saved = json.loads((self.root / "out" / "dev_physics-fall-through_v1" / "nightshift" / "result.json").read_text())
+        saved = json.loads((self.root / "out" / "dev_physics-fall-through_v1" / "expectrail" / "result.json").read_text())
         self.assertEqual(saved["samImages"], 21)
 
     def test_budget_runs_out_without_an_accept(self):
         self.verdicts = ["reject", "reject", "reject"]
-        row = self.case("nightshift")
+        row = self.case("expectrail")
         self.assertEqual((row["outcome"], row["attemptsUsed"]), ("not-fixed", 3))
 
     def test_a_crash_is_an_error_never_a_fix(self):
         with mock.patch.object(m, "detect", side_effect=RuntimeError("godot died")):
-            row = self.case("nightshift")
+            row = self.case("expectrail")
         self.assertEqual(row["outcome"], "error")
         self.assertIn("godot died", row["detail"])
 
     def test_offline_stops_after_one_attempt(self):
-        row = self.case("nightshift", live=False)
+        row = self.case("expectrail", live=False)
         self.assertEqual((row["outcome"], row["attemptsUsed"]), ("not-fixed", 1))
         self.assertEqual(self.prompts, [])  # offline never calls Muse
 
@@ -187,11 +187,11 @@ class MatrixTest(unittest.TestCase):
         self.case("screenshots")
         self.verdicts = ["reject", "reject", "reject"]
         self.verifies = []
-        self.case("nightshift", key="dev/sinking/v1")
+        self.case("expectrail", key="dev/sinking/v1")
         doc = m.summarize(self.root / "out")
         self.assertEqual(doc["conditions"]["screenshots"]["fixed"], 1)
-        self.assertEqual(doc["conditions"]["nightshift"]["notFixed"], 1)
-        self.assertIn("| dev/sinking/v1 | nightshift | fail | not-fixed | 3 |", m.markdown(doc))
+        self.assertEqual(doc["conditions"]["expectrail"]["notFixed"], 1)
+        self.assertIn("| dev/sinking/v1 | expectrail | fail | not-fixed | 3 |", m.markdown(doc))
 
 
 class HeldOutMatrixTest(MatrixTest):
@@ -204,7 +204,7 @@ class HeldOutMatrixTest(MatrixTest):
         (held / "routes").mkdir()
         (held / "routes" / "r.json").write_text("{}\n")
         (held / "bugs" / "sinking" / "v9.patch").write_text((REPO / "bugs/sinking/v1.patch").read_text())
-        manifest = {"format": "nightshift.held-out-set/v0",
+        manifest = {"format": "expectrail.held-out-set/v0",
                     "routes": [{"name": "r", "file": "routes/r.json", "minDeltaX": 300}],
                     "variants": [
                         {"family": "sinking", "id": "v9", "patch": "bugs/sinking/v9.patch",
@@ -213,7 +213,7 @@ class HeldOutMatrixTest(MatrixTest):
                          "spec": "player-stays-above-ground", "mechanism": "x", "retired": "published"}]}
         (held / "manifest.json").write_text(json.dumps(manifest))
         self.held = held
-        self.env = mock.patch.dict("os.environ", {"NIGHTSHIFT_HELDOUT_DIR": str(held)})
+        self.env = mock.patch.dict("os.environ", {"EXPECTRAIL_HELDOUT_DIR": str(held)})
         self.env.start()
 
     def tearDown(self):
@@ -226,11 +226,11 @@ class HeldOutMatrixTest(MatrixTest):
             m.resolve_case("sinking/v8")  # retired
 
     def test_a_held_out_case_publishes_only_ids_outcomes_and_decisions(self):
-        row = self.case("nightshift", key="sinking/v9")
+        row = self.case("expectrail", key="sinking/v9")
         self.assertEqual(row["outcome"], "fixed")
         self.assertTrue(row["private"])
         self.assertEqual(self.verifies[0]["request"]["base"]["patch"], str(self.held / "bugs/sinking/v9.patch"))
-        work = self.root / "out" / "sinking_v9" / "nightshift"
+        work = self.root / "out" / "sinking_v9" / "expectrail"
         public = (work / "result.json").read_text()
         for secret in ("SECRET", "reasons", "checks", "patchSha256", "detail", str(self.held)):
             self.assertNotIn(secret, public)

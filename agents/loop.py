@@ -30,7 +30,7 @@ from agents.triage import WONDER_MODEL, triage
 from agents.trust import run_trust_check
 from agents.verifier import verify
 from harness.run import REPO
-from nightshift.contracts import load, validate
+from expectrail.contracts import load, validate
 
 DEFAULT_BEFORE = REPO / "agents" / "fixtures" / "frames" / "before-fall.png"
 DEFAULT_AFTER = REPO / "agents" / "fixtures" / "frames" / "after-fixed.png"
@@ -71,7 +71,7 @@ def one_run(
     feedback: Path | None = None,
 ) -> dict:
     out.mkdir(parents=True, exist_ok=True)
-    signing_key = out / "verifier-host" / ".nightshift-signing-key"
+    signing_key = out / "verifier-host" / ".expectrail-signing-key"
     trust = None
     t0 = time.perf_counter()
     attempt_films: list[dict] = []
@@ -142,7 +142,7 @@ def one_run(
             fixer_work = fix_out / "fixer-work"
             if not fixer_work.is_dir():
                 raise SystemExit("fixer-work missing after fixer")
-            leaked = list(fixer_work.rglob(".nightshift-signing-key"))
+            leaked = list(fixer_work.rglob(".expectrail-signing-key"))
             if leaked:
                 raise SystemExit(f"signing key leaked into fixer workspace: {leaked}")
 
@@ -280,7 +280,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--feedback", type=Path,
                    help="feedback-intake.json from agents.feedback, shown in each morning report")
     args = p.parse_args(argv)
-    # A mistyped NIGHTSHIFT_OBS_PROVIDER is a configuration error: stop here, before the fixer
+    # A mistyped EXPECTRAIL_OBS_PROVIDER is a configuration error: stop here, before the fixer
     # runs, rather than let verify fail later and be recorded as a rejected candidate.
     from agents.observations import resolve_provider
     resolve_provider()
@@ -349,7 +349,7 @@ def main(argv: list[str] | None = None) -> int:
             "costProvenance": "unmetered-live-unset",
         }
     summary = {
-        "format": "nightshift.overnight-summary/v0",
+        "format": "expectrail.overnight-summary/v0",
         "mode": resolved,
         "runs": args.runs,
         "accepted": accepted,

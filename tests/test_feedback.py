@@ -13,8 +13,8 @@ from unittest import mock
 
 from agents import feedback as fb
 from harness.run import REPO
-from nightshift import spec_writer
-from nightshift.contracts import ContractError, validate
+from expectrail import spec_writer
+from expectrail.contracts import ContractError, validate
 
 FIX = REPO / "agents" / "fixtures" / "feedback"
 TRANSCRIPT = FIX / "playtest-transcript.json"
@@ -438,7 +438,7 @@ class OpenWeightsTest(unittest.TestCase):
     def test_cli_open_sorter_records_the_endpoint(self):
         fixture = fb.fixture_transport(json.loads(SPARK.read_text()))
         with tempfile.TemporaryDirectory() as tmp:
-            with mock.patch.dict(os.environ, {"BASETEN_API_KEY": "", "NIGHTSHIFT_OPEN_API_KEY": ""}):
+            with mock.patch.dict(os.environ, {"BASETEN_API_KEY": "", "EXPECTRAIL_OPEN_API_KEY": ""}):
                 self.assertEqual(fb.main(["--transcript", str(TRANSCRIPT), "--consent", "--sorter", "open",
                                           "--out", tmp]), 1)  # no key
             with mock.patch.dict(os.environ, {"BASETEN_API_KEY": "bk"}), \
@@ -458,9 +458,9 @@ class OpenWeightsTest(unittest.TestCase):
         from agents.keys import MUSE_ENV_ALLOWLIST, muse_subprocess_env
 
         self.assertFalse(set(fb.OPEN_KEY_ENVS) & MUSE_ENV_ALLOWLIST)
-        env = muse_subprocess_env({"BASETEN_API_KEY": "bk", "NIGHTSHIFT_OPEN_API_KEY": "ok", "PATH": "/usr/bin"})
+        env = muse_subprocess_env({"BASETEN_API_KEY": "bk", "EXPECTRAIL_OPEN_API_KEY": "ok", "PATH": "/usr/bin"})
         self.assertNotIn("BASETEN_API_KEY", env)
-        self.assertNotIn("NIGHTSHIFT_OPEN_API_KEY", env)
+        self.assertNotIn("EXPECTRAIL_OPEN_API_KEY", env)
 
 
 class WorkflowTest(unittest.TestCase):

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/seanudeke/nightshift/contracts/repair-request.schema.json",
+  "$id": "https://github.com/seanudeke/expectrail/contracts/repair-request.schema.json",
   "title": "Repair request: everything the fixer gets, and nothing it should not",
   "description": "No held-out cases, no evaluator code, no thresholds beyond the failing spec, no keys.",
   "type": "object",
@@ -15,7 +15,7 @@
   "additionalProperties": false,
   "properties": {
     "format": {
-      "const": "nightshift.repair-request/v0"
+      "enum": ["expectrail.repair-request/v0", "nightshift.repair-request/v0"]
     },
     "id": {
       "type": "string"

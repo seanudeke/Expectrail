@@ -14,8 +14,8 @@ from agents.engine_check import MAX_SIZE_RATIO, EngineCheck, agrees, check_for_t
 from agents.keys import require_separate_sam_key
 from agents.observations import COIN_HALF, engine_refs_by_frame, from_trace
 from harness.run import REPO
-from nightshift.contracts import load, validate
-from nightshift.evaluator import evaluate
+from expectrail.contracts import load, validate
+from expectrail.evaluator import evaluate
 from tests.test_sam import png_bytes
 
 W, H = 1600, 960
@@ -44,7 +44,7 @@ def trace(player=PLAYER, coins=(COIN,), view=VIEW, frames: int = N) -> dict:
         if view:
             row["view"] = list(view)
         rows.append(row)
-    return {"format": "nightshift.trace/v0", "ticks": len(rows), "physicsTicksPerSecond": 120, "rows": rows}
+    return {"format": "expectrail.trace/v0", "ticks": len(rows), "physicsTicksPerSecond": 120, "rows": rows}
 
 
 class FakeGlimmer:
@@ -187,8 +187,8 @@ class AdapterTest(unittest.TestCase):
 
 class BackendTest(unittest.TestCase):
     def test_glimmer_engine_decides_verdicts_without_sam(self):
-        env = {"NIGHTSHIFT_VISION_BACKEND": "glimmer-engine", "NIGHTSHIFT_GLIMMER_ALONE": "",
-               "NIGHTSHIFT_GLIMMER_API_KEY": "glimmer-key", "NIGHTSHIFT_OBS_PROVIDER": "sam",
+        env = {"EXPECTRAIL_VISION_BACKEND": "glimmer-engine", "EXPECTRAIL_GLIMMER_ALONE": "",
+               "EXPECTRAIL_GLIMMER_API_KEY": "glimmer-key", "EXPECTRAIL_OBS_PROVIDER": "sam",
                "MODEL_API_KEY": "", "META_API_KEY": "muse-key"}
         with mock.patch.dict(os.environ, env):
             client = sam.default_client(verdict=True)
@@ -196,7 +196,7 @@ class BackendTest(unittest.TestCase):
             self.assertTrue(client.engine_checked)
             self.assertEqual(sam.vision_label(), "Muse Glimmer checked against the engine")
             require_separate_sam_key()  # no SAM key needed
-            os.environ["NIGHTSHIFT_GLIMMER_API_KEY"] = "muse-key"
+            os.environ["EXPECTRAIL_GLIMMER_API_KEY"] = "muse-key"
             with self.assertRaises(SystemExit):
                 require_separate_sam_key()  # but never the fixer's key
 

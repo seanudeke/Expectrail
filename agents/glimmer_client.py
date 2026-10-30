@@ -1,30 +1,30 @@
-"""Muse Glimmer (open weights) as Nightshift's frame-vision backend, behind SAM's client interface.
+"""Muse Glimmer (open weights) as Expectrail's frame-vision backend, behind SAM's client interface.
 
-    export FIREWORKS_API_KEY=...                     # or NIGHTSHIFT_GLIMMER_API_KEY; never commit it
+    export FIREWORKS_API_KEY=...                     # or EXPECTRAIL_GLIMMER_API_KEY; never commit it
     # verdicts: an object counts only where SAM and Glimmer both see it (needs MODEL_API_KEY too)
-    NIGHTSHIFT_VISION_BACKEND=both NIGHTSHIFT_OBS_PROVIDER=sam python3 -m agents.gate1 ...
+    EXPECTRAIL_VISION_BACKEND=both EXPECTRAIL_OBS_PROVIDER=sam python3 -m agents.gate1 ...
     # measuring Glimmer alone on known runs
-    NIGHTSHIFT_VISION_BACKEND=glimmer python3 -m agents.sam_probe --spec specs/player-always-visible.json \\
+    EXPECTRAIL_VISION_BACKEND=glimmer python3 -m agents.sam_probe --spec specs/player-always-visible.json \\
         --runs runs/seeded/*/
 
 The verifier's vision checks (the visibility specs and the hybrid ground check) ask one question per
 frame and object: where is "<noun phrase>" drawn? ``agents.sam_observations`` asks SAM 3.1 through
-the Meta Model API. With ``NIGHTSHIFT_VISION_BACKEND=glimmer`` the same question goes to Muse
+the Meta Model API. With ``EXPECTRAIL_VISION_BACKEND=glimmer`` the same question goes to Muse
 Glimmer 30B (Apache 2.0) on any OpenAI-compatible endpoint: a Fireworks on-demand deployment by
-default (``NIGHTSHIFT_GLIMMER_MODEL=accounts/<account>/deployments/<id>``; Glimmer left Fireworks
+default (``EXPECTRAIL_GLIMMER_MODEL=accounts/<account>/deployments/<id>``; Glimmer left Fireworks
 serverless on Sep 25, 2026), or our own vLLM/SGLang server
-(``NIGHTSHIFT_GLIMMER_API_BASE=http://<host>:8000/v1``,
-``NIGHTSHIFT_GLIMMER_MODEL=meta-models/Muse-Glimmer-30B``). Everything around the call stays the
+(``EXPECTRAIL_GLIMMER_API_BASE=http://<host>:8000/v1``,
+``EXPECTRAIL_GLIMMER_MODEL=meta-models/Muse-Glimmer-30B``). Everything around the call stays the
 same: sampling, refining to the first bad frame, confirming every frame before a pass, the cache,
 and needs-review on any failure.
 
 Glimmer never decides an accept on its own. It reads images the way a language model reads text,
 and the fixer controls the candidate's pixels: a fix could draw text into the game that talks a
 vision-language model into "the robot is there". SAM 3.1 is a segmenter and cannot be talked to. So
-the verifier uses ``NIGHTSHIFT_VISION_BACKEND=both``: SAM's boxes count only on frames where Glimmer
+the verifier uses ``EXPECTRAIL_VISION_BACKEND=both``: SAM's boxes count only on frames where Glimmer
 also sees the object (``BothClient``), which can only make the gate stricter than SAM alone.
 ``glimmer`` alone is for measuring Glimmer (``agents.sam_probe``, or the verifier with
-``NIGHTSHIFT_GLIMMER_ALONE=1`` on known fixtures); without that flag the verifier refuses it and every
+``EXPECTRAIL_GLIMMER_ALONE=1`` on known fixtures); without that flag the verifier refuses it and every
 vision check is needs-review.
 
 What differs from SAM, and the code is honest about:
@@ -34,7 +34,7 @@ What differs from SAM, and the code is honest about:
   recorded as the detection score so the evaluator's threshold applies, and labelled
   self-reported in the observations document (``model.provider``).
 - Coordinates: the prompt asks for pixels of the image it was sent. Some VLMs answer on a 0-1000
-  grid instead; set ``NIGHTSHIFT_GLIMMER_COORDS=norm1000`` (or ``norm1``) if the probe shows that.
+  grid instead; set ``EXPECTRAIL_GLIMMER_COORDS=norm1000`` (or ``norm1``) if the probe shows that.
   A box far outside the image is refused (needs-review), never clipped into a pass.
 - Positions stay in code: Glimmer is only ever asked for the spec's noun phrase, never "is it
   below the ground"; the evaluator decides that from the boxes, as it does for SAM.
@@ -55,14 +55,14 @@ from typing import Callable
 
 from agents.sam_observations import MetaSamClient, SamError, data_url, png_size
 
-API_BASE = os.environ.get("NIGHTSHIFT_GLIMMER_API_BASE", "https://api.fireworks.ai/inference/v1")
+API_BASE = os.environ.get("EXPECTRAIL_GLIMMER_API_BASE", "https://api.fireworks.ai/inference/v1")
 # Fireworks retired Glimmer from serverless on Sep 25, 2026: it runs on an on-demand deployment,
-# addressed as accounts/<account>/deployments/<id>. Set NIGHTSHIFT_GLIMMER_MODEL to that. The base
+# addressed as accounts/<account>/deployments/<id>. Set EXPECTRAIL_GLIMMER_MODEL to that. The base
 # model id below is what the deployment is created from, and what a self-hosted server may serve.
 BASE_MODEL = "accounts/fireworks/models/muse-glimmer-30b"
-MODEL = os.environ.get("NIGHTSHIFT_GLIMMER_MODEL", BASE_MODEL)
-KEY_ENVS = ("NIGHTSHIFT_GLIMMER_API_KEY", "FIREWORKS_API_KEY")
-COORDS_ENV = "NIGHTSHIFT_GLIMMER_COORDS"
+MODEL = os.environ.get("EXPECTRAIL_GLIMMER_MODEL", BASE_MODEL)
+KEY_ENVS = ("EXPECTRAIL_GLIMMER_API_KEY", "FIREWORKS_API_KEY")
+COORDS_ENV = "EXPECTRAIL_GLIMMER_COORDS"
 COORDS = ("pixels", "norm1000", "norm1")
 # Glimmer answers on a 0-1000 grid over the image, whatever the prompt asks: measured against the
 # engine's robot position on Oct 29 (run 40936605897), its x came out 1.58-1.60 times smaller than
@@ -72,10 +72,10 @@ DEFAULT_COORDS = "norm1000"
 REQUEST_VERSION = "glimmer-4"
 # Glimmer reasons before it answers, and its reasoning counts against max_tokens: at 2048 a frame with a
 # dozen coins was cut off mid-JSON (Oct 29). Room for the reasoning plus up to MAX_OBJECTS boxes.
-MAX_TOKENS = int(os.environ.get("NIGHTSHIFT_GLIMMER_MAX_TOKENS", "8192"))
+MAX_TOKENS = int(os.environ.get("EXPECTRAIL_GLIMMER_MAX_TOKENS", "8192"))
 MAX_OBJECTS = 30
 # Optional: e.g. "low", sent as reasoning_effort, for servers that accept it. Unset sends nothing.
-REASONING_ENV = "NIGHTSHIFT_GLIMMER_REASONING"
+REASONING_ENV = "EXPECTRAIL_GLIMMER_REASONING"
 RETRY_STATUS = frozenset({429, 500, 502, 503, 504})
 # A corner more than 2% of the frame outside the image is a format error (another grid, or not a box).
 OUT_OF_FRAME = 0.02
@@ -153,7 +153,7 @@ def request_body(prompt: str, image_url: str, size: tuple[int, int], model: str 
         body["reasoning_effort"] = reasoning
     if structured:
         body["response_format"] = {"type": "json_schema",
-                                   "json_schema": {"name": "nightshift_boxes", "schema": BOX_SCHEMA}}
+                                   "json_schema": {"name": "expectrail_boxes", "schema": BOX_SCHEMA}}
     else:
         body["response_format"] = {"type": "json_object"}
     return body
@@ -168,7 +168,7 @@ def answer_text(raw: bytes) -> str:
         raise SamError(f"glimmer reply is not a chat completion: {raw[:160]!r}") from exc
     if isinstance(choice, dict) and choice.get("finish_reason") == "length":
         raise SamError("glimmer's answer was cut off at max_tokens (finish_reason length); raise "
-                       "NIGHTSHIFT_GLIMMER_MAX_TOKENS or set NIGHTSHIFT_GLIMMER_REASONING=low")
+                       "EXPECTRAIL_GLIMMER_MAX_TOKENS or set EXPECTRAIL_GLIMMER_REASONING=low")
     if isinstance(content, list):  # content parts
         texts = [p.get("text", "") for p in content if isinstance(p, dict)]
         if not all(isinstance(t, str) for t in texts):
@@ -449,7 +449,7 @@ class BothClient:
 
     def __init__(self, sam_client: MetaSamClient | None = None, glimmer: GlimmerClient | None = None,
                  min_score: float | None = None):
-        from nightshift.evaluator import DEFAULT_MIN_SCORE
+        from expectrail.evaluator import DEFAULT_MIN_SCORE
 
         self.sam = sam_client or MetaSamClient()
         self.glimmer = glimmer or GlimmerClient()

@@ -12,7 +12,7 @@ import agents.heldout_bench as hb
 
 SECRET = "the secret description of how this variant breaks the game"
 MANIFEST = {
-    "format": "nightshift.held-out-set/v0",
+    "format": "expectrail.held-out-set/v0",
     "routes": [{"name": "private-route-one", "file": "routes/one.json", "minDeltaX": 300},
                {"name": "private-route-two", "file": "routes/two.json", "minDeltaX": 300}],
     "variants": [
@@ -35,7 +35,7 @@ class HeldOutBenchTest(unittest.TestCase):
         (root / "bugs" / "fam" / "v1.patch").write_text("")
         (root / "manifest.json").write_text(json.dumps(MANIFEST))
         self.root = root
-        self.env = mock.patch.dict(os.environ, {"NIGHTSHIFT_HELDOUT_DIR": str(root)})
+        self.env = mock.patch.dict(os.environ, {"EXPECTRAIL_HELDOUT_DIR": str(root)})
         self.env.start()
 
     def tearDown(self):
@@ -133,7 +133,7 @@ class HeldOutBenchTest(unittest.TestCase):
     def test_glimmer_engine_judges_ground_on_the_engine_and_vision_on_glimmer(self):
         row = {"engine": "pass", "gameplay": "pass", "player-always-visible": "pass", "coins-visible": "pass"}
         hidden = dict(row, **{"player-always-visible": "fail"})
-        with mock.patch.dict(os.environ, {"NIGHTSHIFT_VISION_BACKEND": "glimmer-engine"}):
+        with mock.patch.dict(os.environ, {"EXPECTRAIL_VISION_BACKEND": "glimmer-engine"}):
             doc, calls = self.run_bench("fam/v1", [row, hidden, row])
             sunk, _ = self.run_bench("fam/v1", [dict(row, engine="fail")] * 3)
             secret = 'glimmer did not answer in JSON: \'{"objects": [{"box": [781, 120, 815, 165]\''
@@ -201,7 +201,7 @@ class HeldOutBenchTest(unittest.TestCase):
                 self.run_bench(key, [])
 
     def test_missing_set_is_refused(self):
-        with mock.patch.dict(os.environ, {"NIGHTSHIFT_HELDOUT_DIR": ""}), self.assertRaises(SystemExit):
+        with mock.patch.dict(os.environ, {"EXPECTRAIL_HELDOUT_DIR": ""}), self.assertRaises(SystemExit):
             hb.main(["--list"])
 
 
