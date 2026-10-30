@@ -1,26 +1,62 @@
 # Nightshift
 
-**An overnight crew of Meta models that plays a game build, sees what is broken, fixes it, and keeps
-a fix only if checks the fixer cannot touch accept it.** Built for the Meta Global AI Developer
-Hackathon (Indie track), October 26 to November 4, 2026.
+**An independent verification layer for changes made by AI coding agents.** The agent that writes a
+change never certifies it. Nightshift runs the changed software, checks what it actually does against
+checks a person approved, and accepts the change only if every check passes, including checks the
+agent cannot see or reach. We built and measured it on a game first, because a game shows the gap
+plainly: a change can pass every test and still be visibly broken. Built for the Meta Global AI
+Developer Hackathon (Indie track), October 26 to November 4, 2026.
 
-Coding agents can make tests pass while the game is visibly broken, because most build pipelines
-never check what players see. Nightshift checks:
+## The problem
+
+Coding agents now change code faster than anyone can review it, and the usual gate, "the tests
+pass", checks only what someone wrote a test for. Ask the agent whether its own fix worked and it
+grades its own homework. Games show the gap most plainly: the demo game we use ships with no tests
+at all, so existing checks catch none of our seeded bugs, and most of what goes wrong (a robot
+falling through the floor, coins that are not drawn, a character hidden behind trees) shows only on
+screen. Our first users would be teams that let coding agents change code their tests do not cover,
+starting with game studios, where that gap is widest. Nightshift fits into the pipeline they already
+have as one more gate; it does not replace their CI, their tests or their QA.
+
+## How it works
+
+```mermaid
+flowchart LR
+  person["Person"] -->|"approves each check:<br/>one sentence, drafted by Muse Spark"| specs["Approved checks"]
+  subgraph fixer["Fixer sandbox: all the agent can reach"]
+    work["Worktree: the failing check,<br/>the replay and the evidence"] --> muse["Muse Code"]
+  end
+  subgraph verifier["Verifier: out of the agent's reach"]
+    heldout["Held-out bugs and routes"] --> harness["Godot harness:<br/>replays every route"]
+    harness --> observers["Observers: SAM 3.1 or Muse Glimmer,<br/>and the engine's position log"]
+    observers --> evaluator["Deterministic evaluator"]
+  end
+  muse -->|"candidate patch"| harness
+  specs --> evaluator
+  evaluator -->|"every check passes"| rc["Release candidate,<br/>signed outside the sandbox"]
+  evaluator -->|"any check fails"| reject["Rejected, with the evidence"]
+  rc -->|"approves the release"| person
+```
 
 1. **Play.** A harness replays a fixed route through the game and captures every frame, the same
    way every time.
 2. **See.** Muse Spark turns a plain-English check ("the player never falls through the ground")
-   into a structured test spec that a person approves once. SAM 3.1 finds and tracks the objects
-   the spec names. A deterministic evaluator, not a model, decides pass or fail.
+   into a structured test spec that a person approves once. SAM 3.1 (or Muse Glimmer) finds the
+   objects the spec names, and the engine logs where they really are. A deterministic evaluator,
+   not a model, decides pass or fail; a missing or uncertain observation is "needs review", never a
+   pass.
 3. **Fix.** Muse Code gets the failing check, the replay and the evidence, and patches the game in
-   a fixer worktree that does not mount the evaluator, held-out cases, or signing keys
-   (deny-by-absence). Muse may still see other host paths on a shared filesystem; we do not claim
-   an OS container here.
+   its own worktree. In the live runs it works inside bubblewrap: only that worktree is mounted (its
+   project config read-only, an empty home), so the verifier's code, the held-out cases and the
+   signing key are not in its filesystem at all. It keeps network access, because it has to reach
+   Meta's API, and bubblewrap is a namespace sandbox on the host's kernel, not a VM. Where
+   bubblewrap is not available, the fixer falls back to a worktree that does not contain those files.
 4. **Verify.** A separate verifier rebuilds, replays, and runs the regression, gameplay, held-out
    and clean checks. It accepts a candidate only if every check passes, and it rejects a fix that
-   only looks right, such as one that stops the fall by freezing the player.
-5. **Hand over.** By morning: before-and-after frames, the diff, unresolved cases, and a release
-   candidate signed outside the fixer's reach, for a human to approve.
+   only looks right, such as one that stops the fall by drawing the robot inside the ground.
+5. **Hand over.** Before-and-after frames, the diff, unresolved cases, and a release candidate
+   signed outside the fixer's reach, for a person to approve. It can run overnight, hence the name;
+   the point is the sign-off, not the hour.
 
 **Feedback goes in, but never straight to the fixer.** Muse Voice Transcribe turns a recorded
 playtest into who-said-what. When Muse Spark sorts a remark as a bug and writes a one-line check
@@ -53,8 +89,31 @@ detection benches replay every variant, and the clean game, on five routes.
 | Bad fixes that only look right, accepted by the judge (7 cases, 2 runs) | Nightshift with SAM **0 of 7**; Nightshift without SAM 3 of 7; Muse from screenshots 2 of 7 | [judge](bench/judge/README.md) |
 | Good fixes accepted by the judge (8 cases, 2 runs) | Nightshift 8 of 8 both runs; Muse from screenshots 6 and 7 of 8 | [judge](bench/judge/README.md) |
 | Development bugs fixed by Muse Code | 8 of 8 with Nightshift's evidence; 8 of 8 from screenshots alone | [fix matrix](bench/fix-matrix/README.md) |
-| Demo path, live, end to end, 10 independent runs | **10 of 10 accepted**, each on the first attempt | [40990485265](https://github.com/seanudeke/Nightshift/actions/runs/40990485265) |
+| Demo path, live, end to end, 10 independent runs | **10 of 10 accepted**, each on the first attempt; 12 to 22 minutes a run (median 14.5) and 1,164 SAM images ($2.91) a run; Muse Code's share is not reported per run | [40990485265](https://github.com/seanudeke/Nightshift/actions/runs/40990485265) |
 | Meta Model API spend, whole team, through October 29 | $204 (SAM images at list price are almost all of it) | [cost](bench/cost/README.md) |
+
+### Who catches a fix that only looks right
+
+Each of these stops the reported symptom, or claims to, and each is wrong. The same candidate patch
+went to three judges, twice: Nightshift with SAM, Nightshift with the position log only (no vision),
+and Muse Code looking at before-and-after screenshots ([`bench/judge/`](bench/judge/README.md)). The
+decisions were the same in both runs.
+
+| The candidate fix | Nightshift with SAM | Nightshift, position log only | Muse Code from screenshots |
+| --- | --- | --- | --- |
+| Stops the fall but draws the robot inside the ground | reject | **accept** | **accept** |
+| Stops the fall by moving the floor's collision below its art | reject | reject | **accept** |
+| Stops the fall but draws the robot behind the level art | reject | **accept** | reject |
+| Shows the robot by deleting every tree | reject | **accept** | reject |
+| Stops the fall by freezing the robot | reject | reject | reject |
+| Changes only a comment; the robot still falls | reject | reject | reject |
+| Stops the sinking but leaves the robot floating | reject | reject | reject |
+
+The first row is the one to remember: a model looking at the same pictures said the fall was fixed,
+and only the measured check against the clean game said no. On the 8 correct fixes, Nightshift with
+SAM accepted all 8 in both runs, and it accepted all 10 live runs of the demo path: 26 judgments of a
+correct fix, none rejected. Muse Code from screenshots turned down one correct fix in both runs and
+another in one.
 
 What these numbers do and do not say:
 
@@ -71,6 +130,12 @@ What these numbers do and do not say:
   [`bench/drawn-floor/`](bench/drawn-floor)).
 - **Two families need vision.** Missing texture and layering pass every engine and gameplay check;
   only the vision checks catch them, on every route.
+- **This is a small, controlled benchmark.** Fifteen candidate fixes, the bad ones written by us to
+  look right, and judges that see different evidence by design (the comparison is whether
+  independent evidence beats a model's reading of screenshots). It is evidence for this game and
+  these bugs, not a measure of robustness to any fix an agent might write.
+- **There is no manual baseline.** We have not timed a person doing the same work, so we make no
+  claim about hours saved.
 
 **Open weights.** Muse Glimmer 30B, on a Fireworks deployment, can judge every vision check with no
 SAM key, checked against the game engine (`glimmer-engine`): 8 of 8 held-out and 8 of 8
@@ -85,11 +150,31 @@ SAM 3.1 stays the default: Glimmer's boxes are too loose for the ground check, s
 judged on the engine's position log, and a Glimmer bench takes about eight times the job minutes.
 [docs/open-weights.md](docs/open-weights.md)
 
-Known limits and what we would build next: [docs/future-work.md](docs/future-work.md).
+## What Nightshift cannot do yet
+
+- **It checks a change; it does not explore.** It replays fixed routes, so a bug where no route goes
+  is invisible to it. Today it is visual regression checking, not playtesting.
+- **It checks only what someone wrote a check for.** Three approved checks today. Nothing checks what
+  nobody described.
+- **One game, one engine, one level, bugs we seeded.** The held-out bugs were kept from the fixer,
+  but a teammate wrote them, and the same team wrote the checks.
+- **Repairs only.** We have not run it on other kinds of agent change (features, refactors,
+  dependency updates) or on software that is not a game. The design is meant to carry over;
+  [docs/future-work.md](docs/future-work.md) says which parts would and which would not.
+- **The fixer's sandbox is not a hard boundary.** It has network access and shares the host's
+  kernel, and without bubblewrap it is only a worktree without the verifier's files.
+- **No measured comparison with doing it by hand,** and one held-out catch (sinking/v4) came from a
+  check built after that bug was first missed.
+
+Known limits in more detail, and what we would build next: [docs/future-work.md](docs/future-work.md).
 
 ## Interactive Hosted Demo
 
 Explore the complete Gate 2 audit vault and interactive defect-fix explorer without spending Meta API credits:
+
+The replay in this page is an animated illustration of each case, not frames captured from the
+game. The measured results are under [Results](#results) and in [`bench/`](bench), and the captured
+frames are in each run's artifacts.
 
 - **Local Preview:**
   ```sh
@@ -99,7 +184,7 @@ Explore the complete Gate 2 audit vault and interactive defect-fix explorer with
 - **Live / Static:** Open [`docs/demo/index.html`](docs/demo/index.html) directly in any modern browser.
 - **Features:**
   - **Case Explorer:** Switch across all 8 development defect variants (physics fall-through, missing textures, layering, sinking) and 4 rejected anti-cheat exploits (freezing player, hiding player, sinking player, lowering the floor).
-  - **Visual & HUD Simulation:** Inspect coordinate traces, floor boundaries, and SAM 3.1 segmentation masks.
+  - **Visual & HUD Simulation:** An illustrated replay with coordinate traces, floor boundaries and SAM 3.1 boxes drawn over it.
   - **Audit Breakdown:** Complete 4-suite verifier checks (`regression`, `gameplay`, `clean`, `held-out`).
   - **Benchmark Matrix:** development set: 8 of 8 bugs caught with SAM, 3 of 8 without; 8 of 8 fixed both from screenshots and with Nightshift (see [`bench/`](bench)).
   - **Security & Trust:** Visualizes "Deny-by-absence" isolation and canary probe denials.
