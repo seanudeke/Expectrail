@@ -29,6 +29,10 @@ def fake_fetch(path):
     raise AssertionError(path)
 
 
+GLIMMER_HEAD = ("{0} with Glimmer+engine (no SAM): {1}; {0} with SAM off: no; over 5 routes: engine 5 pass; "
+                "gameplay 5 pass; ")
+
+
 class BenchCollectTest(unittest.TestCase):
     def test_parse_message(self):
         row = bc.parse_message(DEV_MSG)
@@ -69,6 +73,41 @@ class BenchCollectTest(unittest.TestCase):
         old = bc.collect(7, "dev", fetch=fake_fetch)
         self.assertIsNone(old["spend"]["samImages"])
         self.assertIn("Spend: SAM images not counted; 12 job minutes.", bc.markdown([old]))
+
+    def test_a_glimmer_engine_run_is_read_as_glimmer_never_as_sam_missing_everything(self):
+        msgs = {
+            7: [("Dev bench dev/layering/v1", GLIMMER_HEAD.format("caught", "yes") + "player-always-visible 5 fail; "
+                 "coins-visible 5 pass"),
+                ("Held-out bench clean", GLIMMER_HEAD.format("false alarm", "no") + "player-always-visible 5 pass; "
+                 "coins-visible 5 pass")],
+            8: [("Dev bench dev/sinking/v2", GLIMMER_HEAD.format("caught", "no") + "player-always-visible 5 pass; "
+                 "coins-visible 5 pass"),
+                ("Dev bench dev/layering/v1", GLIMMER_HEAD.format("caught", "no") + "player-always-visible 5 pass; "
+                 "coins-visible 5 pass")]}
+
+        def fetch(path):
+            parts = path.split("/")
+            if parts[-2] == "runs" and parts[-1].isdigit():
+                return {"html_url": f"https://x/{parts[-1]}", "head_sha": "abcdef1234", "created_at": "2026-10-30T02:00:00Z"}
+            if "/jobs" in path:
+                run = int(path.split("/runs/")[1].split("/")[0])
+                return {"jobs": [{"id": run * 10 + i, "name": "heldout-bench (x)"} for i in range(len(msgs[run]))]}
+            run, i = divmod(int(parts[-2]), 10)
+            title, message = msgs[run][i]
+            return [{"title": title, "message": message}]
+
+        doc = bc.collect([7, 8], "dev", fetch=fetch)
+        self.assertEqual(doc["judge"], "glimmer-engine")
+        self.assertEqual(doc["caughtWithGlimmerEngine"], {"yes": 1, "of": 2})  # run 8 only fills in sinking/v2
+        self.assertEqual(doc["caughtWithSamOn"], {"yes": 0, "of": 2})  # no SAM ran; the table never says so
+        self.assertEqual(doc["falseAlarm"]["withGlimmerEngine"], "no")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = bc.write(doc, Path(tmp))
+            self.assertEqual(path.name, "dev-glimmer-engine.json")
+            md = (Path(tmp) / "README.md").read_text()
+        self.assertIn("Caught with Glimmer+engine (no SAM): **1 of 2**", md)
+        self.assertIn("| dev/layering/v1 | yes | no | player-always-visible 5 |", md)
+        self.assertNotIn("Caught with SAM:", md)
 
     def test_a_run_without_its_clean_control_is_refused(self):
         def no_clean(path):
