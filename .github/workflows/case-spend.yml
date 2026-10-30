@@ -1,0 +1,199 @@
+# Per-case spend for the fix-matrix and judge benchmarks (agents/case_spend.py):
+# SAM images, Muse gateway requests, Glimmer calls, and job minutes.
+#
+# New workflow only: does not edit the Fix matrix workflow. Public/dev cases; never checks out
+# the private held-out set. Live Muse/SAM spend is opt-in via workflow_dispatch.
+name: Case spend
+
+on:
+  workflow_dispatch:
+    inputs:
+      bench:
+        description: fix (fix-matrix cases) or judge (judge-benchmark cases)
+        type: choice
+        options: [fix, judge]
+        default: fix
+      live:
+        description: Run Muse Code / SAM (spends Meta credit). Off is the offline path.
+        type: boolean
+        default: false
+      cases:
+        description: Comma-separated case ids (default all). Fix uses dev/<family>/vN; judge uses good/... and bad/...
+        default: ''
+      conditions:
+        description: Fix only — screenshots and/or expectrail (default both)
+        default: 'screenshots,expectrail'
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      pairs: ${{ steps.plan.outputs.pairs }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Plan case rows
+        id: plan
+        env:
+          BENCH: ${{ inputs.bench }}
+          CASES: ${{ inputs.cases }}
+          CONDITIONS: ${{ inputs.conditions }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from expectrail.legacy import current_name
+          wanted = [c.strip() for c in os.environ["CASES"].split(",") if c.strip()]
+          pairs = []
+          if os.environ["BENCH"] == "fix":
+              from agents.matrix import CONDITIONS, dev_variants
+              cases = wanted or sorted(dev_variants())
+              bad = sorted(set(cases) - set(dev_variants()))
+              if bad:
+                  raise SystemExit(f"unknown fix cases: {bad}")
+              conds = [current_name(c.strip()) for c in os.environ["CONDITIONS"].split(",") if c.strip()] or list(CONDITIONS)
+              for case in cases:
+                  for cond in conds:
+                      pairs.append({"bench": "fix", "case": case, "condition": cond})
+          else:
+              from agents.judge_bench import cases as judge_cases
+              every = sorted(judge_cases())
+              cases = wanted or every
+              bad = sorted(set(cases) - set(every))
+              if bad:
+                  raise SystemExit(f"unknown judge cases: {bad}")
+              for case in cases:
+                  pairs.append({"bench": "judge", "case": case, "condition": ""})
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"pairs={json.dumps(pairs)}\n")
+          print(len(pairs), "rows")
+          PY
+
+  run:
+    needs: plan
+    if: ${{ needs.plan.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.pairs) }}
+    env:
+      LIVE: ${{ inputs.live }}
+      BENCH: ${{ matrix.bench }}
+      CASE: ${{ matrix.case }}
+      CONDITION: ${{ matrix.condition }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Install Muse Code CLI
+        if: env.LIVE == 'true'
+        run: |
+          curl -fsSL https://dev.meta.ai/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Install mitmproxy for the Muse key gateway
+        if: env.LIVE == 'true'
+        run: |
+          python -m venv "$RUNNER_TEMP/mitm"
+          "$RUNNER_TEMP/mitm/bin/python" -m pip install --quiet --disable-pip-version-check "mitmproxy==12.2.3"
+      - name: Download Godot
+        run: ./harness/get_godot.sh
+      - name: Allow unprivileged user namespaces for bubblewrap
+        run: |
+          if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
+          fi
+          if [ -f /proc/sys/kernel/unprivileged_userns_clone ]; then
+            echo 1 | sudo tee /proc/sys/kernel/unprivileged_userns_clone
+          fi
+      - name: Run the case and count spend
+        env:
+          EXPECTRAIL_MUSE_GATEWAY: ${{ inputs.live && 'on' || '' }}
+          EXPECTRAIL_MITMDUMP: ${{ runner.temp }}/mitm/bin/mitmdump
+          META_API_KEY: ${{ inputs.live && secrets.META_API_KEY || '' }}
+          MODEL_API_KEY: ${{ secrets.MODEL_API_KEY }}
+          # Public only: never mount the private held-out set in this workflow.
+        run: |
+          if [[ "$BENCH" == "fix" ]]; then
+            args=(--run-fix "$CASE" --condition "$CONDITION" --out runs/matrix)
+            if [[ "$LIVE" == "true" ]]; then
+              args+=(--live)
+            elif [[ "$CASE" == "dev/physics-fall-through/v1" ]]; then
+              args+=(--fixture-candidate agents/fixtures/fix-collision-mask.patch)
+            fi
+            dir="runs/matrix/${CASE//\//_}/$CONDITION"
+          else
+            args=(--run-judge "$CASE" --out runs/judge)
+            if [[ "$LIVE" == "true" ]]; then args+=(--live); else args+=(--no-sam); fi
+            dir="runs/judge/${CASE//\//_}"
+          fi
+          set +e
+          python -m agents.case_spend "${args[@]}" > case.log 2>&1
+          code=$?
+          set -e
+          tail -n 40 case.log
+          mkdir -p keep
+          find "$dir" -type f \( -name result.json -o -name spend.json -o -name sandbox.json -o -name judge.json \) \
+            -print | while read -r f; do mkdir -p "keep/$(dirname "$f")"; cp "$f" "keep/$f"; done
+          exit "$code"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: spend-${{ strategy.job-index }}
+          path: keep/
+          retention-days: 14
+
+  summarize:
+    needs: run
+    if: always() && needs.run.result != 'cancelled'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          path: results
+          pattern: spend-*
+          merge-multiple: true
+      - name: Write bench spend tables
+        env:
+          BENCH: ${{ inputs.bench }}
+        run: |
+          tree=results/runs/matrix
+          out=bench/fix-matrix
+          if [[ "$BENCH" == "judge" ]]; then
+            tree=results/runs/judge
+            out=bench/judge
+          fi
+          python -m agents.case_spend --tree "$tree" --bench "$BENCH" --out "$out"
+          cat "$out/spend.md" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: case-spend-summary
+          path: |
+            bench/fix-matrix/spend.json
+            bench/fix-matrix/spend.md
+            bench/judge/spend.json
+            bench/judge/spend.md
+          if-no-files-found: warn
+          retention-days: 30

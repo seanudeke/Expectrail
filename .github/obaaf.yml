@@ -19,3 +19,4 @@ lanes:
   ".github/workflows/spark-open.yml#spark-open": agent           # Muse Spark Open drafts specs
   ".github/workflows/fix-matrix.yml#gateway-probe": agent        # Muse Code behind the key gateway (experiment)
   ".github/workflows/web-fix.yml#run": agent                     # Muse Code fixes the checkout page, second domain
+  ".github/workflows/case-spend.yml#run": agent                   # Muse/SAM spend counters for fix-matrix and judge
