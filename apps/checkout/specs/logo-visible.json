@@ -4,7 +4,7 @@
   "instruction": "The store's logo is always visible.",
   "objects": {
     "logo": {
-      "prompt": "purple logo"
+      "prompt": "purple B logo"
     }
   },
   "assertion": {

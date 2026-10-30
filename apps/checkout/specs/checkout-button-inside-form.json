@@ -4,7 +4,8 @@
   "instruction": "The Continue to checkout button stays inside the checkout form.",
   "objects": {
     "button": {
-      "prompt": "blue button"
+      "prompt": "full-width blue button",
+      "minScore": 0.66
     },
     "form": {
       "prompt": "checkout form"
