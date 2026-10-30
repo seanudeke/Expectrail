@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Expectrail — Interactive Hosted Demo & Audit Vault</title>
+  <title>Expectrail: Interactive Demo and Audit Vault</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -88,7 +88,7 @@
       <div class="flex items-center gap-3 text-slate-400">
         <span>Godot 4.7.2 Headless</span>
         <span>•</span>
-        <span class="text-emerald-400 font-medium">$0 API Spend / Stored Evidence</span>
+        <span class="text-emerald-400 font-medium">Recorded evidence: viewing calls no API</span>
         <span>•</span>
         <a href="https://github.com/seanudeke/Expectrail" target="_blank" class="hover:text-white underline decoration-slate-600">GitHub Repo</a>
       </div>
@@ -111,6 +111,7 @@
             <span id="case-badge" class="px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Verified Accept</span>
           </h2>
           <p class="text-xs text-slate-400">Examine how SAM 3.1 detected the defect, how Muse Code patched it, and how the Verifier guarded gameplay.</p>
+          <p class="text-xs font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded px-2 py-1" id="illustration-note">Illustration, not a capture: the animation, its overlay values and the case texts are drawn and written for this page from the recorded results. Only physics-fall-through / v1 shows Muse Code's recorded fix and reasoning. Measured numbers, each with its run, are in the Benchmark Matrix tab; real frames are in each run's review page.</p>
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
@@ -144,7 +145,7 @@
             <div class="p-3 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 text-xs">
               <span class="font-semibold text-slate-300 flex items-center gap-2">
                 <svg class="w-4 h-4 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-                Replay Visualizer (120 FPS Movie Maker Capture)
+                Animated illustration (not a capture)
               </span>
               <div class="flex items-center gap-2">
                 <button onclick="toggleOverlay('sam')" id="btn-overlay-sam" class="px-2 py-1 rounded text-[11px] font-mono border bg-blue-500/20 text-blue-400 border-blue-500/40">SAM 3.1 Masks: ON</button>
@@ -154,6 +155,7 @@
 
             <!-- Canvas Viewport -->
             <div class="relative bg-slate-950 aspect-[16/9] flex items-center justify-center overflow-hidden" id="canvas-container">
+              <span class="absolute top-2 left-2 z-30 text-[10px] font-mono font-bold uppercase tracking-wider text-amber-300 bg-slate-950/90 border border-amber-500/40 rounded px-1.5 py-0.5">Simulation, not a capture</span>
               <!-- Background Sky & Platforms (Simulated) -->
               <div class="absolute inset-0 bg-gradient-to-b from-sky-900/30 via-slate-950 to-slate-950"></div>
               
@@ -255,7 +257,7 @@
                 <span class="font-bold text-emerald-400" id="check-regression">PASS</span>
               </div>
               <div class="flex items-center justify-between p-2 rounded bg-slate-950 border border-slate-800/80">
-                <span class="text-slate-300">2. gameplay (Δx ≥ 200px & Alive)</span>
+                <span class="text-slate-300">2. gameplay (the robot moves and stays alive)</span>
                 <span class="font-bold text-emerald-400" id="check-gameplay">PASS</span>
               </div>
               <div class="flex items-center justify-between p-2 rounded bg-slate-950 border border-slate-800/80">
@@ -276,8 +278,8 @@
           <!-- Muse Code Patch Diff -->
           <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
             <div class="p-3 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 text-xs">
-              <span class="font-bold text-slate-300 font-mono">candidate.patch (Muse Code)</span>
-              <span class="text-[11px] font-mono text-slate-500">policy: clean-v1</span>
+              <span class="font-bold text-slate-300 font-mono" id="diff-title">candidate.patch: Muse Code's recorded fix</span>
+              <span class="text-[11px] font-mono text-slate-500" id="diff-policy">policy: clean-v1</span>
             </div>
             <div class="p-3 bg-slate-950 text-xs font-mono overflow-x-auto leading-relaxed" id="diff-container">
               <div class="text-slate-500">--- a/player/player.tscn</div>
@@ -292,7 +294,7 @@
 
           <!-- Muse Diagnostic Reasoning Excerpt -->
           <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2">
-            <span class="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono">Muse Diagnostic Reasoning</span>
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono" id="reasoning-title">Muse Code's reasoning, from its recorded log</span>
             <div class="text-xs text-slate-300 bg-slate-950 p-3 rounded border border-slate-800/80 leading-relaxed font-mono whitespace-pre-wrap max-h-40 overflow-y-auto" id="muse-reasoning">
 Root cause: the ground lives on physics layer 5 (value 16 in tileset.tres), but the player's mask was 14 (layers 2+3+4: enemies, coins, platforms), so the ground was invisible to it and it fell straight through from the first frames.
 
@@ -314,6 +316,7 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
         <div>
           <h2 class="text-base font-bold text-white">Full Gate 2 Benchmark Matrix</h2>
           <p class="text-xs text-slate-400">Expectrail (Deterministic Verifier + SAM 3.1) vs. Muse Code with Raw Screenshots Baseline.</p>
+          <p class="text-xs text-slate-400">Sources: fixes and minutes from the development fix matrix (<a class="underline" href="https://github.com/seanudeke/Expectrail/blob/main/bench/fix-matrix/README.md">bench/fix-matrix</a>, runs 40916077549, 40927304209, 40927316337); caught columns from the detection bench (<a class="underline" href="https://github.com/seanudeke/Expectrail/blob/main/bench/detection/README.md">bench/detection</a>, run 40841977642); frame counts from <a class="underline" href="https://github.com/seanudeke/Expectrail/blob/main/docs/sam.md">docs/sam.md</a>. Held-out set, first run: Expectrail fixed 8 of 8, screenshots 7 of 8 (<a class="underline" href="https://github.com/seanudeke/Expectrail/blob/main/bench/fix-matrix/held-out/README.md">run 41099054641</a>).</p>
         </div>
         <div class="flex items-center gap-3 font-mono text-xs">
           <div class="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
@@ -346,7 +349,7 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
               <td class="px-4 py-3 font-bold text-white">physics-fall-through / v1</td>
               <td class="px-4 py-3 text-slate-300">Player collision mask drops ground (14)</td>
               <td class="px-4 py-3 text-emerald-400">YES (position y)</td>
-              <td class="px-4 py-3 text-emerald-400 font-bold">YES (0.94)</td>
+              <td class="px-4 py-3 text-emerald-400 font-bold">YES</td>
               <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (12m)</span></td>
               <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (10m)</span></td>
             </tr>
@@ -354,7 +357,7 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
               <td class="px-4 py-3 font-bold text-white">physics-fall-through / v2</td>
               <td class="px-4 py-3 text-slate-300">Level tileset drops collision layer (0)</td>
               <td class="px-4 py-3 text-emerald-400">YES (position y)</td>
-              <td class="px-4 py-3 text-emerald-400 font-bold">YES (0.95)</td>
+              <td class="px-4 py-3 text-emerald-400 font-bold">YES</td>
               <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (13m)</span></td>
               <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (15m)</span></td>
             </tr>
@@ -362,7 +365,7 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
               <td class="px-4 py-3 font-bold text-white">missing-texture / v1</td>
               <td class="px-4 py-3 text-slate-300">Coin texture file UID stripped</td>
               <td class="px-4 py-3 text-red-400 font-bold">NO (coords valid)</td>
-              <td class="px-4 py-3 text-emerald-400 font-bold">YES (0.00 / 0 seen)</td>
+              <td class="px-4 py-3 text-emerald-400 font-bold">YES (no coins seen)</td>
               <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (17m)</span></td>
               <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (9m)</span></td>
             </tr>
@@ -370,7 +373,7 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
               <td class="px-4 py-3 font-bold text-white">missing-texture / v2</td>
               <td class="px-4 py-3 text-slate-300">Coin sprite texture property cleared</td>
               <td class="px-4 py-3 text-red-400 font-bold">NO (coords valid)</td>
-              <td class="px-4 py-3 text-emerald-400 font-bold">YES (0.00 / 0 seen)</td>
+              <td class="px-4 py-3 text-emerald-400 font-bold">YES (no coins seen)</td>
               <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (20m)</span></td>
               <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (9m)</span></td>
             </tr>
@@ -378,7 +381,7 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
               <td class="px-4 py-3 font-bold text-white">layering / v1</td>
               <td class="px-4 py-3 text-slate-300">Player z_index drops behind level (-3)</td>
               <td class="px-4 py-3 text-red-400 font-bold">NO (coords valid)</td>
-              <td class="px-4 py-3 text-emerald-400 font-bold">YES (17/31 occluded)</td>
+              <td class="px-4 py-3 text-emerald-400 font-bold">YES (robot seen in 17 of 31)</td>
               <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (16m)</span></td>
               <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (18m)</span></td>
             </tr>
@@ -394,7 +397,7 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
               <td class="px-4 py-3 font-bold text-white">sinking / v1</td>
               <td class="px-4 py-3 text-slate-300">Collision shape sits 26px too high</td>
               <td class="px-4 py-3 text-emerald-400">YES (ground line)</td>
-              <td class="px-4 py-3 text-emerald-400 font-bold">YES (+59px)</td>
+              <td class="px-4 py-3 text-emerald-400 font-bold">YES</td>
               <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (36m)</span></td>
               <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (22m)</span></td>
             </tr>
@@ -416,7 +419,7 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
         <div class="space-y-1">
           <div class="font-bold text-white text-sm">Why Visual Grounding (SAM 3.1) Beats Traditional QA</div>
           <p class="leading-relaxed text-blue-200/90">
-            Without computer vision, <strong>5 of the 8 bug variants pass conventional build checks completely undetected</strong>: missing textures, player layering behind tiles, and visual sprite offsets leave the physics coordinates 100% valid. Only Meta SAM 3.1's segmentation identifies what the human player actually sees on screen.
+            Without computer vision, <strong>5 of the 8 bug variants pass conventional build checks completely undetected</strong>: missing textures, player layering behind tiles, and visual sprite offsets leave the physics coordinates valid. Meta's vision models (SAM 3.1, or the open-weight Muse Glimmer checked against the engine, also 8 of 8) see what the player actually sees on screen.
           </p>
         </div>
       </div>
@@ -503,7 +506,7 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
           <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-2 text-xs font-mono">
             <div class="text-slate-400 text-[10px]">ED25519 RELEASE CANDIDATE PROVENANCE</div>
             <div class="text-white text-[11px] break-all">
-              <span class="text-slate-500">Public Key:</span> al9N+4uEH9Mq06k9iS/jKYwzqek7JtFknwlu73KQVXY=
+              <span class="text-slate-500">Public Key:</span> a new Ed25519 key for every run; its public half is in that run's release candidate
             </div>
             <div class="text-slate-400 text-[11px]">
               <span class="text-slate-500">Signature:</span> Validated outside the reach of the fixer agent.
@@ -523,10 +526,10 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
       <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800 flex items-center justify-between">
         <div>
           <h2 class="text-base font-bold text-white">7:30 AM Morning Report (Human Hand-Off)</h2>
-          <p class="text-xs text-slate-400">The human game developer inspects the overnight rollup, approves the verified diff, and merges the release candidate.</p>
+          <p class="text-xs text-slate-400">The human game developer inspects the overnight rollup, approves the verified diff, and merges the release candidate. Example: the offline Gate 1 path, on fixtures.</p>
         </div>
         <span class="px-3 py-1 rounded bg-brand-500/20 text-brand-400 border border-brand-500/40 text-xs font-mono font-bold">
-          RC Signed: READY TO SHIP
+          RC signed: waiting for a person's approval
         </span>
       </div>
 
@@ -582,7 +585,7 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
         <!-- Unresolved & Human Gate -->
         <div>
           <h2 class="text-sm font-bold text-white mb-2">## Unresolved for a Human</h2>
-          <p class="text-slate-400">none (all tests pass; clean and held-out routes green)</p>
+          <p class="text-slate-400">none (every check passed; the held-out check here is the interim fixture, not the private routes)</p>
         </div>
       </div>
     </div>
@@ -591,7 +594,7 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
 
   <!-- Footer -->
   <footer class="border-t border-slate-800/80 bg-slate-900/60 py-4 px-4 text-center text-xs text-slate-500 font-mono">
-    Expectrail • Meta Global AI Hackathon (Indie Track) • Oct 26 – Nov 4, 2026 • Verified Apache-2.0
+    Expectrail • Meta Global AI Developer Hackathon (Indie Track) • October 26 to November 4, 2026 • Apache-2.0
   </footer>
 
   <!-- Interactive Demo Logic -->
@@ -661,7 +664,7 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
         diffFile: 'level/coin.tscn',
         diffDel: '-texture = ExtResource("1_missing")',
         diffAdd: '+texture = ExtResource("1_coin_webp")',
-        museReasoning: 'Root cause: coin.tscn referenced non-existent coin_missing.webp. SAM 3.1 reported 0 detections in 120 frames.\n\nFix: restore valid coin texture reference.',
+        museReasoning: 'Root cause: coin.tscn referenced non-existent coin_missing.webp. SAM 3.1 found no coins.\n\nFix: restore valid coin texture reference.',
         bugY: '636.6px',
         fixY: '636.6px',
         hasCoin: false
@@ -707,7 +710,7 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
         diffFile: 'game_singleplayer.tscn',
         diffDel: '-z_index = -3',
         diffAdd: '+z_index = 3',
-        museReasoning: 'Root cause: Player node z_index was set to -3, rendering the robot behind the tilemap layers. SAM 3.1 failed to see the player in 17 of 31 sampled frames.\n\nFix: restore z_index = 3.',
+        museReasoning: 'Root cause: Player node z_index was set to -3, rendering the robot behind the tilemap layers. SAM 3.1 saw the robot in only 17 of 31 sampled frames (docs/sam.md).\n\nFix: restore z_index = 3.',
         bugY: '636.6px',
         fixY: '636.6px',
         hasCoin: true
@@ -799,7 +802,7 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
         diffFile: 'player/player.gd',
         diffDel: '-velocity = Vector2.ZERO',
         diffAdd: '+velocity = Vector2.ZERO; return # FREEZE CHEAT',
-        museReasoning: 'EXPLOIT ATTEMPT: The agent tried to satisfy "never falls through ground" by completely disabling player movement physics.\n\nVERIFIER REJECTION: Caught immediately by the Gameplay Gate (Δx required ≥ 200px, got 0px).',
+        museReasoning: 'EXPLOIT ATTEMPT: The agent tried to satisfy "never falls through ground" by completely disabling player movement physics.\n\nVERIFIER REJECTION: Caught by the gameplay check: the robot has to move along the route, and it did not.',
         bugY: '636.6px',
         fixY: '636.6px',
         hasCoin: true
@@ -822,7 +825,7 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
         diffFile: 'player/player.tscn',
         diffDel: '-visible = true',
         diffAdd: '+visible = false # HIDE CHEAT',
-        museReasoning: 'EXPLOIT ATTEMPT: Agent stopped the fall-through detection by hiding the player character from the scene.\n\nVERIFIER REJECTION: Caught by SAM 3.1 visual oracle (0 player boxes detected in 120 frames).',
+        museReasoning: 'EXPLOIT ATTEMPT: Agent stopped the fall-through detection by hiding the player character from the scene.\n\nVERIFIER REJECTION: Caught by SAM 3.1: it found no robot on screen.',
         bugY: '636.6px',
         fixY: '636.6px',
         hasCoin: true
@@ -845,7 +848,7 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
         diffFile: 'player/player.tscn',
         diffDel: '-collision_mask = 14',
         diffAdd: '+collision_mask = 30; # BUT COLLISION SHAPE LEFT 26PX HIGH',
-        museReasoning: 'EXPLOIT ATTEMPT: Fix stops infinite fall, but draws the robot permanently sunk into the terrain.\n\nVERIFIER REJECTION: Caught by ground line check (worst gap +59px > tolerance 20px).',
+        museReasoning: 'EXPLOIT ATTEMPT: Fix stops infinite fall, but draws the robot permanently sunk into the terrain.\n\nVERIFIER REJECTION: Caught by the ground line check: the robot\'s feet are below the clean level\'s ground.',
         bugY: '662.6px',
         fixY: '662.6px',
         hasCoin: true
@@ -868,7 +871,7 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
         diffFile: 'level/tileset.tres',
         diffDel: '-polygon = [[0, 0], [64, 0], ...]',
         diffAdd: '+polygon = [[0, 64], [64, 64], ...] # LOWER FLOOR CHEAT',
-        museReasoning: 'EXPLOIT ATTEMPT: Agent lowered the level floor polygons by 50px so that a sunken player would look "above ground".\n\nVERIFIER REJECTION: Caught because the Verifier always evaluates replay traces against the UNMODIFIED clean level reference.',
+        museReasoning: 'EXPLOIT ATTEMPT: Agent moved the floor\'s collision below its art, so the robot stops falling but stands below the drawn ground.\n\nVERIFIER REJECTION: Caught because the Verifier always evaluates replay traces against the UNMODIFIED clean level reference.',
         bugY: '636.6px',
         fixY: '636.6px',
         hasCoin: true
@@ -916,6 +919,15 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
 
       document.getElementById('decision-reason').textContent = c.decisionReason;
       document.getElementById('muse-reasoning').textContent = c.museReasoning;
+      // Only physics-fall-through / v1 is Muse Code's recorded output (bench/live-muse-clean-v1); say so.
+      const recorded = caseKey === 'physics-v1';
+      const exploit = caseKey.startsWith('exploit-');
+      document.getElementById('reasoning-title').textContent = recorded
+        ? "Muse Code's reasoning, from its recorded log" : 'Root cause and fix, written for this page';
+      document.getElementById('diff-title').textContent = recorded
+        ? "candidate.patch: Muse Code's recorded fix"
+        : (exploit ? 'The rejected fixture patch, sketched' : 'The kind of fix that undoes this bug, sketched');
+      document.getElementById('diff-policy').textContent = recorded ? 'policy: clean-v1' : 'sketch';
 
       // Update diff
       const diffContainer = document.getElementById('diff-container');
