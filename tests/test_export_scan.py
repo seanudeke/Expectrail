@@ -116,5 +116,18 @@ class ExportScanTest(unittest.TestCase):
         self.assertEqual([f for f in findings if f["level"] == "error"], [])
 
 
+class PublicLinesTest(unittest.TestCase):
+    def test_a_line_a_public_patch_also_adds_is_not_private(self):
+        public = next(l[1:].strip() for l in (REPO / "bugs" / "layering" / "v1.patch").read_text().splitlines()
+                      if l.startswith("+") and not l.startswith("+++") and len(l[1:].strip()) >= 12)
+        with tempfile.TemporaryDirectory() as tmp:
+            private = Path(tmp)
+            (private / "v9.patch").write_text(f"+{public}\n+{ADDED}\n")
+            (private / "manifest.json").write_text(json.dumps({"variants": [{"family": "layering", "id": "v9",
+                                                                               "patch": "v9.patch"}]}))
+            items = private_items(private)
+        self.assertEqual(items["patch lines"], [ADDED])
+
+
 if __name__ == "__main__":
     unittest.main()
