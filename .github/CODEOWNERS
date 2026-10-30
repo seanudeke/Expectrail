@@ -1,0 +1,11 @@
+# What decides a verdict, and what runs with the repository's secrets, needs its owner's review
+# (OBAAF-REPO-001). This takes effect for merges once branch protection requires code-owner review.
+/.github/                  @seanudeke
+/contracts/                @seanudeke
+/specs/                    @seanudeke
+/agents/specs/             @seanudeke
+/nightshift/               @seanudeke
+/harness/                  @seanudeke
+/agents/verifier.py        @seanudeke
+/agents/sam_observations.py @seanudeke
+/agents/assurance/         @seanudeke

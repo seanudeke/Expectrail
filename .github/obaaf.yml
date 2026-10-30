@@ -1,0 +1,19 @@
+# OBAAF checker configuration (https://github.com/Obaaf/OBAAF, docs/checker-configuration.md).
+# CI runs the checker pinned to a reviewed OBAAF commit in reporting mode (the obaaf-audit job in
+# ci.yml), and fails when this lane inventory and the checker's classification disagree.
+#
+# The checker does not recognise our model entry points (python -m agents.*), so every job that
+# hands a Meta model untrusted input and acts on what it says is declared here as an agent lane.
+# A new model entry point needs a line here and review (agents/assurance/audit.py holds the same
+# list). Jobs that only send frames to a perception model (SAM 3.1, Muse Glimmer: sam-probe.yml,
+# glimmer-probe.yml, fix-matrix.yml#sam-warm) are not agents; they still hold model keys, and the
+# credential findings for them are reported, not suppressed.
+lanes:
+  ".github/workflows/ci.yml#agents-live-muse": agent             # Muse Code fixes, live gate
+  ".github/workflows/ci.yml#agents-bench-compare-live": agent    # Muse judges screenshots
+  ".github/workflows/ci.yml#agents-oct29-film": agent            # Muse Code fixes, recorded film
+  ".github/workflows/feedback-live.yml#feedback-live": agent     # Muse drafts specs from playtest feedback
+  ".github/workflows/fix-matrix.yml#run": agent                  # Muse Code fixes, Gate 2 matrix
+  ".github/workflows/fix-matrix.yml#judge-run": agent            # Muse judges candidate fixes
+  ".github/workflows/fix-matrix.yml#demo-run": agent             # the overnight loop end to end
+  ".github/workflows/spark-open.yml#spark-open": agent           # Muse Spark Open drafts specs

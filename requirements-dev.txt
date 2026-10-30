@@ -2,3 +2,6 @@
 jsonschema==4.26.0
 # Ed25519 per-run verifier signing (agents.signing / morning RC).
 cryptography==42.0.2
+# Reading .github/obaaf.yml and the workflows for the OBAAF lane audit (agents.assurance.audit);
+# the same version OBAAF's setup action pins.
+PyYAML==6.0.3
