@@ -140,8 +140,10 @@ evidence ([`apps/checkout`](../apps/checkout); results in the README's "Beyond g
   - One rule the game did not need: a page is full of look-alikes (a blue badge beside a blue
     button), so a SAM box counts only where it overlaps the page's paint box for that element. A
     score threshold alone was tried first and rejected a correct fix.
-- **What it does not yet have.** Held-out web bugs, the full live repair matrix (one bug has run
-  live), and checks written by anyone outside the team.
+  - Running the repair loop live found two faults the bench alone had not: a threshold that rejected
+    a correct fix, and a tolerance too tight for SAM's box at a private screen size. Both are fixed,
+    and the live matrix then accepted Muse Code's fixes for all 8 bugs.
+- **What it does not yet have.** Held-out web bugs, and checks written by anyone outside the team.
 
 Further out are backend and infrastructure changes, where the evidence is logs, metrics and
 responses rather than pixels. None of that is built.
