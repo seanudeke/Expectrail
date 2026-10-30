@@ -1,0 +1,56 @@
+# When CI fails on main, open an issue assigned to the repository's owner (so it notifies) and
+# comment on the pull request that merged the failing commit; comment while main stays red; close
+# the issue when CI on main passes again. Some CI jobs (the private routes) run only on main, so
+# main is where they fail first, and nothing else would say so. See agents/main_health.py.
+#
+# Runs main's own code only (workflow_run always uses the default branch's workflow and checkout),
+# installs nothing, and holds no secret beyond the run's token.
+name: Main health
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: A CI run on main to evaluate again
+        required: true
+      dry_run:
+        description: Say what it would do and write nothing
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: main-health
+  cancel-in-progress: false
+
+jobs:
+  main-health:
+    # A fork's pull request from a branch named main also reports head_branch main.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.event != 'pull_request' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Open, update or close the main-is-red issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          OWNER: ${{ github.repository_owner }}
+          RUN_ID: ${{ github.event.workflow_run.id || inputs.run_id }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && 'yes' || '' }}
+        run: |
+          [[ "$RUN_ID" =~ ^[0-9]+$ ]] || { echo "::error::run_id must be a number"; exit 1; }
+          python3 -m agents.main_health --run-id "$RUN_ID" ${DRY_RUN:+--dry-run}

@@ -1,0 +1,67 @@
+# The export scan against the private set, on a pull request, before it merges.
+#
+# CI's private job (agents-harness-private) runs only on main, because a pull request's own code
+# must never run where the private set is. So until now a page or bench file that matched the
+# private set was found only after it merged, and main went red. This workflow runs the base
+# branch's scanner (pull_request_target) and only reads the pull request's files: it checks them out
+# as data, never runs or imports them, and prints counts and file names, never the matched text.
+#
+# Same-repository pull requests only. Their authors can already reach the repository's secrets, so
+# this adds no exposure; a fork's pull request never runs it, so it cannot be used to test guesses
+# against the private set. A pull request that changes the scanner itself is scanned by main's
+# scanner until it merges.
+name: Private scan
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: A branch or commit whose files to scan (the scanner comes from the branch this runs on)
+        default: main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: private-scan-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  private-export-scan:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      HELDOUT_TOKEN_SET: ${{ secrets.HELDOUT_TOKEN != '' }}
+    steps:
+      - name: Require the held-out token
+        if: env.HELDOUT_TOKEN_SET != 'true'
+        run: |
+          echo "::error::HELDOUT_TOKEN is not set here, so the private set cannot be compared"
+          exit 1
+      - name: Check out the scanner (the base branch, never the pull request's code)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - name: Check out the files to scan, as data only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || inputs.ref }}
+          path: scanned
+          persist-credentials: false
+      - name: Fetch the private held-out set
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: seanudeke/Nightshift-heldout
+          token: ${{ secrets.HELDOUT_TOKEN }}
+          path: heldout-set
+          persist-credentials: false
+      # The scanner needs only the standard library, so nothing is installed. Python imports from
+      # the base branch's checkout (the working directory), never from scanned/.
+      - name: Export scan of the pull request against the private set (counts only, never names)
+        run: python -m agents.export_scan scanned/bench scanned/docs scanned/README.md scanned/apps --private heldout-set

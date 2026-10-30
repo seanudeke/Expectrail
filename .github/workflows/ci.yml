@@ -27,7 +27,7 @@ jobs:
           python-version: '3.13'
       - run: python -m pip install -r requirements-dev.txt
       - run: python -m unittest discover -s tests -t . -v
-      - name: Export scan of the public repository (keys and signing keys; private names are checked on main)
+      - name: Export scan of the public repository (keys and signing keys; private names are checked by private-scan.yml and on main)
         run: python -m agents.export_scan bench docs README.md apps --paths error
 
   # OBAAF (docs/obaaf.md), pinned to the reviewed commit: the lane inventory in .github/obaaf.yml
@@ -483,7 +483,9 @@ jobs:
 
   # Offline daily film on schedule + PRs (no Meta keys). Live Muse stays dispatch-only.
   # The Gate 1 accept with the private held-out routes mounted. Never on a pull request: a pull
-  # request runs its branch's code, which must not see the private set.
+  # request runs its branch's code, which must not see the private set. Its export scan also runs
+  # on same-repository pull requests (private-scan.yml, main's scanner reading the branch's files),
+  # and main-health.yml opens an issue whenever CI fails on main.
   agents-harness-private:
     if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-24.04
