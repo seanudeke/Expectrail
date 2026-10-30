@@ -36,7 +36,7 @@ on:
         options: [fix, judge, demo, gateway]
         default: fix
       set:
-        description: dev (public development variants) or held-out (private; run once, after the code freeze)
+        description: "dev (public development variants) or held-out (private; the first run on a fixed commit is the held-out result, later runs are repeats)"
         type: choice
         options: [dev, held-out]
         default: dev
@@ -49,6 +49,11 @@ on:
       runs:
         description: demo only, how many independent live runs of the overnight loop (1 to 20); always live
         default: '10'
+      review:
+        description: "demo only: on reviews each run's fix against its failing base (agents.review_change), reported beside the decision, which it never changes"
+        type: choice
+        options: ['off', 'on']
+        default: 'off'
       sam_cache:
         description: "shared: judge the clean game once (smoke and private routes) and share SAM's answers, encrypted, with this run's jobs; public: the smoke route only; off: every job judges every frame itself"
         type: choice
@@ -742,18 +747,21 @@ jobs:
           MODEL_API_KEY: ${{ secrets.MODEL_API_KEY }}
           EXPECTRAIL_OBS_PROVIDER: sam
           EXPECTRAIL_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
+          EXPECTRAIL_REVIEW: ${{ inputs.review }}
           RUN: ${{ matrix.run }}
         run: python -m agents.demo_loop --run "$RUN" --out runs/demo
       - name: Muse key gateway evidence
         if: always()
         run: python -m agents.gateway --evidence runs/demo
-      - name: Keep the run's summary, morning report and verification (no frames, no held-out material)
+      - name: Keep the run's summary, morning report, verification and review (no held-out material)
         if: always()
         run: |
           mkdir -p keep
           find runs/demo -path '*held-out*' -prune -o -type f \( -name summary.json -o -name result.json \
             -o -name morning-report.md -o -name verification.json -o -name candidate.patch -o -name candidate.json \
-            -o -name triage.json -o -name trust.json -o -name loop-error.txt \) -print \
+            -o -name triage.json -o -name trust.json -o -name loop-error.txt \
+            -o -name change-evidence.json -o -name review.html -o -name review-error.txt \
+            -o -path '*/review/assets/*.png' \) -print \
             | while read -r f; do mkdir -p "keep/$(dirname "$f")"; cp "$f" "keep/$f"; done
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()

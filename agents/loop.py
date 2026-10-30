@@ -34,6 +34,46 @@ from expectrail.contracts import load, validate
 
 DEFAULT_BEFORE = REPO / "agents" / "fixtures" / "frames" / "before-fall.png"
 DEFAULT_AFTER = REPO / "agents" / "fixtures" / "frames" / "after-fixed.png"
+# The failing base's observations when the loop runs on fixtures (the loop's bug is the fall-through).
+SAMPLE_BASE_OBS = REPO / "agents" / "fixtures" / "obs-fallthrough.json"
+REVIEW_ENV = "EXPECTRAIL_REVIEW"
+
+
+def review_on() -> bool:
+    """EXPECTRAIL_REVIEW=on adds a review against the failing base after verification. Off by default."""
+    import os
+
+    return os.environ.get(REVIEW_ENV, "").strip().lower() in ("on", "1", "true", "yes")
+
+
+def run_review(request: dict, candidate: Path, verification_file: Path, out: Path, *,
+               observations: Path | None, origin: str | None) -> dict:
+    """The review of this run's final candidate, reusing its verification. Never raises and never
+    changes the loop's decision: a failure is recorded as an INCONCLUSIVE review."""
+    try:
+        from agents.review_change import review
+
+        sample = observations is not None
+        record = review(request, candidate, out, mode="sample" if sample else "live", origin=origin,
+                        verification_path=verification_file,
+                        base_observations=SAMPLE_BASE_OBS if sample else None, observations=observations)
+        doc = {"status": record["status"], "evidenceLabel": record["evidenceLabel"],
+               "reasons": record["reasons"], "path": str(out / "change-evidence.json"),
+               "frames": {k: (out / v["frame"]["path"]) for k, v in record["arms"].items()
+                          if v and v.get("frame")}}
+        try:
+            from agents.review_html import render
+        except ImportError:
+            doc["html"] = None  # the renderer (Z3) is not in this build: the JSON is the evidence
+        else:
+            doc["html"] = str(render(out / "change-evidence.json", out))
+        return doc
+    except Exception as exc:  # noqa: BLE001 - a review never breaks or alters the overnight run
+        (out / "review-error.txt").parent.mkdir(parents=True, exist_ok=True)
+        (out / "review-error.txt").write_text(traceback.format_exc(), encoding="utf-8")
+        return {"status": "INCONCLUSIVE", "evidenceLabel": "MIXED OR INCOMPLETE",
+                "reasons": [f"the review itself failed: {type(exc).__name__}"], "path": None, "frames": {},
+                "html": None}
 
 
 def _promote_candidate(attempt_out: Path, fix_out: Path) -> None:
@@ -205,6 +245,17 @@ def one_run(
                 "verificationProvenance": "harness" if not skip_harness else "fixture",
             })
 
+        review_doc = None
+        if review_on():
+            source = str((last_meta or {}).get("source") or "")
+            review_doc = run_review(
+                request, fix_out / "candidate.patch", verify_dir / "verification.json", out / "review",
+                observations=observations,
+                origin="fixture" if source == "fixture" else "muse" if "muse" in source else "developer",
+            )
+        real = (review_doc or {}).get("frames") or {}
+        if before_frames is None and after_frames is None and "base" in real and "candidate" in real:
+            before_frames, after_frames = [real["base"]], [real["candidate"]]  # this run's own frames
         before = list(before_frames) if before_frames is not None else [DEFAULT_BEFORE]
         after = list(after_frames) if after_frames is not None else [DEFAULT_AFTER]
         if not before or not after:
@@ -225,8 +276,9 @@ def one_run(
             feedback=feedback,
             guard=fix_out / "guard.json" if (fix_out / "guard.json").is_file() else None,
             frames_illustrative=before_frames is None or after_frames is None,
+            review=review_doc,
         )
-        return _with_timing({
+        payload = {
             "decision": verification["decision"],
             "morning": summary,
             "gameplay": gameplay_film_stub(summary),
@@ -234,7 +286,10 @@ def one_run(
             "triageSource": triage_source,
             "fixerSource": (last_meta or {}).get("source"),
             "verificationProvenance": "harness" if not skip_harness else "fixture",
-        })
+        }
+        if review_doc is not None:
+            payload["review"] = {k: v for k, v in review_doc.items() if k != "frames"}
+        return _with_timing(payload)
     except (Exception, SystemExit) as exc:  # noqa: BLE001 — overnight loop must not forge accept
         (out / "loop-error.txt").write_text(traceback.format_exc(), encoding="utf-8")
         payload = {

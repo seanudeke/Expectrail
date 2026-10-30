@@ -45,6 +45,8 @@ def one(run: int, out: Path, loop_main=None) -> dict:
             signed=bool((result.get("morning") or {}).get("signature")),
             error=result.get("error"),
         )
+        if result.get("review"):
+            row["review"] = {k: result["review"].get(k) for k in ("status", "evidenceLabel", "reasons")}
     except (Exception, SystemExit) as exc:  # noqa: BLE001 - a crash is a result, never an accept
         row.update(decision="error", error=f"{type(exc).__name__}: {exc}"[:300])
     row["wallClockSeconds"] = round(time.perf_counter() - t0, 1)
@@ -61,6 +63,11 @@ def annotation(row: dict) -> str:
             f"{'ok' if row.get('trustOk') else row.get('trustOk')}; verified on {row.get('verificationProvenance')}; "
             f"signed {row.get('signed')}; "
             f"{row['wallClockSeconds']} s; SAM images {row['samImages']}")
+    if row.get("review"):  # its own line: the Demo run line's format is parsed by agents.bench_collect
+        rv = row["review"]
+        why = "; ".join(rv.get("reasons") or [])[:200] or "none"
+        line += (f"\n::notice title=Demo run {row['run']} review::{rv.get('status')}; "
+                 f"{rv.get('evidenceLabel')}; {' '.join(why.split())}")
     if row.get("error"):
         line += f"\n::warning title=Demo run {row['run']} error::{' '.join(str(row['error']).split())[:300]}"
     return line
