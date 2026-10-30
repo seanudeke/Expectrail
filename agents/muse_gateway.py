@@ -49,7 +49,7 @@ PROMPT = "Reply with exactly the text GATEWAY-OK and nothing else. Do not run to
 EXPECT = "GATEWAY-OK"
 CA_VARS = ("SSL_CERT_FILE", "NODE_EXTRA_CA_CERTS", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE")
 PROXY_VARS = ("HTTPS_PROXY", "HTTP_PROXY", "https_proxy", "http_proxy", "ALL_PROXY", "all_proxy")
-VARIANTS = ("control", "host", "bwrap", "bwrap-download")
+VARIANTS = ("control", "host", "bwrap", "bwrap-local", "bwrap-download")
 DOWNLOAD_HOST = "lookaside.facebook.com"
 
 
@@ -100,10 +100,43 @@ def launcher_paths(launcher: str | None) -> list[str]:
     """Lines of the launcher script that name a directory: where it keeps or looks for the program."""
     if not launcher or not Path(launcher).is_file():
         return []
-    text = Path(launcher).read_text(encoding="utf-8", errors="replace")
-    keep = [ln.strip() for ln in text.splitlines()
-            if re.search(r"HOME|XDG_|/\.local|/opt/|versions|install_dir|_DIR=", ln) and not ln.strip().startswith("#")]
-    return keep[:15]
+    lines = Path(launcher).read_text(encoding="utf-8", errors="replace").splitlines()
+    keep, inside = [], False
+    for ln in lines:
+        stripped = ln.strip()
+        if stripped.startswith("resolve_install_dir()"):
+            inside = True
+        if inside or (re.search(r"\.local|install_dir|_DIR=|bin_name|binary|version_file|manifest", ln)
+                      and not stripped.startswith("#")):
+            keep.append(stripped)
+        if inside and stripped == "}":
+            inside = False
+    return keep[:40]
+
+
+def local_tree(home: Path | None = None, depth: int = 3) -> list[str]:
+    """~/.local as ``path type`` lines (symlink targets shown): the CI runner's, nothing secret."""
+    root = (home or Path.home()) / ".local"
+    out: list[str] = []
+
+    def walk(d: Path, level: int) -> None:
+        try:
+            entries = sorted(d.iterdir())
+        except OSError:
+            return
+        for e in entries:
+            rel = e.relative_to(root).as_posix()
+            if e.is_symlink():
+                out.append(f"{rel} -> {os.readlink(e)}")
+            elif e.is_dir():
+                out.append(f"{rel}/")
+                if level < depth:
+                    walk(e, level + 1)
+            else:
+                out.append(f"{rel} ({e.stat().st_size} B)")
+
+    walk(root, 1)
+    return out[:60]
 
 
 def bwrap_argv(work: Path, argv: list[str], binds: list[Path]) -> list[str]:
@@ -208,7 +241,13 @@ def run_variant(name: str, *, out: Path, real: str, placeholder: str, proxy: str
         (work / ".muse").mkdir()
         shutil.copyfile(ca, work / ".muse" / "gateway-ca.pem")
         env = muse_env(placeholder, proxy=proxy, ca="/fixer/.muse/gateway-ca.pem", home=str(Path.home()))
-        cmd = bwrap_argv(work, argv, install_dirs() if name == "bwrap" else [])
+        local = Path.home() / ".local"
+        binds = {"bwrap": [local / "bin"], "bwrap-local": [local], "bwrap-download": []}[name]
+        cmd = bwrap_argv(work, [*argv], binds)
+        if name == "bwrap-local":
+            # Everything under ~/.local read-only except where Muse keeps sessions, locks and state.
+            cut = cmd.index("--")
+            cmd = cmd[:cut] + [a for sub_ in ("share", "state") for a in ("--tmpfs", str(local / sub_))] + cmd[cut:]
         try:
             proc = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=timeout, check=False)
         except subprocess.TimeoutExpired as exc:
@@ -244,12 +283,13 @@ def run_variant(name: str, *, out: Path, real: str, placeholder: str, proxy: str
 
 
 def verdict(results: dict[str, dict]) -> str:
-    control, host, box, download = (results.get(v) for v in VARIANTS)
+    control, host, box, local, download = (results.get(v) for v in VARIANTS)
     if control and control["answered"]:
         return "inconclusive: Muse answered with the placeholder and no proxy, so it has another credential"
     if host and host["answered"] and host["swappedHeaders"]:
-        if box and box["answered"]:
-            where = "on the host and inside bubblewrap with the installed program bound read-only"
+        if (box and box["answered"]) or (local and local["answered"]):
+            what = "~/.local/bin" if box and box["answered"] else "~/.local (sessions and state writable)"
+            where = f"on the host and inside bubblewrap with {what} bound read-only, no download"
         elif download and download["answered"]:
             where = f"on the host, and inside bubblewrap only when the proxy also passes {DOWNLOAD_HOST}"
         else:
@@ -294,7 +334,8 @@ def main(argv: list[str] | None = None) -> int:
     dirs = install_dirs()
     print(f"::notice title=Muse install::launcher {shutil.which('muse')}; program directories bound in the "
           f"bwrap variant: {', '.join(str(d) for d in dirs) or 'none found'}")
-    print("::notice title=Muse launcher paths::" + " | ".join(launcher_paths(shutil.which("muse")))[:1500])
+    print("::notice title=Muse launcher paths::" + " | ".join(launcher_paths(shutil.which("muse")))[:3000])
+    print("::notice title=Muse ~/.local::" + " | ".join(local_tree())[:3000])
     names = [v.strip() for v in args.variants.split(",") if v.strip()]
     unknown = sorted(set(names) - set(VARIANTS))
     if unknown:

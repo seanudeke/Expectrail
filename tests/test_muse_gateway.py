@@ -60,7 +60,7 @@ class DriverTest(unittest.TestCase):
         self.assertIn("inconclusive", mg.verdict({"control": row("control", True)}))
         self.assertEqual(mg.verdict({"control": row("control", False), "host": row("host", True, ["authorization"]),
                                      "bwrap": row("bwrap", True, ["authorization"])}),
-                         "works on the host and inside bubblewrap with the installed program bound read-only: "
+                         "works on the host and inside bubblewrap with ~/.local/bin bound read-only, no download: "
                          "Muse never held the key")
         self.assertIn("host only", mg.verdict({"control": row("control", False),
                                                "host": row("host", True, ["authorization"]),
@@ -89,6 +89,8 @@ class DriverTest(unittest.TestCase):
             launcher = Path(tmp) / "muse"
             launcher.write_text('#!/bin/bash\n# HOME comment\nROOT="${XDG_DATA_HOME:-$HOME/.local/share}/m"\necho hi\n')
             self.assertEqual(mg.launcher_paths(str(launcher)), ['ROOT="${XDG_DATA_HOME:-$HOME/.local/share}/m"'])
+            launcher.write_text("#!/bin/bash\nresolve_install_dir() {\n  echo \"$HOME/x\"\n}\nother\n")
+            self.assertEqual(mg.launcher_paths(str(launcher)), ["resolve_install_dir() {", 'echo "$HOME/x"', "}"])
         self.assertEqual(mg.launcher_paths(None), [])
 
     def test_the_bound_sandbox_adds_read_only_binds_before_the_command(self):
@@ -106,7 +108,8 @@ class DriverTest(unittest.TestCase):
         row = lambda name, answered, swapped=(): {"variant": name, "answered": answered,
                                                   "swappedHeaders": list(swapped)}
         verdict = mg.verdict({"control": row("control", False), "host": row("host", True, ["authorization"]),
-                              "bwrap": row("bwrap", False), "bwrap-download": row("bwrap-download", True)})
+                              "bwrap": row("bwrap", False), "bwrap-local": row("bwrap-local", False),
+                              "bwrap-download": row("bwrap-download", True)})
         self.assertIn("only when the proxy also passes lookaside.facebook.com", verdict)
 
     def test_redact_removes_both_keys(self):
