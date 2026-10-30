@@ -270,8 +270,10 @@ def run_fixer(
             # verified like any candidate; the caller counts the attempt either way.
             timed_out = True
             proc = subprocess.CompletedProcess(exc.cmd, None, _text(exc.stdout), _text(exc.stderr))
-            sandbox_meta = {"kind": muse_kind_for(detected), "requireSandbox": require_sandbox,
-                            "detect": detected, "timedOut": True, "timeoutSeconds": timeout}
+            sandbox_meta = dict(getattr(exc, "sandbox_meta", None)
+                                or {"kind": muse_kind_for(detected), "requireSandbox": require_sandbox,
+                                    "detect": detected})
+            sandbox_meta.update(timedOut=True, timeoutSeconds=timeout)
         (out / "muse.log").write_text(proc.stdout + "\n" + proc.stderr, encoding="utf-8")
         muse_exit = proc.returncode
         (out / "sandbox.json").write_text(json.dumps(sandbox_meta, indent=2) + "\n", encoding="utf-8")

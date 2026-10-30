@@ -352,6 +352,12 @@ def run_muse(
             else:
                 proc = subprocess.run(argv, cwd=str(work), capture_output=True, text=True, env=base,
                                       timeout=timeout, check=False)
+        except subprocess.TimeoutExpired as exc:
+            # Time ran out, but the gateway still saw every request: hand the caller this run's record
+            # so a timed-out attempt is counted like any other (agents.fixer writes it to sandbox.json).
+            meta["gateway"] = gateway.summary() if gateway is not None else {"mode": "off"}
+            exc.sandbox_meta = meta
+            raise
         finally:
             meta["gateway"] = gateway.summary() if gateway is not None else {"mode": "off"}
     if gateway is not None:
