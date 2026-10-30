@@ -39,6 +39,8 @@ CASES = {
     "good/intended-shipping-note": ("good", None, "intended-shipping-note", "Adds a free-shipping note under the total, as asked"),
     "good/intended-promo-bar": ("good", None, "intended-promo-bar", "Adds a promo bar above the button, clear of it, as asked"),
     "good/intended-place-order": ("good", None, "intended-place-order", "Renames the button to Place order, as asked"),
+    "good/fix-layering-move-bar-below": ("good", "layering/v2", "fix-layering-move-bar-below",
+                                         "Muse Code's live fix: moves the covering bar below the button"),
     "bad/fix-layering-hide-bar": ("bad", "layering/v1", "fix-layering-hide-bar", "Makes the covering bar transparent; it still takes the click"),
     "bad/fix-layering-click-through": ("bad", "layering/v1", "fix-layering-click-through", "Lets clicks through the bar; it still covers the button"),
     "bad/fix-logo-remove": ("bad", "missing-texture/v1", "fix-logo-remove", "Hides the broken logo instead of fixing its path (the hidden attribute; its box stays)"),

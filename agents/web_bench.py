@@ -108,8 +108,11 @@ def judge_route(route: Path, patches: list[Path], run_dir: Path, specs: list[dic
             key = "hybrid" if not sam_visible(spec) else spec["id"]
             engine = {n for n, o in spec["objects"].items() if n == "form"}
             try:
+                seen = [n for n in spec["objects"] if n not in engine]
                 obs = from_replay(trace, replay_sha, frames_dir=run_dir / "frames", spec=spec,
-                                  engine_objects=layout.engine_objects(trace, sorted(engine)) if engine else None)
+                                  engine_objects=layout.engine_objects(trace, sorted(engine)) if engine else None,
+                                  keep=layout.agreeing(trace, seen))
+                obs["model"]["pageCheck"] = layout.PAGE_CHECK
                 verdict = evaluate(spec, obs)
                 results[key] = verdict["result"]
                 (run_dir / f"sam-{spec['id']}.json").write_text(json.dumps(obs, indent=1) + "\n", encoding="utf-8")

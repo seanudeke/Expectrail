@@ -60,6 +60,17 @@ class LayoutTest(unittest.TestCase):
         self.assertEqual(judged("checkout-button-inside-form", moved), "pass")
         self.assertEqual(judged("checkout-button-inside-form", trace(button=(332, 1394, 940, 1442))), "fail")
 
+    def test_sam_boxes_count_only_on_the_page_s_paint_box_for_the_element(self):
+        t = trace(frames=2)
+        t["rows"][1]["elements"]["button"] = element((332, 1358, 940, 1406), shown=False)
+        keep = layout.agreeing(t, ["button"])
+        badge = {"box": [1233, 299, 1268, 330], "score": 0.9}
+        real = {"box": [333, 1357, 939, 1407], "score": 0.6}
+        got = keep({0: {"button": [badge, real], "form": [badge]}, 1: {"button": [real]}})
+        self.assertEqual(got[0]["button"], [real])     # the look-alike elsewhere is dropped
+        self.assertEqual(got[0]["form"], [badge])      # objects it was not asked about are untouched
+        self.assertEqual(got[1]["button"], [])         # hidden by CSS: nothing SAM says there counts
+
     def test_behaviour_is_the_order_going_through(self):
         self.assertEqual(layout.behaviour(trace())["result"], "pass")
         self.assertEqual(layout.behaviour(trace(submitted=False))["result"], "fail")
@@ -255,7 +266,7 @@ class JudgeTest(unittest.TestCase):
             for patch in web_judge.patches(case):
                 self.assertTrue(patch.is_file(), f"{case}: {patch}")
         labels = [v[0] for v in web_judge.CASES.values()]
-        self.assertEqual((labels.count("good"), labels.count("bad")), (4, 5))
+        self.assertEqual((labels.count("good"), labels.count("bad")), (5, 5))
 
     def test_any_failing_check_rejects_and_a_missing_one_is_undecided(self):
         from agents.web_judge import decide
