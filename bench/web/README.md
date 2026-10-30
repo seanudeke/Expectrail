@@ -55,13 +55,34 @@ tuned them, in order, including the tuning that failed, so the result can be che
    - **Live:** Muse Code fixed layering v2 on the first attempt, accepted on the public and private
      sessions.
 
+7. **The private sessions found a second fault** ([41106786406](https://github.com/seanudeke/Expectrail/actions/runs/41106786406), cancelled; [41108665193](https://github.com/seanudeke/Expectrail/actions/runs/41108665193)).
+   - The first full repair run rejected Muse's fix for fall-through v1 three times. Every public
+     check passed; the only failure was the inside-the-form check on the private sessions. We
+     cancelled the run after that first case.
+   - The preflight that clears the private sessions before a run had used no model, so it could
+     not see a fault in a SAM check. Run with SAM, it failed the clean page itself on one private
+     session, on that check alone.
+   - The cause: the button is flush with the form's left, right and bottom edges, so the check
+     was measuring SAM's box slop. That slop was 1 to 2 px on the public sessions, against a 4 px
+     tolerance, and more at that screen size.
+   - The preflight now runs SAM on every live run and stops it before Muse Code spends.
+8. **Tolerance 18 px** ([41108981597](https://github.com/seanudeke/Expectrail/actions/runs/41108981597), [41109233666](https://github.com/seanudeke/Expectrail/actions/runs/41109233666), [41109246690](https://github.com/seanudeke/Expectrail/actions/runs/41109246690)).
+   - The sinking bugs put the button 36 to 37 px out of the form. 18 px sits halfway, and was
+     chosen from the public sessions only, then checked once against the private ones.
+   - Both private sessions now pass on the clean page.
+   - Muse's fall-through v1 fix was accepted on the first attempt.
+   - Detection and the judge are unchanged: 8 of 8, 5 of 5 good accepted, 0 of 5 bad.
+
 **What remains open:**
 - The prompts and the agreement rule were chosen on public bugs and changes we wrote, plus one
   Muse fix. There are no private web bugs yet to test them on cases they were not tuned on.
+- We suggested the private sessions' screen sizes to Sean (a list of sizes that fit the page),
+  so they are less independent of us than the game's held-out bugs. Sean chose among them and wrote
+  the sessions, and we have not read them.
 - Agreement means the page's own paint box tells SAM where to look. A pass needs both the page and
   the pixels to say the button is there. Agreement only removes SAM's boxes, never adds one, so it
   cannot make SAM see a button that is not drawn on the element's own box. But a vision check that
   leans on the page's geometry is not independent of the page.
 
-Spend for the eleven runs above: about $9 of SAM images, plus Muse Code on two rejected live
-cases and one accepted one.
+Spend for the runs above: about $13 of SAM images, plus Muse Code on the live cases (rejected and
+accepted), at a few cents each.
