@@ -1,8 +1,8 @@
 Done. The player no longer falls through the ground.
 
-**Root cause:** the ground lives on physics layer 5 (value 16 — see `physics_layer_0/collision_layer = 16` in [tileset.tres](/Users/fehintola/Documents/GitHub/Nightshift/runs/prove/muse-gate/fix/fixer-work/level/tileset.tres:669) and the layer names in `project.godot`), but the player's mask was `14` (layers 2+3+4: enemies, coins, platforms), so the ground was invisible to it and it fell straight through from the first frames — matching the verdict.
+**Root cause:** the ground lives on physics layer 5 (value 16 — see `physics_layer_0/collision_layer = 16` in [tileset.tres](<checkout>/runs/prove/muse-gate/fix/fixer-work/level/tileset.tres:669) and the layer names in `project.godot`), but the player's mask was `14` (layers 2+3+4: enemies, coins, platforms), so the ground was invisible to it and it fell straight through from the first frames — matching the verdict.
 
-**Fix (one line):** in [player.tscn](/Users/fehintola/Documents/GitHub/Nightshift/runs/prove/muse-gate/fix/fixer-work/player/player.tscn:190), `collision_mask = 14` → `collision_mask = 30`, adding the ground layer while preserving all existing bits.
+**Fix (one line):** in [player.tscn](<checkout>/runs/prove/muse-gate/fix/fixer-work/player/player.tscn:190), `collision_mask = 14` → `collision_mask = 30`, adding the ground layer while preserving all existing bits.
 
 **Verification:** ran the game headless in Godot with a physics probe (kept at `/tmp/probe_stays_above_ground.gd`, outside the repo) that plays the smoke route — move right, two jumps — for 360 physics ticks and checks the player's feet against the tile surface below:
 
@@ -11,5 +11,5 @@ Done. The player no longer falls through the ground.
 
 No maintained test was added: this is a single config-value change, and the task forbids creating files outside `player/**` and `level/**`. Working tree contains only the intended edit (plus Godot's regenerable `.godot/` import cache); nothing committed.
 
-muse: workspace root: /Users/fehintola/Documents/GitHub/Nightshift/runs/prove/muse-gate/fix/fixer-work (cwd default)
+muse: workspace root: <checkout>/runs/prove/muse-gate/fix/fixer-work (cwd default)
 muse: workspace trust: trusted source=run-flag

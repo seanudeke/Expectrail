@@ -16,9 +16,9 @@
 - all 4 checks passed
 
 ## Suite provenance
-- candidate: source=`fixture` path=`/Users/fehintola/Documents/GitHub/Nightshift/agents/fixtures/obs-fixed.json` obsSha256=`ca960e024b7a8206…`
-- clean: source=`fixture` path=`/Users/fehintola/Documents/GitHub/Nightshift/agents/fixtures/obs-clean.json` obsSha256=`7395c39139725a6c…`
-- held-out: source=`interim-fixture` path=`/Users/fehintola/Documents/GitHub/Nightshift/agents/fixtures/obs-held-out.json` obsSha256=`572202e6219eed6c…`
+- candidate: source=`fixture` path=`<checkout>/agents/fixtures/obs-fixed.json` obsSha256=`ca960e024b7a8206…`
+- clean: source=`fixture` path=`<checkout>/agents/fixtures/obs-clean.json` obsSha256=`7395c39139725a6c…`
+- held-out: source=`interim-fixture` path=`<checkout>/agents/fixtures/obs-held-out.json` obsSha256=`572202e6219eed6c…`
 
 ## Gameplay
 - result: `pass`

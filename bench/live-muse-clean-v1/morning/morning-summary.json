@@ -12,13 +12,13 @@
       "role": "before",
       "path": "frames/before-00.png",
       "sha256": "d64794a278dd4b2110aa609aa31912664bd79706edf045a4fde586727bc6c7d8",
-      "source": "/Users/fehintola/Documents/GitHub/Nightshift/agents/fixtures/frames/before-fall.png"
+      "source": "<checkout>/agents/fixtures/frames/before-fall.png"
     },
     {
       "role": "after",
       "path": "frames/after-00.png",
       "sha256": "cadd538835e83f370118504a7a9248ebd1cf57cf6a2af437de5b310fe9d484bb",
-      "source": "/Users/fehintola/Documents/GitHub/Nightshift/agents/fixtures/frames/after-fixed.png"
+      "source": "<checkout>/agents/fixtures/frames/after-fixed.png"
     }
   ],
   "signingKey": "demo-fake-key",
