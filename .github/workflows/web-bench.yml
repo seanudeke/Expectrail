@@ -35,7 +35,7 @@ permissions:
 jobs:
   web-list:
     if: inputs.bench == 'detection'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
       HELDOUT_TOKEN_SET: ${{ secrets.HELDOUT_TOKEN != '' }}
@@ -72,7 +72,7 @@ jobs:
   # Named heldout-bench so agents.bench_collect reads its annotations as it reads the game's.
   heldout-bench:
     needs: web-list
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -137,7 +137,7 @@ jobs:
   # Record a run with: python3 -m agents.web_judge collect --run <id>
   web-judge-list:
     if: inputs.bench == 'judge'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     outputs:
       cases: ${{ steps.list.outputs.cases }}
@@ -158,7 +158,7 @@ jobs:
 
   web-judge:
     needs: web-judge-list
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -203,7 +203,7 @@ jobs:
   # against where the page drew the element. Public variants only; nothing here edits a spec.
   web-probe:
     if: inputs.bench == 'probe'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
       SAM_KEY_SET: ${{ secrets.MODEL_API_KEY != '' || secrets.META_API_KEY != '' }}
