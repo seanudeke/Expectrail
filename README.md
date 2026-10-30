@@ -32,13 +32,54 @@ commands are logged, not checked). The morning report lists both under "Feedback
 or blocked".
 [docs/feedback-recording.md](docs/feedback-recording.md)
 
-Status: Agents offline Gate-2 film path is in-repo (orchestrator → fixer → verifier → morning/RC
-→ overnight rollup/trust). SAM 3.1 observations go through the Meta Model API
-([docs/sam.md](docs/sam.md)); the first live run and calibration on our frames (Zayyad) and real
-held-out variants (Sean) still come next for the evaluation matrix. See [docs/new-work.md](docs/new-work.md) and
+Status, October 30: the whole loop runs live, end to end: Wonder triage, Muse Code in a sandbox,
+the Godot harness, the verifier with SAM 3.1 on the private held-out routes, the signed morning
+report and the trust check. See [docs/new-work.md](docs/new-work.md) and
 [agents/demo-path.md](agents/demo-path.md).
 
-**Open weights.** Muse Glimmer 30B can join SAM 3.1 in every vision check, where an object counts only if both models see it (`NIGHTSHIFT_VISION_BACKEND=both`), and Muse Spark Open can draft the test specs (`--endpoint open`), on partner inference or our own server. Glimmer has not been measured on our frames yet; SAM alone stays the default until it is. [docs/open-weights.md](docs/open-weights.md)
+## Results
+
+Every number here comes from a file in [`bench/`](bench), written from a CI run's own output, with
+the command that reruns it. Four bug families (physics fall-through, missing texture, layering,
+sinking), with two public development variants and two private held-out variants of each; the
+detection benches replay every variant, and the clean game, on five routes.
+
+| What we measured | Result | Run |
+| --- | --- | --- |
+| Held-out bugs caught, SAM 3.1 on | **8 of 8**, no false alarm on the clean game | [41003749744](https://github.com/seanudeke/Nightshift/actions/runs/41003749744) |
+| Held-out bugs caught, Muse Glimmer checked against the engine, no SAM | **8 of 8**, no false alarm | [41003751876](https://github.com/seanudeke/Nightshift/actions/runs/41003751876) |
+| Held-out bugs caught with no vision model (engine and gameplay checks only) | 4 of 8 | the same two runs |
+| Development bugs caught: SAM on / Glimmer, no SAM / no vision | 8 of 8 / 8 of 8 / 3 of 8 | [40841977642](https://github.com/seanudeke/Nightshift/actions/runs/40841977642), [41001182605](https://github.com/seanudeke/Nightshift/actions/runs/41001182605) |
+| Bad fixes that only look right, accepted by the judge (7 cases, 2 runs) | Nightshift with SAM **0 of 7**; Nightshift without SAM 3 of 7; Muse from screenshots 2 of 7 | [judge](bench/judge/README.md) |
+| Good fixes accepted by the judge (8 cases, 2 runs) | Nightshift 8 of 8 both runs; Muse from screenshots 6 and 7 of 8 | [judge](bench/judge/README.md) |
+| Development bugs fixed by Muse Code | 8 of 8 with Nightshift's evidence; 8 of 8 from screenshots alone | [fix matrix](bench/fix-matrix/README.md) |
+| Demo path, live, end to end, 10 independent runs | **10 of 10 accepted**, each on the first attempt | [40990485265](https://github.com/seanudeke/Nightshift/actions/runs/40990485265) |
+| Meta Model API spend, whole team, through October 29 | $204 (SAM images at list price are almost all of it) | [cost](bench/cost/README.md) |
+
+What these numbers do and do not say:
+
+- **The verifier is where Nightshift wins, not the fixer.** Muse Code fixes all 8 development bugs
+  from screenshots alone, as well as with our evidence. What screenshots alone cannot do is judge:
+  Muse from screenshots accepted 2 of 7 fixes that only look right (one lowers the floor, one sinks
+  the robot) and turned down one or two good ones. Nightshift with SAM accepted none of the bad and
+  all of the good, in both runs.
+- **One held-out catch came after a miss.** The first held-out runs caught 7 of 8. The eighth
+  (sinking/v4) draws the floor away from where it collides, and every check measured the robot
+  against the collision. The ground check now also follows the floor as drawn. It was built after
+  the miss, from the public game, without reading that variant's patch, so it is a check made for
+  the class that was missed, not a blind catch ([docs/sam.md](docs/sam.md),
+  [`bench/drawn-floor/`](bench/drawn-floor)).
+- **Two families need vision.** Missing texture and layering pass every engine and gameplay check;
+  only the vision checks catch them, on every route.
+
+**Open weights.** Muse Glimmer 30B, on a Fireworks deployment, can judge every vision check with no
+SAM key, checked against the game engine (`glimmer-engine`): 8 of 8 held-out and 8 of 8
+development bugs caught, no false alarm, and on the held-out routes the real fix is accepted and the
+hide-the-robot fix rejected. Muse Spark Open is wired to draft test specs and sort playtester
+feedback on Baseten (`--endpoint open`, `--sorter open`), but has not been run live yet. SAM 3.1
+stays the default: Glimmer's boxes are too loose for the ground check, so without SAM the ground is
+judged on the engine's position log, and a Glimmer bench takes about eight times the job minutes.
+[docs/open-weights.md](docs/open-weights.md)
 
 Known limits and what we would build next: [docs/future-work.md](docs/future-work.md).
 

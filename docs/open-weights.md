@@ -9,7 +9,9 @@ as SAM does (8 of 8 on the public development set, also as SAM does), with no SA
 these runs (Oct 29 to 30). Four of the eight held-out variants are caught only by Glimmer's checks.
 The eighth, sinking/v4, is caught by the engine's ground check, not by Glimmer, and that check was
 built after the first benches missed it (see the bench below). With `both`, Glimmer is a second pair
-of eyes next to SAM 3.1. Muse Code (the fixer) and Muse Voice Transcribe stay on Meta's hosted API.
+of eyes next to SAM 3.1. Muse Spark Open is wired in (below) but has not been run live yet, so
+nothing on this page measures it. Muse Code (the fixer) and Muse Voice Transcribe stay on Meta's
+hosted API.
 
 This page is for the infrastructure partner verifying the open-weights prize, and for us: what runs
 on which model, where, and how to check it.
