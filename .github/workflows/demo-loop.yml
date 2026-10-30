@@ -1,0 +1,128 @@
+# The Gate 2 demo path, live: the overnight loop end to end (Wonder triage, Muse Code in bubblewrap,
+# the Godot harness, the verifier with SAM on and the private held-out routes, the signed morning
+# report and the trust check), run N times on the demo case. Each run is its own job and process, so
+# one run cannot leave state for the next; "passes N in a row" means every one of them is accepted.
+# Manual only: it spends Muse and SAM credits.
+name: Demo loop
+
+on:
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: How many independent live runs (1 to 20)
+        default: '10'
+      parallel:
+        description: How many run at once (1 runs them strictly one after another)
+        default: '5'
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      runs: ${{ steps.plan.outputs.runs }}
+    steps:
+      - id: plan
+        env:
+          RUNS: ${{ inputs.runs }}
+        run: |
+          [[ "$RUNS" =~ ^[0-9]+$ && "$RUNS" -ge 1 && "$RUNS" -le 20 ]] || { echo "::error::runs must be 1 to 20"; exit 1; }
+          echo "runs=$(python3 -c "import json,sys; print(json.dumps(list(range(1, int(sys.argv[1]) + 1))))" "$RUNS")" >> "$GITHUB_OUTPUT"
+
+  run:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ fromJSON(inputs.parallel) }}
+      matrix:
+        run: ${{ fromJSON(needs.plan.outputs.runs) }}
+    env:
+      KEYS_OK: ${{ secrets.META_API_KEY != '' && secrets.MODEL_API_KEY != '' }}
+      HELDOUT_TOKEN_SET: ${{ secrets.HELDOUT_TOKEN != '' }}
+    steps:
+      - name: Require both keys and the held-out token
+        run: |
+          [ "$KEYS_OK" = "true" ] || { echo "::error::Set META_API_KEY (Muse) and MODEL_API_KEY (SAM, a different key) first."; exit 1; }
+          [ "$HELDOUT_TOKEN_SET" = "true" ] || { echo "::error::Set HELDOUT_TOKEN so the verifier can mount the private held-out routes."; exit 1; }
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Install bubblewrap, xvfb, software OpenGL
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends bubblewrap xvfb libgl1-mesa-dri libglx-mesa0 patch
+      - name: Allow unprivileged user namespaces for bubblewrap
+        run: |
+          if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
+          fi
+          if [ -f /proc/sys/kernel/unprivileged_userns_clone ]; then
+            echo 1 | sudo tee /proc/sys/kernel/unprivileged_userns_clone
+          fi
+          bwrap --die-with-parent --unshare-pid --dev /dev --tmpfs /tmp \
+            --ro-bind /usr /usr --ro-bind /bin /bin --ro-bind /lib /lib \
+            --ro-bind /lib64 /lib64 -- true
+      - name: Download Godot 4.7.2 and check its SHA-512
+        run: ./harness/get_godot.sh
+      - name: Fetch the private held-out set (verifier side only)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: seanudeke/Nightshift-heldout
+          token: ${{ secrets.HELDOUT_TOKEN }}
+          path: heldout-set
+          persist-credentials: false
+      - name: Install Muse Code CLI
+        run: |
+          curl -fsSL https://dev.meta.ai/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: One live overnight run
+        env:
+          META_API_KEY: ${{ secrets.META_API_KEY }}
+          MODEL_API_KEY: ${{ secrets.MODEL_API_KEY }}
+          NIGHTSHIFT_OBS_PROVIDER: sam
+          NIGHTSHIFT_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
+          RUN: ${{ matrix.run }}
+        run: python -m agents.demo_loop --run "$RUN" --out runs/demo
+      - name: Keep the run's summary, morning report and verification (no frames, no held-out material)
+        if: always()
+        run: |
+          mkdir -p keep
+          find runs/demo -path '*held-out*' -prune -o -type f \( -name summary.json -o -name result.json \
+            -o -name morning-report.md -o -name verification.json -o -name candidate.patch -o -name candidate.json \
+            -o -name triage.json -o -name trust.json -o -name loop-error.txt \) -print \
+            | while read -r f; do mkdir -p "keep/$(dirname "$f")"; cp "$f" "keep/$f"; done
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: demo-run-${{ matrix.run }}
+          path: keep/
+          retention-days: 14
+
+  summary:
+    needs: run
+    if: always() && needs.run.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          pattern: demo-run-*
+          path: results
+      - name: How many runs were accepted
+        env:
+          RUNS: ${{ inputs.runs }}
+        run: python -m agents.demo_loop --summarize results --expected "$RUNS" | tee -a "$GITHUB_STEP_SUMMARY"
