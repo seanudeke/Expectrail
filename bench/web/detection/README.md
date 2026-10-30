@@ -20,3 +20,16 @@ Spend: SAM images 389 ($0.97); 3 job minutes.
 | dev/missing-texture/v2 | yes | no | checkout-button-visible 2 |
 | dev/sinking/v1 | yes | yes | layout 2, hybrid 2 |
 | dev/sinking/v2 | yes | no | hybrid 2 |
+
+## held-out (run [41130091655](https://github.com/seanudeke/Expectrail/actions/runs/41130091655), 2026-10-30, commit ec3b339)
+
+Caught with SAM: **4 of 4**. Without SAM: **2 of 4**. False alarms on the clean page (2 routes): none with SAM, none without.
+
+Spend: SAM images 214 ($0.54); 1 job minutes.
+
+| Variant | Caught, SAM on | Caught, SAM off | Failing checks (routes) |
+| --- | --- | --- | --- |
+| fall-through/v3 | yes | yes | layout 1, checkout-button-visible 1 |
+| layering/v3 | yes | no | logo-visible 2 |
+| missing-texture/v3 | yes | no | logo-visible 2 |
+| missing-texture/v4 | yes | yes | layout 2, checkout-button-visible 2 |

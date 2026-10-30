@@ -227,6 +227,7 @@ checks, described below: a SAM box counts only where the page drew the element.
 | What we measured | Result | Run |
 | --- | --- | --- |
 | Development bugs caught: SAM on / SAM off | **8 of 8** / 4 of 8, no false alarm on the clean page | [41109233666](https://github.com/seanudeke/Expectrail/actions/runs/41109233666) |
+| Private bugs caught (4, written by a separate agent that never saw the checks): SAM on / SAM off | **4 of 4** / 2 of 4, no false alarm | [41130091655](https://github.com/seanudeke/Expectrail/actions/runs/41130091655) |
 | Changes that only look right, accepted (5 cases) | Expectrail with SAM **0 of 5**; without SAM 3 of 5; a pixel diff against the clean page 0 of 5 | [judge](bench/web/judge.md) |
 | Good changes, accepted (the correct fix, 3 intended changes, Muse Code's live fix) | Expectrail **5 of 5**, with or without SAM; the pixel diff 1 of 5 | [judge](bench/web/judge.md) |
 | Live repair matrix: 8 bugs, with Expectrail's evidence and from screenshots alone | **16 of 16 fixed**, each accepted on the first attempt with SAM on, on the public and the private sessions; 2,209 SAM images ($5.52), 46 job minutes | [fix matrix](bench/web/fix-matrix/README.md) |
@@ -276,11 +277,16 @@ What this does and does not show:
     ones that exposed the faults above, so they are not independent tests of the fixed checks.
   - The repair loop ([`agents/web_fix.py`](agents/web_fix.py)) uses the game's fixer and sandbox
     unchanged.
-- **Tuned on what it is scored on.** The prompts, the rule and the tolerance were chosen on public
-  bugs and changes we wrote, plus Muse's fixes. There are no private web bugs yet.
-  - The two private web sessions are only replays of the same page. Sean wrote them, not whoever
-    tuned the checks.
-  - Their screen sizes came from a list we suggested.
+- **Tuned mostly on what it is scored on.** The prompts, the rule and the tolerance were chosen on
+  public bugs and changes we wrote, plus Muse's fixes.
+  - The first test on bugs they were not tuned on is four private bugs. A separate Claude agent wrote
+    them, given only the page, the public bugs and the four things a shopper should get. It never
+    saw the checks or how they were tuned, and we have not read its patches.
+  - SAM caught all four; without SAM, two.
+  - But that agent is the same model family as the one that tuned the checks, not a person, and
+    four is a small set.
+  - The two private web sessions are only replays of the same page, written by Sean. Their screen
+    sizes came from a list we suggested.
 - **One static page, three checks, written by the team that built the verifier.** It shows that
   the harness can be replaced while the rest stays fixed. It does not show that Expectrail works on
   any web app.

@@ -1,0 +1,211 @@
+{
+  "format": "expectrail.detection-bench/v0",
+  "set": "held-out",
+  "judge": "sam",
+  "run": 41130091655,
+  "runUrl": "https://github.com/seanudeke/Expectrail/actions/runs/41130091655",
+  "commit": "ec3b339eb6e8c40be39e9f89b2ddac0da1cb9b6a",
+  "date": "2026-10-30T21:18:50Z",
+  "caughtWithSamOn": {
+    "yes": 4,
+    "of": 4
+  },
+  "caughtWithSamOff": {
+    "yes": 2,
+    "of": 4
+  },
+  "falseAlarm": {
+    "withSamOn": "no",
+    "withSamOff": "no",
+    "cleanRoutes": 2
+  },
+  "clean": {
+    "caughtWithSamOn": "no",
+    "caughtWithSamOff": "no",
+    "checks": {
+      "layout": {
+        "fail": 0,
+        "needs-review": 0,
+        "pass": 2
+      },
+      "behaviour": {
+        "fail": 0,
+        "needs-review": 0,
+        "pass": 2
+      },
+      "hybrid": {
+        "fail": 0,
+        "needs-review": 0,
+        "pass": 2
+      },
+      "checkout-button-visible": {
+        "fail": 0,
+        "needs-review": 0,
+        "pass": 2
+      },
+      "logo-visible": {
+        "fail": 0,
+        "needs-review": 0,
+        "pass": 2
+      }
+    },
+    "routes": 2,
+    "seconds": 21,
+    "samImages": 56,
+    "run": 41130091655
+  },
+  "variants": [
+    {
+      "id": "fall-through/v3",
+      "caughtWithSamOn": "yes",
+      "caughtWithSamOff": "yes",
+      "checks": {
+        "layout": {
+          "fail": 1,
+          "needs-review": 0,
+          "pass": 1
+        },
+        "behaviour": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        },
+        "hybrid": {
+          "fail": 0,
+          "needs-review": 1,
+          "pass": 1
+        },
+        "checkout-button-visible": {
+          "fail": 1,
+          "needs-review": 0,
+          "pass": 1
+        },
+        "logo-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        }
+      },
+      "routes": 2,
+      "seconds": 20,
+      "samImages": 47,
+      "run": 41130091655
+    },
+    {
+      "id": "layering/v3",
+      "caughtWithSamOn": "yes",
+      "caughtWithSamOff": "no",
+      "checks": {
+        "layout": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        },
+        "behaviour": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        },
+        "hybrid": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        },
+        "checkout-button-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        },
+        "logo-visible": {
+          "fail": 2,
+          "needs-review": 0,
+          "pass": 0
+        }
+      },
+      "routes": 2,
+      "seconds": 14,
+      "samImages": 37,
+      "run": 41130091655
+    },
+    {
+      "id": "missing-texture/v3",
+      "caughtWithSamOn": "yes",
+      "caughtWithSamOff": "no",
+      "checks": {
+        "layout": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        },
+        "behaviour": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        },
+        "hybrid": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        },
+        "checkout-button-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        },
+        "logo-visible": {
+          "fail": 2,
+          "needs-review": 0,
+          "pass": 0
+        }
+      },
+      "routes": 2,
+      "seconds": 14,
+      "samImages": 37,
+      "run": 41130091655
+    },
+    {
+      "id": "missing-texture/v4",
+      "caughtWithSamOn": "yes",
+      "caughtWithSamOff": "yes",
+      "checks": {
+        "layout": {
+          "fail": 2,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "behaviour": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        },
+        "hybrid": {
+          "fail": 0,
+          "needs-review": 2,
+          "pass": 0
+        },
+        "checkout-button-visible": {
+          "fail": 2,
+          "needs-review": 0,
+          "pass": 0
+        },
+        "logo-visible": {
+          "fail": 0,
+          "needs-review": 0,
+          "pass": 2
+        }
+      },
+      "routes": 2,
+      "seconds": 15,
+      "samImages": 37,
+      "run": 41130091655
+    }
+  ],
+  "rerun": "bench/rerun-detection.sh held-out",
+  "spend": {
+    "samImages": 214,
+    "samUsd": 0.54,
+    "museCalls": 0,
+    "jobMinutes": 1.4
+  },
+  "app": "checkout"
+}

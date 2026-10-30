@@ -7,7 +7,8 @@ Errors (exit 1):
 - key-like strings (Meta, OpenAI-style, GitHub, Slack, AWS keys) and private key blocks;
 - a signing key file, or an image from the private routes;
 - with the private set: a private route's name, a held-out variant's description, or a line a
-  held-out patch adds that neither the clean game nor any public patch in this repository contains
+  held-out patch (the game's, or the checkout page's under web/) adds that neither the clean game,
+  the clean page nor any public patch in this repository contains
   (a line a public bug or fixture also adds is public already, so finding it leaks nothing).
 Warnings: a machine's home path (/Users/<name>/, /home/<name>/), which says nothing private but has
 no place in an export; --paths error makes them errors.
@@ -46,6 +47,15 @@ def _clean_game_lines() -> set[str]:
     return lines
 
 
+def _clean_page_lines() -> set[str]:
+    """The second domain's clean page (apps/checkout/site): its own lines are public."""
+    lines: set[str] = set()
+    for path in (REPO / "apps" / "checkout" / "site").rglob("*"):
+        if path.suffix in {".html", ".css", ".js"} and path.is_file():
+            lines.update(l.strip() for l in path.read_text(encoding="utf-8", errors="replace").splitlines())
+    return lines
+
+
 PUBLIC_PATCHES = ("bugs", "agents/fixtures", "apps/checkout/bugs", "apps/checkout/candidates")
 
 
@@ -75,10 +85,12 @@ def private_items(root: Path) -> dict[str, list[str]]:
         if len(text) >= MIN_LINE:
             descriptions.add(text)
             descriptions.update(s.strip() for s in re.split(r"(?<=[.;:])\s+", text) if len(s.strip()) >= 24)
-    clean = _clean_game_lines() | _public_patch_lines()
+    clean = _clean_game_lines() | _clean_page_lines() | _public_patch_lines()
     added: set[str] = set()
-    for variant in manifest.get("variants") or []:
-        patch = root / str(variant.get("patch") or "")
+    web = root / "web" / "manifest.json"
+    web_variants = json.loads(web.read_text(encoding="utf-8")).get("variants") or [] if web.is_file() else []
+    for variant, base in [(v, root) for v in manifest.get("variants") or []] + [(v, root / "web") for v in web_variants]:
+        patch = base / str(variant.get("patch") or "")
         if not patch.is_file():
             continue
         for line in patch.read_text(encoding="utf-8", errors="replace").splitlines():
