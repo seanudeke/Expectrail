@@ -184,10 +184,10 @@ checks, described below: a SAM box counts only where the page drew the element.
 
 | What we measured | Result | Run |
 | --- | --- | --- |
-| Development bugs caught: SAM on / SAM off | **8 of 8** / 4 of 8, no false alarm on the clean page | [41104422848](https://github.com/seanudeke/Expectrail/actions/runs/41104422848) |
+| Development bugs caught: SAM on / SAM off | **8 of 8** / 4 of 8, no false alarm on the clean page | [41109233666](https://github.com/seanudeke/Expectrail/actions/runs/41109233666) |
 | Changes that only look right, accepted (5 cases) | Expectrail with SAM **0 of 5**; without SAM 3 of 5; a pixel diff against the clean page 0 of 5 | [judge](bench/web/judge.md) |
 | Good changes, accepted (the correct fix, 3 intended changes, Muse Code's live fix) | Expectrail **5 of 5**, with or without SAM; the pixel diff 1 of 5 | [judge](bench/web/judge.md) |
-| Live repair, one bug (layering v2, SAM-only) | Muse Code's fix **accepted on the first attempt**, on the public and the private sessions | [41104445469](https://github.com/seanudeke/Expectrail/actions/runs/41104445469) |
+| Live repair matrix: 8 bugs, with Expectrail's evidence and from screenshots alone | **16 of 16 fixed**, each accepted on the first attempt with SAM on, on the public and the private sessions; 2,209 SAM images ($5.52), 46 job minutes | [fix matrix](bench/web/fix-matrix/README.md) |
 
 What this does and does not show:
 
@@ -218,11 +218,27 @@ What this does and does not show:
   - The cost: the vision check now leans on the page's geometry, so it is not independent of the
     page the way the game's SAM checks are of the engine. Every step, including the threshold that
     failed, is in [`bench/web/`](bench/web).
-- **Tuned on what it is scored on.** The prompts and the rule were chosen on public bugs and
-  changes we wrote, plus one Muse fix. There are no private web bugs yet. The two private web
-  sessions are only replays of the same page, written by Sean, not by whoever tuned the checks.
-- **The full web repair matrix has not run yet.** One live case so far. The repair loop
-  ([`agents/web_fix.py`](agents/web_fix.py)) uses the game's fixer and sandbox unchanged.
+- **Running it live found a second fault.** The first full repair run rejected Muse's correct fix
+  for fall-through v1 on the private sessions alone.
+  - With SAM, the clean page itself failed "the button stays inside the form" there. The button
+    is flush with the form's edges, and SAM's box ran past the 4 px tolerance at that screen size.
+  - The preflight that clears the private sessions before a run had used no model, so it missed
+    this. It now runs SAM.
+  - The tolerance is now 18 px, halfway to the 36 px the sinking bugs move the button, chosen from
+    the public sessions.
+- **The repair matrix shows the loop working, not a better fixer.** Muse Code fixed all 8 bugs from
+  screenshots alone, just as it did with our evidence, as in the game.
+  - Every fix it wrote is a real fix: it removes the bad rule, corrects the logo path, or moves the
+    bar clear of the button.
+  - The verifier accepted all 16, on the public and private sessions. Two of those cases are the
+    ones that exposed the faults above, so they are not independent tests of the fixed checks.
+  - The repair loop ([`agents/web_fix.py`](agents/web_fix.py)) uses the game's fixer and sandbox
+    unchanged.
+- **Tuned on what it is scored on.** The prompts, the rule and the tolerance were chosen on public
+  bugs and changes we wrote, plus Muse's fixes. There are no private web bugs yet.
+  - The two private web sessions are only replays of the same page. Sean wrote them, not whoever
+    tuned the checks.
+  - Their screen sizes came from a list we suggested.
 - **One static page, three checks, written by the team that built the verifier.** It shows that
   the harness can be replaced while the rest stays fixed. It does not show that Expectrail works on
   any web app.

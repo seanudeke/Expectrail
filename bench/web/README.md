@@ -7,6 +7,7 @@ second kind of software. Every number is written from a CI run's own annotations
 | --- | --- | --- |
 | [`detection/`](detection/README.md) | Would each seeded bug be caught, with and without SAM | `python3 -m agents.bench_collect --app checkout --run <id> --out bench/web/detection` |
 | [`judge.md`](judge.md), `judge.json` | Who accepts a change that only looks right: Expectrail with and without SAM, and a pixel diff | `python3 -m agents.web_judge collect --run <id>` |
+| [`fix-matrix/`](fix-matrix/README.md) | Muse Code repairing each bug live, with Expectrail's evidence and from screenshots alone, judged by the verifier on the public and private sessions | `python3 -m agents.bench_collect --matrix --run <id> --set dev --out bench/web/fix-matrix` |
 
 ## How the vision check was chosen
 
@@ -72,6 +73,13 @@ tuned them, in order, including the tuning that failed, so the result can be che
    - Both private sessions now pass on the clean page.
    - Muse's fall-through v1 fix was accepted on the first attempt.
    - Detection and the judge are unchanged: 8 of 8, 5 of 5 good accepted, 0 of 5 bad.
+
+9. **The full repair matrix** ([41109646183](https://github.com/seanudeke/Expectrail/actions/runs/41109646183)).
+   - With SAM in the preflight, both private sessions passed on the clean page.
+   - Muse Code fixed all 8 bugs under both conditions, every fix accepted on the first attempt.
+   - Its own notes show each one is a real fix: the bad rule removed, the logo path corrected, or
+     the bar moved clear of the button.
+   - Cost: 2,209 SAM images ($5.52) and 46 job minutes.
 
 **What remains open:**
 - The prompts and the agreement rule were chosen on public bugs and changes we wrote, plus one

@@ -1,0 +1,265 @@
+{
+  "format": "expectrail.fix-matrix-bench/v0",
+  "set": "dev",
+  "runs": [
+    {
+      "run": 41109646183,
+      "runUrl": "https://github.com/seanudeke/Expectrail/actions/runs/41109646183",
+      "commit": "07c4ff2a4542a43a64a82531e65d8ac7a7bdbb9e",
+      "date": "2026-10-30T18:45:42Z",
+      "spend": {
+        "samImages": 2209,
+        "samUsd": 5.52,
+        "museCalls": 16,
+        "jobMinutes": 45.5
+      }
+    }
+  ],
+  "conditions": {
+    "screenshots": {
+      "fixed": 8,
+      "not-fixed": 0,
+      "not-detected": 0,
+      "needs-review": 0,
+      "error": 0,
+      "cases": 8,
+      "firstAttemptFixes": 8
+    },
+    "expectrail": {
+      "fixed": 8,
+      "not-fixed": 0,
+      "not-detected": 0,
+      "needs-review": 0,
+      "error": 0,
+      "cases": 8,
+      "firstAttemptFixes": 8
+    }
+  },
+  "rows": [
+    {
+      "case": "dev/fall-through/v1",
+      "condition": "expectrail",
+      "run": 41109646183,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 158.3,
+      "live": true,
+      "samImages": 128
+    },
+    {
+      "case": "dev/fall-through/v1",
+      "condition": "screenshots",
+      "run": 41109646183,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 138.2,
+      "live": true,
+      "samImages": 130
+    },
+    {
+      "case": "dev/fall-through/v2",
+      "condition": "expectrail",
+      "run": 41109646183,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 146.6,
+      "live": true,
+      "samImages": 130
+    },
+    {
+      "case": "dev/fall-through/v2",
+      "condition": "screenshots",
+      "run": 41109646183,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 135.3,
+      "live": true,
+      "samImages": 130
+    },
+    {
+      "case": "dev/layering/v1",
+      "condition": "expectrail",
+      "run": 41109646183,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 151.4,
+      "live": true,
+      "samImages": 156
+    },
+    {
+      "case": "dev/layering/v1",
+      "condition": "screenshots",
+      "run": 41109646183,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 123.3,
+      "live": true,
+      "samImages": 157
+    },
+    {
+      "case": "dev/layering/v2",
+      "condition": "expectrail",
+      "run": 41109646183,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 126.0,
+      "live": true,
+      "samImages": 156
+    },
+    {
+      "case": "dev/layering/v2",
+      "condition": "screenshots",
+      "run": 41109646183,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 106.7,
+      "live": true,
+      "samImages": 157
+    },
+    {
+      "case": "dev/missing-texture/v1",
+      "condition": "expectrail",
+      "run": 41109646183,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 388.1,
+      "live": true,
+      "samImages": 127
+    },
+    {
+      "case": "dev/missing-texture/v1",
+      "condition": "screenshots",
+      "run": 41109646183,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 140.8,
+      "live": true,
+      "samImages": 129
+    },
+    {
+      "case": "dev/missing-texture/v2",
+      "condition": "expectrail",
+      "run": 41109646183,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 118.6,
+      "live": true,
+      "samImages": 128
+    },
+    {
+      "case": "dev/missing-texture/v2",
+      "condition": "screenshots",
+      "run": 41109646183,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 129.4,
+      "live": true,
+      "samImages": 130
+    },
+    {
+      "case": "dev/sinking/v1",
+      "condition": "expectrail",
+      "run": 41109646183,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 509.4,
+      "live": true,
+      "samImages": 137
+    },
+    {
+      "case": "dev/sinking/v1",
+      "condition": "screenshots",
+      "run": 41109646183,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 113.7,
+      "live": true,
+      "samImages": 140
+    },
+    {
+      "case": "dev/sinking/v2",
+      "condition": "expectrail",
+      "run": 41109646183,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 145.7,
+      "live": true,
+      "samImages": 135
+    },
+    {
+      "case": "dev/sinking/v2",
+      "condition": "screenshots",
+      "run": 41109646183,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 96.6,
+      "live": true,
+      "samImages": 139
+    }
+  ],
+  "rule": "first non-error result per case and condition, in run order"
+}
