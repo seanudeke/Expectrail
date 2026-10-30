@@ -1,0 +1,159 @@
+{
+  "format": "nightshift.demo-loop/v0",
+  "run": 40990485265,
+  "runUrl": "https://github.com/seanudeke/Nightshift/actions/runs/40990485265",
+  "commit": "ffdd3e743967fa6b20f02a55cc828de43b57a269",
+  "date": "2026-10-30T02:14:04Z",
+  "asked": 10,
+  "recorded": 10,
+  "accepted": 10,
+  "firstAttempt": 10,
+  "spend": {
+    "samImages": 11640,
+    "samUsd": 29.1,
+    "museCalls": 10,
+    "jobMinutes": 148.5
+  },
+  "rows": [
+    {
+      "run": 1,
+      "decision": "accept",
+      "attempts": [
+        "accept"
+      ],
+      "triage": "muse-wonder-1.0",
+      "fixer": "muse",
+      "trust": "ok",
+      "verifiedOn": "harness",
+      "signed": true,
+      "seconds": 901.2,
+      "samImages": 1164
+    },
+    {
+      "run": 2,
+      "decision": "accept",
+      "attempts": [
+        "accept"
+      ],
+      "triage": "muse-wonder-1.0",
+      "fixer": "muse",
+      "trust": "ok",
+      "verifiedOn": "harness",
+      "signed": true,
+      "seconds": 755.5,
+      "samImages": 1164
+    },
+    {
+      "run": 3,
+      "decision": "accept",
+      "attempts": [
+        "accept"
+      ],
+      "triage": "muse-wonder-1.0",
+      "fixer": "muse",
+      "trust": "ok",
+      "verifiedOn": "harness",
+      "signed": true,
+      "seconds": 1343.0,
+      "samImages": 1164
+    },
+    {
+      "run": 4,
+      "decision": "accept",
+      "attempts": [
+        "accept"
+      ],
+      "triage": "muse-wonder-1.0",
+      "fixer": "muse",
+      "trust": "ok",
+      "verifiedOn": "harness",
+      "signed": true,
+      "seconds": 925.5,
+      "samImages": 1164
+    },
+    {
+      "run": 5,
+      "decision": "accept",
+      "attempts": [
+        "accept"
+      ],
+      "triage": "muse-wonder-1.0",
+      "fixer": "muse",
+      "trust": "ok",
+      "verifiedOn": "harness",
+      "signed": true,
+      "seconds": 693.6,
+      "samImages": 1164
+    },
+    {
+      "run": 6,
+      "decision": "accept",
+      "attempts": [
+        "accept"
+      ],
+      "triage": "muse-wonder-1.0",
+      "fixer": "muse",
+      "trust": "ok",
+      "verifiedOn": "harness",
+      "signed": true,
+      "seconds": 1074.6,
+      "samImages": 1164
+    },
+    {
+      "run": 7,
+      "decision": "accept",
+      "attempts": [
+        "accept"
+      ],
+      "triage": "muse-wonder-1.0",
+      "fixer": "muse",
+      "trust": "ok",
+      "verifiedOn": "harness",
+      "signed": true,
+      "seconds": 915.1,
+      "samImages": 1164
+    },
+    {
+      "run": 8,
+      "decision": "accept",
+      "attempts": [
+        "accept"
+      ],
+      "triage": "muse-wonder-1.0",
+      "fixer": "muse",
+      "trust": "ok",
+      "verifiedOn": "harness",
+      "signed": true,
+      "seconds": 722.7,
+      "samImages": 1164
+    },
+    {
+      "run": 9,
+      "decision": "accept",
+      "attempts": [
+        "accept"
+      ],
+      "triage": "muse-wonder-1.0",
+      "fixer": "muse",
+      "trust": "ok",
+      "verifiedOn": "harness",
+      "signed": true,
+      "seconds": 743.5,
+      "samImages": 1164
+    },
+    {
+      "run": 10,
+      "decision": "accept",
+      "attempts": [
+        "accept"
+      ],
+      "triage": "muse-wonder-1.0",
+      "fixer": "muse",
+      "trust": "ok",
+      "verifiedOn": "harness",
+      "signed": true,
+      "seconds": 835.0,
+      "samImages": 1164
+    }
+  ]
+}

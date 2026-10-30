@@ -34,6 +34,11 @@ MATRIX_FORMAT = "nightshift.fix-matrix-bench/v0"
 OUT_DIR = REPO / "bench" / "detection"
 MATRIX_DIR = REPO / "bench" / "fix-matrix"
 JUDGE_DIR = REPO / "bench" / "judge"
+DEMO_DIR = REPO / "bench" / "demo-loop"
+DEMO_TITLE = re.compile(r"^Demo run (?P<run>\d+)$")
+DEMO_MSG = re.compile(r"^decision (?P<decision>[a-z-]+); attempts (?P<tries>.*?); triage (?P<triage>\S+); "
+                      r"fixer (?P<fixer>\S+); trust (?P<trust>\S+); verified on (?P<prov>\S+); signed (?P<signed>\S+); "
+                      r"(?P<seconds>[\d.]+) s; SAM images (?P<sam>\d+)$")
 JUDGE_TITLE = re.compile(r"^Judge (?P<case>(?:good|bad)/\S+)$")
 JUDGE_MSG = re.compile(r"^label (?P<label>good|bad); SAM on (?P<sam>\S+); SAM off (?P<nosam>\S+); "
                        r"Muse screenshots (?P<muse>\S+); (?P<seconds>[\d.]+) s; live=(?P<live>True|False)"
@@ -68,7 +73,10 @@ def _money(s: dict) -> str:
 TITLE = re.compile(r"^(?:Dev|Held-out) bench (?P<id>\S+)$")
 TIME = re.compile(r"^(?:Bench|Held-out bench) time (?P<id>\S+)$")
 SAM_IMAGES = re.compile(r"^Bench SAM images (?P<id>\S+)$")
-CAUGHT = re.compile(r"(?P<label>caught|false alarm) with SAM (?P<mode>on|off): (?P<value>[a-z-]+)")
+CAUGHT = re.compile(r"(?P<label>caught|false alarm) with (?P<mode>SAM on|SAM off|Glimmer\+engine \(no SAM\)): "
+                    r"(?P<value>[a-z-]+)")
+CAUGHT_KEYS = {"SAM on": "caughtWithSamOn", "SAM off": "caughtWithSamOff",
+               "Glimmer+engine (no SAM)": "caughtWithGlimmerEngine"}
 CHECK = re.compile(r"^(?P<name>[a-z0-9-]+) (?P<counts>\d+ [a-z-]+(?:, \d+ [a-z-]+)*)$")
 
 
@@ -92,7 +100,7 @@ def parse_message(message: str) -> dict:
     head, _, tail = message.partition("; over ")
     row: dict = {"caughtWithSamOn": None, "caughtWithSamOff": None, "checks": {}}
     for m in CAUGHT.finditer(head):
-        row["caughtWithSamOn" if m["mode"] == "on" else "caughtWithSamOff"] = m["value"]
+        row[CAUGHT_KEYS[m["mode"]]] = m["value"]
     routes, _, checks = tail.partition(" routes: ")
     row["routes"] = int(routes) if routes.isdigit() else None
     for part in checks.split("; "):
@@ -107,47 +115,67 @@ def parse_message(message: str) -> dict:
     return row
 
 
-def collect(run_id: int, which: str, fetch=gh_json) -> dict:
-    run, notes = run_annotations(run_id, fetch)
+def collect(run_ids, which: str, fetch=gh_json) -> dict:
+    """Detection runs -> one table. Several runs fill in only variants an earlier run did not report
+    (a job that never reached the bench, such as a Glimmer deployment that was still waking)."""
+    run_ids = [run_ids] if isinstance(run_ids, int) else list(run_ids)
     rows: dict[str, dict] = {}
-    seconds: dict[str, int] = {}
-    images: dict[str, int] = {}
-    for note in notes:
-        title, message = note.get("title") or "", note.get("message") or ""
-        if m := TITLE.match(title):
-            rows[m["id"]] = parse_message(message)
-        elif m := TIME.match(title):
-            seconds[m["id"]] = int(message.split()[0])
-        elif m := SAM_IMAGES.match(title):
-            images[m["id"]] = int(message.split()[0])
+    runs = []
+    for run_id in run_ids:
+        run, notes = run_annotations(run_id, fetch)
+        runs.append({"run": run_id, "runUrl": run.get("html_url"), "commit": run.get("head_sha"),
+                     "date": run.get("created_at")})
+        found: dict[str, dict] = {}
+        seconds: dict[str, int] = {}
+        images: dict[str, int] = {}
+        for note in notes:
+            title, message = note.get("title") or "", note.get("message") or ""
+            if m := TITLE.match(title):
+                found[m["id"]] = parse_message(message)
+            elif m := TIME.match(title):
+                seconds[m["id"]] = int(message.split()[0])
+            elif m := SAM_IMAGES.match(title):
+                images[m["id"]] = int(message.split()[0])
+        for vid, row in found.items():
+            if vid not in rows:
+                rows[vid] = dict(row, seconds=seconds.get(vid), samImages=images.get(vid), run=run_id)
     if "clean" not in rows or len(rows) < 2:
-        raise SystemExit(f"run {run_id}: no clean control or no variants among its annotations")
-    for vid, row in rows.items():
-        row["seconds"] = seconds.get(vid)
-        row["samImages"] = images.get(vid)
+        raise SystemExit(f"runs {run_ids}: no clean control or no variants among their annotations")
+    judges = {"glimmer-engine" if r.get("caughtWithGlimmerEngine") is not None else "sam" for r in rows.values()}
+    if len(judges) != 1:
+        raise SystemExit(f"runs {run_ids} mix judges {sorted(judges)}; collect each judge on its own")
+    judge = judges.pop()
     run_spend = spend(list(rows.values()), muse_key="none")
     clean = rows.pop("clean")
     variants = [{"id": k, **v} for k, v in sorted(rows.items())]
 
     def tally(key: str) -> dict:
-        return {"yes": sum(v[key] == "yes" for v in variants), "of": len(variants)}
+        return {"yes": sum(v.get(key) == "yes" for v in variants), "of": len(variants)}
 
-    return {
+    first = runs[0]
+    doc = {
         "format": FORMAT,
         "set": which,
-        "run": run_id,
-        "runUrl": run.get("html_url"),
-        "commit": run.get("head_sha"),
-        "date": run.get("created_at"),
+        "judge": judge,
+        "run": first["run"],
+        "runUrl": first["runUrl"],
+        "commit": first["commit"],
+        "date": first["date"],
         "caughtWithSamOn": tally("caughtWithSamOn"),
         "caughtWithSamOff": tally("caughtWithSamOff"),
         "falseAlarm": {"withSamOn": clean["caughtWithSamOn"], "withSamOff": clean["caughtWithSamOff"],
                        "cleanRoutes": clean["routes"]},
         "clean": clean,
         "variants": variants,
-        "rerun": f"bench/rerun-detection.sh {which}",
+        "rerun": f"bench/rerun-detection.sh {which}" + (f" main {judge}" if judge != "sam" else ""),
         "spend": run_spend,
     }
+    if judge == "glimmer-engine":
+        doc["caughtWithGlimmerEngine"] = tally("caughtWithGlimmerEngine")
+        doc["falseAlarm"]["withGlimmerEngine"] = clean.get("caughtWithGlimmerEngine")
+    if len(runs) > 1:
+        doc["runs"] = runs
+    return doc
 
 
 def _alarm(value: str | None) -> str:
@@ -309,6 +337,55 @@ def judge_markdown(doc: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+def collect_demo(run_id: int, fetch=gh_json) -> dict:
+    """A live demo-loop run -> each overnight run's outcome, and how many were accepted."""
+    run, notes = run_annotations(run_id, fetch, prefix="demo-run")
+    rows = []
+    for note in notes:
+        m = DEMO_TITLE.match(note.get("title") or "")
+        if not m:
+            continue
+        msg = DEMO_MSG.match(" ".join((note.get("message") or "").split()))
+        if not msg:
+            raise ValueError(f"unrecognised demo annotation: {note.get('message')!r}")
+        tries = [t.split(": ", 1)[1] for t in msg["tries"].split("; ") if ": " in t]
+        rows.append({"run": int(m["run"]), "decision": msg["decision"], "attempts": tries,
+                     "triage": msg["triage"], "fixer": msg["fixer"], "trust": msg["trust"],
+                     "verifiedOn": msg["prov"], "signed": msg["signed"] == "True",
+                     "seconds": float(msg["seconds"]), "samImages": int(msg["sam"])})
+    jobs = fetch(f"repos/{REPO_SLUG}/actions/runs/{run_id}/jobs?per_page=100")["jobs"]
+    asked = sum(1 for j in jobs if j["name"].startswith("demo-run"))
+    if not rows:
+        raise SystemExit(f"run {run_id}: no demo results among its annotations")
+    rows.sort(key=lambda r: r["run"])
+    accepted = sum(r["decision"] == "accept" for r in rows)
+    return {"format": "nightshift.demo-loop/v0", "run": run_id, "runUrl": run.get("html_url"),
+            "commit": run.get("head_sha"), "date": run.get("created_at"), "asked": asked, "recorded": len(rows),
+            "accepted": accepted, "firstAttempt": sum(r["attempts"][:1] == ["accept"] for r in rows),
+            "spend": spend(rows, muse_key="none") | {"museCalls": sum(len(r["attempts"]) for r in rows)},
+            "rows": rows}
+
+
+def demo_markdown(doc: dict) -> str:
+    s = doc["spend"]
+    lines = ["# Demo path, live", "",
+             ("Written by `python3 -m agents.bench_collect --demo --run <id>` from the run's own annotations; "
+              "do not edit by hand."),
+             (f"Run [{doc['run']}]({doc['runUrl']}), {doc['date'][:10]}, commit {doc['commit'][:7]}. Each run is the "
+              "overnight loop end to end in its own job: Wonder triage, Muse Code in bubblewrap, the Godot harness, "
+              "the verifier with SAM on and the private held-out routes, the signed morning report and the trust check."),
+             "",
+             (f"**{doc['accepted']} of {doc['asked']} runs accepted**, {doc['firstAttempt']} on the first attempt. "
+              f"Muse Code attempts {s['museCalls']}; SAM images {_money(s)}; {s['jobMinutes']:.0f} job minutes."), "",
+             "| Run | Decision | Attempts | Triage | Fixer | Trust | Signed | Minutes | SAM images |",
+             "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
+    for r in doc["rows"]:
+        lines.append(f"| {r['run']} | {r['decision']} | {', '.join(r['attempts']) or 'none'} | {r['triage']} | "
+                     f"{r['fixer']} | {r['trust']} | {'yes' if r['signed'] else 'no'} | {r['seconds'] / 60:.0f} | "
+                     f"{r['samImages']:,} |")
+    return "\n".join(lines) + "\n"
+
+
 def matrix_markdown(doc: dict) -> str:
     runs = ", ".join(f"[{r['run']}]({r['runUrl']}) ({r['commit'][:7]})" for r in doc["runs"])
     lines = ["# Fix matrix", "",
@@ -341,24 +418,35 @@ def markdown(docs: list[dict]) -> str:
              "`bench/rerun-detection.sh dev` or `bench/rerun-detection.sh held-out`.", ""]
     for d in docs:
         on, off, fa = d["caughtWithSamOn"], d["caughtWithSamOff"], d["falseAlarm"]
-        lines += [f"## {d['set']} (run [{d['run']}]({d['runUrl']}), {d['date'][:10]}, commit {d['commit'][:7]})", "",
-                  (f"Caught with SAM: **{on['yes']} of {on['of']}**. Without SAM: **{off['yes']} of {off['of']}**. "
-                   f"False alarms on the clean game ({fa['cleanRoutes']} routes): {_alarm(fa['withSamOn'])} with SAM, "
+        glimmer = d.get("judge") == "glimmer-engine"
+        vision, key, alarm = (("Glimmer+engine (no SAM)", "caughtWithGlimmerEngine", "withGlimmerEngine") if glimmer
+                              else ("SAM", "caughtWithSamOn", "withSamOn"))
+        seen = d.get(key) or on
+        runs = ", ".join(f"[{r['run']}]({r['runUrl']})" for r in d.get("runs") or [{"run": d["run"], "runUrl": d["runUrl"]}])
+        title = f"{d['set']}, judged by Glimmer checked against the engine" if glimmer else d["set"]
+        lines += [f"## {title} (run {runs}, {d['date'][:10]}, commit {d['commit'][:7]})", "",
+                  (f"Caught with {vision}: **{seen['yes']} of {seen['of']}**. Without {'vision' if glimmer else 'SAM'}: "
+                   f"**{off['yes']} of {off['of']}**. "
+                   f"False alarms on the clean game ({fa['cleanRoutes']} routes): {_alarm(fa.get(alarm))} with {vision}, "
                    f"{_alarm(fa['withSamOff'])} without."), ""]
-        if d.get("spend"):
+        if d.get("spend") and glimmer:
+            lines += [(f"Spend: no SAM. Glimmer runs on a Fireworks deployment billed by the hour, not counted here; "
+                       f"{d['spend']['jobMinutes']:.0f} job minutes."), ""]
+        elif d.get("spend"):
             lines += [f"Spend: SAM images {_money(d['spend'])}; {d['spend']['jobMinutes']:.0f} job minutes.", ""]
-        lines += ["| Variant | Caught, SAM on | Caught, SAM off | Failing checks (routes) |",
+        lines += [f"| Variant | Caught, {'Glimmer+engine' if glimmer else 'SAM on'} | Caught, SAM off | Failing checks (routes) |",
                   "| --- | --- | --- | --- |"]
         for v in d["variants"]:
             failing = ", ".join(f"{name} {c['fail']}" for name, c in v["checks"].items() if c["fail"]) or "none"
-            lines.append(f"| {v['id']} | {v['caughtWithSamOn']} | {v['caughtWithSamOff']} | {failing} |")
+            lines.append(f"| {v['id']} | {v.get(key)} | {v['caughtWithSamOff']} | {failing} |")
         lines.append("")
     return "\n".join(lines)
 
 
 def write(doc: dict, out_dir: Path = OUT_DIR) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
-    path = out_dir / f"{doc['set']}.json"
+    judge = doc.get("judge", "sam")
+    path = out_dir / (f"{doc['set']}.json" if judge == "sam" else f"{doc['set']}-{judge}.json")
     path.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
     docs = [json.loads(p.read_text(encoding="utf-8")) for p in sorted(out_dir.glob("*.json"))]
     (out_dir / "README.md").write_text(markdown(docs), encoding="utf-8")
@@ -372,8 +460,17 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--set", choices=("dev", "held-out"), default="dev", dest="which")
     p.add_argument("--matrix", action="store_true", help="fix-matrix runs instead of a detection run")
     p.add_argument("--judge", action="store_true", help="a judge-benchmark run instead of a detection run")
+    p.add_argument("--demo", action="store_true", help="a live demo-loop run (Fix matrix, bench demo)")
     p.add_argument("--out", type=Path)
     args = p.parse_args(argv)
+    if args.demo:
+        out = args.out or DEMO_DIR
+        doc = collect_demo(args.run[-1])
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "demo.json").write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+        (out / "README.md").write_text(demo_markdown(doc), encoding="utf-8")
+        print(f"wrote {out / 'demo.json'} and {out / 'README.md'}")
+        return 0
     if args.judge:
         out = args.out or JUDGE_DIR
         doc = collect_judge(args.run)
@@ -390,10 +487,7 @@ def main(argv: list[str] | None = None) -> int:
         (out / "README.md").write_text(matrix_markdown(doc), encoding="utf-8")
         print(f"wrote {out / (args.which + '.json')} and {out / 'README.md'}")
         return 0
-    if len(args.run) != 1:
-        p.error("a detection set is one run")
     args.out = args.out or OUT_DIR
-    args.run = args.run[0]
     path = write(collect(args.run, args.which), args.out)
     print(f"wrote {path} and {args.out / 'README.md'}")
     return 0
