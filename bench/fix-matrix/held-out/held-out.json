@@ -1,0 +1,268 @@
+{
+  "format": "expectrail.fix-matrix-bench/v0",
+  "set": "held-out",
+  "runs": [
+    {
+      "run": 41099054641,
+      "runUrl": "https://github.com/seanudeke/Expectrail/actions/runs/41099054641",
+      "commit": "016a4fe7387624589c4009261d80f1276ab07661",
+      "date": "2026-10-30T17:27:58Z",
+      "spend": {
+        "samImages": 1859,
+        "samUsd": 4.65,
+        "museCalls": 19,
+        "jobMinutes": 180.8
+      }
+    }
+  ],
+  "conditions": {
+    "screenshots": {
+      "fixed": 7,
+      "not-fixed": 1,
+      "not-detected": 0,
+      "needs-review": 0,
+      "error": 0,
+      "cases": 8,
+      "firstAttemptFixes": 7
+    },
+    "expectrail": {
+      "fixed": 8,
+      "not-fixed": 0,
+      "not-detected": 0,
+      "needs-review": 0,
+      "error": 0,
+      "cases": 8,
+      "firstAttemptFixes": 7
+    }
+  },
+  "rows": [
+    {
+      "case": "layering/v5",
+      "condition": "expectrail",
+      "run": 41099054641,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 419.6,
+      "live": true,
+      "samImages": 18
+    },
+    {
+      "case": "layering/v5",
+      "condition": "screenshots",
+      "run": 41099054641,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 375.8,
+      "live": true,
+      "samImages": 18
+    },
+    {
+      "case": "layering/v6",
+      "condition": "expectrail",
+      "run": 41099054641,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 293.8,
+      "live": true,
+      "samImages": 31
+    },
+    {
+      "case": "layering/v6",
+      "condition": "screenshots",
+      "run": 41099054641,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 257.9,
+      "live": true,
+      "samImages": 31
+    },
+    {
+      "case": "missing-texture/v5",
+      "condition": "expectrail",
+      "run": 41099054641,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 264.1,
+      "live": true,
+      "samImages": 31
+    },
+    {
+      "case": "missing-texture/v5",
+      "condition": "screenshots",
+      "run": 41099054641,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 285.5,
+      "live": true,
+      "samImages": 31
+    },
+    {
+      "case": "missing-texture/v6",
+      "condition": "expectrail",
+      "run": 41099054641,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 488.6,
+      "live": true,
+      "samImages": 31
+    },
+    {
+      "case": "missing-texture/v6",
+      "condition": "screenshots",
+      "run": 41099054641,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 268.1,
+      "live": true,
+      "samImages": 31
+    },
+    {
+      "case": "physics-fall-through/v5",
+      "condition": "expectrail",
+      "run": 41099054641,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 426.2,
+      "live": true,
+      "samImages": 34
+    },
+    {
+      "case": "physics-fall-through/v5",
+      "condition": "screenshots",
+      "run": 41099054641,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 717.8,
+      "live": true,
+      "samImages": 34
+    },
+    {
+      "case": "physics-fall-through/v6",
+      "condition": "expectrail",
+      "run": 41099054641,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 352.5,
+      "live": true,
+      "samImages": 34
+    },
+    {
+      "case": "physics-fall-through/v6",
+      "condition": "screenshots",
+      "run": 41099054641,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 543.5,
+      "live": true,
+      "samImages": 34
+    },
+    {
+      "case": "sinking/v3",
+      "condition": "expectrail",
+      "run": 41099054641,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 662.0,
+      "live": true,
+      "samImages": 34
+    },
+    {
+      "case": "sinking/v3",
+      "condition": "screenshots",
+      "run": 41099054641,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "attempts": [
+        "accept"
+      ],
+      "seconds": 659.7,
+      "live": true,
+      "samImages": 34
+    },
+    {
+      "case": "sinking/v4",
+      "condition": "expectrail",
+      "run": 41099054641,
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 2,
+      "attempts": [
+        "timeout",
+        "accept"
+      ],
+      "seconds": 2196.2,
+      "live": true,
+      "samImages": 1193
+    },
+    {
+      "case": "sinking/v4",
+      "condition": "screenshots",
+      "run": 41099054641,
+      "detected": "fail",
+      "outcome": "not-fixed",
+      "attemptsUsed": 3,
+      "attempts": [
+        "reject",
+        "timeout",
+        "timeout"
+      ],
+      "seconds": 2636.3,
+      "live": true,
+      "samImages": 240
+    }
+  ],
+  "rule": "first non-error result per case and condition, in run order"
+}

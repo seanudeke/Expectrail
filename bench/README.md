@@ -8,6 +8,7 @@ Every number the README or the video quotes comes from a file here and reruns wi
 | Detection: held-out variants (ids and counts only) | `detection/held-out.json` | `bench/rerun-detection.sh held-out` |
 | Detection judged by Muse Glimmer checked against the engine (no SAM) | `detection/<set>-glimmer-engine.json` | `bench/rerun-detection.sh held-out main glimmer-engine` (or `dev`) |
 | Fix matrix: development variants, screenshots vs Expectrail | `fix-matrix/dev.json`, table in `fix-matrix/README.md` | Actions, **Fix matrix** (live), then `python3 -m agents.bench_collect --matrix --run <id> --set dev` |
+| Fix matrix: held-out variants (ids and counts only). The first run, on a fixed commit (branch `heldout/run-1`), is the held-out result; later runs are repeats and are recorded beside it, never in its place | `fix-matrix/held-out/held-out.json`, table in `fix-matrix/held-out/README.md` | Actions, **Fix matrix** (live, set held-out) on a fixed commit, then `python3 -m agents.bench_collect --matrix --run <id> --set held-out --out bench/fix-matrix/held-out` |
 | Live Muse Code film, clean prompt | `live-muse-clean-v1/` | see its README |
 | First live Muse Spark spec draft | `spec-writer-live/` | see its README |
 | Muse Spark Open, live: the approved checks drafted again, the ground draft on the seeded bugs, the scripted playtest sorted | `spark-open/<run>/results.json` and table, index in `spark-open/README.md` | Actions, **Spark Open**, then `python3 -m agents.spark_open collect --run <id>` |
