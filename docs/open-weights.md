@@ -5,7 +5,7 @@ game engine; Muse Spark Open writes the checks.** Both are Meta open-weight mode
 partner inference (Fireworks, Baseten) or our own server. With `glimmer-engine`, the real fix is
 accepted and the hide-the-robot fix rejected, on the four private held-out routes too, and the
 held-out bench catches 7 of 8 private bug variants with no false alarm and no stray check failure,
-as SAM does, with no SAM key in any of these runs (Oct 29 to 30). With `both`, Glimmer is a second pair of
+as SAM does (8 of 8 on the public development set, also as SAM does), with no SAM key in any of these runs (Oct 29 to 30). With `both`, Glimmer is a second pair of
 eyes next to SAM 3.1. Muse Code (the fixer) and Muse Voice Transcribe stay on Meta's hosted API.
 
 This page is for the infrastructure partner verifying the open-weights prize, and for us: what runs
@@ -187,8 +187,9 @@ How it got there, the same day, all on the same deployment:
 4. The same run failed the ground check on the clean game: Glimmer's robot box runs 15 to 20 pixels
    taller than the robot, too loose for the spec's 20-pixel tolerance. Under `glimmer-engine` the
    ground check is now judged on the position log against the clean level's ground line (the SAM-off
-   ground check). That loses the one seeded bug only a precise vision box sees, sinking/v2 (the
-   robot drawn 26 px low, physics unchanged); docs/sam.md has SAM's hybrid catching it.
+   ground check). The ground check then no longer sees sinking/v2 (the robot drawn 26 px low,
+   physics unchanged), which SAM's hybrid fails on every route (docs/sam.md). The dev bench below
+   still catches it, on player-always-visible, on 2 of 5 routes.
 
 Held-out detection bench, judge `glimmer-engine` (no SAM key in the runs), every private bug
 variant and the clean game, each on the smoke route and the four private routes, the same jobs and
@@ -222,11 +223,34 @@ all 5 routes, and the catches are unchanged, missing-texture's coins fails inclu
 frames are not published, so which frames caused the earlier fails is not known; the earlier rule
 dropped 40% of coin boxes on the clean game against 9% now.
 
+Development detection bench, judge `glimmer-engine` (no SAM key in the run), the public variants in
+`bugs/` and the clean game on the same five routes and checks as SAM's dev bench in docs/sam.md,
+under the overlap rule, with the ground judged on the position log (main at 2de3d9c; run
+41001182605, Oct 30; recorded in `bench/detection/dev-glimmer-engine.json`).
+
+| Development variant | Engine | Gameplay | player-always-visible | coins-visible | Caught, Glimmer+engine | Caught, SAM on (docs/sam.md) | Caught, SAM off |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| clean (control) | 5 pass | 5 pass | 5 pass | 5 pass | **no false alarm** | no false alarm | no false alarm |
+| physics-fall-through/v1 | 5 fail | 5 fail | 5 fail | 5 pass | **yes** | yes | yes |
+| physics-fall-through/v2 | 5 fail | 5 fail | 5 fail | 5 pass | **yes** | yes | yes |
+| sinking/v1 | 5 fail | 5 pass | 2 fail, 3 pass | 5 pass | **yes** | yes | yes |
+| sinking/v2 | 5 pass | 5 pass | 2 fail, 3 pass | 5 pass | **yes** | yes | no |
+| missing-texture/v1 | 5 pass | 5 pass | 5 pass | 5 fail | **yes** | yes | no |
+| missing-texture/v2 | 5 pass | 5 pass | 5 pass | 5 fail | **yes** | yes | no |
+| layering/v1 | 5 pass | 5 pass | 5 fail | 5 pass | **yes** | yes | no |
+| layering/v2 | 5 pass | 5 pass | 5 fail | 5 pass | **yes** | yes | no |
+
+All 8 are caught and the clean game raises no false alarm, as with SAM. This page had expected a
+miss on sinking/v2, since the ground check no longer sees it. It is caught by player-always-visible
+on 2 of 5 routes, the same count as SAM's visibility check, so the catch is narrower than SAM's: the
+hybrid fails it on all 5 routes, and a run on only the other 3 would miss it with Glimmer. As on the
+held-out set, every check fails only where its bug is.
+
+The run took 419 job minutes against 49 for SAM's dev bench, 25 to 64 minutes a job against about 5,
+with three jobs sharing one replica (2 h 45 min end to end).
+
 ## What is not measured yet
 
-- **The development variants with `glimmer-engine`.** By the checks it uses it should catch 7 of the
-  8 in docs/sam.md (all but sinking/v2, which needs a precise box); the dev bench has not been run
-  with it.
 - **How often a fine fix gets a false fail.** One accept, and a clean game passing on 5 routes, is
   not a rate. A frame with one or two
   coins on screen, where Glimmer's only box misses by more than half a coin, would fail
@@ -253,8 +277,9 @@ dropped 40% of coin boxes on the clean game against 9% now.
   about anything else (an enemy, a door) is needs-review under `glimmer-engine` until the harness
   logs it too.
 - **A precise ground check without SAM.** Under `glimmer-engine` the ground is judged on the
-  position log, so a robot drawn into the ground with its physics intact (sinking/v2) is missed.
-  Glimmer's boxes are not precise enough for it; another open-weight segmenter could be.
+  position log, so the ground check does not see a robot drawn into the ground with its physics
+  intact (sinking/v2); only the visibility check catches it, on 2 of 5 routes. Glimmer's boxes are
+  not precise enough for the ground check; another open-weight segmenter could be.
 
 ## Keys
 
