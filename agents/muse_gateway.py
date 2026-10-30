@@ -13,10 +13,15 @@ Three runs of ``muse exec`` with a one-line prompt:
   somewhere else and the experiment proves nothing.
 - ``host``: the placeholder through the proxy, Muse on the host.
 - ``bwrap``: the same inside the fixer's bubblewrap sandbox (agents/sandbox.py), as a real fix runs,
-  with the installed Muse Code files bound read-only. ``muse`` is a shell launcher that keeps the
-  real program under the home directory, which the sandbox replaces with an empty one; without
-  these files the launcher downloads the program again on every run (from lookaside.facebook.com).
-- ``bwrap-download``: the sandbox as it is today, with the proxy also passing that download host.
+  with ``~/.local/bin`` bound read-only. ``muse`` is a shell launcher that runs the program beside
+  it (``muse-bin-<version>``, 415 MB, with three small version files); the sandbox replaces the home
+  directory with an empty one, so without that bind the launcher downloads the program again.
+- ``bwrap-download``: the sandbox as it is today (only the launcher bound), the proxy also passing
+  the download host (lookaside.facebook.com), for comparison.
+
+Measured Oct 30 (run 41073919731): the control is rejected; the host and ``bwrap`` runs answer
+with every request going to api.meta.ai and the key swapped into Authorization; the real key is
+in neither Muse's output nor the proxy log.
 
 The real key is in this process and the proxy's environment only. Muse's output and the proxy
 log are checked for it, and only the placeholder's length and the header names it travelled in
@@ -49,98 +54,12 @@ PROMPT = "Reply with exactly the text GATEWAY-OK and nothing else. Do not run to
 EXPECT = "GATEWAY-OK"
 CA_VARS = ("SSL_CERT_FILE", "NODE_EXTRA_CA_CERTS", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE")
 PROXY_VARS = ("HTTPS_PROXY", "HTTP_PROXY", "https_proxy", "http_proxy", "ALL_PROXY", "all_proxy")
-VARIANTS = ("control", "host", "bwrap", "bwrap-local", "bwrap-download")
+VARIANTS = ("control", "host", "bwrap", "bwrap-download")
 DOWNLOAD_HOST = "lookaside.facebook.com"
 
 
-SKIP_DIRS = {".config", ".ssh", ".gnupg", ".git", "work", "runs", "node_modules", ".npm", ".cargo", ".rustup",
-             ".dotnet", ".nuget", ".gradle", ".m2", "go", ".android", ".docker", "actions-runner"}
-
-
-def _is_elf(path: Path) -> bool:
-    try:
-        with open(path, "rb") as fh:
-            return fh.read(4) == b"\x7fELF"
-    except OSError:
-        return False
-
-
-def install_dirs(home: Path | None = None, min_bytes: int = 5_000_000, max_depth: int = 7) -> list[Path]:
-    """What to bind read-only so the ``muse`` launcher finds its program inside the sandbox.
-
-    The launcher is a shell script that keeps a native program under the home directory, which the
-    sandbox replaces with an empty one. This finds large native executables there (configuration,
-    keys, toolchains and the CI runner left out). A program in ~/.local/bin is bound as a file, so
-    the rest of ~/.local (Muse's sessions and locks) stays writable; one elsewhere, with its directory.
-    """
-    home = home or Path.home()
-    found: set[Path] = set()
-
-    def walk(d: Path, depth: int) -> None:
-        if depth > max_depth:
-            return
-        try:
-            entries = list(d.iterdir())
-        except OSError:
-            return
-        for e in entries:
-            if e.is_symlink():
-                continue
-            if e.is_dir():
-                if e.name not in SKIP_DIRS:
-                    walk(e, depth + 1)
-            elif e.is_file() and e.stat().st_size >= min_bytes and _is_elf(e):
-                found.add(e if e.parent == home / ".local" / "bin" else e.parent)
-
-    walk(home, 0)
-    return sorted(found)
-
-
-def launcher_paths(launcher: str | None) -> list[str]:
-    """Lines of the launcher script that name a directory: where it keeps or looks for the program."""
-    if not launcher or not Path(launcher).is_file():
-        return []
-    lines = Path(launcher).read_text(encoding="utf-8", errors="replace").splitlines()
-    keep, inside = [], False
-    for ln in lines:
-        stripped = ln.strip()
-        if stripped.startswith("resolve_install_dir()"):
-            inside = True
-        if inside or (re.search(r"\.local|install_dir|_DIR=|bin_name|binary|version_file|manifest", ln)
-                      and not stripped.startswith("#")):
-            keep.append(stripped)
-        if inside and stripped == "}":
-            inside = False
-    return keep[:40]
-
-
-def local_tree(home: Path | None = None, depth: int = 3) -> list[str]:
-    """~/.local as ``path type`` lines (symlink targets shown): the CI runner's, nothing secret."""
-    root = (home or Path.home()) / ".local"
-    out: list[str] = []
-
-    def walk(d: Path, level: int) -> None:
-        try:
-            entries = sorted(d.iterdir())
-        except OSError:
-            return
-        for e in entries:
-            rel = e.relative_to(root).as_posix()
-            if e.is_symlink():
-                out.append(f"{rel} -> {os.readlink(e)}")
-            elif e.is_dir():
-                out.append(f"{rel}/")
-                if level < depth:
-                    walk(e, level + 1)
-            else:
-                out.append(f"{rel} ({e.stat().st_size} B)")
-
-    walk(root, 1)
-    return out[:60]
-
-
 def bwrap_argv(work: Path, argv: list[str], binds: list[Path]) -> list[str]:
-    """The fixer's bubblewrap command, plus the Muse install directories read-only (sessions stay writable)."""
+    """The fixer's bubblewrap command, plus ``binds`` read-only (a ``sessions`` directory in one stays writable)."""
     from agents.sandbox import _bwrap_cmd
 
     cmd = _bwrap_cmd(work, argv, network=True)
@@ -228,6 +147,11 @@ def read_log(log: Path, since: float) -> list[dict]:
     return [r for r in rows if r.get("t", since) >= since]
 
 
+def program_dir() -> Path:
+    """Where the installer put the launcher and the program it runs (~/.local/bin on Linux)."""
+    return Path(shutil.which("muse") or Path.home() / ".local" / "bin" / "muse").resolve().parent
+
+
 def run_variant(name: str, *, out: Path, real: str, placeholder: str, proxy: str | None, ca: Path | None,
                 log: Path, timeout: int = 240) -> dict:
     work = out / name
@@ -241,13 +165,7 @@ def run_variant(name: str, *, out: Path, real: str, placeholder: str, proxy: str
         (work / ".muse").mkdir()
         shutil.copyfile(ca, work / ".muse" / "gateway-ca.pem")
         env = muse_env(placeholder, proxy=proxy, ca="/fixer/.muse/gateway-ca.pem", home=str(Path.home()))
-        local = Path.home() / ".local"
-        binds = {"bwrap": [local / "bin"], "bwrap-local": [local], "bwrap-download": []}[name]
-        cmd = bwrap_argv(work, [*argv], binds)
-        if name == "bwrap-local":
-            # Everything under ~/.local read-only except where Muse keeps sessions, locks and state.
-            cut = cmd.index("--")
-            cmd = cmd[:cut] + [a for sub_ in ("share", "state") for a in ("--tmpfs", str(local / sub_))] + cmd[cut:]
+        cmd = bwrap_argv(work, argv, [program_dir()] if name == "bwrap" else [])
         try:
             proc = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=timeout, check=False)
         except subprocess.TimeoutExpired as exc:
@@ -283,13 +201,12 @@ def run_variant(name: str, *, out: Path, real: str, placeholder: str, proxy: str
 
 
 def verdict(results: dict[str, dict]) -> str:
-    control, host, box, local, download = (results.get(v) for v in VARIANTS)
+    control, host, box, download = (results.get(v) for v in VARIANTS)
     if control and control["answered"]:
         return "inconclusive: Muse answered with the placeholder and no proxy, so it has another credential"
     if host and host["answered"] and host["swappedHeaders"]:
-        if (box and box["answered"]) or (local and local["answered"]):
-            what = "~/.local/bin" if box and box["answered"] else "~/.local (sessions and state writable)"
-            where = f"on the host and inside bubblewrap with {what} bound read-only, no download"
+        if box and box["answered"]:
+            where = "on the host and inside bubblewrap with ~/.local/bin bound read-only, no download"
         elif download and download["answered"]:
             where = f"on the host, and inside bubblewrap only when the proxy also passes {DOWNLOAD_HOST}"
         else:
@@ -331,11 +248,9 @@ def main(argv: list[str] | None = None) -> int:
             "placeholderLength": len(placeholder), "keyLength": len(real), "allowedHosts": args.hosts}
     print(f"::notice title=Muse gateway setup::muse {info['museVersion']}; {info['museBinary']}; "
           f"placeholder of the key's length ({info['keyLength']}); key may go to {args.hosts}")
-    dirs = install_dirs()
-    print(f"::notice title=Muse install::launcher {shutil.which('muse')}; program directories bound in the "
-          f"bwrap variant: {', '.join(str(d) for d in dirs) or 'none found'}")
-    print("::notice title=Muse launcher paths::" + " | ".join(launcher_paths(shutil.which("muse")))[:3000])
-    print("::notice title=Muse ~/.local::" + " | ".join(local_tree())[:3000])
+    bound = program_dir()
+    listing = sorted(p.name for p in bound.iterdir()) if bound.is_dir() else []
+    print(f"::notice title=Muse install::{bound} bound read-only in the bwrap variant: {', '.join(listing)}")
     names = [v.strip() for v in args.variants.split(",") if v.strip()]
     unknown = sorted(set(names) - set(VARIANTS))
     if unknown:
@@ -366,7 +281,7 @@ def main(argv: list[str] | None = None) -> int:
     leaked = any(r["realKeyInMuseOutput"] for r in results.values())
     if log.is_file() and real in log.read_text(encoding="utf-8"):
         leaked = True
-    doc = {"format": "expectrail.muse-gateway/v0", **info, "installDirs": [str(d) for d in dirs], "verdict": verdict(results),
+    doc = {"format": "expectrail.muse-gateway/v0", **info, "boundReadOnly": str(bound), "verdict": verdict(results),
            "realKeyLeaked": leaked, "variants": list(results.values())}
     (out / "results.json").write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
     level = "error" if leaked else "notice"

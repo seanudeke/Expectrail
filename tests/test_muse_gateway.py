@@ -67,32 +67,6 @@ class DriverTest(unittest.TestCase):
                                                "bwrap": row("bwrap", False)}))
         self.assertIn("does not work", mg.verdict({"control": row("control", False), "host": row("host", True)}))
 
-    def test_install_dirs_find_large_native_programs_but_never_the_config(self):
-        import tempfile
-        from pathlib import Path
-        with tempfile.TemporaryDirectory() as tmp:
-            home = Path(tmp)
-            elf = b"\x7fELF" + b"\0" * 64
-            for rel, data in ((".local/share/m/versions/1.4/prog", elf), (".local/bin/muse-core", elf),
-                              (".config/x/prog", elf), ("actions-runner/cached/2.3/Runner", elf),
-                              (".local/share/small/prog", elf[:20]), (".cache/big.bin", b"\0" * 128)):
-                (home / rel).parent.mkdir(parents=True, exist_ok=True)
-                (home / rel).write_bytes(data)
-            found = [p.relative_to(home).as_posix() for p in mg.install_dirs(home, min_bytes=40)]
-        # The program in ~/.local/bin as a file (sessions under ~/.local stay writable); another with its directory.
-        self.assertEqual(found, [".local/bin/muse-core", ".local/share/m/versions/1.4"])
-
-    def test_launcher_paths_pick_out_where_it_looks(self):
-        import tempfile
-        from pathlib import Path
-        with tempfile.TemporaryDirectory() as tmp:
-            launcher = Path(tmp) / "muse"
-            launcher.write_text('#!/bin/bash\n# HOME comment\nROOT="${XDG_DATA_HOME:-$HOME/.local/share}/m"\necho hi\n')
-            self.assertEqual(mg.launcher_paths(str(launcher)), ['ROOT="${XDG_DATA_HOME:-$HOME/.local/share}/m"'])
-            launcher.write_text("#!/bin/bash\nresolve_install_dir() {\n  echo \"$HOME/x\"\n}\nother\n")
-            self.assertEqual(mg.launcher_paths(str(launcher)), ["resolve_install_dir() {", 'echo "$HOME/x"', "}"])
-        self.assertEqual(mg.launcher_paths(None), [])
-
     def test_the_bound_sandbox_adds_read_only_binds_before_the_command(self):
         import tempfile
         from pathlib import Path
@@ -108,8 +82,7 @@ class DriverTest(unittest.TestCase):
         row = lambda name, answered, swapped=(): {"variant": name, "answered": answered,
                                                   "swappedHeaders": list(swapped)}
         verdict = mg.verdict({"control": row("control", False), "host": row("host", True, ["authorization"]),
-                              "bwrap": row("bwrap", False), "bwrap-local": row("bwrap-local", False),
-                              "bwrap-download": row("bwrap-download", True)})
+                              "bwrap": row("bwrap", False), "bwrap-download": row("bwrap-download", True)})
         self.assertIn("only when the proxy also passes lookaside.facebook.com", verdict)
 
     def test_redact_removes_both_keys(self):
