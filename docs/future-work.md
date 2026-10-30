@@ -137,8 +137,11 @@ evidence ([`apps/checkout`](../apps/checkout); results in the README's "Beyond g
     ([`harness/web`](../harness/web)).
   - The page's layout boxes stand in for the engine's position log.
   - Whether the order went through stands in for the gameplay check.
-- **What it does not yet have.** Held-out web variants, the live repair loop, and checks written by
-  anyone outside the team.
+  - One rule the game did not need: a page is full of look-alikes (a blue badge beside a blue
+    button), so a SAM box counts only where it overlaps the page's paint box for that element. A
+    score threshold alone was tried first and rejected a correct fix.
+- **What it does not yet have.** Held-out web bugs, the full live repair matrix (one bug has run
+  live), and checks written by anyone outside the team.
 
 Further out are backend and infrastructure changes, where the evidence is logs, metrics and
 responses rather than pixels. None of that is built.
