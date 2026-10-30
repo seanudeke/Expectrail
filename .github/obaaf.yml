@@ -17,3 +17,4 @@ lanes:
   ".github/workflows/fix-matrix.yml#judge-run": agent            # Muse judges candidate fixes
   ".github/workflows/fix-matrix.yml#demo-run": agent             # the overnight loop end to end
   ".github/workflows/spark-open.yml#spark-open": agent           # Muse Spark Open drafts specs
+  ".github/workflows/fix-matrix.yml#gateway-probe": agent        # Muse Code behind the key gateway (experiment)

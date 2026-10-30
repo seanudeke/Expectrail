@@ -55,12 +55,40 @@ where they write, and Expectrail's verifier is what rejects them.
     python3 -m agents.assurance.proposal --seed bugs/physics-fall-through/v1.patch \
         --candidate agents/fixtures/fix-collision-mask.patch --out runs/proposal
 
+## Muse Code without the key (experiment, Oct 30)
+
+Muse Code can run without ever holding the Meta API key. `agents/muse_gateway.py` gives Muse a
+placeholder of the key's length and an HTTPS proxy (mitmproxy 12.2.3 with
+`agents/muse_gateway_addon.py`) that holds the real key, swaps it in for `*.meta.ai` only, refuses
+every other host, and logs host, path, status and header names, never values. Muse trusts the
+proxy's certificate and nothing else. `fix-matrix.yml`, `bench: gateway`; run 41073919731, repeated on the
+code as merged in run 41074472926 (19 requests, 5.5 s inside the sandbox):
+
+| Variant | Result |
+| --- | --- |
+| Placeholder, no proxy (control) | Rejected: "your API key from META_API_KEY was rejected" |
+| Through the proxy, on the host | Answered; 21 requests, all to api.meta.ai, key swapped into `Authorization` |
+| Through the proxy, inside the fixer's bubblewrap sandbox, `~/.local/bin` bound read-only | **Answered; 18 requests, all to api.meta.ai; 8 s; no download** |
+| Through the proxy, inside the sandbox as the fixer runs it today | Answered only when the proxy also passed lookaside.facebook.com |
+
+The real key appeared in neither Muse's output nor the proxy log. Two things this does not do yet:
+the proxy runs in the same CI job, so OBAAF still counts the key in that job (GHA-005); and the
+fixer does not use it. Wiring it in means starting the proxy before the fixer and passing Muse the
+placeholder, proxy and certificate; the bubblewrap sandbox shares the host network, so nothing
+stops Muse from ignoring the proxy until the sandbox's network is limited to it.
+
+**Found on the way: every fix attempt downloads Muse Code.** `muse` is a shell launcher that runs a
+415 MB program installed beside it in `~/.local/bin`. The fixer's sandbox replaces the home
+directory and binds only the launcher, so on every attempt the launcher downloads the program
+again, inside the sandbox. Binding `~/.local/bin` read-only, as the experiment does, removes the
+download.
+
 ## Not done, in order
 
-1. **The replay runs the candidate's code with the verifier's authority.** `harness/run.py` starts
-   the patched game with the verifier's environment, network access and file system, which hold
-   the SAM key, the private routes and the SAM cache. Scrubbing the environment is the first step;
-   a network-less, file-scoped worker for the replay is the real fix.
+1. **The replay runs the candidate's code with the verifier's authority.** `harness/run.py` gives
+   the patched game an allowlisted environment (no keys or private paths, PR #82), but it still runs
+   on the verifier's file system with network access. A network-less, file-scoped worker for the
+   replay is the real fix.
 2. **Evidence binding (Phase B):** a closed candidate manifest, an evidence manifest, and a signed
    statement naming the exact proposal and verification report, verified before any effect.
 3. **Protected pull requests (Phase C):** a model gateway so agent jobs hold no provider key,

@@ -31,9 +31,9 @@ on:
         type: boolean
         default: false
       bench:
-        description: fix (Muse fixes each bug), judge (who accepts a fix that only looks right) or demo (the overnight loop end to end, live, N runs)
+        description: fix (Muse fixes each bug), judge (who accepts a fix that only looks right), demo (the overnight loop end to end, live, N runs) or gateway (can Muse Code run without holding the key)
         type: choice
-        options: [fix, judge, demo]
+        options: [fix, judge, demo, gateway]
         default: fix
       set:
         description: dev (public development variants) or held-out (private; run once, after the code freeze)
@@ -130,6 +130,59 @@ jobs:
           path: sam-cache.enc
           retention-days: 1
           if-no-files-found: error
+
+  # The key gateway experiment (agents/muse_gateway.py): Muse Code gets a placeholder key and a
+  # proxy that holds the real one, swaps it in for Meta's API only and refuses every other host.
+  # Three one-line prompts (a few cents): no proxy (must fail), on the host, inside bubblewrap.
+  # Muse's logs here only ever saw the placeholder; they are kept for seven days.
+  gateway-probe:
+    if: ${{ inputs.bench == 'gateway' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      KEYS_OK: ${{ secrets.META_API_KEY != '' }}
+    steps:
+      - name: Require the Muse key
+        run: '[ "$KEYS_OK" = "true" ] || { echo "::error::Set META_API_KEY first."; exit 1; }'
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Install bubblewrap
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends bubblewrap
+      - name: Allow unprivileged user namespaces for bubblewrap
+        run: |
+          if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
+          fi
+          if [ -f /proc/sys/kernel/unprivileged_userns_clone ]; then
+            echo 1 | sudo tee /proc/sys/kernel/unprivileged_userns_clone
+          fi
+      - name: Install mitmproxy 12.2.3 in its own environment
+        run: |
+          python -m venv "$RUNNER_TEMP/mitm"
+          "$RUNNER_TEMP/mitm/bin/python" -m pip install --quiet --disable-pip-version-check "mitmproxy==12.2.3"
+          "$RUNNER_TEMP/mitm/bin/mitmdump" --version | head -n 1
+      - name: Install Muse Code CLI
+        run: |
+          curl -fsSL https://dev.meta.ai/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Muse Code through the key gateway
+        env:
+          META_API_KEY: ${{ secrets.META_API_KEY }}
+        run: python -m agents.muse_gateway --mitmdump "$RUNNER_TEMP/mitm/bin/mitmdump" --out runs/gateway
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: muse-gateway
+          path: |
+            runs/gateway/results.json
+            runs/gateway/gateway-log.jsonl
+            runs/gateway/*/muse.log
+          retention-days: 7
 
   plan:
     if: ${{ inputs.bench == 'fix' }}
