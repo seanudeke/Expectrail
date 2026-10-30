@@ -291,6 +291,10 @@ def run_case(key: str, condition: str, out: Path, *, live: bool, fixture: Path |
             v = verify(request, candidate, work / "verify" / f"attempt-{attempt:02d}", attempt=attempt)
             film["decision"] = v["decision"]
             film["reasons"] = v["reasons"]
+            if use_sam:
+                # Public sessions only: what SAM found against where the candidate page drew it.
+                film["samSeen"] = {r.stem: web_bench.sam_seen(work / "verify" / f"attempt-{attempt:02d}" / "candidate" / r.stem)
+                                   for r in web_bench.ROUTES}
             if v["decision"] == "accept" or not live:
                 break
             prior = {"decision": v["decision"], "reasons": v["reasons"], "attempt": attempt}
@@ -320,6 +324,16 @@ def annotation(row: dict) -> str:
             f"live={row['live']}" + (f"; SAM images {row['samImages']}" if row.get("samImages") is not None else ""))
     if row.get("detail"):
         line += f"\n::warning title=Fix matrix {row['case']} {row['condition']} detail::{' '.join(row['detail'].split())[:300]}"
+    for a in row["attempts"]:
+        if not a.get("reasons"):
+            continue
+        # The decision's own reasons (a held-out check is named by spec and kind only, on the aggregate
+        # route "held-out-routes", as the fixer's retry prompt already gets it), then SAM's view of the
+        # public sessions. Nothing from a private session's contents.
+        seen = "; ".join(f"{route}: {', '.join(lines)}" for route, lines in (a.get("samSeen") or {}).items() if lines)
+        line += (f"\n::notice title=Verify {row['case']} {row['condition']} attempt-{a['attempt']:02d}::{a['decision']}: "
+                 + "; ".join(a["reasons"][:6]) + (f" (+{len(a['reasons']) - 6} more)" if len(a["reasons"]) > 6 else "")
+                 + (f" | SAM {seen}" if seen else ""))
     return line
 
 
