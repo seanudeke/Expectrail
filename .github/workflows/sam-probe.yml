@@ -303,6 +303,27 @@ jobs:
           for name in sorted(p.name for p in out.glob("observations-*-error.txt")):
               print(f"::warning title=SAM verify error::{name}: {(out / name).read_text().strip()[:300]}")
           PY
+      - name: Review against the failing base with SAM on (reuses the verification above)
+        env:
+          MODEL_API_KEY: ${{ secrets.MODEL_API_KEY || secrets.META_API_KEY }}
+          EXPECTRAIL_OBS_PROVIDER: sam
+          EVERY: ${{ inputs.every }}
+          CANDIDATE: ${{ inputs.candidate }}
+        run: |
+          export EXPECTRAIL_SAM_EVERY="$EVERY"
+          code=0
+          python -m agents.review_change --request runs/sam-verify/repair-request.json --candidate "$CANDIDATE" \
+            --verification runs/sam-verify/verify/verification.json --out runs/sam-review || code=$?
+          python - "$code" <<'PY'
+          import json, sys
+          rec = json.load(open("runs/sam-review/change-evidence.json"))
+          rows = "; ".join(f"{r['spec']} {r['before']} to {r['after']} {r['comparison']}" for r in rec["rows"])
+          print(f"::notice title=SAM review::{rec['status']} (exit {sys.argv[1]}); {rec['evidenceLabel']}; "
+                f"candidate from {rec['candidate']['origin']}; private checks {rec['private']['checks']}")
+          print(f"::notice title=SAM review rows::{rows}")
+          for reason in rec["reasons"][:3]:
+              print(f"::notice title=SAM review reason::{' '.join(reason.split())[:300]}")
+          PY
 
   # mode=heldout-bench: for each private bug variant (and the clean game as a false-alarm control),
   # render the game with the variant and no fix on the smoke route and every private route, and
