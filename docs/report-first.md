@@ -40,8 +40,9 @@ Every live repair we have run, with and without Expectrail's evidence:
 | The same 8 bugs | Expectrail's evidence (spec, verdict, first failing frame) | 8 of 8 | 7 of 8 |
 | Natural-catch trial, 4 reported bugs × 5 ([`bench/reported/trial.md`](../bench/reported/trial.md)) | The reporter's own words and screenshots | 20 of 20 | 20 of 20 |
 | Demo loop, 10 live runs ([`bench/demo-loop/`](../bench/demo-loop/README.md)) | Expectrail's evidence | 10 of 10 | 10 of 10 |
+| Demo loop on this policy, 3 live runs ([41223748922](https://github.com/seanudeke/Expectrail/actions/runs/41223748922), Oct 31; [a review](review/report-first-run-1/)) | A plain report | 3 of 3 | 3 of 3 |
 
-That is 45 of 46 cases fixed on the first attempt. The one that needed a second attempt had the
+That is 48 of 49 cases fixed on the first attempt. The one that needed a second attempt had the
 evidence. On these bugs, the evidence did not help Muse fix anything it could not fix from a
 report.
 
@@ -88,7 +89,7 @@ stays on every candidate, and what moves is what the fixer is told.
 
 ## What we do not know yet
 
-- **Whether the evidence helps on a second attempt.** In 46 live cases, Muse needed a second
+- **Whether the evidence helps on a second attempt.** In 49 live cases, Muse needed a second
   attempt once. The escalation step is a reasonable fallback, not a measured improvement. The Fix
   matrix now runs it by default (condition `escalate`) beside the two older conditions, so the next
   run measures it.

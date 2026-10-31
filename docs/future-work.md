@@ -83,7 +83,7 @@ introduced the bug.
 
 **The fixer starts from a plain report; we have not shown that the evidence helps it.** Since
 October 30, Muse Code gets Expectrail's evidence only after a rejected attempt
-([report-first.md](report-first.md)), because it fixed 45 of 46 live cases on the first attempt
+([report-first.md](report-first.md)), because it fixed 48 of 49 live cases on the first attempt
 with or without it. Whether the evidence helps on a second attempt is unmeasured: it has been
 needed once.
 
