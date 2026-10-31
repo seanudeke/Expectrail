@@ -58,8 +58,8 @@ Next, for the checks people write:
   motion jitter, which the evaluation plan already defers.
 
 Next, for discovery (detail in [discovery.md](discovery.md#whats-next)):
-- Run the Muse Spark planner live, once on the same frozen blind set, and compare it with the
-  planner-off result (4 of 8).
+- Get the Muse Spark planner to answer live (its first blind run returned no content: its reasoning
+  used up the token limit), then measure it blind against the planner-off result (4 of 8).
 - A larger blind set, written by people outside the team, before any rate is claimed.
 - The rest of the team's autonomous-discovery specification: visual discovery on matched base and
   candidate runs; integrity signals (crashes, script errors, no progress) kept apart from gameplay

@@ -23,12 +23,13 @@ it is in [What's next](#whats-next).
 ## Status, October 31
 
 - **Built and measured:** everything on this page, locally and in CI (below).
-- **Tested blind once:** with the discoverer frozen, ten fresh entries written after the freeze
-  and their digest committed (pull request #150), the blind run flagged **4 of 8 defects** and
-  **none** of the 2 intentional changes or the clean game, every job complete
-  ([below](#blind-run-1-october-31)).
-- **Not run live:** the Muse Spark planner. It is built and tested against a fake transport; every
-  result on this page is with the planner off.
+- **Tested blind:** with the discoverer frozen, ten fresh entries written after the freeze and their
+  digest committed (pull request #150), the blind run flagged **4 of 8 defects** and **none** of the
+  2 intentional changes or the clean game, every job complete ([below](#blind-run-1-october-31)). A
+  second run meant to add the planner gave the same result because the planner never answered
+  ([run 2](#blind-run-2-planner-on-the-planner-never-answered)).
+- **The planner has not produced a result here:** in its first live calls (blind run 2) Muse Spark
+  returned no content, so every result on this page is from the templates alone.
 
 ## What runs
 
@@ -210,6 +211,22 @@ What it does and does not show:
   the run before it replayed anything, is what guarantees the discoverer did not change after that.
 - **Which rules fired, and what each entry is, stay private until the event is over,** like the
   held-out bugs. The ids, kinds and flags above are what the run published.
+
+### Blind run 2, planner on: the planner never answered
+
+Run [41250932288](https://github.com/seanudeke/Expectrail/actions/runs/41250932288), the same frozen
+set, dispatched with the Muse Spark planner on. Every job verified the freeze and the digest, then
+recorded the planner stage as **unavailable**: every Spark call came back with no content. The jobs
+ran the templates alone and gave run 1's result exactly: **4 of 8 defects, 0 of 3 healthy builds,
+no incomplete job** ([`bench/discovery/blind-run-41250932288.json`](../bench/discovery/blind-run-41250932288.json)).
+So the frozen discoverer gave the same answer twice, and **the planner-on condition has not been
+measured.**
+
+Why, found afterwards on public builds only: Muse Spark reasons before it answers, and its reasoning
+counts against the 4,096-token limit the planner sent, so nothing was left for the answer (the same
+public run with the limit removed used 10,000 to 22,000 completion tokens a call). That fix is in
+`expectrail/discovery/planner.py`, a frozen file, so it is not part of this record; how it relates
+to the freeze is decided separately.
 
 ## What the development results do and do not say
 

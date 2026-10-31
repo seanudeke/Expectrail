@@ -119,7 +119,7 @@ or blocked".
 | | Written by people | Discovered by Expectrail |
 | --- | --- | --- |
 | What | Three approved specs (the robot stays above the ground, the robot is visible, the coins are visible), the gameplay check, and the held-out bugs and routes. Five engine-record checks for the reported bugs, run by their bench, not by the verifier | 22 generic probes (stand still, walk each way, reverse, jump once, twice or eight times from four spots, shoot at two rates each way, walk while firing), judged by contracts built from a profile of four claims read from the game's code: the double jump, the gun's cooldown, the sprite's facing, the enemies' patrol |
-| Who writes them | Muse Spark drafts a spec from one sentence, a person approves it; teammates write the held-out cases | Twelve templates, with no model. Muse Spark can propose more probes and contracts in a closed language (built, not yet run live); a proposal never approves itself |
+| Who writes them | Muse Spark drafts a spec from one sentence, a person approves it; teammates write the held-out cases | Twelve templates, with no model. Muse Spark can propose more probes and contracts in a closed language (built; its first live calls returned no content); a proposal never approves itself |
 | Effect | The gate: any failure rejects the change | Advisory: reported beside the decision, never changing it |
 | Shown so far | 8 of 8 held-out bugs caught with SAM; 0 of 7 fixes that only look right accepted | Blind: 4 of 8 fresh defects flagged, 0 of 3 healthy builds. Development: the four reported bugs found, no false alarm (its profile was written after them); 2 of the 8 development bugs |
 | Next | More approved checks; the engine-record checks in the verifier | The planner live; then validation, a person's approval and paired verdicts before a discovered check can reject anything ([docs/discovery.md](docs/discovery.md#whats-next)) |
@@ -285,7 +285,9 @@ clean game as the false-alarm control ([`bench/discovery/`](bench/discovery/READ
   a small set; the writer was an AI agent following a prompt written by the session that built the
   discoverer, which suggested the areas to draw from; and what each entry is stays private until
   the event is over ([docs/discovery.md](docs/discovery.md#blind-run-1-october-31)).
-- **The Muse Spark planner has not run live;** every result here is with it off.
+- **The Muse Spark planner has not produced a result yet:** in its first live calls, blind run 2,
+  it returned no content (its reasoning used up the token limit we set), so that run repeated run
+  1's counts from the templates alone.
 - **Next:** the specification's promotion and enforcement stages, and what we would take from AI
   code review that runs code (Greptile), are in [docs/discovery.md](docs/discovery.md#whats-next).
 
