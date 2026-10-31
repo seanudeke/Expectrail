@@ -66,6 +66,11 @@ on:
         type: choice
         options: ['off', sam-unavailable]
         default: 'off'
+      judge_glimmer:
+        description: "judge only: on adds a fourth judge, the verifier with Muse Glimmer checked against the engine, exactly as the judge ladder's fallback (agents/judge_ladder.py). Needs FIREWORKS_API_KEY and the GLIMMER_MODEL variable; one replica, so each job waits its turn (bench/judge/glimmer)."
+        type: choice
+        options: ['off', 'on']
+        default: 'off'
       sam_cache:
         description: "shared: judge the clean game once (smoke and private routes) and share SAM's answers, encrypted, with this run's jobs; public: the smoke route only; off: every job judges every frame itself"
         type: choice
@@ -496,7 +501,8 @@ jobs:
     needs: [judge-plan, sam-warm]
     if: ${{ !cancelled() && needs.judge-plan.result == 'success' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    # Glimmer on one shared replica answers about one frame a second across the parallel jobs.
+    timeout-minutes: ${{ inputs.judge_glimmer == 'on' && 330 || 90 }}
     strategy:
       fail-fast: false
       max-parallel: 4
@@ -506,12 +512,20 @@ jobs:
       LIVE: ${{ inputs.live }}
       KEYS_OK: ${{ secrets.META_API_KEY != '' && secrets.MODEL_API_KEY != '' }}
       HELDOUT_TOKEN_SET: ${{ secrets.HELDOUT_TOKEN != '' }}
+      GLIMMER: ${{ inputs.judge_glimmer }}
+      FIREWORKS_KEY_SET: ${{ secrets.FIREWORKS_API_KEY != '' }}
+      GLIMMER_MODEL: ${{ vars.GLIMMER_MODEL }}
     steps:
       - name: Require both keys
         if: env.KEYS_OK != 'true'
         run: |
           echo "::error::Set META_API_KEY (Muse) and MODEL_API_KEY (SAM, a different key) first."
           exit 1
+      - name: Require the Glimmer key and deployment (judge_glimmer on)
+        if: env.GLIMMER == 'on'
+        run: |
+          [ "$FIREWORKS_KEY_SET" = "true" ] || { echo "::error::Set the FIREWORKS_API_KEY repository secret first."; exit 1; }
+          [[ "$GLIMMER_MODEL" =~ ^accounts/[A-Za-z0-9_-]+/deployments/[A-Za-z0-9_-]+$ ]] || { echo "::error::Set the GLIMMER_MODEL repo variable to accounts/<account>/deployments/<id>."; exit 1; }
       - name: Require the held-out token
         if: env.HELDOUT_TOKEN_SET != 'true'
         run: |
@@ -582,9 +596,20 @@ jobs:
         run: |
           python -m venv "$RUNNER_TEMP/mitm"
           "$RUNNER_TEMP/mitm/bin/python" -m pip install --quiet --disable-pip-version-check "mitmproxy==12.2.3"
+      - name: Glimmer - restore the deployment's scaling if needed, and wake it
+        if: env.GLIMMER == 'on'
+        env:
+          EXPECTRAIL_GLIMMER_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
+          EXPECTRAIL_GLIMMER_MODEL: ${{ vars.GLIMMER_MODEL }}
+        run: |
+          python -m agents.fireworks_deployment --restore --model "$EXPECTRAIL_GLIMMER_MODEL"
+          python -m agents.glimmer_client --warm --timeout 900
       - name: Judge the candidate
         env:
           # Muse Code gets a placeholder key; the gateway holds the real one (agents/gateway.py).
+          # The Glimmer key reaches the verifier only: Muse Code's environment is an allowlist (agents/keys.py).
+          EXPECTRAIL_GLIMMER_API_KEY: ${{ inputs.judge_glimmer == 'on' && secrets.FIREWORKS_API_KEY || '' }}
+          EXPECTRAIL_GLIMMER_MODEL: ${{ vars.GLIMMER_MODEL }}
           EXPECTRAIL_MUSE_GATEWAY: 'on'
           EXPECTRAIL_MITMDUMP: ${{ runner.temp }}/mitm/bin/mitmdump
           META_API_KEY: ${{ inputs.live && secrets.META_API_KEY || '' }}
@@ -595,6 +620,7 @@ jobs:
           args=(--case "$CASE" --out runs/judge)
           # Live: all three judges. Offline: the SAM-off verifier only, a free plumbing check.
           if [[ "$LIVE" == "true" ]]; then args+=(--live); else args+=(--no-sam); fi
+          if [[ "$GLIMMER" == "on" ]]; then args+=(--glimmer); fi
           set +e
           python -m agents.judge_bench "${args[@]}" > judge.log 2>&1
           code=$?
@@ -608,8 +634,12 @@ jobs:
                 f"SAM off {d.get('expectrailNoSam')}; Muse screenshots {d.get('museScreenshots')}; "
                 f"{r['wallClockSeconds']} s; live={r['live']}"
                 + (f"; SAM images {r['samImages']}" if r.get("samImages") is not None else ""))
+          if "expectrailGlimmer" in d:
+              print(f"::notice title=Judge Glimmer {r['case']}::label {r['label']}; "
+                    f"Glimmer+engine {d.get('expectrailGlimmer')}; {r.get('glimmerSeconds')} s")
           # Every judge case is built from public development variants, so its reasons can be shown.
-          names = {"expectrailSam": "SAM on", "expectrailNoSam": "SAM off", "museScreenshots": "Muse screenshots"}
+          names = {"expectrailSam": "SAM on", "expectrailNoSam": "SAM off", "expectrailGlimmer": "Glimmer+engine",
+                   "museScreenshots": "Muse screenshots"}
           why = [f"{names[k]}: " + " | ".join(" ".join(str(x).split())[:200] for x in (v or [])[:3])
                  for k, v in (r.get("reasons") or {}).items() if k in names and v]
           if why:
