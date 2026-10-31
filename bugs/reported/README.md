@@ -28,6 +28,13 @@ verifier runs today, and with five engine-record checks (`agents/trace_checks.py
 harness trace. Those checks were written after these bugs were reproduced, so they show the bugs
 are now visible to Expectrail's engine record, not that Expectrail would have found them blind.
 
+**Advisory discovery** ([docs/discovery.md](../../docs/discovery.md)) later found all four with no
+rule written for any one of them: generic probes judged by contracts read from the game's code, each
+finding repeated three times out of three, and no false alarm on the clean game (results in
+[`bench/discovery/`](../../bench/discovery/README.md)). Its profile was chosen after reading these
+reports, so that is development reproduction too. No discovery job was given these reports, the
+routes below or their rules; each patch was only applied to build the game it probed.
+
 | Bug | Source | What breaks | Measured in this game (Godot 4.7.2) | Route | Engine-record check |
 | --- | --- | --- | --- | --- | --- |
 | `air-jump` | Upstream fix in this demo, 2016 | Every jump press works in mid-air, so the robot can climb forever | 10 of 10 presses honoured (clean: 4); highest point y=151 (clean: 448) | `climb-gap` | `jump-height` |

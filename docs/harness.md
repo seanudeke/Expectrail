@@ -39,9 +39,18 @@ How it works:
    ground line under the player, the coins and the camera; the header comment of
    `harness/godot/expectrail_harness.gd` lists every field. Recording facing, enemies and bullets
    (added October 30 for the engine-record checks in `agents/trace_checks.py`) does not change a
-   frame: 0 of 120 smoke frames differ from a run without it.
+   frame: 0 of 120 smoke frames differ from a run without it. Since October 31 the enemies and the
+   bullets are written on every tick, an empty list when there are none, and the trace's header
+   declares what the recorder collects (`capabilities`), so advisory discovery can tell "none
+   there" from "not recorded". That change also leaves every smoke frame unchanged.
 5. `replay.json` records the route, the game tree digest, the patch, the engine and device, and the
    sha256 of every frame.
+
+**Trace-only replays (October 31).** Advisory discovery reads the trace, not the frames, so it calls
+`harness.run.run(..., capture_frames=False)`: Godot runs `--headless` with the same fixed frame rate
+and writes no PNGs, about four times faster. The physics is identical: on the same route and patch,
+the trace rows match the captured run's tick for tick, except the camera's view transform, which no
+discovery contract reads. The verifier always captures frames.
 
 ## What we measured on day one (October 26)
 
