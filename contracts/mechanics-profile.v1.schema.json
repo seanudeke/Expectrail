@@ -1,0 +1,184 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/seanudeke/expectrail/contracts/mechanics-profile.v1.schema.json",
+  "title": "Mechanics profile: a game's actions, selectors and intended behaviour, approved once",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "id",
+    "adapter",
+    "game",
+    "actions",
+    "selectors",
+    "claims",
+    "templates"
+  ],
+  "properties": {
+    "format": {
+      "const": "expectrail.mechanics-profile/v1"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._/-]*$"
+    },
+    "adapter": {
+      "type": "string"
+    },
+    "game": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "description"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "selectors": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "player",
+        "sprite",
+        "enemy",
+        "projectile"
+      ],
+      "properties": {
+        "player": {
+          "type": "string"
+        },
+        "sprite": {
+          "type": "string"
+        },
+        "enemy": {
+          "type": "string"
+        },
+        "projectile": {
+          "type": "string"
+        }
+      }
+    },
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "claimId",
+          "statement",
+          "authority",
+          "parameters",
+          "evidenceRefs",
+          "exceptions",
+          "approvalRef"
+        ],
+        "properties": {
+          "claimId": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._/-]*$"
+          },
+          "statement": {
+            "type": "string"
+          },
+          "authority": {
+            "enum": [
+              "approved_intent",
+              "approved_reference",
+              "inferred_code",
+              "inferred_behavior",
+              "model_prior"
+            ]
+          },
+          "parameters": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "unit"
+              ],
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "boolean",
+                    "string"
+                  ]
+                },
+                "unit": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "evidenceRefs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "exceptions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "approvalRef": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "templates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "templateId",
+          "claimId",
+          "operation",
+          "approvalRef"
+        ],
+        "properties": {
+          "templateId": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._/-]*$"
+          },
+          "claimId": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._/-]*$"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "approvalRef": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

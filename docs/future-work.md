@@ -37,10 +37,17 @@ Next:
   keep each one as a regression route.
 - Report coverage: which levels, states and objects a night actually exercised.
 
-**Coverage depends on the specs someone writes.** Every check starts as one sentence a person writes
-and approves. Nothing checks what nobody thought to describe.
+**Coverage depends on the specs someone writes.** Every check in the verifier starts as one sentence
+a person writes and approves. Advisory discovery ([discovery.md](discovery.md)) now runs generic
+probes against contracts read from the game's code and reports what fails 3 times out of 3, but it
+does not gate, its profile is not approved, and it reaches only the mechanics the profile claims.
 
 Next:
+- Promote discovery contracts into the verifier: a person approves the profile and templates, each
+  contract is validated against mutants and independent causal variants, and verdicts are paired
+  (base against candidate) before one can block a fix.
+- A frozen, blind run: freeze the probes, profile, planner prompt and budgets, then run on fresh
+  defects nobody on the team has seen.
 - Have Muse Spark draft specs from design documents and past bug tickets, still approved by a person.
 - Grow a spec library for common bug families: the three we have, then text overflow, softlocks and
   motion jitter, which the evaluation plan already defers.

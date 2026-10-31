@@ -1,0 +1,8812 @@
+{
+ "format": "expectrail.discovery-run/v1",
+ "runId": "local-reported",
+ "mode": "discover",
+ "evidenceLabel": "FRESH LIVE",
+ "contextManifest": {
+  "condition": "development-reproduction",
+  "supplied": [
+   "mechanics profile (claims read from the clean game's code and settings)",
+   "generic probe library",
+   "per-probe signal summaries of the base snapshots (planner only)"
+  ],
+  "withheld": [
+   "bug reports",
+   "patches and diffs",
+   "the reported bugs' routes",
+   "the hand-written trace rules and guards of the reported-bug bench"
+  ]
+ },
+ "profile": {
+  "id": "godot-platformer",
+  "sha256": "7ad60a7ddc662fab9bcade5b743a34278a3b1a3f14af59a23f6e38a902fe65ec"
+ },
+ "snapshots": [
+  {
+   "name": "clean",
+   "role": "reference",
+   "patchSha256": null,
+   "treeSha256": "6a273587d64e10a74c0160256cfdc4964f16ed3e93fe7ab178e1bedc5071b280"
+  },
+  {
+   "name": "air-jump",
+   "role": "base",
+   "patchSha256": "a38199518d3070e8fa0b16060fcfff51e43a359ffc0167824d8cdf18e0061679",
+   "treeSha256": "6a273587d64e10a74c0160256cfdc4964f16ed3e93fe7ab178e1bedc5071b280"
+  },
+  {
+   "name": "gun-cooldown",
+   "role": "base",
+   "patchSha256": "df744001c53910625c520667e40bd7465de5ff026fc9e22420aefb50795fa6cf",
+   "treeSha256": "6a273587d64e10a74c0160256cfdc4964f16ed3e93fe7ab178e1bedc5071b280"
+  },
+  {
+   "name": "body-flip",
+   "role": "base",
+   "patchSha256": "52dcc966811716720fc6d3648c58b52aa7a646c975c0ffe788a5fc9c76eb526a",
+   "treeSha256": "6a273587d64e10a74c0160256cfdc4964f16ed3e93fe7ab178e1bedc5071b280"
+  },
+  {
+   "name": "enemy-ledge",
+   "role": "base",
+   "patchSha256": "644ad443ede20eea4630f2e5aa85e8ef20123e46dd1418289eb928aebbfdd856",
+   "treeSha256": "6a273587d64e10a74c0160256cfdc4964f16ed3e93fe7ab178e1bedc5071b280"
+  }
+ ],
+ "stages": [
+  {
+   "name": "library probes",
+   "status": "complete",
+   "detail": "22 probes on 5 snapshots"
+  },
+  {
+   "name": "planner",
+   "status": "skipped",
+   "detail": "no planner configured"
+  },
+  {
+   "name": "reference check",
+   "status": "complete",
+   "detail": "0 contracts fail on the healthy reference and are rejected"
+  },
+  {
+   "name": "reproduction",
+   "status": "complete",
+   "detail": "12 findings, each replayed up to 3 times"
+  }
+ ],
+ "probes": [
+  {
+   "id": "wait-long",
+   "family": "wait",
+   "source": "library",
+   "routeSha256": "0746f1753d65ce9bcd3ae28a70802c951b87c8e10c9b213f3bff1f08d9be29cd",
+   "ticks": 1150
+  },
+  {
+   "id": "hold-right",
+   "family": "hold",
+   "source": "library",
+   "routeSha256": "9c1617e416ffef6b94643a19acd53d5596a014f46ba65910426bd1d4d93a87c6",
+   "ticks": 340
+  },
+  {
+   "id": "hold-left",
+   "family": "hold",
+   "source": "library",
+   "routeSha256": "d0c42842b6ce4ddb5fd2ac8a72672ca4c72e2645519c037658c98696ee438dba",
+   "ticks": 340
+  },
+  {
+   "id": "reverse",
+   "family": "reverse",
+   "source": "library",
+   "routeSha256": "d449b338f6c7efcc184c1a9140941d7e77047f0e98271125127b191f1c29ef80",
+   "ticks": 340
+  },
+  {
+   "id": "jump-w0-x1",
+   "family": "jump-taps",
+   "source": "library",
+   "routeSha256": "05fbc284b8bda5425ab338a4ef235d9c07ccd95caeb2782fb017c5119a4596cf",
+   "ticks": 100
+  },
+  {
+   "id": "jump-w0-x2",
+   "family": "jump-taps",
+   "source": "library",
+   "routeSha256": "b6cca17fb249a7685d9b7a1d01ed02e04251c0b1c343f96c145c5f6001bfe128",
+   "ticks": 120
+  },
+  {
+   "id": "jump-w0-x8",
+   "family": "jump-taps",
+   "source": "library",
+   "routeSha256": "209cf72abe2851ee92b765d6cbb4fcda1bc032bebd259b7aa5de64e5e3500293",
+   "ticks": 240
+  },
+  {
+   "id": "jump-w40-x1",
+   "family": "jump-taps",
+   "source": "library",
+   "routeSha256": "67f3bdeec4fc32f4f42bb8e19138917a0c5e84cc54c762fce78172e34341a325",
+   "ticks": 140
+  },
+  {
+   "id": "jump-w40-x2",
+   "family": "jump-taps",
+   "source": "library",
+   "routeSha256": "742850d7ab0d04de56d1aa2e23ac9c56bb3b725f8ada293947ef4c4aa4b65d79",
+   "ticks": 160
+  },
+  {
+   "id": "jump-w40-x8",
+   "family": "jump-taps",
+   "source": "library",
+   "routeSha256": "bb8ffadfe5b02a47813a5e3a1949e9a3421342a0f92ef63c3a26c6f118a72778",
+   "ticks": 280
+  },
+  {
+   "id": "jump-w80-x1",
+   "family": "jump-taps",
+   "source": "library",
+   "routeSha256": "03727ff8e274f7ca53064faf0820a5853a6be5b88c62072f259a135268d5f8e9",
+   "ticks": 180
+  },
+  {
+   "id": "jump-w80-x2",
+   "family": "jump-taps",
+   "source": "library",
+   "routeSha256": "36e5b2628fb9e3b554277bc9ff2e5a70d38f09428572a8a70f5c2c5a76bb7995",
+   "ticks": 200
+  },
+  {
+   "id": "jump-w80-x8",
+   "family": "jump-taps",
+   "source": "library",
+   "routeSha256": "2a9eb2a3cd276d5c259f8ac3a36489647ea9dd6930dc5d39a243e21f79737d5a",
+   "ticks": 320
+  },
+  {
+   "id": "jump-w120-x1",
+   "family": "jump-taps",
+   "source": "library",
+   "routeSha256": "5e5434d594ddd3715569bc6381489a08c7a382599a98f56b045b8a626998b13f",
+   "ticks": 220
+  },
+  {
+   "id": "jump-w120-x2",
+   "family": "jump-taps",
+   "source": "library",
+   "routeSha256": "ca4d763028dcf7ef8d83a47cfef24a0fae3ef5db138e215b070156bae5c5849a",
+   "ticks": 240
+  },
+  {
+   "id": "jump-w120-x8",
+   "family": "jump-taps",
+   "source": "library",
+   "routeSha256": "a227fc1afba206f0f9cedc3df7965af5d25059d29bdfb5d14a0bcd927ca13063",
+   "ticks": 360
+  },
+  {
+   "id": "shoot-right-every48",
+   "family": "shoot-rate",
+   "source": "library",
+   "routeSha256": "a294d061444e538ee9b0eb58eb71995e96df89f223edb44a7440f45f12879034",
+   "ticks": 234
+  },
+  {
+   "id": "shoot-right-every12",
+   "family": "shoot-rate",
+   "source": "library",
+   "routeSha256": "e774115a4ccb465aa723e31e0bd4711fab5f5ad0553f9c6633ffdf05cee85dae",
+   "ticks": 234
+  },
+  {
+   "id": "shoot-left-every48",
+   "family": "shoot-rate",
+   "source": "library",
+   "routeSha256": "f657f374af462f695bf01fa6a9e77fbe5d2a9a5d932f395aed17e729025bd1cf",
+   "ticks": 246
+  },
+  {
+   "id": "shoot-left-every12",
+   "family": "shoot-rate",
+   "source": "library",
+   "routeSha256": "e0742f3a18c47208c93e0d0ce97ce163daf65b44faff41efe7f811d0de0df6fe",
+   "ticks": 246
+  },
+  {
+   "id": "move-fire-right",
+   "family": "move-and-fire",
+   "source": "library",
+   "routeSha256": "fadad3101620ee5b4bd6929af6d35e1ad44eccf2aa5246b938b10b761984b409",
+   "ticks": 316
+  },
+  {
+   "id": "move-fire-left",
+   "family": "move-and-fire",
+   "source": "library",
+   "routeSha256": "4181e355f218f08f9a46dade50e9f044aa3c6159d8c436206ea18696b23e0f03",
+   "ticks": 316
+  }
+ ],
+ "verdicts": [
+  {
+   "snapshot": "clean",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "clean",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "clean",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 2,
+   "evaluatedCount": 2
+  },
+  {
+   "snapshot": "clean",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "clean",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "clean",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 2,
+   "evaluatedCount": 2
+  },
+  {
+   "snapshot": "clean",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "clean",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "clean",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 2,
+   "evaluatedCount": 2
+  },
+  {
+   "snapshot": "clean",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "clean",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "clean",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "shoot-right-every48"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "shoot-right-every12"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "shoot-left-every48"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "shoot-left-every12"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "move-fire-right"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "move-fire-left"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "jump-no-extra-air-jumps-jump-w0-x8",
+   "probeIds": [
+    "jump-w0-x2",
+    "jump-w0-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "clean",
+   "specId": "jump-no-extra-air-jumps-jump-w40-x8",
+   "probeIds": [
+    "jump-w40-x2",
+    "jump-w40-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "clean",
+   "specId": "jump-no-extra-air-jumps-jump-w80-x8",
+   "probeIds": [
+    "jump-w80-x2",
+    "jump-w80-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "clean",
+   "specId": "jump-no-extra-air-jumps-jump-w120-x8",
+   "probeIds": [
+    "jump-w120-x2",
+    "jump-w120-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "clean",
+   "specId": "jump-air-jump-exists-jump-w0-x2",
+   "probeIds": [
+    "jump-w0-x1",
+    "jump-w0-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "clean",
+   "specId": "jump-air-jump-exists-jump-w40-x2",
+   "probeIds": [
+    "jump-w40-x1",
+    "jump-w40-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "clean",
+   "specId": "jump-air-jump-exists-jump-w80-x2",
+   "probeIds": [
+    "jump-w80-x1",
+    "jump-w80-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "clean",
+   "specId": "jump-air-jump-exists-jump-w120-x2",
+   "probeIds": [
+    "jump-w120-x1",
+    "jump-w120-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "shoot-right-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 2
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "shoot-right-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 2
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "shoot-left-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 2
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "shoot-left-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 2
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "move-fire-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 5,
+   "evaluatedCount": 4
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "move-fire-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 5,
+   "evaluatedCount": 4
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "shoot-right-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "shoot-right-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "shoot-left-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "shoot-left-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "move-fire-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "move-fire-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-faster-taps-shoot-right-every12",
+   "probeIds": [
+    "shoot-right-every48",
+    "shoot-right-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "clean",
+   "specId": "weapon-faster-taps-shoot-left-every12",
+   "probeIds": [
+    "shoot-left-every48",
+    "shoot-left-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 162,
+   "evaluatedCount": 156
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 85,
+   "evaluatedCount": 79
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "pass",
+   "triggeredCount": 269,
+   "evaluatedCount": 251
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 53,
+   "evaluatedCount": 47
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 53,
+   "evaluatedCount": 47
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 53,
+   "evaluatedCount": 47
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 93,
+   "evaluatedCount": 87
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 93,
+   "evaluatedCount": 87
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 93,
+   "evaluatedCount": 87
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 133,
+   "evaluatedCount": 127
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 133,
+   "evaluatedCount": 127
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 133,
+   "evaluatedCount": 127
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "shoot-right-every48"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "shoot-right-every12"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "shoot-left-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 17,
+   "evaluatedCount": 11
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "shoot-left-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 17,
+   "evaluatedCount": 11
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "move-fire-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 133,
+   "evaluatedCount": 127
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "move-fire-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 85,
+   "evaluatedCount": 79
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "shoot-right-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "shoot-right-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "shoot-left-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "shoot-left-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "move-fire-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 5,
+   "evaluatedCount": 5
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "move-fire-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 5,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-mirror-hold-left",
+   "probeIds": [
+    "hold-right",
+    "hold-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "clean",
+   "specId": "facing-mirror-move-fire-left",
+   "probeIds": [
+    "move-fire-right",
+    "move-fire-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-present",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-present",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-present",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-present",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "clean",
+   "specId": "enemy-patrols",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "shoot-right-every48"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "shoot-right-every12"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "shoot-left-every48"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "shoot-left-every12"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "move-fire-right"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "move-fire-left"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-no-extra-air-jumps-jump-w0-x8",
+   "probeIds": [
+    "jump-w0-x2",
+    "jump-w0-x8"
+   ],
+   "result": "fail",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-no-extra-air-jumps-jump-w40-x8",
+   "probeIds": [
+    "jump-w40-x2",
+    "jump-w40-x8"
+   ],
+   "result": "fail",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-no-extra-air-jumps-jump-w80-x8",
+   "probeIds": [
+    "jump-w80-x2",
+    "jump-w80-x8"
+   ],
+   "result": "fail",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-no-extra-air-jumps-jump-w120-x8",
+   "probeIds": [
+    "jump-w120-x2",
+    "jump-w120-x8"
+   ],
+   "result": "fail",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-air-jump-exists-jump-w0-x2",
+   "probeIds": [
+    "jump-w0-x1",
+    "jump-w0-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-air-jump-exists-jump-w40-x2",
+   "probeIds": [
+    "jump-w40-x1",
+    "jump-w40-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-air-jump-exists-jump-w80-x2",
+   "probeIds": [
+    "jump-w80-x1",
+    "jump-w80-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-air-jump-exists-jump-w120-x2",
+   "probeIds": [
+    "jump-w120-x1",
+    "jump-w120-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "shoot-right-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 2
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "shoot-right-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 2
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "shoot-left-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 2
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "shoot-left-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 2
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "move-fire-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 5,
+   "evaluatedCount": 4
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "move-fire-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 5,
+   "evaluatedCount": 4
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "shoot-right-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "shoot-right-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "shoot-left-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "shoot-left-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "move-fire-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "move-fire-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-faster-taps-shoot-right-every12",
+   "probeIds": [
+    "shoot-right-every48",
+    "shoot-right-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "weapon-faster-taps-shoot-left-every12",
+   "probeIds": [
+    "shoot-left-every48",
+    "shoot-left-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 162,
+   "evaluatedCount": 156
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 85,
+   "evaluatedCount": 79
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "pass",
+   "triggeredCount": 269,
+   "evaluatedCount": 251
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 53,
+   "evaluatedCount": 47
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 53,
+   "evaluatedCount": 47
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 53,
+   "evaluatedCount": 47
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 93,
+   "evaluatedCount": 87
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 93,
+   "evaluatedCount": 87
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 93,
+   "evaluatedCount": 87
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 133,
+   "evaluatedCount": 127
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 133,
+   "evaluatedCount": 127
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 133,
+   "evaluatedCount": 127
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "shoot-right-every48"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "shoot-right-every12"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "shoot-left-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 17,
+   "evaluatedCount": 11
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "shoot-left-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 17,
+   "evaluatedCount": 11
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "move-fire-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 133,
+   "evaluatedCount": 127
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "move-fire-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 85,
+   "evaluatedCount": 79
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "shoot-right-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "shoot-right-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "shoot-left-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "shoot-left-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "move-fire-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 5,
+   "evaluatedCount": 5
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "move-fire-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 5,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-mirror-hold-left",
+   "probeIds": [
+    "hold-right",
+    "hold-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "facing-mirror-move-fire-left",
+   "probeIds": [
+    "move-fire-right",
+    "move-fire-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-present",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-present",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-present",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-present",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "enemy-patrols",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 2,
+   "evaluatedCount": 2
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 2,
+   "evaluatedCount": 2
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 2,
+   "evaluatedCount": 2
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "shoot-right-every48"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "shoot-right-every12"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "shoot-left-every48"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "shoot-left-every12"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "move-fire-right"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "move-fire-left"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "jump-no-extra-air-jumps-jump-w0-x8",
+   "probeIds": [
+    "jump-w0-x2",
+    "jump-w0-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "jump-no-extra-air-jumps-jump-w40-x8",
+   "probeIds": [
+    "jump-w40-x2",
+    "jump-w40-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "jump-no-extra-air-jumps-jump-w80-x8",
+   "probeIds": [
+    "jump-w80-x2",
+    "jump-w80-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "jump-no-extra-air-jumps-jump-w120-x8",
+   "probeIds": [
+    "jump-w120-x2",
+    "jump-w120-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "jump-air-jump-exists-jump-w0-x2",
+   "probeIds": [
+    "jump-w0-x1",
+    "jump-w0-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "jump-air-jump-exists-jump-w40-x2",
+   "probeIds": [
+    "jump-w40-x1",
+    "jump-w40-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "jump-air-jump-exists-jump-w80-x2",
+   "probeIds": [
+    "jump-w80-x1",
+    "jump-w80-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "jump-air-jump-exists-jump-w120-x2",
+   "probeIds": [
+    "jump-w120-x1",
+    "jump-w120-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "shoot-right-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 2
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "shoot-right-every12"
+   ],
+   "result": "fail",
+   "triggeredCount": 12,
+   "evaluatedCount": 11
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "shoot-left-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 2
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "shoot-left-every12"
+   ],
+   "result": "fail",
+   "triggeredCount": 12,
+   "evaluatedCount": 11
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "move-fire-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 5,
+   "evaluatedCount": 4
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "move-fire-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 5,
+   "evaluatedCount": 4
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "shoot-right-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "shoot-right-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "shoot-left-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "shoot-left-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "move-fire-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "move-fire-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-faster-taps-shoot-right-every12",
+   "probeIds": [
+    "shoot-right-every48",
+    "shoot-right-every12"
+   ],
+   "result": "fail",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-faster-taps-shoot-left-every12",
+   "probeIds": [
+    "shoot-left-every48",
+    "shoot-left-every12"
+   ],
+   "result": "fail",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 162,
+   "evaluatedCount": 156
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 85,
+   "evaluatedCount": 79
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "pass",
+   "triggeredCount": 269,
+   "evaluatedCount": 251
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 53,
+   "evaluatedCount": 47
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 53,
+   "evaluatedCount": 47
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 53,
+   "evaluatedCount": 47
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 93,
+   "evaluatedCount": 87
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 93,
+   "evaluatedCount": 87
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 93,
+   "evaluatedCount": 87
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 133,
+   "evaluatedCount": 127
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 133,
+   "evaluatedCount": 127
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 133,
+   "evaluatedCount": 127
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "shoot-right-every48"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "shoot-right-every12"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "shoot-left-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 17,
+   "evaluatedCount": 11
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "shoot-left-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 17,
+   "evaluatedCount": 11
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "move-fire-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 133,
+   "evaluatedCount": 127
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "move-fire-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 85,
+   "evaluatedCount": 79
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "shoot-right-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "shoot-right-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 12,
+   "evaluatedCount": 12
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "shoot-left-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "shoot-left-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 12,
+   "evaluatedCount": 12
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "move-fire-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 5,
+   "evaluatedCount": 5
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "move-fire-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 5,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-mirror-hold-left",
+   "probeIds": [
+    "hold-right",
+    "hold-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "facing-mirror-move-fire-left",
+   "probeIds": [
+    "move-fire-right",
+    "move-fire-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-present",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-present",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-present",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-present",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "enemy-patrols",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 2,
+   "evaluatedCount": 2
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 2,
+   "evaluatedCount": 2
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 2,
+   "evaluatedCount": 2
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "shoot-right-every48"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "shoot-right-every12"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "shoot-left-every48"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "shoot-left-every12"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "move-fire-right"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "move-fire-left"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "jump-no-extra-air-jumps-jump-w0-x8",
+   "probeIds": [
+    "jump-w0-x2",
+    "jump-w0-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "jump-no-extra-air-jumps-jump-w40-x8",
+   "probeIds": [
+    "jump-w40-x2",
+    "jump-w40-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "jump-no-extra-air-jumps-jump-w80-x8",
+   "probeIds": [
+    "jump-w80-x2",
+    "jump-w80-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "jump-no-extra-air-jumps-jump-w120-x8",
+   "probeIds": [
+    "jump-w120-x2",
+    "jump-w120-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "jump-air-jump-exists-jump-w0-x2",
+   "probeIds": [
+    "jump-w0-x1",
+    "jump-w0-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "jump-air-jump-exists-jump-w40-x2",
+   "probeIds": [
+    "jump-w40-x1",
+    "jump-w40-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "jump-air-jump-exists-jump-w80-x2",
+   "probeIds": [
+    "jump-w80-x1",
+    "jump-w80-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "jump-air-jump-exists-jump-w120-x2",
+   "probeIds": [
+    "jump-w120-x1",
+    "jump-w120-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "shoot-right-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 2
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "shoot-right-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 2
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "shoot-left-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 2
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "shoot-left-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 2
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "move-fire-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 5,
+   "evaluatedCount": 4
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "move-fire-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 5,
+   "evaluatedCount": 4
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "shoot-right-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "shoot-right-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "shoot-left-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "shoot-left-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "move-fire-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "move-fire-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-faster-taps-shoot-right-every12",
+   "probeIds": [
+    "shoot-right-every48",
+    "shoot-right-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "weapon-faster-taps-shoot-left-every12",
+   "probeIds": [
+    "shoot-left-every48",
+    "shoot-left-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 162,
+   "evaluatedCount": 156
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "fail",
+   "triggeredCount": 85,
+   "evaluatedCount": 79
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "fail",
+   "triggeredCount": 269,
+   "evaluatedCount": 251
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 53,
+   "evaluatedCount": 47
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 53,
+   "evaluatedCount": 47
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 53,
+   "evaluatedCount": 47
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 93,
+   "evaluatedCount": 87
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 93,
+   "evaluatedCount": 87
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 93,
+   "evaluatedCount": 87
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 133,
+   "evaluatedCount": 127
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 133,
+   "evaluatedCount": 127
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 133,
+   "evaluatedCount": 127
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "shoot-right-every48"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "shoot-right-every12"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "shoot-left-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 17,
+   "evaluatedCount": 11
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "shoot-left-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 17,
+   "evaluatedCount": 11
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "move-fire-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 133,
+   "evaluatedCount": 127
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "move-fire-left"
+   ],
+   "result": "fail",
+   "triggeredCount": 85,
+   "evaluatedCount": 79
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "shoot-right-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "shoot-right-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "shoot-left-every48"
+   ],
+   "result": "fail",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "shoot-left-every12"
+   ],
+   "result": "fail",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "move-fire-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 5,
+   "evaluatedCount": 5
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "move-fire-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 5,
+   "evaluatedCount": 5
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-mirror-hold-left",
+   "probeIds": [
+    "hold-right",
+    "hold-left"
+   ],
+   "result": "fail",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-mirror-move-fire-left",
+   "probeIds": [
+    "move-fire-right",
+    "move-fire-left"
+   ],
+   "result": "fail",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-present",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-present",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-present",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-present",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "enemy-patrols",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 2,
+   "evaluatedCount": 2
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 2,
+   "evaluatedCount": 2
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 2,
+   "evaluatedCount": 2
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "shoot-right-every48"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "shoot-right-every12"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "shoot-left-every48"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "shoot-left-every12"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "move-fire-right"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "jump-max-rise",
+   "probeIds": [
+    "move-fire-left"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "jump-no-extra-air-jumps-jump-w0-x8",
+   "probeIds": [
+    "jump-w0-x2",
+    "jump-w0-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "jump-no-extra-air-jumps-jump-w40-x8",
+   "probeIds": [
+    "jump-w40-x2",
+    "jump-w40-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "jump-no-extra-air-jumps-jump-w80-x8",
+   "probeIds": [
+    "jump-w80-x2",
+    "jump-w80-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "jump-no-extra-air-jumps-jump-w120-x8",
+   "probeIds": [
+    "jump-w120-x2",
+    "jump-w120-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "jump-air-jump-exists-jump-w0-x2",
+   "probeIds": [
+    "jump-w0-x1",
+    "jump-w0-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "jump-air-jump-exists-jump-w40-x2",
+   "probeIds": [
+    "jump-w40-x1",
+    "jump-w40-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "jump-air-jump-exists-jump-w80-x2",
+   "probeIds": [
+    "jump-w80-x1",
+    "jump-w80-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "jump-air-jump-exists-jump-w120-x2",
+   "probeIds": [
+    "jump-w120-x1",
+    "jump-w120-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "shoot-right-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 2
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "shoot-right-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 2
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "shoot-left-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 2
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "shoot-left-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 2
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "move-fire-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 5,
+   "evaluatedCount": 4
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-min-interval",
+   "probeIds": [
+    "move-fire-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 5,
+   "evaluatedCount": 4
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "shoot-right-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "shoot-right-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "shoot-left-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "shoot-left-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "move-fire-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-ready-press-fires",
+   "probeIds": [
+    "move-fire-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-faster-taps-shoot-right-every12",
+   "probeIds": [
+    "shoot-right-every48",
+    "shoot-right-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "weapon-faster-taps-shoot-left-every12",
+   "probeIds": [
+    "shoot-left-every48",
+    "shoot-left-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 162,
+   "evaluatedCount": 156
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 85,
+   "evaluatedCount": 79
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "pass",
+   "triggeredCount": 269,
+   "evaluatedCount": 251
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 53,
+   "evaluatedCount": 47
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 53,
+   "evaluatedCount": 47
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 53,
+   "evaluatedCount": 47
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 93,
+   "evaluatedCount": 87
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 93,
+   "evaluatedCount": 87
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 93,
+   "evaluatedCount": 87
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 133,
+   "evaluatedCount": 127
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 133,
+   "evaluatedCount": 127
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 133,
+   "evaluatedCount": 127
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "shoot-right-every48"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "shoot-right-every12"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "shoot-left-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 17,
+   "evaluatedCount": 11
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "shoot-left-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 17,
+   "evaluatedCount": 11
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "move-fire-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 133,
+   "evaluatedCount": 127
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-follows-motion",
+   "probeIds": [
+    "move-fire-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 85,
+   "evaluatedCount": 79
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "not_exercised",
+   "triggeredCount": 0,
+   "evaluatedCount": 0
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "shoot-right-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "shoot-right-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "shoot-left-every48"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "shoot-left-every12"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "move-fire-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 5,
+   "evaluatedCount": 5
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-bullets-follow-facing",
+   "probeIds": [
+    "move-fire-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 5,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-mirror-hold-left",
+   "probeIds": [
+    "hold-right",
+    "hold-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "facing-mirror-move-fire-left",
+   "probeIds": [
+    "move-fire-right",
+    "move-fire-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 1,
+   "evaluatedCount": 1
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "fail",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-max-drop",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-present",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-present",
+   "probeIds": [
+    "hold-right"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-present",
+   "probeIds": [
+    "hold-left"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-present",
+   "probeIds": [
+    "reverse"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w0-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w0-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w0-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w40-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w40-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w40-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w80-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w80-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w80-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w120-x1"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w120-x2"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-present",
+   "probeIds": [
+    "jump-w120-x8"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-patrols",
+   "probeIds": [
+    "wait-long"
+   ],
+   "result": "pass",
+   "triggeredCount": 3,
+   "evaluatedCount": 3
+  }
+ ],
+ "findings": [
+  {
+   "id": "air-jump-jump-no-extra-air-jumps-jump-w0-x8",
+   "snapshot": "air-jump",
+   "specId": "jump-no-extra-air-jumps-jump-w0-x8",
+   "origin": "AUTO_RELATION",
+   "expectationRef": {
+    "claimId": "player.jump",
+    "authority": "inferred_code",
+    "source": "template"
+   },
+   "probeIds": [
+    "jump-w0-x2",
+    "jump-w0-x8"
+   ],
+   "lifecycle": "reproduced",
+   "reproduction": {
+    "runs": 3,
+    "failures": 3
+   },
+   "observation": "air_jumps is 7 on air-jump-jump-w0-x8 and 1 on air-jump-jump-w0-x2; expected right lte left within 0",
+   "evidence": [
+    {
+     "episodeId": "air-jump-jump-w0-x8",
+     "fromTick": 0,
+     "toTick": 239,
+     "detail": "air_jumps is 7 on air-jump-jump-w0-x8 and 1 on air-jump-jump-w0-x2; expected right lte left within 0"
+    },
+    {
+     "failingProbes": [
+      "jump-w0-x2,jump-w0-x8"
+     ],
+     "metrics": {
+      "left": 1,
+      "right": 7,
+      "toleranceAbs": 0
+     }
+    }
+   ],
+   "alternatives": [
+    "the profile's claim is wrong for this game, or its exceptions are incomplete",
+    "the claim was inferred, not approved: the game may intend this behaviour",
+    "the twin probes differ in more than the one thing the relation assumes"
+   ]
+  },
+  {
+   "id": "air-jump-jump-no-extra-air-jumps-jump-w40-x8",
+   "snapshot": "air-jump",
+   "specId": "jump-no-extra-air-jumps-jump-w40-x8",
+   "origin": "AUTO_RELATION",
+   "expectationRef": {
+    "claimId": "player.jump",
+    "authority": "inferred_code",
+    "source": "template"
+   },
+   "probeIds": [
+    "jump-w40-x2",
+    "jump-w40-x8"
+   ],
+   "lifecycle": "reproduced",
+   "reproduction": {
+    "runs": 3,
+    "failures": 3
+   },
+   "observation": "air_jumps is 7 on air-jump-jump-w40-x8 and 1 on air-jump-jump-w40-x2; expected right lte left within 0",
+   "evidence": [
+    {
+     "episodeId": "air-jump-jump-w40-x8",
+     "fromTick": 0,
+     "toTick": 279,
+     "detail": "air_jumps is 7 on air-jump-jump-w40-x8 and 1 on air-jump-jump-w40-x2; expected right lte left within 0"
+    },
+    {
+     "failingProbes": [
+      "jump-w40-x2,jump-w40-x8"
+     ],
+     "metrics": {
+      "left": 1,
+      "right": 7,
+      "toleranceAbs": 0
+     }
+    }
+   ],
+   "alternatives": [
+    "the profile's claim is wrong for this game, or its exceptions are incomplete",
+    "the claim was inferred, not approved: the game may intend this behaviour",
+    "the twin probes differ in more than the one thing the relation assumes"
+   ]
+  },
+  {
+   "id": "air-jump-jump-no-extra-air-jumps-jump-w80-x8",
+   "snapshot": "air-jump",
+   "specId": "jump-no-extra-air-jumps-jump-w80-x8",
+   "origin": "AUTO_RELATION",
+   "expectationRef": {
+    "claimId": "player.jump",
+    "authority": "inferred_code",
+    "source": "template"
+   },
+   "probeIds": [
+    "jump-w80-x2",
+    "jump-w80-x8"
+   ],
+   "lifecycle": "reproduced",
+   "reproduction": {
+    "runs": 3,
+    "failures": 3
+   },
+   "observation": "air_jumps is 7 on air-jump-jump-w80-x8 and 1 on air-jump-jump-w80-x2; expected right lte left within 0",
+   "evidence": [
+    {
+     "episodeId": "air-jump-jump-w80-x8",
+     "fromTick": 0,
+     "toTick": 319,
+     "detail": "air_jumps is 7 on air-jump-jump-w80-x8 and 1 on air-jump-jump-w80-x2; expected right lte left within 0"
+    },
+    {
+     "failingProbes": [
+      "jump-w80-x2,jump-w80-x8"
+     ],
+     "metrics": {
+      "left": 1,
+      "right": 7,
+      "toleranceAbs": 0
+     }
+    }
+   ],
+   "alternatives": [
+    "the profile's claim is wrong for this game, or its exceptions are incomplete",
+    "the claim was inferred, not approved: the game may intend this behaviour",
+    "the twin probes differ in more than the one thing the relation assumes"
+   ]
+  },
+  {
+   "id": "air-jump-jump-no-extra-air-jumps-jump-w120-x8",
+   "snapshot": "air-jump",
+   "specId": "jump-no-extra-air-jumps-jump-w120-x8",
+   "origin": "AUTO_RELATION",
+   "expectationRef": {
+    "claimId": "player.jump",
+    "authority": "inferred_code",
+    "source": "template"
+   },
+   "probeIds": [
+    "jump-w120-x2",
+    "jump-w120-x8"
+   ],
+   "lifecycle": "reproduced",
+   "reproduction": {
+    "runs": 3,
+    "failures": 3
+   },
+   "observation": "air_jumps is 7 on air-jump-jump-w120-x8 and 1 on air-jump-jump-w120-x2; expected right lte left within 0",
+   "evidence": [
+    {
+     "episodeId": "air-jump-jump-w120-x8",
+     "fromTick": 0,
+     "toTick": 359,
+     "detail": "air_jumps is 7 on air-jump-jump-w120-x8 and 1 on air-jump-jump-w120-x2; expected right lte left within 0"
+    },
+    {
+     "failingProbes": [
+      "jump-w120-x2,jump-w120-x8"
+     ],
+     "metrics": {
+      "left": 1,
+      "right": 7,
+      "toleranceAbs": 0
+     }
+    }
+   ],
+   "alternatives": [
+    "the profile's claim is wrong for this game, or its exceptions are incomplete",
+    "the claim was inferred, not approved: the game may intend this behaviour",
+    "the twin probes differ in more than the one thing the relation assumes"
+   ]
+  },
+  {
+   "id": "gun-cooldown-weapon-min-interval",
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-min-interval",
+   "origin": "AUTO_TRACE",
+   "expectationRef": {
+    "claimId": "weapon.cooldown",
+    "authority": "inferred_code",
+    "source": "template"
+   },
+   "probeIds": [
+    "shoot-right-every12"
+   ],
+   "lifecycle": "reproduced",
+   "reproduction": {
+    "runs": 3,
+    "failures": 3
+   },
+   "observation": "two projectile_spawn events 12 ticks apart (min 30)",
+   "evidence": [
+    {
+     "episodeId": "gun-cooldown-shoot-right-every12",
+     "fromTick": 31,
+     "toTick": 43,
+     "detail": "two projectile_spawn events 12 ticks apart (min 30)"
+    },
+    {
+     "episodeId": "gun-cooldown-shoot-right-every12",
+     "fromTick": 43,
+     "toTick": 55,
+     "detail": "two projectile_spawn events 12 ticks apart (min 30)"
+    },
+    {
+     "episodeId": "gun-cooldown-shoot-right-every12",
+     "fromTick": 55,
+     "toTick": 67,
+     "detail": "two projectile_spawn events 12 ticks apart (min 30)"
+    },
+    {
+     "episodeId": "gun-cooldown-shoot-right-every12",
+     "fromTick": 67,
+     "toTick": 79,
+     "detail": "two projectile_spawn events 12 ticks apart (min 30)"
+    },
+    {
+     "failingProbes": [
+      "shoot-right-every12",
+      "shoot-left-every12"
+     ],
+     "metrics": {
+      "minIntervalTicks": 30,
+      "events": 12,
+      "shortestGapTicks": 12
+     }
+    }
+   ],
+   "alternatives": [
+    "the profile's claim is wrong for this game, or its exceptions are incomplete",
+    "the claim was inferred, not approved: the game may intend this behaviour"
+   ]
+  },
+  {
+   "id": "gun-cooldown-weapon-faster-taps-shoot-right-every12",
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-faster-taps-shoot-right-every12",
+   "origin": "AUTO_RELATION",
+   "expectationRef": {
+    "claimId": "weapon.cooldown",
+    "authority": "inferred_code",
+    "source": "template"
+   },
+   "probeIds": [
+    "shoot-right-every48",
+    "shoot-right-every12"
+   ],
+   "lifecycle": "reproduced",
+   "reproduction": {
+    "runs": 3,
+    "failures": 3
+   },
+   "observation": "projectile_count is 12 on gun-cooldown-shoot-right-every12 and 3 on gun-cooldown-shoot-right-every48; expected right lte left within 1",
+   "evidence": [
+    {
+     "episodeId": "gun-cooldown-shoot-right-every12",
+     "fromTick": 0,
+     "toTick": 233,
+     "detail": "projectile_count is 12 on gun-cooldown-shoot-right-every12 and 3 on gun-cooldown-shoot-right-every48; expected right lte left within 1"
+    },
+    {
+     "failingProbes": [
+      "shoot-right-every48,shoot-right-every12"
+     ],
+     "metrics": {
+      "left": 3,
+      "right": 12,
+      "toleranceAbs": 1
+     }
+    }
+   ],
+   "alternatives": [
+    "the profile's claim is wrong for this game, or its exceptions are incomplete",
+    "the claim was inferred, not approved: the game may intend this behaviour",
+    "the twin probes differ in more than the one thing the relation assumes"
+   ]
+  },
+  {
+   "id": "gun-cooldown-weapon-faster-taps-shoot-left-every12",
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-faster-taps-shoot-left-every12",
+   "origin": "AUTO_RELATION",
+   "expectationRef": {
+    "claimId": "weapon.cooldown",
+    "authority": "inferred_code",
+    "source": "template"
+   },
+   "probeIds": [
+    "shoot-left-every48",
+    "shoot-left-every12"
+   ],
+   "lifecycle": "reproduced",
+   "reproduction": {
+    "runs": 3,
+    "failures": 3
+   },
+   "observation": "projectile_count is 12 on gun-cooldown-shoot-left-every12 and 3 on gun-cooldown-shoot-left-every48; expected right lte left within 1",
+   "evidence": [
+    {
+     "episodeId": "gun-cooldown-shoot-left-every12",
+     "fromTick": 0,
+     "toTick": 245,
+     "detail": "projectile_count is 12 on gun-cooldown-shoot-left-every12 and 3 on gun-cooldown-shoot-left-every48; expected right lte left within 1"
+    },
+    {
+     "failingProbes": [
+      "shoot-left-every48,shoot-left-every12"
+     ],
+     "metrics": {
+      "left": 3,
+      "right": 12,
+      "toleranceAbs": 1
+     }
+    }
+   ],
+   "alternatives": [
+    "the profile's claim is wrong for this game, or its exceptions are incomplete",
+    "the claim was inferred, not approved: the game may intend this behaviour",
+    "the twin probes differ in more than the one thing the relation assumes"
+   ]
+  },
+  {
+   "id": "body-flip-facing-follows-motion",
+   "snapshot": "body-flip",
+   "specId": "facing-follows-motion",
+   "origin": "AUTO_TRACE",
+   "expectationRef": {
+    "claimId": "player.facing",
+    "authority": "inferred_code",
+    "source": "template"
+   },
+   "probeIds": [
+    "hold-left"
+   ],
+   "lifecycle": "reproduced",
+   "reproduction": {
+    "runs": 3,
+    "failures": 3
+   },
+   "observation": "moving left while facing right",
+   "evidence": [
+    {
+     "episodeId": "body-flip-hold-left",
+     "fromTick": 18,
+     "toTick": 19,
+     "detail": "moving left while facing right"
+    },
+    {
+     "episodeId": "body-flip-hold-left",
+     "fromTick": 20,
+     "toTick": 21,
+     "detail": "moving left while facing right"
+    },
+    {
+     "episodeId": "body-flip-hold-left",
+     "fromTick": 22,
+     "toTick": 23,
+     "detail": "moving left while facing right"
+    },
+    {
+     "failingProbes": [
+      "hold-left",
+      "reverse",
+      "move-fire-left"
+     ],
+     "metrics": {
+      "mismatches": 40,
+      "maxMismatchCount": 6
+     }
+    }
+   ],
+   "alternatives": [
+    "the profile's claim is wrong for this game, or its exceptions are incomplete",
+    "the claim was inferred, not approved: the game may intend this behaviour"
+   ]
+  },
+  {
+   "id": "body-flip-facing-bullets-follow-facing",
+   "snapshot": "body-flip",
+   "specId": "facing-bullets-follow-facing",
+   "origin": "AUTO_TRACE",
+   "expectationRef": {
+    "claimId": "player.facing",
+    "authority": "inferred_code",
+    "source": "template"
+   },
+   "probeIds": [
+    "shoot-left-every48"
+   ],
+   "lifecycle": "reproduced",
+   "reproduction": {
+    "runs": 3,
+    "failures": 3
+   },
+   "observation": "bullet 3 travelled +42 px while the shooter faced left",
+   "evidence": [
+    {
+     "episodeId": "body-flip-shoot-left-every48",
+     "fromTick": 43,
+     "toTick": 49,
+     "detail": "bullet 3 travelled +42 px while the shooter faced left"
+    },
+    {
+     "episodeId": "body-flip-shoot-left-every48",
+     "fromTick": 91,
+     "toTick": 97,
+     "detail": "bullet 4 travelled +42 px while the shooter faced left"
+    },
+    {
+     "episodeId": "body-flip-shoot-left-every48",
+     "fromTick": 139,
+     "toTick": 145,
+     "detail": "bullet 5 travelled +42 px while the shooter faced left"
+    },
+    {
+     "failingProbes": [
+      "shoot-left-every48",
+      "shoot-left-every12"
+     ],
+     "metrics": {
+      "mismatches": 3,
+      "maxMismatchCount": 0
+     }
+    }
+   ],
+   "alternatives": [
+    "the profile's claim is wrong for this game, or its exceptions are incomplete",
+    "the claim was inferred, not approved: the game may intend this behaviour"
+   ]
+  },
+  {
+   "id": "body-flip-facing-mirror-hold-left",
+   "snapshot": "body-flip",
+   "specId": "facing-mirror-hold-left",
+   "origin": "AUTO_RELATION",
+   "expectationRef": {
+    "claimId": "player.facing",
+    "authority": "inferred_code",
+    "source": "template"
+   },
+   "probeIds": [
+    "hold-right",
+    "hold-left"
+   ],
+   "lifecycle": "reproduced",
+   "reproduction": {
+    "runs": 3,
+    "failures": 3
+   },
+   "observation": "facing_flips is 240 on body-flip-hold-left and 0 on body-flip-hold-right; expected right lte left within 2",
+   "evidence": [
+    {
+     "episodeId": "body-flip-hold-left",
+     "fromTick": 0,
+     "toTick": 339,
+     "detail": "facing_flips is 240 on body-flip-hold-left and 0 on body-flip-hold-right; expected right lte left within 2"
+    },
+    {
+     "failingProbes": [
+      "hold-right,hold-left"
+     ],
+     "metrics": {
+      "left": 0,
+      "right": 240,
+      "toleranceAbs": 2
+     }
+    }
+   ],
+   "alternatives": [
+    "the profile's claim is wrong for this game, or its exceptions are incomplete",
+    "the claim was inferred, not approved: the game may intend this behaviour",
+    "the twin probes differ in more than the one thing the relation assumes"
+   ]
+  },
+  {
+   "id": "body-flip-facing-mirror-move-fire-left",
+   "snapshot": "body-flip",
+   "specId": "facing-mirror-move-fire-left",
+   "origin": "AUTO_RELATION",
+   "expectationRef": {
+    "claimId": "player.facing",
+    "authority": "inferred_code",
+    "source": "template"
+   },
+   "probeIds": [
+    "move-fire-right",
+    "move-fire-left"
+   ],
+   "lifecycle": "reproduced",
+   "reproduction": {
+    "runs": 3,
+    "failures": 3
+   },
+   "observation": "facing_flips is 120 on body-flip-move-fire-left and 0 on body-flip-move-fire-right; expected right lte left within 2",
+   "evidence": [
+    {
+     "episodeId": "body-flip-move-fire-left",
+     "fromTick": 0,
+     "toTick": 315,
+     "detail": "facing_flips is 120 on body-flip-move-fire-left and 0 on body-flip-move-fire-right; expected right lte left within 2"
+    },
+    {
+     "failingProbes": [
+      "move-fire-right,move-fire-left"
+     ],
+     "metrics": {
+      "left": 0,
+      "right": 120,
+      "toleranceAbs": 2
+     }
+    }
+   ],
+   "alternatives": [
+    "the profile's claim is wrong for this game, or its exceptions are incomplete",
+    "the claim was inferred, not approved: the game may intend this behaviour",
+    "the twin probes differ in more than the one thing the relation assumes"
+   ]
+  },
+  {
+   "id": "enemy-ledge-enemy-max-drop",
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-max-drop",
+   "origin": "AUTO_TRACE",
+   "expectationRef": {
+    "claimId": "enemy.patrol",
+    "authority": "inferred_code",
+    "source": "template"
+   },
+   "probeIds": [
+    "wait-long"
+   ],
+   "lifecycle": "reproduced",
+   "reproduction": {
+    "runs": 3,
+    "failures": 3
+   },
+   "observation": "enemy 0 dropped 256 px below where it settled (max 64)",
+   "evidence": [
+    {
+     "episodeId": "enemy-ledge-wait-long",
+     "fromTick": 30,
+     "toTick": 1034,
+     "detail": "enemy 0 dropped 256 px below where it settled (max 64)"
+    },
+    {
+     "failingProbes": [
+      "wait-long"
+     ],
+     "metrics": {
+      "maxDropPx": 256.07,
+      "boundPx": 64.0
+     }
+    }
+   ],
+   "alternatives": [
+    "the profile's claim is wrong for this game, or its exceptions are incomplete",
+    "the claim was inferred, not approved: the game may intend this behaviour"
+   ]
+  }
+ ],
+ "candidates": [
+  {
+   "specId": "jump-max-rise",
+   "source": "template",
+   "lifecycle": "proposed",
+   "referenceResult": "pass",
+   "detail": "The player never rises more than 260 px above the floor it left: 2 jumps of 125 px, plus 10 px."
+  },
+  {
+   "specId": "jump-no-extra-air-jumps-jump-w0-x8",
+   "source": "template",
+   "lifecycle": "proposed",
+   "referenceResult": "pass",
+   "detail": "Pressing jump more often in the air gives no more jumps in the air than pressing it twice."
+  },
+  {
+   "specId": "jump-no-extra-air-jumps-jump-w40-x8",
+   "source": "template",
+   "lifecycle": "proposed",
+   "referenceResult": "pass",
+   "detail": "Pressing jump more often in the air gives no more jumps in the air than pressing it twice."
+  },
+  {
+   "specId": "jump-no-extra-air-jumps-jump-w80-x8",
+   "source": "template",
+   "lifecycle": "proposed",
+   "referenceResult": "pass",
+   "detail": "Pressing jump more often in the air gives no more jumps in the air than pressing it twice."
+  },
+  {
+   "specId": "jump-no-extra-air-jumps-jump-w120-x8",
+   "source": "template",
+   "lifecycle": "proposed",
+   "referenceResult": "pass",
+   "detail": "Pressing jump more often in the air gives no more jumps in the air than pressing it twice."
+  },
+  {
+   "specId": "jump-air-jump-exists-jump-w0-x2",
+   "source": "template",
+   "lifecycle": "proposed",
+   "referenceResult": "pass",
+   "detail": "A second press in the air gives a jump in the air that one press does not: the double jump still works."
+  },
+  {
+   "specId": "jump-air-jump-exists-jump-w40-x2",
+   "source": "template",
+   "lifecycle": "proposed",
+   "referenceResult": "pass",
+   "detail": "A second press in the air gives a jump in the air that one press does not: the double jump still works."
+  },
+  {
+   "specId": "jump-air-jump-exists-jump-w80-x2",
+   "source": "template",
+   "lifecycle": "proposed",
+   "referenceResult": "pass",
+   "detail": "A second press in the air gives a jump in the air that one press does not: the double jump still works."
+  },
+  {
+   "specId": "jump-air-jump-exists-jump-w120-x2",
+   "source": "template",
+   "lifecycle": "proposed",
+   "referenceResult": "pass",
+   "detail": "A second press in the air gives a jump in the air that one press does not: the double jump still works."
+  },
+  {
+   "specId": "weapon-min-interval",
+   "source": "template",
+   "lifecycle": "proposed",
+   "referenceResult": "pass",
+   "detail": "Two bullets are never fired less than 0.25 s apart (cooldown 0.3 s, less 0.05 s for frame timing)."
+  },
+  {
+   "specId": "weapon-ready-press-fires",
+   "source": "template",
+   "lifecycle": "proposed",
+   "referenceResult": "pass",
+   "detail": "A shoot press made when no bullet was fired in the last 0.35 s fires a bullet within 0.1 s."
+  },
+  {
+   "specId": "weapon-faster-taps-shoot-right-every12",
+   "source": "template",
+   "lifecycle": "proposed",
+   "referenceResult": "pass",
+   "detail": "Tapping shoot faster than the cooldown fires no more bullets than tapping slower."
+  },
+  {
+   "specId": "weapon-faster-taps-shoot-left-every12",
+   "source": "template",
+   "lifecycle": "proposed",
+   "referenceResult": "pass",
+   "detail": "Tapping shoot faster than the cooldown fires no more bullets than tapping slower."
+  },
+  {
+   "specId": "facing-follows-motion",
+   "source": "template",
+   "lifecycle": "proposed",
+   "referenceResult": "pass",
+   "detail": "While the player walks, its sprite faces the way it walks (6 ticks of grace after a turn)."
+  },
+  {
+   "specId": "facing-bullets-follow-facing",
+   "source": "template",
+   "lifecycle": "proposed",
+   "referenceResult": "pass",
+   "detail": "A bullet flies the way the player faced when it fired."
+  },
+  {
+   "specId": "facing-mirror-hold-left",
+   "source": "template",
+   "lifecycle": "proposed",
+   "referenceResult": "pass",
+   "detail": "Mirroring the input mirrors the facing: walking left turns the sprite no more often than walking right."
+  },
+  {
+   "specId": "facing-mirror-move-fire-left",
+   "source": "template",
+   "lifecycle": "proposed",
+   "referenceResult": "pass",
+   "detail": "Mirroring the input mirrors the facing: walking left turns the sprite no more often than walking right."
+  },
+  {
+   "specId": "enemy-max-drop",
+   "source": "template",
+   "lifecycle": "proposed",
+   "referenceResult": "pass",
+   "detail": "No enemy drops more than one tile (64 px) below where it settled."
+  },
+  {
+   "specId": "enemy-present",
+   "source": "template",
+   "lifecycle": "proposed",
+   "referenceResult": "pass",
+   "detail": "Every enemy in the level at the start is still there at the end, when nothing shoots."
+  },
+  {
+   "specId": "enemy-patrols",
+   "source": "template",
+   "lifecycle": "proposed",
+   "referenceResult": "pass",
+   "detail": "Over nine seconds every enemy covers at least 99 px sideways: half of its walking speed (22 px/s) times the time."
+  }
+ ],
+ "coverage": {
+  "clean": {
+   "episodes": 22,
+   "results": {
+    "pass": 91,
+    "fail": 0,
+    "not_exercised": 64,
+    "insufficient_observation": 0,
+    "execution_error": 0
+   }
+  },
+  "air-jump": {
+   "episodes": 22,
+   "results": {
+    "pass": 87,
+    "fail": 4,
+    "not_exercised": 64,
+    "insufficient_observation": 0,
+    "execution_error": 0
+   }
+  },
+  "gun-cooldown": {
+   "episodes": 22,
+   "results": {
+    "pass": 87,
+    "fail": 4,
+    "not_exercised": 64,
+    "insufficient_observation": 0,
+    "execution_error": 0
+   }
+  },
+  "body-flip": {
+   "episodes": 22,
+   "results": {
+    "pass": 84,
+    "fail": 7,
+    "not_exercised": 64,
+    "insufficient_observation": 0,
+    "execution_error": 0
+   }
+  },
+  "enemy-ledge": {
+   "episodes": 22,
+   "results": {
+    "pass": 90,
+    "fail": 1,
+    "not_exercised": 64,
+    "insufficient_observation": 0,
+    "execution_error": 0
+   }
+  }
+ },
+ "usage": {
+  "episodes": 150,
+  "wallSeconds": 547.5
+ },
+ "completion": "complete",
+ "stopReason": null,
+ "diagnostics": []
+}

@@ -1,0 +1,401 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/seanudeke/expectrail/contracts/trace-spec.v1.schema.json",
+  "title": "Trace spec: one bounded, interpreted predicate over episodes",
+  "description": "No code, paths or free expressions: a closed tagged union of operations (docs/discovery.md). Lifecycle and approval live outside the predicate.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "id",
+    "origin",
+    "statement",
+    "expectationRef",
+    "scope",
+    "window",
+    "operation",
+    "evidenceRequirement",
+    "guards"
+  ],
+  "properties": {
+    "format": {
+      "const": "expectrail.trace-spec/v1"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._/-]*$"
+    },
+    "origin": {
+      "enum": [
+        "HUMAN_EXPLICIT",
+        "BUILTIN_MONITOR",
+        "AUTO_SCENE",
+        "AUTO_TRACE",
+        "AUTO_DIFF",
+        "AUTO_RELATION"
+      ]
+    },
+    "statement": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300
+    },
+    "expectationRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claimId",
+        "authority"
+      ],
+      "properties": {
+        "claimId": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._/-]*$"
+        },
+        "authority": {
+          "enum": [
+            "approved_intent",
+            "approved_reference",
+            "inferred_code",
+            "inferred_behavior",
+            "model_prior"
+          ]
+        }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "class"
+      ],
+      "properties": {
+        "class": {
+          "enum": [
+            "player",
+            "enemy",
+            "projectile"
+          ]
+        }
+      }
+    },
+    "window": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "episode"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "fromTick",
+            "toTick"
+          ],
+          "properties": {
+            "kind": {
+              "const": "ticks"
+            },
+            "fromTick": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "toTick": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      ]
+    },
+    "operation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "event",
+            "seconds"
+          ],
+          "properties": {
+            "type": {
+              "const": "min_event_interval"
+            },
+            "event": {
+              "const": "projectile_spawn"
+            },
+            "seconds": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "maxPx"
+          ],
+          "properties": {
+            "type": {
+              "const": "max_episode_rise"
+            },
+            "maxPx": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "subject",
+            "maxMismatchCount"
+          ],
+          "properties": {
+            "type": {
+              "const": "direction_agreement"
+            },
+            "subject": {
+              "enum": [
+                "actor",
+                "projectile"
+              ]
+            },
+            "minSpeedPxPerSec": {
+              "type": "number",
+              "minimum": 0
+            },
+            "graceTicks": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "minTravelPx": {
+              "type": "number",
+              "minimum": 0
+            },
+            "horizonTicks": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maxMismatchCount": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "settleTicks",
+            "maxDropPx"
+          ],
+          "properties": {
+            "type": {
+              "const": "max_entity_drop"
+            },
+            "settleTicks": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "maxDropPx": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "trigger",
+            "response",
+            "withinSeconds",
+            "refractorySeconds"
+          ],
+          "properties": {
+            "type": {
+              "const": "event_response"
+            },
+            "trigger": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action",
+                "pressed"
+              ],
+              "properties": {
+                "action": {
+                  "type": "string"
+                },
+                "pressed": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "response": {
+              "const": "projectile_spawn"
+            },
+            "withinSeconds": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "refractorySeconds": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "event",
+            "min"
+          ],
+          "properties": {
+            "type": {
+              "const": "min_event_count"
+            },
+            "event": {
+              "const": "projectile_spawn"
+            },
+            "min": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "minPx"
+          ],
+          "properties": {
+            "type": {
+              "const": "min_motion_extent"
+            },
+            "minPx": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "entity_present"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "signal",
+            "comparator",
+            "toleranceAbs",
+            "left",
+            "right"
+          ],
+          "properties": {
+            "type": {
+              "const": "relation"
+            },
+            "signal": {
+              "enum": [
+                "max_rise_px",
+                "projectile_count",
+                "min_projectile_interval_ticks",
+                "facing_flips",
+                "facing_mismatch_fraction",
+                "max_enemy_drop_px",
+                "min_enemy_extent_px",
+                "enemies_at_end",
+                "player_dx_px",
+                "airborne_ticks",
+                "air_jumps"
+              ]
+            },
+            "comparator": {
+              "enum": [
+                "lte",
+                "gte",
+                "lt",
+                "gt",
+                "eq"
+              ]
+            },
+            "toleranceAbs": {
+              "type": "number",
+              "minimum": 0
+            },
+            "left": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9._/-]*$"
+            },
+            "right": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9._/-]*$"
+            }
+          }
+        }
+      ]
+    },
+    "evidenceRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimumTriggers",
+        "minimumEvaluations",
+        "completeWindow"
+      ],
+      "properties": {
+        "minimumTriggers": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minimumEvaluations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completeWindow": {
+          "type": "boolean"
+        }
+      }
+    },
+    "guards": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9._/-]*$"
+      },
+      "uniqueItems": true
+    }
+  }
+}

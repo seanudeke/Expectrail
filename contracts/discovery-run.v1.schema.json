@@ -1,0 +1,405 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/seanudeke/expectrail/contracts/discovery-run.v1.schema.json",
+  "title": "Discovery run: one advisory discovery job and what it found",
+  "description": "Advisory only: nothing here accepts or rejects a fix. Findings are reproducible observations against an approved profile; candidate contracts are proposals.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "runId",
+    "mode",
+    "evidenceLabel",
+    "contextManifest",
+    "profile",
+    "snapshots",
+    "stages",
+    "probes",
+    "verdicts",
+    "findings",
+    "candidates",
+    "coverage",
+    "usage",
+    "completion",
+    "stopReason",
+    "diagnostics"
+  ],
+  "properties": {
+    "format": {
+      "const": "expectrail.discovery-run/v1"
+    },
+    "runId": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._/-]*$"
+    },
+    "mode": {
+      "const": "discover"
+    },
+    "evidenceLabel": {
+      "enum": [
+        "SAMPLE",
+        "FRESH LIVE",
+        "RECORDED LIVE",
+        "MIXED OR INCOMPLETE"
+      ]
+    },
+    "contextManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "condition",
+        "supplied",
+        "withheld"
+      ],
+      "properties": {
+        "condition": {
+          "enum": [
+            "development-reproduction",
+            "undisclosed-discovery"
+          ]
+        },
+        "supplied": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "withheld": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "sha256"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._/-]*$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "snapshots": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "role",
+          "patchSha256",
+          "treeSha256"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._/-]*$"
+          },
+          "role": {
+            "enum": [
+              "reference",
+              "base"
+            ]
+          },
+          "patchSha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "treeSha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "stages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "status",
+          "detail"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "complete",
+              "partial",
+              "failed",
+              "unavailable",
+              "skipped"
+            ]
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "probes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "family",
+          "source",
+          "routeSha256",
+          "ticks"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._/-]*$"
+          },
+          "family": {
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "library",
+              "planner"
+            ]
+          },
+          "routeSha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "ticks": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "verdicts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "snapshot",
+          "specId",
+          "probeIds",
+          "result",
+          "triggeredCount",
+          "evaluatedCount"
+        ],
+        "properties": {
+          "snapshot": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._/-]*$"
+          },
+          "specId": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._/-]*$"
+          },
+          "probeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9._/-]*$"
+            }
+          },
+          "result": {
+            "enum": [
+              "pass",
+              "fail",
+              "not_exercised",
+              "insufficient_observation",
+              "execution_error"
+            ]
+          },
+          "triggeredCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "evaluatedCount": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "snapshot",
+          "specId",
+          "origin",
+          "expectationRef",
+          "probeIds",
+          "lifecycle",
+          "reproduction",
+          "observation",
+          "evidence",
+          "alternatives"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._/-]*$"
+          },
+          "snapshot": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._/-]*$"
+          },
+          "specId": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._/-]*$"
+          },
+          "origin": {
+            "enum": [
+              "HUMAN_EXPLICIT",
+              "BUILTIN_MONITOR",
+              "AUTO_SCENE",
+              "AUTO_TRACE",
+              "AUTO_DIFF",
+              "AUTO_RELATION"
+            ]
+          },
+          "expectationRef": {
+            "type": "object"
+          },
+          "probeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9._/-]*$"
+            },
+            "minItems": 1,
+            "maxItems": 2
+          },
+          "lifecycle": {
+            "enum": [
+              "proposed",
+              "reproduced",
+              "flaky_candidate"
+            ]
+          },
+          "reproduction": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "runs",
+              "failures"
+            ],
+            "properties": {
+              "runs": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "failures": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "observation": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "array"
+          },
+          "alternatives": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "specId",
+          "source",
+          "lifecycle",
+          "referenceResult",
+          "detail"
+        ],
+        "properties": {
+          "specId": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._/-]*$"
+          },
+          "source": {
+            "enum": [
+              "template",
+              "model"
+            ]
+          },
+          "lifecycle": {
+            "enum": [
+              "proposed",
+              "rejected"
+            ]
+          },
+          "referenceResult": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "coverage": {
+      "type": "object"
+    },
+    "usage": {
+      "type": "object"
+    },
+    "completion": {
+      "enum": [
+        "complete",
+        "partial",
+        "failed"
+      ]
+    },
+    "stopReason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

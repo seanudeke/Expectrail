@@ -324,7 +324,12 @@ What this does and does not show:
 - **It checks a change; it does not explore.** It replays fixed routes, so a bug where no route goes
   is invisible to it. Today it is visual regression checking, not playtesting.
 - **It checks only what someone wrote a check for.** Three approved checks in the verifier today. Nothing
-  checks what nobody described: today's checks caught none of the four reported bugs.
+  checks what nobody described: today's checks caught none of the four reported bugs. Advisory
+  discovery ([docs/discovery.md](docs/discovery.md)) is the first answer: 22 generic probes judged by
+  contracts read from the game's code found all four, each 3 times out of 3, with no false alarm on
+  the clean game. It does not gate anything, its profile was written after reading those four
+  reports (development reproduction, not blind discovery), and it reaches only the mechanics the
+  profile claims.
 - **One game and one web page, mostly with bugs we seeded.** The game's held-out bugs were kept from
   the fixer, but a teammate wrote them, and the same team wrote the checks. The four reproduced
   public bug reports are caught only by engine-record checks written after we saw them, which the
@@ -409,6 +414,7 @@ See [agents/README.md](agents/README.md) for Muse API / Muse Code setup (`.env`,
 | [`contracts/`](contracts) | Schemas and examples for everything passed between lanes ([docs](docs/contracts.md)) | everyone |
 | [`harness/`](harness) | Route player, Movie Maker capture under Xvfb, replay check ([docs](docs/harness.md)) | Timo |
 | [`expectrail/`](expectrail) | Contract helpers, the reference evaluator, and the Muse Spark spec writer | Zayyad, Sean |
+| [`expectrail/trace/`](expectrail/trace), [`expectrail/discovery/`](expectrail/discovery), [`discovery/`](discovery) | Advisory discovery: episodes, the trace-contract interpreter, generic probes, the mechanics profile, the Muse Spark planner ([docs](docs/discovery.md)) | Sean |
 | [`specs/`](specs) | Test specs for the bug families; a person approves each one | Sean |
 | [`bugs/`](bugs) | Seeded bugs, and reproductions of publicly reported Godot bugs ([`bugs/reported/`](bugs/reported/README.md)), as patches against the clean game ([evaluation plan](docs/evaluation.md)) | Sean, Timo |
 | [`docs/demo/`](docs/demo/) | Interactive demo showcase and audit vault web app | Timo |

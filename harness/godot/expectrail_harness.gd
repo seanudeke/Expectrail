@@ -14,7 +14,8 @@ extends Node
 ## and, when the level has collectibles of the coin class (--coins=<class_name>, default Coin):
 ##   coins:  world [x, y] of every such node still in the tree, so a vision model's coin boxes can
 ##           be checked against where the engine put the coins.
-## and, for the engine-record checks (agents/trace_checks.py):
+## and, for the engine-record checks (agents/trace_checks.py) and discovery (expectrail/trace/),
+## the last two written every tick, empty or not (the header's capabilities say what is collected):
 ##   facing:      1 or -1, which way the player's sprite (--sprite=<child name>, default Sprite2D)
 ##                points on screen: the sign of its world x axis. A sprite flipped by a negative
 ##                scale anywhere above it (the sprite or the body) reads -1.
@@ -141,12 +142,10 @@ func record() -> void:
 	var coins := _coin_positions()
 	if not coins.is_empty():
 		row["coins"] = coins
-	var enemies := _enemy_positions()
-	if not enemies.is_empty():
-		row["enemies"] = enemies
-	var projectiles := _tracked_positions(_projectiles)
-	if not projectiles.is_empty():
-		row["projectiles"] = projectiles
+	# Written every tick, empty or not, so an empty list means none were there (the header's
+	# capabilities say so): a reader can tell "no bullets" from "not recorded".
+	row["enemies"] = _enemy_positions()
+	row["projectiles"] = _tracked_positions(_projectiles)
 	var view := get_viewport().get_final_transform() * get_viewport().get_canvas_transform()
 	row["view"] = [snappedf(view.x.x, 0.0001), snappedf(view.x.y, 0.0001), snappedf(view.y.x, 0.0001),
 		snappedf(view.y.y, 0.0001), snappedf(view.origin.x, 0.001), snappedf(view.origin.y, 0.001)]
@@ -159,7 +158,12 @@ func record() -> void:
 func _finish() -> void:
 	if _trace_path != "":
 		var out := {"format": TRACE_FORMAT, "ticks": _ticks,
-			"physicsTicksPerSecond": Engine.physics_ticks_per_second, "rows": _trace}
+			"physicsTicksPerSecond": Engine.physics_ticks_per_second, "rows": _trace,
+			# What this recorder collects, for expectrail/trace/normalize.py: enemies are the instances
+			# in the scene when it is first searched (later spawns are not tracked); bullets are every
+			# node of the projectile class added to the tree.
+			"capabilities": {"enemies": "initial-instances", "projectiles": "complete",
+				"facing": _sprite != null, "onFloor": _player is CharacterBody2D}}
 		var surfaces := _level_surfaces()
 		if not surfaces.is_empty():
 			out["levelSurfaces"] = surfaces
