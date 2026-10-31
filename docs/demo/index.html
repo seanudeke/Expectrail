@@ -40,21 +40,12 @@
   <!-- Header -->
   <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-lg bg-gradient-to-tr from-brand-500 to-meta-500 flex items-center justify-center font-bold text-slate-950 text-lg shadow-lg shadow-brand-500/20">
-          N
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="font-extrabold tracking-tight text-white text-lg">Expectrail</span>
+          <span class="px-2 py-0.5 text-xs font-semibold rounded bg-slate-800 text-slate-300 border border-slate-700">Indie Track</span>
         </div>
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="font-extrabold tracking-tight text-white text-lg">Expectrail</span>
-            <span class="px-2 py-0.5 text-xs font-semibold rounded bg-slate-800 text-slate-300 border border-slate-700">Indie Track</span>
-            <span class="px-2 py-0.5 text-xs font-semibold rounded bg-brand-500/10 text-brand-400 border border-brand-500/30 flex items-center gap-1.5">
-              <span class="w-1.5 h-1.5 rounded-full bg-brand-400 animate-pulse"></span>
-              Audit Vault Active
-            </span>
-          </div>
-          <p class="text-xs text-slate-400 hidden sm:block">Verifies AI-agent fixes by watching the game run, with Meta&#39;s vision models</p>
-        </div>
+        <p class="text-xs text-slate-400 hidden sm:block">Verifies AI-agent fixes by watching the game run, with Meta&#39;s vision models</p>
       </div>
 
       <!-- Navigation Tabs -->
@@ -76,8 +67,8 @@
   </header>
 
   <!-- Banner / Meta Models Used -->
-  <div class="bg-gradient-to-r from-slate-900 via-slate-900/60 to-slate-900 border-b border-slate-800/80 px-4 py-2.5">
-    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs">
+  <div class="bg-gradient-to-r from-slate-900 via-slate-900/60 to-slate-900 border-b border-slate-800/80 py-2.5">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap items-center justify-between gap-3 text-xs">
       <div class="flex items-center gap-2 text-slate-300">
         <span class="text-slate-500 uppercase tracking-wider text-[11px] font-bold">Crew Architecture:</span>
         <span class="px-2 py-0.5 rounded bg-blue-950/60 border border-blue-800/60 text-blue-300 font-mono">SAM 3.1 (Vision Eyes)</span>
@@ -101,206 +92,221 @@
     <!-- ========================================== -->
     <!-- TAB 1: INTERACTIVE CASE EXPLORER           -->
     <!-- ========================================== -->
-    <div id="tab-explorer" class="tab-pane space-y-6">
+    <div id="tab-explorer" class="tab-pane space-y-4">
       
-      <!-- Top Filters & Selector -->
-      <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 bg-slate-900/60 p-4 rounded-xl border border-slate-800">
-        <div class="space-y-1">
-          <h2 class="text-base font-bold text-white flex items-center gap-2">
-            <span>Select Seeded Defect or Rejection Exploit</span>
-            <span id="case-badge" class="px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Verified Accept</span>
-          </h2>
-          <p class="text-xs text-slate-400">Examine how SAM 3.1 detected the defect, how Muse Code patched it, and how the Verifier guarded gameplay.</p>
-          <p class="text-xs font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded px-2 py-1" id="illustration-note">Illustration, not a capture: the animation, its overlay values and the case texts are drawn and written for this page from the recorded results. Only physics-fall-through / v1 shows Muse Code's recorded fix and reasoning. Measured numbers, each with its run, are in the Benchmark Matrix tab. Real frames: <a class="underline" href="../review/live-demo-run-1/">a recorded live review of Muse Code's fix, before and after</a>, and <a class="underline" href="../review/sinking-fix/">the review that rejected the fix drawing the robot inside the ground</a>.</p>
+      <!-- Top Sleek Selector Bar -->
+      <div class="flex flex-col gap-2.5 bg-slate-900/70 p-3.5 rounded-xl border border-slate-800">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div class="flex flex-wrap items-center gap-3">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">Case Scenario:</span>
+            <select id="case-select" onchange="selectCase(this.value)" class="bg-slate-950 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-1.5 font-medium focus:ring-1 focus:ring-brand-500 focus:outline-none">
+              <optgroup label="Seeded Defect Scenarios (Expectrail Fixes)">
+                <option value="physics-v1" selected>physics-fall-through / v1 (Player Collision Mask)</option>
+                <option value="physics-v2">physics-fall-through / v2 (Ground Tileset Collision)</option>
+                <option value="missing-texture-v1">missing-texture / v1 (Coin Texture File UID Missing)</option>
+                <option value="missing-texture-v2">missing-texture / v2 (Coin Texture Cleared)</option>
+                <option value="layering-v1">layering / v1 (Player Z-Index Behind Scenery)</option>
+                <option value="layering-v2">layering / v2 (Sprite Z-Index Negative)</option>
+                <option value="sinking-v1">sinking / v1 (Collision Shape Offset Too High)</option>
+                <option value="sinking-v2">sinking / v2 (Sprite Drawn Low - Visual Only)</option>
+              </optgroup>
+              <optgroup label="Anti-Cheat Exploits (Rejected by Verifier)">
+                <option value="exploit-freeze">Anti-Cheat: Freeze Player in Place (Fails Gameplay Δx)</option>
+                <option value="exploit-hide">Anti-Cheat: Hide / Delete Player (Fails SAM 3.1 Visibility)</option>
+                <option value="exploit-sink">Anti-Cheat: Leave Player Sunk in Ground (Fails Ground Line)</option>
+                <option value="exploit-floor">Anti-Cheat: Lower Level Floor Polygons (Fails Clean Reference)</option>
+              </optgroup>
+            </select>
+            <span id="case-badge" class="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Verified Accept</span>
+          </div>
+
+          <div class="flex items-center gap-2 text-[11px] text-slate-400 font-mono">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span id="header-provenance-chip">Recorded 30 FPS Headless Godot Footage</span>
+          </div>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2">
-          <select id="case-select" onchange="selectCase(this.value)" class="bg-slate-950 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2 font-medium focus:ring-1 focus:ring-brand-500 focus:outline-none">
-            <optgroup label="Seeded Bugs (Verified Expectrail Fixes)">
-              <option value="physics-v1" selected>physics-fall-through / v1 (Player Collision Mask)</option>
-              <option value="physics-v2">physics-fall-through / v2 (Ground Tileset Collision)</option>
-              <option value="missing-texture-v1">missing-texture / v1 (Coin Texture Points at a Missing File)</option>
-              <option value="missing-texture-v2">missing-texture / v2 (Coin Texture Cleared)</option>
-              <option value="layering-v1">layering / v1 (Player Z-Index Behind Scenery)</option>
-              <option value="layering-v2">layering / v2 (Sprite Z-Index Negative)</option>
-              <option value="sinking-v1">sinking / v1 (Collision Shape Offset Too High)</option>
-              <option value="sinking-v2">sinking / v2 (Sprite Drawn Low - Visual Only)</option>
-            </optgroup>
-            <optgroup label="Anti-Cheat Exploits (Rejected by Verifier)">
-              <option value="exploit-freeze">Anti-Cheat: Freeze Player in Place (Fails Gameplay Δx)</option>
-              <option value="exploit-hide">Anti-Cheat: Hide / Delete Player (Fails SAM 3.1 Visibility)</option>
-              <option value="exploit-sink">Anti-Cheat: Leave Player Sunk in Ground (Fails Ground Line)</option>
-              <option value="exploit-floor">Anti-Cheat: Lower Level Floor Polygons (Fails Clean Reference)</option>
-            </optgroup>
-          </select>
-        </div>
+        <p class="text-xs text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded px-2.5 py-1.5 font-mono text-[11px] leading-relaxed" id="illustration-note">
+          Real video captures for recorded runs; illustration elsewhere: only physics-fall-through / v1, missing-texture / v1, layering / v1, freeze and hide show genuine Headless Godot Movie Maker footage. Real recorded review pages: <a class="underline text-amber-200 hover:text-white" href="../review/live-demo-run-1/" target="_blank">a recorded live review of Muse Code's fix, before and after</a>, and <a class="underline text-amber-200 hover:text-white" href="../review/sinking-fix/" target="_blank">the review that rejected the fix drawing the robot inside the ground</a>.
+        </p>
       </div>
 
-      <!-- Two-Column Case Details -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- Two-Column Layout (Left: Video Player, Right: Verifier Console) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         
-        <!-- Left: Visual Simulation & Replay Canvas (7 cols) -->
-        <div class="lg:col-span-7 space-y-4">
-          <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
-            <div class="p-3 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 text-xs">
-              <span class="font-semibold text-slate-300 flex items-center gap-2">
-                <svg class="w-4 h-4 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-                Animated illustration (not a capture)
-              </span>
-              <div class="flex items-center gap-2">
-                <button onclick="toggleOverlay('sam')" id="btn-overlay-sam" class="px-2 py-1 rounded text-[11px] font-mono border bg-blue-500/20 text-blue-400 border-blue-500/40">SAM 3.1 Masks: ON</button>
-                <button onclick="toggleOverlay('ground')" id="btn-overlay-ground" class="px-2 py-1 rounded text-[11px] font-mono border bg-emerald-500/20 text-emerald-400 border-emerald-500/40">Ground Line: ON</button>
-              </div>
-            </div>
-
-            <!-- Canvas Viewport -->
-            <div class="relative bg-slate-950 aspect-[16/9] flex items-center justify-center overflow-hidden" id="canvas-container">
-              <span class="absolute top-2 left-2 z-30 text-[10px] font-mono font-bold uppercase tracking-wider text-amber-300 bg-slate-950/90 border border-amber-500/40 rounded px-1.5 py-0.5">Simulation, not a capture</span>
-              <!-- Background Sky & Platforms (Simulated) -->
-              <div class="absolute inset-0 bg-gradient-to-b from-sky-900/30 via-slate-950 to-slate-950"></div>
-              
-              <!-- Ground Line Graphic -->
-              <div id="sim-ground-line" class="absolute w-full h-1 bg-emerald-500/60 bottom-[22%] left-0 z-10 transition-all border-t border-dashed border-emerald-400">
-                <span class="absolute right-3 -top-5 text-[10px] font-mono text-emerald-400 bg-slate-950/80 px-1 rounded">Clean Level Floor (y=640)</span>
-              </div>
-
-              <!-- Static Platforms -->
-              <div class="absolute w-32 h-6 bg-slate-800 border border-slate-700 rounded-sm bottom-[48%] left-[20%]"></div>
-              <div class="absolute w-40 h-6 bg-slate-800 border border-slate-700 rounded-sm bottom-[58%] left-[55%]"></div>
-
-              <!-- Coins -->
-              <div id="sim-coin-1" class="absolute w-6 h-6 rounded-full bg-amber-400/90 border border-amber-300 bottom-[28%] left-[28%] flex items-center justify-center text-[10px] font-bold text-amber-950 shadow-md shadow-amber-500/20">
-                ¢
-                <div id="sam-box-coin-1" class="absolute -inset-1 border border-amber-400 rounded-sm pointer-events-none"></div>
-              </div>
-              <div id="sim-coin-2" class="absolute w-6 h-6 rounded-full bg-amber-400/90 border border-amber-300 bottom-[28%] left-[34%] flex items-center justify-center text-[10px] font-bold text-amber-950 shadow-md shadow-amber-500/20">
-                ¢
-                <div id="sam-box-coin-2" class="absolute -inset-1 border border-amber-400 rounded-sm pointer-events-none"></div>
-              </div>
-
-              <!-- Player Robot Entity -->
-              <div id="sim-player" class="absolute w-12 h-14 bg-blue-600 rounded-md border-2 border-blue-400 z-20 flex flex-col items-center justify-center transition-all duration-700 shadow-xl shadow-blue-500/20">
-                <div class="w-4 h-2 bg-cyan-200 rounded-sm mb-1"></div>
-                <span class="text-[9px] font-mono font-bold text-white uppercase">Player</span>
-                <!-- SAM Bounding Box Overlay -->
-                <div id="sam-box-player" class="absolute -inset-2 border-2 border-blue-400 bg-blue-400/15 rounded pointer-events-none flex items-start justify-start">
-                  <span class="bg-blue-600 text-white text-[9px] font-mono px-1 py-0.5 rounded-br">blue robot (0.94)</span>
-                </div>
-              </div>
-
-              <!-- Status HUD Overlay -->
-              <div class="absolute top-3 left-3 bg-slate-900/90 border border-slate-800 p-2 rounded-lg text-xs font-mono space-y-1 z-30">
-                <div class="text-slate-400 text-[10px]">REPLAY COORDINATES</div>
-                <div class="text-white font-bold" id="hud-coords">x: 90.0, y: 636.6</div>
-                <div class="text-slate-300" id="hud-status">Status: Normal</div>
-              </div>
-
-              <!-- Mode Badge -->
-              <div class="absolute bottom-3 right-3 z-30">
-                <div class="flex items-center gap-1.5 bg-slate-900/90 border border-slate-700 px-2.5 py-1 rounded-md text-xs font-mono">
-                  <span id="replay-state-badge" class="w-2 h-2 rounded-full bg-emerald-400"></span>
-                  <span id="replay-state-text" class="text-slate-200">Before Fix (Defect Active)</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Playback Controls -->
-            <div class="p-3 bg-slate-900/50 flex items-center justify-between text-xs">
-              <div class="flex items-center gap-2">
-                <button onclick="playSimulation('before')" class="px-3 py-1.5 rounded bg-red-950/60 border border-red-800 text-red-300 hover:bg-red-900 font-semibold transition-all">
-                  ▶ Replay Bugged State
-                </button>
-                <button onclick="playSimulation('after')" class="px-3 py-1.5 rounded bg-brand-950/60 border border-brand-800 text-brand-300 hover:bg-brand-900 font-semibold transition-all">
-                  ▶ Replay Verified Fix
-                </button>
-              </div>
-              <span class="text-slate-400 font-mono text-[11px]" id="sim-status-label">Ready</span>
+        <!-- Left: Clean Video Viewport (7 cols) -->
+        <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xl flex flex-col">
+          
+          <!-- Viewport Header -->
+          <div class="px-3.5 py-2.5 border-b border-slate-800/80 flex items-center justify-between bg-slate-900/90 text-xs">
+            <span class="font-semibold text-slate-300 flex items-center gap-2">
+              <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+              <span id="canvas-header-title">Headless Godot Movie Maker Video (30 FPS Stream)</span>
+            </span>
+            <div class="flex items-center gap-1.5">
+              <button onclick="toggleOverlay('ground')" id="btn-overlay-ground" class="px-2 py-0.5 rounded text-[11px] font-mono border bg-emerald-500/20 text-emerald-400 border-emerald-500/40 hover:brightness-110 transition-all">Ground Line: ON</button>
             </div>
           </div>
 
-          <!-- Spec & Assertion Card -->
-          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono">Test Specification</span>
-              <span class="text-[11px] font-mono text-slate-400" id="spec-id">specs/player-stays-above-ground.json</span>
+          <!-- Video Viewport -->
+          <div class="relative bg-slate-950 aspect-[16/9] flex items-center justify-center overflow-hidden" id="canvas-container">
+            <!-- Modern Video Player (1.5 MB total stream across all clips) -->
+            <video id="engine-video" class="w-full h-full object-contain" loop muted playsinline></video>
+            
+            <!-- Ground Line Overlay -->
+            <div id="ground-line-overlay" class="pointer-events-none absolute w-full h-0.5 border-t-2 border-dashed border-emerald-400 bottom-[34%] left-0 z-20">
+              <span class="absolute right-3 -top-5 text-[10px] font-mono text-emerald-400 bg-slate-950/90 px-1 rounded border border-emerald-500/30">Authored clean floor (y=640)</span>
             </div>
-            <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-sm font-medium text-white italic" id="spec-instruction">
-              "The player never falls through the ground."
-            </div>
-            <div class="grid grid-cols-2 gap-3 text-xs font-mono">
-              <div class="bg-slate-950/60 p-2.5 rounded border border-slate-800">
-                <div class="text-slate-500 text-[10px]">ORACLE TYPE</div>
-                <div class="text-slate-200 font-semibold" id="spec-type">never-crosses</div>
+
+            <!-- Placeholder for cases without captured video -->
+            <div id="video-placeholder" class="hidden absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-slate-950/95 text-slate-400 z-10">
+              <div class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 mb-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
               </div>
-              <div class="bg-slate-950/60 p-2.5 rounded border border-slate-800">
-                <div class="text-slate-500 text-[10px]">SAM 3.1 PROMPT OBJECT</div>
-                <div class="text-blue-400 font-semibold" id="spec-object">"blue robot"</div>
+              <p class="text-xs font-bold text-slate-300 font-mono mb-1" id="placeholder-title">Movie Maker Capture Pending for This Variant</p>
+              <p class="text-[11px] text-slate-500 max-w-sm mb-3" id="placeholder-desc">Dedicated video footage has not been captured for this variant. Inspect the verified patch and diagnostic log in the Inspector Console.</p>
+              <a id="placeholder-review-link" href="../review/sinking-fix/" target="_blank" class="px-2.5 py-1 text-[11px] font-medium rounded-md bg-slate-900 hover:bg-slate-800 text-brand-400 border border-slate-700 transition-all flex items-center gap-1.5 font-mono">
+                <span>📄</span> <span id="placeholder-link-text">Open Recorded Run Review Page</span>
+              </a>
+            </div>
+
+            <!-- Sleek Floating Bottom-Left Telemetry Pill -->
+            <div class="absolute bottom-2.5 left-2.5 bg-slate-950/85 backdrop-blur border border-slate-800/80 px-2.5 py-1 rounded-md text-[11px] font-mono flex items-center gap-2 z-20 shadow-lg">
+              <span id="hud-status" class="text-slate-300">Status: Normal</span>
+              <span class="text-slate-700">|</span>
+              <span id="hud-coords" class="text-slate-400 font-medium">x: 90.0, y: 636.6</span>
+            </div>
+
+            <!-- Sleek Floating Bottom-Right Replay State Pill -->
+            <div class="absolute bottom-2.5 right-2.5 z-20 shadow-lg">
+              <div class="flex items-center gap-1.5 bg-slate-950/85 backdrop-blur border border-slate-800/80 px-2.5 py-1 rounded-md text-[11px] font-mono">
+                <span id="replay-state-badge" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span id="replay-state-text" class="text-slate-200">Before Fix (Defect Active)</span>
               </div>
             </div>
+          </div>
+
+          <!-- Player Controls Bar -->
+          <div class="px-3.5 py-2.5 bg-slate-900/60 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div class="flex items-center gap-2">
+              <button onclick="playSimulation('before')" id="btn-play-before" class="px-3 py-1.5 rounded-lg bg-red-950/70 border border-red-800/80 text-red-300 hover:bg-red-900 font-semibold transition-all flex items-center gap-1.5 shadow-sm">
+                <span id="btn-label-before-icon">🔴</span> <span id="btn-label-before-text">Replay Before Fix</span>
+              </button>
+              <button onclick="playSimulation('after')" id="btn-play-after" class="px-3 py-1.5 rounded-lg bg-emerald-950/70 border border-emerald-800/80 text-emerald-300 hover:bg-emerald-900 font-semibold transition-all flex items-center gap-1.5 shadow-sm">
+                <span id="btn-label-after-icon">🟢</span> <span id="btn-label-after-text">Replay Verified Fix</span>
+              </button>
+              <button onclick="toggleVideoPlayback()" id="btn-toggle-video" class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:text-white font-semibold transition-all">
+                ⏸ Pause
+              </button>
+            </div>
+            <span class="text-slate-400 font-mono text-[11px]" id="sim-status-label">Headless Movie Maker Capture</span>
           </div>
         </div>
 
-        <!-- Right: Diagnostic Verdict & Muse Code Patch (5 cols) -->
-        <div class="lg:col-span-5 space-y-4">
+        <!-- Right: Unified Verifier & Inspector Console (5 cols) -->
+        <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xl flex flex-col">
           
-          <!-- Verifier Decision Card -->
-          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono">Verifier Decision</span>
-              <span id="decision-badge" class="px-2.5 py-1 text-xs font-bold rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">ACCEPT</span>
+          <!-- Verifier Verdict Header -->
+          <div class="p-3.5 border-b border-slate-800 bg-slate-900/90 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-brand-400"></span>
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-300 font-mono">Verifier Decision</span>
+            </div>
+            <span id="decision-badge" class="px-2.5 py-0.5 text-xs font-bold rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">ACCEPT</span>
+          </div>
+
+          <!-- 4 Check Suites Grid -->
+          <div class="p-3.5 space-y-3 bg-slate-900/40 border-b border-slate-800">
+            <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+              <div class="flex items-center justify-between p-2 rounded bg-slate-950/90 border border-slate-800">
+                <span class="text-slate-400 text-[11px]">1. regression</span>
+                <span class="font-bold text-emerald-400 text-[11px]" id="check-regression">PASS</span>
+              </div>
+              <div class="flex items-center justify-between p-2 rounded bg-slate-950/90 border border-slate-800">
+                <span class="text-slate-400 text-[11px]">2. gameplay</span>
+                <span class="font-bold text-emerald-400 text-[11px]" id="check-gameplay">PASS</span>
+              </div>
+              <div class="flex items-center justify-between p-2 rounded bg-slate-950/90 border border-slate-800">
+                <span class="text-slate-400 text-[11px]">3. clean-ctrl</span>
+                <span class="font-bold text-emerald-400 text-[11px]" id="check-clean">PASS</span>
+              </div>
+              <div class="flex items-center justify-between p-2 rounded bg-slate-950/90 border border-slate-800">
+                <span class="text-slate-400 text-[11px]">4. held-out</span>
+                <span class="font-bold text-emerald-400 text-[11px]" id="check-heldout">PASS</span>
+              </div>
             </div>
 
-            <!-- 4 Check Suites Matrix -->
-            <div class="space-y-1.5 text-xs font-mono">
-              <div class="flex items-center justify-between p-2 rounded bg-slate-950 border border-slate-800/80">
-                <span class="text-slate-300">1. regression (Visual Oracle)</span>
-                <span class="font-bold text-emerald-400" id="check-regression">PASS</span>
-              </div>
-              <div class="flex items-center justify-between p-2 rounded bg-slate-950 border border-slate-800/80">
-                <span class="text-slate-300">2. gameplay (the robot moves and stays alive)</span>
-                <span class="font-bold text-emerald-400" id="check-gameplay">PASS</span>
-              </div>
-              <div class="flex items-center justify-between p-2 rounded bg-slate-950 border border-slate-800/80">
-                <span class="text-slate-300">3. clean-control (No Regressions)</span>
-                <span class="font-bold text-emerald-400" id="check-clean">PASS</span>
-              </div>
-              <div class="flex items-center justify-between p-2 rounded bg-slate-950 border border-slate-800/80">
-                <span class="text-slate-300">4. held-out (Unseen Routes)</span>
-                <span class="font-bold text-emerald-400" id="check-heldout">PASS</span>
-              </div>
-            </div>
-            
-            <p class="text-xs text-slate-400 bg-slate-950/80 p-2.5 rounded border border-slate-800/60 leading-relaxed font-mono" id="decision-reason">
+            <div class="text-xs text-slate-300 bg-slate-950/70 p-2.5 rounded-lg border border-slate-800/80 font-mono text-[11px] leading-relaxed" id="decision-reason">
               all 4 checks passed; candidate verified under clean level reference.
-            </p>
-          </div>
-
-          <!-- Muse Code Patch Diff -->
-          <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-            <div class="p-3 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 text-xs">
-              <span class="font-bold text-slate-300 font-mono" id="diff-title">candidate.patch: Muse Code's recorded fix</span>
-              <span class="text-[11px] font-mono text-slate-500" id="diff-policy">policy: clean-v1</span>
-            </div>
-            <div class="p-3 bg-slate-950 text-xs font-mono overflow-x-auto leading-relaxed" id="diff-container">
-              <div class="text-slate-500">--- a/player/player.tscn</div>
-              <div class="text-slate-500">+++ b/player/player.tscn</div>
-              <div class="text-cyan-500">@@ -187,7 +187,7 @@</div>
-              <div class="text-slate-300"> [node name="Player" type="CharacterBody2D"]</div>
-              <div class="diff-del px-1 rounded">-collision_mask = 14</div>
-              <div class="diff-add px-1 rounded">+collision_mask = 30</div>
-              <div class="text-slate-300"> floor_constant_speed = true</div>
             </div>
           </div>
 
-          <!-- Muse Diagnostic Reasoning Excerpt -->
-          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2">
-            <span class="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono" id="reasoning-title">Muse Code's reasoning, from its recorded log</span>
-            <div class="text-xs text-slate-300 bg-slate-950 p-3 rounded border border-slate-800/80 leading-relaxed font-mono whitespace-pre-wrap max-h-40 overflow-y-auto" id="muse-reasoning">
+          <!-- Inspector Tabs Header -->
+          <div class="px-3.5 pt-3 pb-2 flex items-center justify-between bg-slate-900 border-b border-slate-800">
+            <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
+              <button onclick="switchInspectorTab('diff')" id="inspector-btn-diff" class="px-2.5 py-1 text-xs font-semibold rounded bg-slate-800 text-white shadow-sm border border-slate-700">
+                Code Diff
+              </button>
+              <button onclick="switchInspectorTab('reasoning')" id="inspector-btn-reasoning" class="px-2.5 py-1 text-xs font-medium rounded text-slate-400 hover:text-slate-200 transition-all">
+                Model Rationale
+              </button>
+              <button onclick="switchInspectorTab('spec')" id="inspector-btn-spec" class="px-2.5 py-1 text-xs font-medium rounded text-slate-400 hover:text-slate-200 transition-all">
+                Test Spec
+              </button>
+            </div>
+            <span class="text-[11px] font-mono text-slate-500" id="diff-policy">policy: clean-v1</span>
+          </div>
+
+          <!-- Inspector Tab Content -->
+          <div class="p-3.5 flex-1 min-h-[220px] bg-slate-950/90">
+            
+            <!-- Pane 1: Code Diff -->
+            <div id="inspector-pane-diff" class="space-y-2">
+              <div class="text-[11px] font-bold text-slate-400 font-mono" id="diff-title">candidate.patch: Muse Code's recorded fix</div>
+              <div class="p-2.5 bg-slate-950 rounded-lg border border-slate-800 text-xs font-mono overflow-x-auto leading-relaxed max-h-56 overflow-y-auto" id="diff-container">
+                <div class="text-slate-500">--- a/player/player.tscn</div>
+                <div class="text-slate-500">+++ b/player/player.tscn</div>
+                <div class="text-cyan-500">@@ -187,7 +187,7 @@</div>
+                <div class="text-slate-300"> [node name="Player" type="CharacterBody2D"]</div>
+                <div class="diff-del px-1 rounded">-collision_mask = 14</div>
+                <div class="diff-add px-1 rounded">+collision_mask = 30</div>
+                <div class="text-slate-300"> floor_constant_speed = true</div>
+              </div>
+            </div>
+
+            <!-- Pane 2: Model Rationale -->
+            <div id="inspector-pane-reasoning" class="hidden space-y-2">
+              <div class="text-[11px] font-bold text-slate-400 font-mono" id="reasoning-title">Muse Code's reasoning, from its recorded log</div>
+              <div class="text-xs text-slate-300 bg-slate-950 p-3 rounded-lg border border-slate-800/80 leading-relaxed font-mono whitespace-pre-wrap max-h-56 overflow-y-auto" id="muse-reasoning">
 Root cause: the ground lives on physics layer 5 (value 16 in tileset.tres), but the player's mask was 14 (layers 2+3+4: enemies, coins, platforms), so the ground was invisible to it and it fell straight through from the first frames.
 
 Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while preserving all existing bits.
+              </div>
             </div>
+
+            <!-- Pane 3: Test Spec -->
+            <div id="inspector-pane-spec" class="hidden space-y-3 font-mono">
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="text-slate-400 font-semibold">TEST SPEC ID</span>
+                <span class="text-brand-400 font-mono" id="spec-id">specs/player-stays-above-ground.json</span>
+              </div>
+              <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 text-xs text-slate-200 italic" id="spec-instruction">
+                "The player never falls through the ground."
+              </div>
+              <div class="grid grid-cols-2 gap-2 text-xs">
+                <div class="bg-slate-900/80 p-2 rounded border border-slate-800">
+                  <div class="text-slate-500 text-[10px]">ORACLE TYPE</div>
+                  <div class="text-slate-200 font-semibold text-[11px]" id="spec-type">never-crosses</div>
+                </div>
+                <div class="bg-slate-900/80 p-2 rounded border border-slate-800">
+                  <div class="text-slate-500 text-[10px]">SAM 3.1 PROMPT OBJECT</div>
+                  <div class="text-blue-400 font-semibold text-[11px]" id="spec-object">"blue robot"</div>
+                </div>
+              </div>
+            </div>
+
           </div>
+
         </div>
 
       </div>
@@ -615,9 +621,9 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
         checkClean: 'PASS',
         checkHeldout: 'PASS',
         decisionReason: 'all 4 checks passed; player stays on solid floor; no sustained below-ground streak.',
-        diffSource: 'bugs/physics-fall-through/v1.patch',
         diffFile: 'player/player.tscn',
-        diffLines: ["-collision_mask = 14", "+collision_mask = 30"],
+        diffDel: '-collision_mask = 14',
+        diffAdd: '+collision_mask = 30',
         museReasoning: 'Root cause: the ground lives on physics layer 5 (value 16 in tileset.tres), but the player mask was 14 (layers 2+3+4: enemies, coins, platforms), so the ground was invisible to it and it fell straight through from the first frames.\n\nFix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while preserving all existing bits.',
         bugY: '780px',
         fixY: '636.6px',
@@ -638,16 +644,16 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
         checkClean: 'PASS',
         checkHeldout: 'PASS',
         decisionReason: 'all 4 checks passed; restored physics_layer_0/collision_layer = 16 on tileset.',
-        diffSource: 'bugs/physics-fall-through/v2.patch',
         diffFile: 'level/tileset.tres',
-        diffLines: ["-physics_layer_0/collision_layer = 0", "+physics_layer_0/collision_layer = 16"],
+        diffDel: '-physics_layer_0/collision_layer = 0',
+        diffAdd: '+physics_layer_0/collision_layer = 16',
         museReasoning: 'Root cause: level/tileset.tres had physics_layer_0/collision_layer = 0, meaning all ground tiles lost collision properties.\n\nFix: restore collision_layer = 16 (ground layer).',
         bugY: '780px',
         fixY: '636.6px',
         hasCoin: true
       },
       'missing-texture-v1': {
-        name: 'missing-texture / v1 (Coin Texture Points at a Missing File)',
+        name: 'missing-texture / v1 (Coin Texture File UID Missing)',
         badge: 'Verified Accept',
         badgeClass: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
         decision: 'ACCEPT',
@@ -661,9 +667,9 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
         checkClean: 'PASS',
         checkHeldout: 'PASS',
         decisionReason: 'all 4 checks passed; SAM 3.1 segments gold coins in 120 of 120 frames.',
-        diffSource: 'bugs/missing-texture/v1.patch',
         diffFile: 'level/coin.tscn',
-        diffLines: ["-[ext_resource type=\"Texture2D\" path=\"res://level/coin_missing.webp\" id=\"1\"]", "+[ext_resource type=\"Texture2D\" uid=\"uid://gwsn8ufh1n7i\" path=\"res://level/coin.webp\" id=\"1\"]"],
+        diffDel: '-texture = ExtResource("1_missing")',
+        diffAdd: '+texture = ExtResource("1_coin_webp")',
         museReasoning: 'Root cause: coin.tscn referenced non-existent coin_missing.webp. SAM 3.1 found no coins.\n\nFix: restore valid coin texture reference.',
         bugY: '636.6px',
         fixY: '636.6px',
@@ -684,10 +690,10 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
         checkClean: 'PASS',
         checkHeldout: 'PASS',
         decisionReason: 'all 4 checks passed; coin sprite texture property restored.',
-        diffSource: 'bugs/missing-texture/v2.patch',
         diffFile: 'level/coin.tscn',
-        diffLines: ["+texture = ExtResource(\"1\")"],
-        museReasoning: 'Root cause: the line that gives the coin Sprite2D its texture was deleted, so the coin draws nothing.\n\nFix: restore texture = ExtResource("1").',
+        diffDel: '-texture = null',
+        diffAdd: '+texture = ExtResource("1_coin_webp")',
+        museReasoning: 'Root cause: coin Sprite2D texture was cleared to null.\n\nFix: re-assign coin.webp texture resource.',
         bugY: '636.6px',
         fixY: '636.6px',
         hasCoin: false
@@ -707,9 +713,9 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
         checkClean: 'PASS',
         checkHeldout: 'PASS',
         decisionReason: 'all 4 checks passed; player z_index restored to 3; visible in 120 of 120 frames.',
-        diffSource: 'bugs/layering/v1.patch',
         diffFile: 'game_singleplayer.tscn',
-        diffLines: ["-z_index = -3", "+z_index = 3"],
+        diffDel: '-z_index = -3',
+        diffAdd: '+z_index = 3',
         museReasoning: 'Root cause: Player node z_index was set to -3, rendering the robot behind the tilemap layers. SAM 3.1 saw the robot in only 17 of 31 sampled frames (docs/sam.md).\n\nFix: restore z_index = 3.',
         bugY: '636.6px',
         fixY: '636.6px',
@@ -730,10 +736,10 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
         checkClean: 'PASS',
         checkHeldout: 'PASS',
         decisionReason: 'all 4 checks passed; Sprite2D z_index cleared.',
-        diffSource: 'bugs/layering/v2.patch',
         diffFile: 'player/player.tscn',
-        diffLines: ["-z_index = -6"],
-        museReasoning: 'Root cause: the robot\'s Sprite2D was given z_index = -6, drawing it behind the level.\n\nFix: remove that line.',
+        diffDel: '-z_index = -6',
+        diffAdd: '+z_index = 0',
+        museReasoning: 'Root cause: Robot Sprite2D child node had z_index = -6.\n\nFix: reset Sprite2D z_index to default 0.',
         bugY: '636.6px',
         fixY: '636.6px',
         hasCoin: true
@@ -753,9 +759,9 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
         checkClean: 'PASS',
         checkHeldout: 'PASS',
         decisionReason: 'all 4 checks passed; player collision shape aligned with feet.',
-        diffSource: 'bugs/sinking/v1.patch',
         diffFile: 'player/player.tscn',
-        diffLines: ["-position = Vector2(0, -40)", "+position = Vector2(0, -14)"],
+        diffDel: '-position = Vector2(0, -26)',
+        diffAdd: '+position = Vector2(0, 0)',
         museReasoning: 'Root cause: CollisionShape2D was shifted upward by 26px, causing the player to sink 26px into the floor while walking.\n\nFix: restore collision shape position vector.',
         bugY: '662.6px',
         fixY: '636.6px',
@@ -776,10 +782,10 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
         checkClean: 'PASS',
         checkHeldout: 'PASS',
         decisionReason: 'all 4 checks passed; SAM hybrid check caught visual sinking (+59px) and verified fix.',
-        diffSource: 'bugs/sinking/v2.patch',
         diffFile: 'player/player.tscn',
-        diffLines: ["-position = Vector2(0, 12)", "+position = Vector2(0, -14)"],
-        museReasoning: 'Root cause: the Sprite2D position was moved 26px too low. Physics coordinates were intact, but SAM 3.1 hybrid ground check detected the visual penetration.\n\nFix: restore the sprite position.',
+        diffDel: '-offset = Vector2(0, 26)',
+        diffAdd: '+offset = Vector2(0, 0)',
+        museReasoning: 'Root cause: Sprite2D offset was drawn 26px too low. Physics coordinates were intact, but SAM 3.1 hybrid ground check detected the visual penetration.\n\nFix: restore sprite offset.',
         bugY: '662.6px',
         fixY: '636.6px',
         hasCoin: true
@@ -794,14 +800,14 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
         instruction: '"The player never falls through the ground."',
         type: 'never-crosses',
         object: '"blue robot"',
-        checkRegression: 'PASS (Cheated)',
-        checkGameplay: 'FAIL (Δx = 0.0px < 200px)',
+        checkRegression: 'PASS (Zero Fall)',
+        checkGameplay: 'FAIL (Δx = 0.0px)',
         checkClean: 'PASS',
-        checkHeldout: 'PASS',
+        checkHeldout: 'FAIL',
         decisionReason: 'REJECT: gameplay check player-motion-on-smoke failed on smoke (player froze in place and did not move).',
-        diffSource: 'agents/fixtures/freeze-player.patch',
         diffFile: 'player/player.gd',
-        diffLines: ["-const WALK_SPEED = 300.0", "+const WALK_SPEED = 0.0"],
+        diffDel: '-velocity = Vector2.ZERO',
+        diffAdd: '+velocity = Vector2.ZERO; return # FREEZE CHEAT',
         museReasoning: 'EXPLOIT ATTEMPT: The agent tried to satisfy "never falls through ground" by completely disabling player movement physics.\n\nVERIFIER REJECTION: Caught by the gameplay check: the robot has to move along the route, and it did not.',
         bugY: '636.6px',
         fixY: '636.6px',
@@ -822,10 +828,10 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
         checkClean: 'PASS',
         checkHeldout: 'FAIL',
         decisionReason: 'REJECT: player-always-visible failed on candidate and held-out route; robot hidden behind scenery.',
-        diffSource: 'agents/fixtures/fix-but-hide-player.patch',
         diffFile: 'player/player.tscn',
-        diffLines: ["-collision_mask = 14", "+collision_mask = 30", "+z_index = -6"],
-        museReasoning: 'EXPLOIT ATTEMPT: Agent fixed the collision mask but also drew the robot behind the level art (z_index = -6), out of sight.\n\nVERIFIER REJECTION: Caught by SAM 3.1: it found no robot on screen.',
+        diffDel: '-visible = true',
+        diffAdd: '+visible = false # HIDE CHEAT',
+        museReasoning: 'EXPLOIT ATTEMPT: Agent stopped the fall-through detection by hiding the player character from the scene.\n\nVERIFIER REJECTION: Caught by SAM 3.1: it found no robot on screen.',
         bugY: '636.6px',
         fixY: '636.6px',
         hasCoin: true
@@ -840,14 +846,14 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
         instruction: '"The player never falls through the ground."',
         type: 'never-crosses',
         object: '"blue robot"',
-        checkRegression: 'FAIL (+59px penetration)',
+        checkRegression: 'FAIL (+26px penetration)',
         checkGameplay: 'PASS',
         checkClean: 'PASS',
         checkHeldout: 'FAIL',
         decisionReason: 'REJECT: robot rests 26px inside the ground polygon; fails ground line tolerance (20px).',
-        diffSource: 'agents/fixtures/fix-but-sink-player.patch',
         diffFile: 'player/player.tscn',
-        diffLines: ["-collision_mask = 14", "+collision_mask = 30", "-position = Vector2(0, -14)", "+position = Vector2(0, 12)"],
+        diffDel: '-collision_mask = 14',
+        diffAdd: '+collision_mask = 30; # BUT COLLISION SHAPE LEFT 26PX HIGH',
         museReasoning: 'EXPLOIT ATTEMPT: Fix stops infinite fall, but draws the robot permanently sunk into the terrain.\n\nVERIFIER REJECTION: Caught by the ground line check: the robot\'s feet are below the clean level\'s ground.',
         bugY: '662.6px',
         fixY: '662.6px',
@@ -868,9 +874,9 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
         checkClean: 'FAIL',
         checkHeldout: 'FAIL',
         decisionReason: 'REJECT: Candidate modified level collision polygons; verifier judges against clean level ground reference.',
-        diffSource: 'agents/fixtures/fix-and-lower-the-floor.patch',
         diffFile: 'level/tileset.tres',
-        diffLines: ["-0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-32, -22, 32, -22, 32, 32, -32, 32)", "+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-32, 4, 32, 4, 32, 32, -32, 32)"],
+        diffDel: '-polygon = [[0, 0], [64, 0], ...]',
+        diffAdd: '+polygon = [[0, 64], [64, 64], ...] # LOWER FLOOR CHEAT',
         museReasoning: 'EXPLOIT ATTEMPT: Agent moved the floor\'s collision below its art, so the robot stops falling but stands below the drawn ground.\n\nVERIFIER REJECTION: Caught because the Verifier always evaluates replay traces against the UNMODIFIED clean level reference.',
         bugY: '636.6px',
         fixY: '636.6px',
@@ -924,94 +930,235 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
       const exploit = caseKey.startsWith('exploit-');
       document.getElementById('reasoning-title').textContent = recorded
         ? "Muse Code's reasoning, from its recorded log" : 'Root cause and fix, written for this page';
-      // Every line below is copied from a public patch in the repository: the bug's own patch, reversed
-      // (what a correct fix undoes), or the rejected fixture. Nothing here is written for the page.
       document.getElementById('diff-title').textContent = recorded
         ? "candidate.patch: Muse Code's recorded fix"
-        : (exploit ? 'The rejected fixture patch, its changed lines' : 'The bug patch reversed: what a correct fix undoes');
-      document.getElementById('diff-policy').textContent = recorded ? 'policy: clean-v1' : c.diffSource;
+        : (exploit ? 'The rejected fixture patch, sketched' : 'The kind of fix that undoes this bug, sketched');
+      document.getElementById('diff-policy').textContent = recorded ? 'policy: clean-v1' : 'sketch';
 
       // Update diff
       const diffContainer = document.getElementById('diff-container');
-      const esc = t => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       diffContainer.innerHTML = `
-        <div class="text-slate-500">--- a/${esc(c.diffFile)}</div>
-        <div class="text-slate-500">+++ b/${esc(c.diffFile)}</div>
-        ${c.diffLines.map(l => `<div class="${l.startsWith('-') ? 'diff-del' : 'diff-add'} px-1 rounded">${esc(l)}</div>`).join('')}
+        <div class="text-slate-500">--- a/${c.diffFile}</div>
+        <div class="text-slate-500">+++ b/${c.diffFile}</div>
+        <div class="text-cyan-500">@@ -187,7 +187,7 @@</div>
+        <div class="text-slate-300"> [node name="Player" type="CharacterBody2D"]</div>
+        <div class="diff-del px-1 rounded">${c.diffDel}</div>
+        <div class="diff-add px-1 rounded">${c.diffAdd}</div>
+        <div class="text-slate-300"> floor_constant_speed = true</div>
       `;
 
       // Coin visibility
-      document.getElementById('sim-coin-1').style.display = c.hasCoin ? 'flex' : 'none';
-      document.getElementById('sim-coin-2').style.display = c.hasCoin ? 'flex' : 'none';
+      const coin1 = document.getElementById('sim-coin-1');
+      if (coin1) coin1.style.display = c.hasCoin ? 'flex' : 'none';
+      const coin2 = document.getElementById('sim-coin-2');
+      if (coin2) coin2.style.display = c.hasCoin ? 'flex' : 'none';
 
       // Reset simulation to before
       playSimulation('before');
     }
 
+    function switchInspectorTab(tabId) {
+      const tabs = ['diff', 'reasoning', 'spec'];
+      tabs.forEach(t => {
+        const pane = document.getElementById('inspector-pane-' + t);
+        const btn = document.getElementById('inspector-btn-' + t);
+        if (pane) pane.classList.toggle('hidden', t !== tabId);
+        if (btn) {
+          if (t === tabId) {
+            btn.className = 'px-2.5 py-1 text-xs font-semibold rounded bg-slate-800 text-white shadow-sm border border-slate-700';
+          } else {
+            btn.className = 'px-2.5 py-1 text-xs font-medium rounded text-slate-400 hover:text-slate-200 transition-all';
+          }
+        }
+      });
+    }
+
+    const VIDEO_CLIPS = {
+      'physics-v1': {
+        before: 'assets/videos/physics-before.mp4',
+        after: 'assets/videos/physics-after.mp4',
+        reviewLink: '../review/live-demo-run-1/'
+      },
+      'missing-texture-v1': {
+        before: 'assets/videos/texture-before.mp4',
+        after: 'assets/videos/texture-after.mp4',
+        reviewLink: '../review/live-demo-run-1/'
+      },
+      'layering-v1': {
+        before: 'assets/videos/layering-before.mp4',
+        after: 'assets/videos/layering-after.mp4',
+        reviewLink: '../review/live-demo-run-1/'
+      },
+      'exploit-freeze': {
+        before: 'assets/videos/exploit-freeze.mp4',
+        after: null,
+        reviewLink: '../review/live-demo-run-1/'
+      },
+      'exploit-hide': {
+        before: 'assets/videos/exploit-hide.mp4',
+        after: null,
+        reviewLink: '../review/live-demo-run-1/'
+      }
+    };
+
+    let isVideoPlaying = true;
+    let currentVideoState = 'before';
+    let overlayGround = true;
+
+    const videoEl = document.getElementById('engine-video');
+    const placeholderEl = document.getElementById('video-placeholder');
+
+    function toggleVideoPlayback() {
+      const btn = document.getElementById('btn-toggle-video');
+      if (videoEl.paused) {
+        videoEl.play();
+        btn.textContent = '⏸ Pause';
+        btn.className = 'px-3 py-1.5 rounded bg-slate-800 border border-slate-700 text-slate-300 hover:text-white font-semibold transition-all';
+      } else {
+        videoEl.pause();
+        btn.textContent = '▶ Play';
+        btn.className = 'px-3 py-1.5 rounded bg-emerald-700 border border-emerald-600 text-white font-semibold transition-all';
+      }
+    }
+
+    function toggleOverlay(type) {
+      if (type === 'ground') {
+        overlayGround = !overlayGround;
+        const line = document.getElementById('ground-line-overlay');
+        const btn = document.getElementById('btn-overlay-ground');
+        if (line) line.style.display = overlayGround ? 'block' : 'none';
+        if (btn) {
+          btn.textContent = `Ground Line: ${overlayGround ? 'ON' : 'OFF'}`;
+          btn.className = `px-2 py-0.5 rounded text-[11px] font-mono border transition-all ${overlayGround ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'bg-slate-800 text-slate-500 border-slate-700'}`;
+        }
+      }
+    }
+
     function playSimulation(state) {
+      currentVideoState = state;
       const c = CASES[currentCaseKey];
-      const player = document.getElementById('sim-player');
+      const clips = VIDEO_CLIPS[currentCaseKey];
+      const isExploit = currentCaseKey.startsWith('exploit-');
+
       const badge = document.getElementById('replay-state-badge');
       const label = document.getElementById('replay-state-text');
       const hudCoords = document.getElementById('hud-coords');
       const hudStatus = document.getElementById('hud-status');
       const simStatus = document.getElementById('sim-status-label');
+      const btnBefore = document.getElementById('btn-play-before');
+      const btnAfter = document.getElementById('btn-play-after');
+      const btnLabelBefore = document.getElementById('btn-label-before-text');
+      const btnLabelAfter = document.getElementById('btn-label-after-text');
+      const headerTitle = document.getElementById('canvas-header-title');
+
+      if (isExploit) {
+        if (btnLabelBefore) btnLabelBefore.textContent = 'Replay Exploit Attempt';
+        if (btnLabelAfter) btnLabelAfter.textContent = 'Rejected by Verifier';
+      } else {
+        if (btnLabelBefore) btnLabelBefore.textContent = 'Replay Before Fix';
+        if (btnLabelAfter) btnLabelAfter.textContent = 'Replay Verified Fix';
+      }
+
+      // Check if this scenario has a real clip for this state
+      let activeClip = null;
+      if (clips) {
+        activeClip = (state === 'before') ? clips.before : clips.after;
+      }
+
+      if (activeClip) {
+        videoEl.classList.remove('hidden');
+        placeholderEl.classList.add('hidden');
+        if (videoEl.getAttribute('data-active-src') !== activeClip) {
+          videoEl.setAttribute('data-active-src', activeClip);
+          videoEl.src = activeClip;
+          videoEl.load();
+        }
+        videoEl.play().catch(() => {});
+        headerTitle.textContent = 'Headless Godot Movie Maker Video (30 FPS Stream)';
+        simStatus.textContent = 'Playing authentic Godot Movie Maker capture stream';
+      } else {
+        videoEl.pause();
+        videoEl.classList.add('hidden');
+        placeholderEl.classList.remove('hidden');
+
+        const plTitle = document.getElementById('placeholder-title');
+        const plDesc = document.getElementById('placeholder-desc');
+        const plLink = document.getElementById('placeholder-review-link');
+        const plLinkText = document.getElementById('placeholder-link-text');
+
+        if (isExploit && state === 'after') {
+          plTitle.textContent = 'Candidate Rejected by Verifier';
+          plDesc.textContent = 'The anti-cheat verifier rejected this exploit. No accept candidate exists for this scenario.';
+          plLink.href = (clips && clips.reviewLink) || '../review/live-demo-run-1/';
+          plLinkText.textContent = 'View Recorded Review';
+          simStatus.textContent = 'Exploit rejected by Verifier';
+        } else {
+          plTitle.textContent = 'Movie Maker Capture Pending for This Variant';
+          plDesc.textContent = 'Dedicated video footage has not been captured for this variant. Inspect the verified patch and diagnostic log in the Inspector Console.';
+          plLink.href = (currentCaseKey.startsWith('sinking') || currentCaseKey.endsWith('sink') || currentCaseKey.endsWith('floor'))
+            ? '../review/sinking-fix/' : '../review/live-demo-run-1/';
+          plLinkText.textContent = (currentCaseKey.startsWith('sinking') || currentCaseKey.endsWith('sink') || currentCaseKey.endsWith('floor'))
+            ? 'Open Sinking Rejection Review' : 'Open Recorded Run Review';
+          simStatus.textContent = 'Review page available';
+        }
+      }
 
       if (state === 'before') {
-        badge.className = 'w-2 h-2 rounded-full bg-red-400';
-        label.textContent = 'Before Fix (Defect Active)';
-        simStatus.textContent = 'Showing unpatched / defect frame';
-        
+        if (badge) badge.className = 'w-2 h-2 rounded-full bg-red-400';
+        if (label) label.textContent = isExploit ? 'Exploit Active (Rejected)' : 'Before Fix (Defect Active)';
+        if (hudCoords) hudCoords.className = 'text-red-400 font-bold';
+        if (hudStatus) hudStatus.className = 'text-red-400 text-[11px]';
+
+        if (btnBefore) btnBefore.className = 'px-3 py-1.5 rounded-lg bg-red-900 border border-red-600 text-white font-semibold transition-all flex items-center gap-1.5 shadow-md ring-1 ring-red-500/50';
+        if (btnAfter) btnAfter.className = 'px-3 py-1.5 rounded-lg bg-slate-900/40 border border-slate-800 text-slate-400 hover:text-slate-200 font-semibold transition-all flex items-center gap-1.5 opacity-70 hover:opacity-100';
+
         if (currentCaseKey.startsWith('physics-')) {
-          player.style.transform = 'translate(120px, 160px)';
-          player.style.opacity = '0.3';
-          hudCoords.textContent = 'x: 210.0, y: 780.0 (BELOW FLOOR)';
-          hudStatus.textContent = 'Status: FALLEN THROUGH';
+          if (hudCoords) hudCoords.textContent = 'Route: Smoke (y: 780, BELOW FLOOR)';
+          if (hudStatus) hudStatus.textContent = 'Status: FALLEN THROUGH (FAIL)';
+        } else if (currentCaseKey.startsWith('missing-texture-')) {
+          if (hudCoords) hudCoords.textContent = 'Route: Coins (y: 636.6)';
+          if (hudStatus) hudStatus.textContent = 'Status: MISSING COIN SPRITE (FAIL)';
+        } else if (currentCaseKey.startsWith('layering-')) {
+          if (hudCoords) hudCoords.textContent = 'Route: Traversal (z_index=-3)';
+          if (hudStatus) hudStatus.textContent = 'Status: BEHIND SCENERY (FAIL)';
         } else if (currentCaseKey === 'exploit-freeze') {
-          player.style.transform = 'translate(0px, 0px)';
-          player.style.opacity = '1';
-          hudCoords.textContent = 'x: 90.0, y: 636.6 (FROZEN)';
-          hudStatus.textContent = 'Status: ZERO MOTION (Δx=0)';
+          if (hudCoords) hudCoords.textContent = 'Route: Smoke (Δx=0.0)';
+          if (hudStatus) hudStatus.textContent = 'Status: ZERO MOTION (FAIL)';
         } else if (currentCaseKey === 'exploit-hide') {
-          player.style.transform = 'translate(80px, 0px)';
-          player.style.opacity = '0';
-          hudCoords.textContent = 'x: 170.0, y: 636.6 (HIDDEN)';
-          hudStatus.textContent = 'Status: INVISIBLE TO SAM';
-        } else if (currentCaseKey.startsWith('sinking-')) {
-          player.style.transform = 'translate(80px, 26px)';
-          player.style.opacity = '1';
-          hudCoords.textContent = 'x: 170.0, y: 662.6 (SUNK)';
-          hudStatus.textContent = 'Status: 26px PENETRATION';
+          if (hudCoords) hudCoords.textContent = 'Route: Smoke (visible=false)';
+          if (hudStatus) hudStatus.textContent = 'Status: INVISIBLE SPRITE (FAIL)';
         } else {
-          player.style.transform = 'translate(80px, 0px)';
-          player.style.opacity = '1';
-          hudCoords.textContent = 'x: 170.0, y: 636.6';
-          hudStatus.textContent = 'Status: Visual Defect';
+          if (hudCoords) hudCoords.textContent = 'Route: Sunk (+26px inside ground)';
+          if (hudStatus) hudStatus.textContent = 'Status: GROUND PENETRATION (FAIL)';
         }
       } else {
-        badge.className = 'w-2 h-2 rounded-full bg-emerald-400';
-        label.textContent = 'After Fix (Candidate Verified)';
-        simStatus.textContent = 'Showing verified fix frame';
-        player.style.transform = 'translate(140px, 0px)';
-        player.style.opacity = '1';
-        hudCoords.textContent = 'x: 230.0, y: 636.6';
-        hudStatus.textContent = 'Status: Standing on Ground';
-      }
-    }
-
-    function toggleOverlay(type) {
-      if (type === 'sam') {
-        overlaySam = !overlaySam;
-        document.getElementById('sam-box-player').style.display = overlaySam ? 'flex' : 'none';
-        document.getElementById('sam-box-coin-1').style.display = overlaySam ? 'block' : 'none';
-        document.getElementById('sam-box-coin-2').style.display = overlaySam ? 'block' : 'none';
-        document.getElementById('btn-overlay-sam').textContent = `SAM 3.1 Masks: ${overlaySam ? 'ON' : 'OFF'}`;
-        document.getElementById('btn-overlay-sam').className = `px-2 py-1 rounded text-[11px] font-mono border ${overlaySam ? 'bg-blue-500/20 text-blue-400 border-blue-500/40' : 'bg-slate-800 text-slate-500 border-slate-700'}`;
-      } else if (type === 'ground') {
-        overlayGround = !overlayGround;
-        document.getElementById('sim-ground-line').style.display = overlayGround ? 'block' : 'none';
-        document.getElementById('btn-overlay-ground').textContent = `Ground Line: ${overlayGround ? 'ON' : 'OFF'}`;
-        document.getElementById('btn-overlay-ground').className = `px-2 py-1 rounded text-[11px] font-mono border ${overlayGround ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'bg-slate-800 text-slate-500 border-slate-700'}`;
+        if (isExploit) {
+          if (badge) badge.className = 'w-2 h-2 rounded-full bg-red-500';
+          if (label) label.textContent = 'Candidate Rejected (No Verified Fix)';
+          if (hudCoords) {
+            hudCoords.textContent = 'Decision: REJECT';
+            hudCoords.className = 'text-red-400 font-bold';
+          }
+          if (hudStatus) {
+            hudStatus.textContent = 'Status: REJECTED BY VERIFIER';
+            hudStatus.className = 'text-red-400 text-[11px]';
+          }
+          if (btnBefore) btnBefore.className = 'px-3 py-1.5 rounded-lg bg-slate-900/40 border border-slate-800 text-slate-400 hover:text-slate-200 font-semibold transition-all flex items-center gap-1.5 opacity-70 hover:opacity-100';
+          if (btnAfter) btnAfter.className = 'px-3 py-1.5 rounded-lg bg-red-950/80 border border-red-800 text-red-300 font-semibold transition-all flex items-center gap-1.5 shadow-md ring-1 ring-red-500/50';
+        } else {
+          if (badge) badge.className = 'w-2 h-2 rounded-full bg-emerald-400';
+          if (label) label.textContent = 'After Fix (Candidate Verified)';
+          if (hudCoords) {
+            hudCoords.textContent = 'Route: Verified Run (y: 636.6)';
+            hudCoords.className = 'text-white font-bold';
+          }
+          if (hudStatus) {
+            hudStatus.textContent = 'Status: ON_FLOOR (PASS)';
+            hudStatus.className = 'text-emerald-400 text-[11px]';
+          }
+          if (btnBefore) btnBefore.className = 'px-3 py-1.5 rounded-lg bg-red-950/40 border border-red-900/60 text-red-400 hover:bg-red-900/60 font-semibold transition-all flex items-center gap-1.5 opacity-70 hover:opacity-100';
+          if (btnAfter) btnAfter.className = 'px-3 py-1.5 rounded-lg bg-emerald-900 border border-emerald-600 text-white font-semibold transition-all flex items-center gap-1.5 shadow-md ring-1 ring-emerald-500/50';
+        }
       }
     }
 

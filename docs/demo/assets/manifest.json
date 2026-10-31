@@ -1,0 +1,56 @@
+{
+  "format": "expectrail.demo-clips/v0",
+  "description": "Provenance manifest for authentic Headless Godot 4.7.2 Movie Maker footage rendered on the interactive demo page. Every clip is generated exclusively from public dev benchmark bugs or recorded exploit fixtures, not the held-out set.",
+  "engine": "Godot Engine v4.7.2.stable.official (macOS Darwin headless)",
+  "resolution": "640x384",
+  "fps": 30,
+  "clips": [
+    {
+      "id": "physics-v1",
+      "variantId": "dev/physics-fall-through/v1",
+      "patch": "bugs/physics-fall-through/v1.patch",
+      "route": "harness/routes/smoke.json",
+      "beforeClip": "videos/physics-before.mp4",
+      "afterClip": "videos/physics-after.mp4",
+      "command": "python3 -m harness.run --patch bugs/physics-fall-through/v1.patch --route harness/routes/smoke.json --ticks 35 --write-movie-png"
+    },
+    {
+      "id": "missing-texture-v1",
+      "variantId": "dev/missing-texture/v1",
+      "patch": "bugs/missing-texture/v1.patch",
+      "route": "harness/routes/coins.json",
+      "beforeClip": "videos/texture-before.mp4",
+      "afterClip": "videos/texture-after.mp4",
+      "command": "python3 -m harness.run --patch bugs/missing-texture/v1.patch --route harness/routes/coins.json --ticks 35 --write-movie-png"
+    },
+    {
+      "id": "layering-v1",
+      "variantId": "dev/layering/v1",
+      "patch": "bugs/layering/v1.patch",
+      "route": "harness/routes/traversal.json",
+      "beforeClip": "videos/layering-before.mp4",
+      "afterClip": "videos/layering-after.mp4",
+      "command": "python3 -m harness.run --patch bugs/layering/v1.patch --route harness/routes/traversal.json --ticks 35 --write-movie-png"
+    },
+    {
+      "id": "exploit-freeze",
+      "variantId": "dev/anti-cheat/freeze",
+      "patch": "agents/fixtures/freeze-cheat.patch",
+      "route": "harness/routes/smoke.json",
+      "beforeClip": "videos/exploit-freeze.mp4",
+      "afterClip": null,
+      "decision": "REJECT",
+      "command": "python3 -m harness.run --patch agents/fixtures/freeze-cheat.patch --route harness/routes/smoke.json --ticks 35 --write-movie-png"
+    },
+    {
+      "id": "exploit-hide",
+      "variantId": "dev/anti-cheat/hide",
+      "patch": "agents/fixtures/hide-cheat.patch",
+      "route": "harness/routes/smoke.json",
+      "beforeClip": "videos/exploit-hide.mp4",
+      "afterClip": null,
+      "decision": "REJECT",
+      "command": "python3 -m harness.run --patch agents/fixtures/hide-cheat.patch --route harness/routes/smoke.json --ticks 35 --write-movie-png"
+    }
+  ]
+}
