@@ -139,17 +139,24 @@ def spark_planner(transport=None, model: str = MODEL):
         from expectrail.spec_writer import http_transport as transport
 
     def plan(profile: dict, probes: list[dict], summaries: dict, limits: dict) -> dict:
+        # No max_tokens: Muse Spark reasons before it answers, and its reasoning counts against the
+        # limit. With max_tokens 4096 every live call came back with no content at all (October 31,
+        # run 41251362155). The spec writer sends no limit either.
         body = {"model": model, "temperature": 0, "response_format": {"type": "json_object"},
-                "max_tokens": 4096,
                 "messages": [{"role": "system", "content": SYSTEM},
                              {"role": "user", "content": prompt(profile, probes, summaries)}]}
         response = transport(body)
         try:
-            content = response["choices"][0]["message"]["content"]
+            choice = response["choices"][0]
+            content = choice["message"].get("content")
             if isinstance(content, list):
                 content = "".join(part.get("text", "") for part in content if isinstance(part, dict))
+            if not isinstance(content, str) or not content.strip():
+                raise ValueError(f"no content (finish_reason {choice.get('finish_reason')!r})")
             answer = json.loads(re.sub(r"^```(?:json)?\s*|\s*```$", "", content.strip()))
-        except (KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
+            if not isinstance(answer, dict):
+                raise ValueError("the answer is not a JSON object")
+        except (KeyError, IndexError, TypeError, AttributeError, ValueError) as exc:
             raise ValueError(f"MODEL_OUTPUT_INVALID: the planner did not return JSON ({exc})") from exc
         probes_out, entries, notes = parse(answer, profile, {p["id"] for p in probes})
         usage = response.get("usage") or {}
