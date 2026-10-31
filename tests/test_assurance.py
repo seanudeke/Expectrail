@@ -175,7 +175,7 @@ class LaneInventoryTest(unittest.TestCase):
 
     def test_every_job_with_a_model_key_is_a_declared_agent_or_perception_only(self):
         self.assertEqual(self.audit.inventory_problems(self.lanes(), self.declared, self.models), [])
-        self.assertEqual(len(self.declared), 12)
+        self.assertEqual(len(self.declared), 13)
         for job in self.audit.PERCEPTION:
             self.assertIn(job, self.models, f"{job} no longer holds a model key; drop it from PERCEPTION")
 

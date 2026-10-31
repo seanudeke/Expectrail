@@ -124,6 +124,29 @@ the jobs' own notices in [`bench/discovery/run-41238187197.json`](../bench/disco
   about ground contact; sinking v2, missing texture and layering are visual and cannot show in a
   trace. The verifier's approved checks and SAM catch all six today.
 
+## The blind run
+
+The results above are development reproduction. The blind run is the test that is not:
+
+1. **Freeze.** `discovery/freeze.json` records the sha256 of every file that decides a finding (the
+   profile and templates, probes, route compiler, signals, interpreter, job, planner prompt and
+   model, record schemas, recorder, replay harness) and of the clean game, plus the exact blind
+   command, as of commit `0b6556c14a51`. `python -m expectrail.discovery.freeze verify` names
+   any file that changed, and a test keeps the freeze holding on main until the blind run is recorded.
+2. **Fresh defects, written after the freeze.** Eight to ten defects and one or two intentional
+   changes, in the private held-out repository under `fresh/`, each with a private route showing it.
+   They are written without the discoverer's rules in front of the writer, and chosen by a random
+   draw from a longer written list, so nobody picks them for being easy or hard to catch.
+3. **Commit the set's digest** here (`bugs/fresh/fresh.sha256`) before any run.
+4. **Run once** with the Discovery blind run workflow
+   ([`.github/workflows/discovery-blind.yml`](../.github/workflows/discovery-blind.yml)). It verifies
+   the freeze and the digest before replaying anything, runs the clean game as a control, and uses
+   no reference build. The public log carries counts only: per opaque id,
+   defect or intentional, flagged or not. Which rules fired stays private until the event is over.
+
+Scored: defects flagged out of defects, intentional changes and the clean game flagged (false
+alarms), and incomplete jobs. A miss is a result, not a reason to change the frozen system.
+
 ## What these results do and do not say
 
 - **This is development reproduction, not discovery.** The profile's four claims (the double jump,

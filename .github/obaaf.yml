@@ -21,3 +21,4 @@ lanes:
   ".github/workflows/web-fix.yml#run": agent                     # Muse Code fixes the checkout page, second domain
   ".github/workflows/case-spend.yml#run": agent                   # Muse/SAM spend counters for fix-matrix and judge
   ".github/workflows/discovery.yml#discovery": agent             # Muse Spark plans discovery probes and contracts
+  ".github/workflows/discovery-blind.yml#blind": agent           # the same, on the private fresh set (counts only)

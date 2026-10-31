@@ -1,0 +1,129 @@
+name: Discovery blind run
+
+# The blind discovery run (docs/discovery.md, The blind run): the frozen discoverer on the fresh
+# defect set in the private held-out repository, with the clean game as a control and no reference
+# build. Before anything replays, the freeze is verified on this checkout and the set is checked
+# against the digest committed in bugs/fresh/fresh.sha256. The public log carries counts only: per
+# opaque id, defect or intentional, flagged or not. Discovery's own output (which contracts fired,
+# on which probes) goes to files that are never uploaded or printed, so no mechanism reaches this
+# public repository during the event. Run it once. Record it with:
+#   python -m expectrail.discovery.fresh collect --run <id>
+on:
+  workflow_dispatch:
+    inputs:
+      planner:
+        description: Muse Spark planner (spark needs the MODEL_API_KEY or META_API_KEY secret)
+        type: choice
+        options: ['off', 'spark']
+        default: 'off'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: discovery-blind
+  cancel-in-progress: false
+
+jobs:
+  list:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    outputs:
+      ids: ${{ steps.list.outputs.ids }}
+    env:
+      HELDOUT_TOKEN_SET: ${{ secrets.HELDOUT_TOKEN != '' }}
+    steps:
+      - name: Require the held-out token
+        if: env.HELDOUT_TOKEN_SET != 'true'
+        run: |
+          echo "::error::Set the HELDOUT_TOKEN repository secret so the run can read the private fresh set."
+          exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: seanudeke/Nightshift-heldout
+          token: ${{ secrets.HELDOUT_TOKEN }}
+          path: heldout-set
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Verify the freeze and the committed digest of the set
+        run: |
+          python -m expectrail.discovery.freeze verify
+          python -m expectrail.discovery.fresh check heldout-set --committed
+      - name: List the clean control and the set's ids
+        id: list
+        run: |
+          ids=$(python -m expectrail.discovery.fresh list heldout-set)
+          [[ "$ids" =~ ^\[\"clean\"(,\ \"f[0-9]{2}\")+\]$ ]] || { echo "::error::unexpected id list"; exit 1; }
+          echo "ids=$ids" >> "$GITHUB_OUTPUT"
+          echo "ids: $ids"
+
+  blind:
+    needs: list
+    name: blind (${{ matrix.id }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        id: ${{ fromJSON(needs.list.outputs.ids) }}
+    env:
+      PLANNER: ${{ inputs.planner }}
+      KEY_SET: ${{ secrets.MODEL_API_KEY != '' || secrets.META_API_KEY != '' }}
+    steps:
+      - name: Require the model key when the planner is on
+        if: env.PLANNER == 'spark' && env.KEY_SET != 'true'
+        run: |
+          echo "::error::Set the MODEL_API_KEY (or META_API_KEY) repository secret first."
+          exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: seanudeke/Nightshift-heldout
+          token: ${{ secrets.HELDOUT_TOKEN }}
+          path: heldout-set
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Install patch
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends patch
+      - name: Download Godot 4.7.2 and check its SHA-512
+        run: ./harness/get_godot.sh
+      - name: Verify the freeze and the committed digest of the set
+        run: |
+          python -m expectrail.discovery.freeze verify
+          python -m expectrail.discovery.fresh check heldout-set --committed > /dev/null
+      - name: Discover (output kept private) and publish counts only
+        env:
+          MODEL_API_KEY: ${{ inputs.planner == 'spark' && (secrets.MODEL_API_KEY || secrets.META_API_KEY) || '' }}
+          ID: ${{ matrix.id }}
+        run: |
+          [[ "$ID" =~ ^(clean|f[0-9]{2})$ ]] || { echo "::error::unexpected id"; exit 1; }
+          mkdir -p runs/blind
+          snapshot="$ID:base"
+          set_args=()
+          if [[ "$ID" != clean ]]; then
+            patch=$(python -c "import json,sys; m=json.load(open('heldout-set/fresh/manifest.json')); print(next(e['patch'] for e in m['entries'] if e['id']==sys.argv[1]))" "$ID")
+            [[ "$patch" =~ ^fresh/[A-Za-z0-9._/-]+\.patch$ ]] || { echo "::error::unexpected patch path"; exit 1; }
+            snapshot="$ID:base:heldout-set/$patch"
+            set_args=(--set heldout-set)
+          fi
+          start=$(date +%s)
+          if ! python -m expectrail.discovery.cli discover --profile discovery/platformer.profile.json \
+              --snapshot "$snapshot" --out "runs/blind/$ID" --planner "$PLANNER" \
+              --label "FRESH LIVE" --run-id "blind-${GITHUB_RUN_ID}-${ID}" --max-seconds 1800 \
+              > "runs/blind-$ID.log" 2>&1; then
+            echo "::error title=Blind ${ID} error::discovery did not finish (its log stays private)"
+            exit 1
+          fi
+          python -m expectrail.discovery.fresh notice "runs/blind/$ID/discovery-run.json" --id "$ID" "${set_args[@]}"
+          echo "::notice title=Blind time ${ID}::$(( $(date +%s) - start )) s"
