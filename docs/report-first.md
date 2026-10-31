@@ -59,9 +59,11 @@ bugs under all three conditions, with SAM on and the private routes mounted:
   attempt timed out and the second, still on the report, was rejected. The third attempt got the
   evidence and was accepted. On sinking/v1 every attempt timed out. A timeout did not count as a
   failure then, so the evidence never came. That is the rule this amendment changes.
-- **Across every live run so far:** report-only first attempts fixed 43 of 47 cases (91%), and all
-  four misses were sinking. Evidence-first attempts fixed 25 of 26 (96%). The difference is
-  concentrated in one family. It is still a small sample, and Muse Code does not give the same
+- **Across every live run so far, both held-out fix-matrix runs included:** report-only first
+  attempts fixed 57 of 63 cases (90%) and evidence-first ones 39 of 42 (93%). Every first-attempt
+  miss under either briefing was a sinking bug. The evidence's three were each fixed on the second
+  attempt; of the report's six, one was ever fixed, on the attempt that got the evidence. The
+  difference is concentrated in one family. It is still a small sample, and Muse Code does not give the same
   answer twice.
 - **The other decisions stand.** Every candidate is still verified. The judge results are
   unchanged. The demo loop under the new policy accepted 3 of 3 runs on the first attempt from the
@@ -102,8 +104,9 @@ another moves the floor's collision below its art, another hides the robot behin
 | Expectrail, position log only | 3 | 8 |
 | Muse Code from before-and-after screenshots | 2 | 6 and 7 |
 
-Fixing is the part Muse Code does well. Judging is where a fix that only looks right gets through,
-and only Expectrail with SAM let none through.
+Fixing is mostly the part Muse Code does well; the sinking bugs are the exception
+([above](#what-the-october-31-run-changed)). Judging is where a fix that only looks right gets
+through, and only Expectrail with SAM let none through.
 
 ### Why not "let Muse fix it, and run Expectrail only if Muse cannot"
 
@@ -127,16 +130,19 @@ stays on every candidate, and what moves is what the fixer is told.
 
 - **A product that does not care who writes the fix.** The first attempt's briefing is a plain
   report anyone could act on. Muse Code, another coding agent or a person can write the fix;
-  Expectrail decides whether it ships. That is also what the numbers above show, so the pitch and
-  the evidence say the same thing.
+  Expectrail decides whether it ships. On most bugs the numbers above agree. On the sinking bugs a
+  fixer working from the report alone often ran out of time, which is why any failed attempt now
+  brings the evidence.
 - **Harder to fix to the test.** A fixer that never sees the spec's assertion, its threshold or a
   verdict on the first attempt cannot aim at them. Most fixes are accepted on that first attempt.
   The held-out routes and the guards are never mentioned at all, so a fix cannot be tuned to them
   on any attempt.
-- **One fewer thing to defend.** We no longer claim that Expectrail's evidence makes Muse a better
-  fixer, which we could not show. We claim what we measured: Expectrail is a better judge.
-- **A cheap fallback, kept.** When the gate rejects an attempt, the fixer gets everything
-  Expectrail knows about the public checks. That costs nothing until a rejection happens.
+- **A narrower claim about the fixer.** We do not claim Expectrail's evidence makes Muse a better
+  fixer in general: on every family but one it made no difference. On the sinking bugs it did. The
+  claim we lead with is the one measured most: Expectrail is a better judge.
+- **A cheap fallback, kept.** After any failed attempt (a rejection, a timeout, or no change), the
+  fixer gets Expectrail's evidence on the failing base, and after a rejection also which public
+  checks failed. That costs nothing until an attempt fails.
 - **One setting to undo it.** `EXPECTRAIL_BRIEFING=evidence` restores the evidence from the first
   attempt.
 
@@ -146,8 +152,9 @@ stays on every candidate, and what moves is what the fixer is told.
   was fixed on its third attempt, the first with the evidence. The amended rule (a timeout also
   escalates) has not run live yet. The Fix matrix runs `escalate` by default, so the next run
   measures it.
-- **Whether a report is enough for harder bugs.** Every bug so far is a small, local change. A bug
-  that spans several files, or whose obvious fix is wrong, may need the evidence earlier.
+- **Whether a report is enough.** It was not always, even for small, local changes: each sinking
+  bug is a one-line fix. A bug that spans several files, or whose obvious fix is wrong, may need the
+  evidence from the first attempt.
 - **Overnight, the "report" is still Expectrail's own check.** When no person reported the bug,
   Expectrail's check found it, and the report is that check's sentence. The fixer still does not
   see the spec, the verdict or the evidence until a rejection.
@@ -173,8 +180,8 @@ What we did not change:
 
 - **SAM still looks at the candidate's smoke replay before the engine verdict is known.** Reordering
   this would save about 150 SAM images, roughly $0.40, per rejected candidate (the held-out bench
-  used 746 images over five routes). With one rejection in 46 cases, that is not worth changing the
-  verifier's order days before the deadline. If harder bugs make rejections common, it is the next
+  used 746 images over five routes). With 3 rejections (and 17 timeouts) in the 87 attempts of the four
+  fix-matrix runs, that is not worth changing the verifier's order days before the deadline. If harder bugs make rejections common, it is the next
   change.
 
 ## What changed in the code
@@ -189,8 +196,8 @@ What we did not change:
   `escalate`, run by default beside `screenshots` and `expectrail`.
 - [`agents/bench_collect.py`](../agents/bench_collect.py): reads `escalate` results.
 - [`tests/test_escalation.py`](../tests/test_escalation.py) covers the policy and the loop. The
-  loop test checks this order: report, empty attempt (still the report), rejection, evidence,
-  accept, with every candidate verified. It also checks that a held-out failure never reaches the
+  loop test checks this order: report, an empty attempt, then the evidence, a rejection, the
+  evidence again, accept, with every candidate verified. It also checks that a held-out failure never reaches the
   fixer.
 
 The natural-catch trial (`agents/reported_trial.py`) is unchanged. By its protocol, the fixer gets
