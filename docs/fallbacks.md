@@ -129,14 +129,14 @@ What it showed:
   bugged base with SAM, which the drill had made unavailable, and did not fall back. The accept
   stands, but the before-and-after evidence was missing on a fallback night (#129). Since #146, after
   a fallback accept the review judges the base and the candidate with Glimmer checked against the
-  engine, the judge that decided. Without a fallback, it judges with SAM as before. The third drill
-  shows it.
+  engine, the judge that decided. Without a fallback, it judges with SAM as before. The drill after
+  #146 shows it.
 - **It is slow.** About 37 minutes against 12 to 22 for a SAM run, with the deployment billed by
   the hour while it is up.
 - **It judged one correct fix.** Glimmer's rate on fixes that only look right is still unmeasured
   (#129, item 4).
 
-**Third drill, October 31, after #146, with `sam-outage-mid-run`** ([run 41244537695](https://github.com/seanudeke/Expectrail/actions/runs/41244537695),
+**The drill after #146, October 31, with `sam-outage-mid-run`** ([run 41244537695](https://github.com/seanudeke/Expectrail/actions/runs/41244537695),
 one live overnight run on main at 38559cc). The pre-run check passed for real, then every SAM request
 failed:
 
