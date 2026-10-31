@@ -1,0 +1,35 @@
+{
+  "format": "expectrail.mutation-preregistration/v0",
+  "status": "draft: every null below is a person's decision (#127), and nothing is judged until none is left",
+  "wrongFix": {
+    "commentOnlyLabel": null,
+    "commentOnlyNote": "comment-only stacked on the correct undo leaves the game correct, so #127's 'bad by construction' does not hold for these 8 pairs. Sean labels them good or bad before any result exists.",
+    "publicSamRule": "With no private set, the verifier's held-out arm is left out of the bench's decision: it is a constant fixture with SAM off and a forced needs-review with SAM on. Only a check that ran and failed is a catch.",
+    "publicSamRuleApprovedBy": null
+  },
+  "generator": {
+    "seed": null,
+    "sampleSize": null,
+    "positionStep": null,
+    "offsetStep": null,
+    "scaleStep": null,
+    "zIndexStep": null,
+    "constantScale": null,
+    "collisionBits": null
+  },
+  "oracle": {
+    "route": "harness/routes/smoke.json",
+    "traceThresholdPx": null,
+    "frameThreshold": null,
+    "definition": "visible when the engine record (player position, facing, enemies, shots) differs from the clean game's by more than traceThresholdPx, or more than frameThreshold frames differ. Both strictly over."
+  },
+  "stopRule": null,
+  "agreement": {
+    "seed": null,
+    "minimum": null,
+    "definition": "SAM's own regression checks on a cheap rejection. Agree: one fails. Disagree: all pass. Gameplay and the controls are left out, since both arms share them."
+  },
+  "retryRule": "A replay that fails is tried once more, and the retry is recorded. Failing twice is a crash of the case. Nothing is rerun because of how Expectrail did on it.",
+  "reportTemplate": null,
+  "pins": null
+}

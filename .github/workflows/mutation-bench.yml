@@ -1,17 +1,36 @@
-# Mutation bench (agents/mutation_bench.py): wrong-fix operators on the correct fix for each
-# public development case. Public checks only — never checks out the private held-out set.
-# A mutant that survives SAM off and SAM on is a finding (published with a catch-spec), not a failure.
+# Mutation bench (agents/mutation_bench.py, #127): wrong fixes and generated mutants, judged by the
+# tiered checker. Public checks only — never checks out the private held-out set. Nothing is judged
+# until bench/mutation/preregistration.json is complete, so a dispatch before that stops at the plan.
+# A case that survives every public check is a finding (published with a catch-spec), not a failure.
 name: Mutation bench
 
 on:
   workflow_dispatch:
     inputs:
+      mode:
+        description: "wrong-fix: Part 1. generated-cheap: Part 2, no SAM. generated-sam: Part 2, the mutants named below"
+        type: choice
+        options: [wrong-fix, generated-cheap, generated-sam]
+        default: wrong-fix
       cases:
-        description: Comma-separated case ids (default all eight), e.g. dev/sinking/v2
+        description: wrong-fix only, comma-separated case ids (default all eight), e.g. dev/sinking/v2
         default: ''
       operators:
-        description: Comma-separated operators (default all six)
+        description: wrong-fix only, comma-separated operators (default all six)
         default: 'hide,sink,freeze,scale-to-zero,behind-scenery,comment-only'
+      mutants:
+        description: "generated-* only, comma-separated mutant ids (default every sampled mutant). generated-sam takes the lists from --plan-sam"
+        default: ''
+      force_sam:
+        description: "off: SAM only where the cheap tier passed. on: SAM on cheap rejections too, for the agreement table. Spends SAM: post the estimate in #127 first"
+        type: choice
+        options: ['off', 'on']
+        default: 'off'
+      sam_cache:
+        description: "shared: judge the clean game's smoke route once and share SAM's answers with this run's jobs; off: every job judges every frame itself"
+        type: choice
+        options: [shared, 'off']
+        default: shared
 
 permissions:
   contents: read
@@ -21,7 +40,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     outputs:
-      pairs: ${{ steps.plan.outputs.pairs }}
+      rows: ${{ steps.plan.outputs.rows }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -30,41 +49,87 @@ jobs:
         with:
           python-version: '3.13'
       - run: python -m pip install -r requirements-dev.txt
-      - name: Plan case × operator pairs
+      - name: Refuse to plan before the pre-registration is complete
+        run: python -c "from agents.mutate_game import load_preregistration; load_preregistration()"
+      - name: Plan the cases
         id: plan
         env:
+          MODE: ${{ inputs.mode }}
           CASES: ${{ inputs.cases }}
           OPERATORS: ${{ inputs.operators }}
+          MUTANTS: ${{ inputs.mutants }}
         run: |
           python - <<'PY'
           import json, os
-          from agents.mutation_bench import OPERATORS, pairs
           from agents.matrix import dev_variants
-          every_cases = sorted(dev_variants())
-          cases = [c.strip() for c in os.environ["CASES"].split(",") if c.strip()] or every_cases
-          ops = [o.strip() for o in os.environ["OPERATORS"].split(",") if o.strip()] or list(OPERATORS)
-          bad = sorted(set(cases) - set(every_cases)) + sorted(set(ops) - set(OPERATORS))
+          from agents.mutation_bench import MANIFEST, OPERATORS
+          split = lambda name: [x.strip() for x in os.environ[name].split(",") if x.strip()]
+          if os.environ["MODE"] == "wrong-fix":
+              every_cases = sorted(dev_variants())
+              cases, ops = split("CASES") or every_cases, split("OPERATORS") or list(OPERATORS)
+              bad = sorted(set(cases) - set(every_cases)) + sorted(set(ops) - set(OPERATORS))
+              rows = [{"case": c, "operator": o} for c in cases for o in ops]
+          else:
+              every = [m["id"] for m in json.loads(MANIFEST.read_text())["mutants"]]
+              chosen = split("MUTANTS") or every
+              bad = sorted(set(chosen) - set(every))
+              rows = [{"mutant": m} for m in chosen]
           if bad:
-              raise SystemExit(f"unknown case or operator: {bad}")
-          rows = [{"case": c, "operator": o} for c in cases for o in ops]
+              raise SystemExit(f"unknown case, operator or mutant: {bad}")
           with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
-              fh.write(f"pairs={json.dumps(rows)}\n")
-          print(len(rows), "pairs")
+              fh.write(f"rows={json.dumps(rows)}\n")
+          print(len(rows), "cases")
           PY
 
-  run:
+  # Judge the clean game's smoke route once, so a job asks SAM only about frames that differ from it.
+  # Runs beside the plan; a job runs without it if it fails or is skipped.
+  sam-warm:
     needs: plan
+    if: ${{ inputs.mode != 'generated-cheap' && inputs.sam_cache == 'shared' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Install xvfb, software OpenGL
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri libglx-mesa0 patch
+      - name: Download Godot 4.7.2 and check its SHA-512
+        run: ./harness/get_godot.sh
+      - name: Judge the clean game once
+        id: warm
+        env:
+          MODEL_API_KEY: ${{ secrets.MODEL_API_KEY }}
+          EXPECTRAIL_OBS_PROVIDER: sam
+        run: python -m agents.sam_warm --scope public --cache runs/sam-warm/cache --out runs/sam-warm
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sam-cache
+          path: runs/sam-warm/cache/
+          retention-days: 1
+
+  run:
+    needs: [plan, sam-warm]
+    if: ${{ !cancelled() && needs.plan.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     strategy:
       fail-fast: false
-      max-parallel: 4
+      max-parallel: 8
       matrix:
-        include: ${{ fromJSON(needs.plan.outputs.pairs) }}
+        include: ${{ fromJSON(needs.plan.outputs.rows) }}
     env:
+      MODE: ${{ inputs.mode }}
+      FORCE_SAM: ${{ inputs.force_sam }}
       CASE: ${{ matrix.case }}
       OPERATOR: ${{ matrix.operator }}
-      MODEL_API_KEY: ${{ secrets.MODEL_API_KEY }}
+      MUTANT: ${{ matrix.mutant }}
+      # The cheap phase never needs the key, so it never holds it.
+      MODEL_API_KEY: ${{ inputs.mode != 'generated-cheap' && secrets.MODEL_API_KEY || '' }}
       # Public only: do not set EXPECTRAIL_HELDOUT_DIR.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -74,20 +139,42 @@ jobs:
         with:
           python-version: '3.13'
       - run: python -m pip install -r requirements-dev.txt
+      - name: Install xvfb, software OpenGL
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri libglx-mesa0 patch
       - name: Download Godot
         run: ./harness/get_godot.sh
-      - name: Mutate and verify (public checks only)
+      - name: Fetch this run's shared SAM answers
+        if: inputs.mode != 'generated-cheap' && inputs.sam_cache == 'shared'
+        continue-on-error: true
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: sam-cache
+          path: sam-cache
+      - name: Restore them into the SAM cache
+        if: inputs.mode != 'generated-cheap' && inputs.sam_cache == 'shared'
+        continue-on-error: true
+        run: |
+          [ -d sam-cache ] || { echo "::notice title=SAM shared cache::none for this run, so this job judges every frame itself"; exit 0; }
+          dest="$(python -c 'from agents.sam_observations import default_cache_dir; print(default_cache_dir() or "")')"
+          mkdir -p "$dest" && cp -R sam-cache/. "$dest/"
+          echo "::notice title=SAM shared cache::$(python -m agents.sam_warm --count "$dest") answers restored"
+      - name: Judge one case (public checks only)
         run: |
           test -z "${EXPECTRAIL_HELDOUT_DIR:-}" || { echo "held-out must stay unset"; exit 1; }
+          force=""; [ "$FORCE_SAM" = "on" ] && force="--force-sam"
           set +e
-          python -m agents.mutation_bench --case "$CASE" --operator "$OPERATOR" --out runs/mutation > mut.log 2>&1
+          case "$MODE" in
+            wrong-fix) python -m agents.mutation_bench --case "$CASE" --operator "$OPERATOR" $force --out runs/mutation > mut.log 2>&1 ;;
+            generated-cheap) python -m agents.mutation_bench --mutant "$MUTANT" --tier cheap --out runs/mutation > mut.log 2>&1 ;;
+            generated-sam) python -m agents.mutation_bench --mutant "$MUTANT" --tier sam $force --out runs/mutation > mut.log 2>&1 ;;
+          esac
           code=$?
           set -e
           tail -n 40 mut.log
-          dir="runs/mutation/${CASE//\//_}+${OPERATOR}"
           mkdir -p keep
-          find "$dir" -type f \( -name result.json -o -name finding.json -o -name catch-spec.json \
-            -o -name candidate.patch -o -name operator.patch \) -print \
+          find runs/mutation -type f \( -name result.json -o -name finding.json -o -name catch-spec.json \
+            -o -name candidate.patch -o -name operator.patch -o -name mutant.patch -o -name trace.json \) \
+            -not -path '*/clean/*' -print \
             | while read -r f; do mkdir -p "keep/$(dirname "$f")"; cp "$f" "keep/$f"; done
           exit "$code"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -102,6 +189,8 @@ jobs:
     if: always() && needs.run.result != 'cancelled'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    env:
+      DEST: bench/mutation/${{ inputs.mode == 'wrong-fix' && 'wrong-fix' || 'generated' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -115,20 +204,18 @@ jobs:
           path: results
           pattern: mutation-*
           merge-multiple: true
-      - name: Summarize findings
+      - name: Summarize
         run: |
           python -m agents.mutation_bench --summarize results/runs/mutation | tee -a "$GITHUB_STEP_SUMMARY"
-          mkdir -p bench/mutation
-          cp results/runs/mutation/mutation-summary.json bench/mutation/summary.json
-          python -m agents.mutation_bench --summarize results/runs/mutation > bench/mutation/README.md
-          # Collect findings for review.
-          mkdir -p bench/mutation/findings
+          mkdir -p "$DEST/findings"
+          cp results/runs/mutation/mutation-summary.json "$DEST/summary.json"
+          python -m agents.mutation_bench --summarize results/runs/mutation > "$DEST/README.md"
           find results/runs/mutation -name finding.json -print | while read -r f; do
             rel=${f#results/runs/mutation/}
-            mkdir -p "bench/mutation/findings/$(dirname "$rel")"
-            cp "$f" "bench/mutation/findings/$rel"
+            mkdir -p "$DEST/findings/$(dirname "$rel")"
+            cp "$f" "$DEST/findings/$rel"
             catch="$(dirname "$f")/catch-spec.json"
-            if [ -f "$catch" ]; then cp "$catch" "bench/mutation/findings/$(dirname "$rel")/catch-spec.json"; fi
+            if [ -f "$catch" ]; then cp "$catch" "$DEST/findings/$(dirname "$rel")/catch-spec.json"; fi
           done
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
