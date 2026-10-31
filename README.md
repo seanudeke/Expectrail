@@ -2,6 +2,8 @@
 
 **An AI coding agent says it fixed the bug. Expectrail plays the game and watches to find out.**
 
+[expectrail.com](https://expectrail.com)
+
 Expectrail verifies AI-agent changes by observation, not by trust. It replays the changed game, has
 Meta's vision models (SAM 3.1, or the open-weight Muse Glimmer) find what a plain-English check names
 in the frames, measures that against the engine's own record of where the robot, the coins and the
@@ -322,8 +324,8 @@ What this does and does not show:
   the fixer, but a teammate wrote them, and the same team wrote the checks. The four reproduced
   public bug reports are caught only by engine-record checks written after we saw them, which the
   verifier does not run yet, and in a 20-case trial Muse Code wrote no fix for them that only
-  looked right, so there is no blind catch on a real bug yet. The checkout page has no held-out
-  bugs yet.
+  looked right, so there is no blind catch on a real bug yet. The checkout page's four private bugs
+  came from a separate agent that never saw its checks, but of the same model family that tuned them.
 - **Mostly repairs.** The web judge includes three intended changes. We have not run the agent on
   features, refactors or dependency updates, or on software without a screen. The design is meant
   to carry over; [docs/future-work.md](docs/future-work.md) says which parts would and which would
