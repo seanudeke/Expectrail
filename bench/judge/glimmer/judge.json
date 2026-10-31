@@ -1,0 +1,496 @@
+{
+  "format": "expectrail.judge-bench/v1",
+  "runs": [
+    {
+      "run": 41230177124,
+      "runUrl": "https://github.com/seanudeke/Expectrail/actions/runs/41230177124",
+      "commit": "aa234b37f23e3578ca25699926e069dc3b455cf3",
+      "date": "2026-10-31T18:35:40Z",
+      "judges": {
+        "expectrailSam": {
+          "goodAccepted": 8,
+          "good": 8,
+          "badAccepted": 0,
+          "bad": 7,
+          "undecided": 0
+        },
+        "expectrailNoSam": {
+          "goodAccepted": 8,
+          "good": 8,
+          "badAccepted": 3,
+          "bad": 7,
+          "undecided": 0
+        },
+        "expectrailGlimmer": {
+          "goodAccepted": 8,
+          "good": 8,
+          "badAccepted": 0,
+          "bad": 7,
+          "undecided": 0
+        },
+        "museScreenshots": {
+          "goodAccepted": 6,
+          "good": 8,
+          "badAccepted": 2,
+          "bad": 7,
+          "undecided": 0
+        }
+      },
+      "rows": [
+        {
+          "case": "bad/fall-through-comment-only",
+          "label": "bad",
+          "seconds": 1191.5,
+          "live": true,
+          "samImages": 157,
+          "museCalls": 1,
+          "decisions": {
+            "expectrailSam": "reject",
+            "expectrailNoSam": "reject",
+            "museScreenshots": "reject",
+            "expectrailGlimmer": "reject"
+          },
+          "reasons": {
+            "expectrailNoSam": [
+              "regression check player-stays-above-ground failed",
+              "gameplay check player-motion-on-smoke failed"
+            ],
+            "expectrailSam": [
+              "regression check player-stays-above-ground failed",
+              "regression check player-always-visible failed",
+              "gameplay check player-motion-on-smoke failed"
+            ],
+            "expectrailGlimmer": [
+              "regression check player-stays-above-ground failed",
+              "regression check player-always-visible failed",
+              "gameplay check player-motion-on-smoke failed"
+            ],
+            "museScreenshots": [
+              "Viewed all 10 frames. Before-1: robot player standing on lower ground. Before-2 to Before-5: camera pans right along same route, player nowhere visible on ground/platforms \u2014 consistent with falling th"
+            ]
+          },
+          "glimmerSeconds": 1051.2
+        },
+        {
+          "case": "bad/fall-through-freeze",
+          "label": "bad",
+          "seconds": 1247.1,
+          "live": true,
+          "samImages": 220,
+          "museCalls": 1,
+          "decisions": {
+            "expectrailSam": "reject",
+            "expectrailNoSam": "reject",
+            "museScreenshots": "reject",
+            "expectrailGlimmer": "reject"
+          },
+          "reasons": {
+            "expectrailNoSam": [
+              "gameplay check player-motion-on-smoke failed"
+            ],
+            "expectrailSam": [
+              "gameplay check player-motion-on-smoke failed"
+            ],
+            "expectrailGlimmer": [
+              "gameplay check player-motion-on-smoke failed"
+            ],
+            "museScreenshots": [
+              "...ng through the ground. After-2 to After-5: player remains standing on the ground, so the fall-through is gone, but the view never progresses - camera/coins/platforms stay at the start position, and"
+            ]
+          },
+          "glimmerSeconds": 1085.9
+        },
+        {
+          "case": "bad/fall-through-hide-player",
+          "label": "bad",
+          "seconds": 1399.8,
+          "live": true,
+          "samImages": 142,
+          "museCalls": 1,
+          "decisions": {
+            "expectrailSam": "reject",
+            "expectrailNoSam": "accept",
+            "museScreenshots": "reject",
+            "expectrailGlimmer": "reject"
+          },
+          "reasons": {
+            "expectrailNoSam": [
+              "all 4 checks passed"
+            ],
+            "expectrailSam": [
+              "regression check player-always-visible failed"
+            ],
+            "expectrailGlimmer": [
+              "regression check player-always-visible failed"
+            ],
+            "museScreenshots": [
+              "...gh the ground. After: after-2 shows the player on the ground, after-3 and after-4 show the player airborne collecting coins, but after-1 shows the player half-buried in the ground platform where be"
+            ]
+          },
+          "glimmerSeconds": 1009.7
+        },
+        {
+          "case": "bad/fall-through-lower-floor",
+          "label": "bad",
+          "seconds": 1304.6,
+          "live": true,
+          "samImages": 240,
+          "museCalls": 1,
+          "decisions": {
+            "expectrailSam": "reject",
+            "expectrailNoSam": "reject",
+            "museScreenshots": "accept",
+            "expectrailGlimmer": "reject"
+          },
+          "reasons": {
+            "expectrailNoSam": [
+              "regression check player-stays-above-ground failed"
+            ],
+            "expectrailSam": [
+              "regression check player-stays-above-ground failed"
+            ],
+            "expectrailGlimmer": [
+              "regression check player-stays-above-ground failed"
+            ],
+            "museScreenshots": [
+              "Before: player stands on ground in frame 1, then is missing in frames 2-5 \u2014 consistent with falling through the ground. After: player remains visible in all frames \u2014 on ground in 1-2, jumping/collecti"
+            ]
+          },
+          "glimmerSeconds": 1075.8
+        },
+        {
+          "case": "bad/fall-through-sink-player",
+          "label": "bad",
+          "seconds": 1369.6,
+          "live": true,
+          "samImages": 154,
+          "museCalls": 1,
+          "decisions": {
+            "expectrailSam": "reject",
+            "expectrailNoSam": "accept",
+            "museScreenshots": "accept",
+            "expectrailGlimmer": "reject"
+          },
+          "reasons": {
+            "expectrailNoSam": [
+              "all 4 checks passed"
+            ],
+            "expectrailSam": [
+              "regression check player-stays-above-ground failed",
+              "regression check player-always-visible failed"
+            ],
+            "expectrailGlimmer": [
+              "regression check player-always-visible failed"
+            ],
+            "museScreenshots": [
+              "...rough ground below view while camera continues right. After: player stays on route in all frames - grounded in 1, running grounded in 2, jumping for coins in 3, landing near enemy in 4, grounded in"
+            ]
+          },
+          "glimmerSeconds": 1042.5
+        },
+        {
+          "case": "bad/layering-hide-trees",
+          "label": "bad",
+          "seconds": 3585.8,
+          "live": true,
+          "samImages": 240,
+          "museCalls": 1,
+          "decisions": {
+            "expectrailSam": "reject",
+            "expectrailNoSam": "accept",
+            "museScreenshots": "reject",
+            "expectrailGlimmer": "reject"
+          },
+          "reasons": {
+            "expectrailNoSam": [
+              "all 4 checks passed"
+            ],
+            "expectrailSam": [
+              "regression check player-always-visible failed"
+            ],
+            "expectrailGlimmer": [
+              "held-out check player-stays-above-ground failed"
+            ],
+            "museScreenshots": [
+              "...bot player is occluded by the orange trees - hidden in before-1 and before-5, partially hidden in before-2. After: the player stays visible in the matching moments, but all orange trees are missing"
+            ]
+          },
+          "glimmerSeconds": 3379.7
+        },
+        {
+          "case": "bad/sinking-overcorrected",
+          "label": "bad",
+          "seconds": 1286.5,
+          "live": true,
+          "samImages": 238,
+          "museCalls": 1,
+          "decisions": {
+            "expectrailSam": "reject",
+            "expectrailNoSam": "reject",
+            "museScreenshots": "reject",
+            "expectrailGlimmer": "reject"
+          },
+          "reasons": {
+            "expectrailNoSam": [
+              "regression check player-stays-above-ground failed"
+            ],
+            "expectrailSam": [
+              "regression check player-stays-above-ground failed"
+            ],
+            "expectrailGlimmer": [
+              "regression check player-stays-above-ground failed"
+            ],
+            "museScreenshots": [
+              "...-1: player stands correctly on top of the ground \u2014 sink gone there. But after-2 to after-5 diverge vertically from the same-moment befores: where before is grounded/sinking, after is increasingly a"
+            ]
+          },
+          "glimmerSeconds": 1106.4
+        },
+        {
+          "case": "good/layering/v1",
+          "label": "good",
+          "seconds": 3106.5,
+          "live": true,
+          "samImages": 0,
+          "museCalls": 1,
+          "decisions": {
+            "expectrailSam": "accept",
+            "expectrailNoSam": "accept",
+            "museScreenshots": "accept",
+            "expectrailGlimmer": "accept"
+          },
+          "reasons": {
+            "expectrailNoSam": [
+              "all 4 checks passed"
+            ],
+            "expectrailSam": [
+              "all 8 checks passed"
+            ],
+            "expectrailGlimmer": [
+              "all 8 checks passed"
+            ],
+            "museScreenshots": [
+              "...air in 3 and 4, and fully hidden in 5. After: same route/moments, player is now fully visible in front of the trees in 1, 2, and 5, and unchanged and correctly visible in 3 and 4. No other changes:"
+            ]
+          },
+          "glimmerSeconds": 2800.7
+        },
+        {
+          "case": "good/layering/v2",
+          "label": "good",
+          "seconds": 3139.9,
+          "live": true,
+          "samImages": 0,
+          "museCalls": 1,
+          "decisions": {
+            "expectrailSam": "accept",
+            "expectrailNoSam": "accept",
+            "museScreenshots": "accept",
+            "expectrailGlimmer": "accept"
+          },
+          "reasons": {
+            "expectrailNoSam": [
+              "all 4 checks passed"
+            ],
+            "expectrailSam": [
+              "all 8 checks passed"
+            ],
+            "expectrailGlimmer": [
+              "all 8 checks passed"
+            ],
+            "museScreenshots": [
+              "...e-3 and before-4 show the player in open air. After: same route/moments, player is now visible in front of trees/foliage in after-1, after-2, and after-5, with identical position/pose where visible"
+            ]
+          },
+          "glimmerSeconds": 2834.4
+        },
+        {
+          "case": "good/missing-texture/v1",
+          "label": "good",
+          "seconds": 3082.0,
+          "live": true,
+          "samImages": 0,
+          "museCalls": 1,
+          "decisions": {
+            "expectrailSam": "accept",
+            "expectrailNoSam": "accept",
+            "museScreenshots": "accept",
+            "expectrailGlimmer": "accept"
+          },
+          "reasons": {
+            "expectrailNoSam": [
+              "all 4 checks passed"
+            ],
+            "expectrailSam": [
+              "all 8 checks passed"
+            ],
+            "expectrailGlimmer": [
+              "all 8 checks passed"
+            ],
+            "museScreenshots": [
+              "...coins now visible at matching world positions in every frame, with normal spin animation, persisting along the route. Player pose/position, enemies, platforms, trees, and background match before vs"
+            ]
+          },
+          "glimmerSeconds": 2846.2
+        },
+        {
+          "case": "good/missing-texture/v2",
+          "label": "good",
+          "seconds": 3084.4,
+          "live": true,
+          "samImages": 0,
+          "museCalls": 1,
+          "decisions": {
+            "expectrailSam": "accept",
+            "expectrailNoSam": "accept",
+            "museScreenshots": "accept",
+            "expectrailGlimmer": "accept"
+          },
+          "reasons": {
+            "expectrailNoSam": [
+              "all 4 checks passed"
+            ],
+            "expectrailSam": [
+              "all 8 checks passed"
+            ],
+            "expectrailGlimmer": [
+              "all 8 checks passed"
+            ],
+            "museScreenshots": [
+              "Viewed all 10 frames. Before 1-5: no coins visible anywhere along route. After 1-5: gold coins clearly visible in all frames at consistent positions along same route, matching player/camera progress."
+            ]
+          },
+          "glimmerSeconds": 2784.2
+        },
+        {
+          "case": "good/physics-fall-through/v1",
+          "label": "good",
+          "seconds": 3140.0,
+          "live": true,
+          "samImages": 0,
+          "museCalls": 1,
+          "decisions": {
+            "expectrailSam": "accept",
+            "expectrailNoSam": "accept",
+            "museScreenshots": "accept",
+            "expectrailGlimmer": "accept"
+          },
+          "reasons": {
+            "expectrailNoSam": [
+              "all 4 checks passed"
+            ],
+            "expectrailSam": [
+              "all 8 checks passed"
+            ],
+            "expectrailGlimmer": [
+              "all 8 checks passed"
+            ],
+            "museScreenshots": [
+              "... ground in before-1, then missing in before-2 through before-5 \u2014 consistent with falling through the ground. After: player visible in all 5 frames \u2014 standing/running on ground in after-1/after-2, j"
+            ]
+          },
+          "glimmerSeconds": 2901.9
+        },
+        {
+          "case": "good/physics-fall-through/v2",
+          "label": "good",
+          "seconds": 3015.4,
+          "live": true,
+          "samImages": 0,
+          "museCalls": 1,
+          "decisions": {
+            "expectrailSam": "accept",
+            "expectrailNoSam": "accept",
+            "museScreenshots": "accept",
+            "expectrailGlimmer": "accept"
+          },
+          "reasons": {
+            "expectrailNoSam": [
+              "all 4 checks passed"
+            ],
+            "expectrailSam": [
+              "all 8 checks passed"
+            ],
+            "expectrailGlimmer": [
+              "all 8 checks passed"
+            ],
+            "museScreenshots": [
+              "...efore-2 through before-5 \u2014 consistent with falling through the ground. Enemies also missing/floating. After: player stays on route in all frames \u2014 grounded in after-1 and after-2, jumping in after-"
+            ]
+          },
+          "glimmerSeconds": 2770.1
+        },
+        {
+          "case": "good/sinking/v1",
+          "label": "good",
+          "seconds": 3136.2,
+          "live": true,
+          "samImages": 0,
+          "museCalls": 1,
+          "decisions": {
+            "expectrailSam": "accept",
+            "expectrailNoSam": "accept",
+            "museScreenshots": "reject",
+            "expectrailGlimmer": "accept"
+          },
+          "reasons": {
+            "expectrailNoSam": [
+              "all 4 checks passed"
+            ],
+            "expectrailSam": [
+              "all 8 checks passed"
+            ],
+            "expectrailGlimmer": [
+              "all 8 checks passed"
+            ],
+            "museScreenshots": [
+              "... when grounded (1,2,4,5); 3 is airborne. After 1-2: player stands on top of ground, sink gone. But after 4-5 at the same moments/route as grounded befores: player floats well above the ground with"
+            ]
+          },
+          "glimmerSeconds": 2838.1
+        },
+        {
+          "case": "good/sinking/v2",
+          "label": "good",
+          "seconds": 2145.3,
+          "live": true,
+          "samImages": 0,
+          "museCalls": 1,
+          "decisions": {
+            "expectrailSam": "accept",
+            "expectrailNoSam": "accept",
+            "museScreenshots": "reject",
+            "expectrailGlimmer": "accept"
+          },
+          "reasons": {
+            "expectrailNoSam": [
+              "all 4 checks passed"
+            ],
+            "expectrailSam": [
+              "all 8 checks passed"
+            ],
+            "expectrailGlimmer": [
+              "all 8 checks passed"
+            ],
+            "museScreenshots": [
+              "...-4 and After-5 diverge by much more than the sink depth: - Before-4: robot low over the red enemy, near landing. After-4: same moment, robot high in the air under the platform. - Before-5: robot st"
+            ]
+          },
+          "glimmerSeconds": 1907.4
+        }
+      ],
+      "spend": {
+        "samImages": 1391,
+        "samUsd": 3.48,
+        "museCalls": 15,
+        "jobMinutes": 587.2
+      }
+    }
+  ],
+  "changedBetweenRuns": {
+    "expectrailSam": [],
+    "expectrailNoSam": [],
+    "expectrailGlimmer": [],
+    "museScreenshots": []
+  }
+}
