@@ -20,7 +20,8 @@ the edges are. The last section says which parts would carry over beyond games.
 - Two kinds of checks. Checks people wrote (three approved specs, the gameplay check, the held-out
   cases) are the gate. Checks Expectrail discovers (22 generic probes judged by rules read from the
   game's code) only advise: they found the four reported bugs with no false alarm, as a development
-  result, and their blind test is frozen and pending ([discovery.md](discovery.md)).
+  result, and blind, on ten fresh entries written after they were frozen, they flagged 4 of 8 defects
+  and no healthy build ([discovery.md](discovery.md)).
 - One kind of agent change: repairs of a reported bug.
 - Four visual assertion types: visible, inside-region, never-crosses and reaches.
 - A fixer that writes small patches in its own worktree, inside bubblewrap in the live runs (only
@@ -48,7 +49,8 @@ as one sentence a person writes and approves. Advisory discovery ([discovery.md]
 checks nobody wrote: generic probes judged by contracts read from the game's code, reported when
 they fail 3 times out of 3. It does not gate, its profile is not approved, and it reaches only the
 four mechanics the profile claims; it found the four reported bugs, which its profile was written
-after, and 2 of the 8 development bugs, which it was not.
+after, 2 of the 8 development bugs, which it was not, and blind, 4 of 8 fresh defects written after
+it was frozen.
 
 Next, for the checks people write:
 - Have Muse Spark draft specs from design documents and past bug tickets, still approved by a person.
@@ -56,9 +58,9 @@ Next, for the checks people write:
   motion jitter, which the evaluation plan already defers.
 
 Next, for discovery (detail in [discovery.md](discovery.md#whats-next)):
-- Run the blind test. The discoverer is frozen, ten fresh entries were written after the freeze, and
-  their digest is committed; it runs once and reports counts.
-- Run the Muse Spark planner live and compare it with the planner off on the same builds.
+- Run the Muse Spark planner live, once on the same frozen blind set, and compare it with the
+  planner-off result (4 of 8).
+- A larger blind set, written by people outside the team, before any rate is claimed.
 - The rest of the team's autonomous-discovery specification: visual discovery on matched base and
   candidate runs; integrity signals (crashes, script errors, no progress) kept apart from gameplay
   findings; then promotion (a person approves the profile, each contract is validated on clean runs
