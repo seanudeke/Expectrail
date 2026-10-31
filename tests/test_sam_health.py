@@ -270,6 +270,7 @@ class LoopStopTest(unittest.TestCase):
         self.assertEqual((result["decision"], result["attemptsConsumed"]), ("needs-review", 0))
         self.assertEqual(result["preflight"]["kind"], "credit")
         self.assertIn("SAM did not answer before the run: credit", md)
+        self.assertEqual(result["verificationProvenance"], "none")  # nothing was verified
 
     def test_the_stopped_run_still_writes_a_valid_summary_and_rollup(self):
         from agents.report import write_loop_rollup

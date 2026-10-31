@@ -32,6 +32,7 @@ import shutil
 import sys
 import time
 import traceback
+from contextlib import nullcontext
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -176,7 +177,7 @@ def one_run(
                 "trust": None,
                 "morning": None,
                 "gameplay": None,
-                "verificationProvenance": "harness" if not skip_harness else "fixture",
+                "verificationProvenance": "none",  # stopped before anything was verified
             })
         request = triage(
             spec=load(REPO / "agents" / "specs" / "player-stays-above-ground.json", "test-spec"),
@@ -324,11 +325,17 @@ def one_run(
         review_doc = None
         if review_on():
             source = str((last_meta or {}).get("source") or "")
-            review_doc = run_review(
-                request, fix_out / "candidate.patch", verify_dir / "verification.json", out / "review",
-                observations=observations,
-                origin="fixture" if source == "fixture" else "muse" if "muse" in source else "developer",
-            )
+            # The review compares the failing base with the candidate, so both must be judged by the
+            # judge that decided. After a fallback that is Glimmer checked against the engine; asking
+            # SAM about the base again would leave the review INCONCLUSIVE (docs/fallbacks.md).
+            same_judge = (judge_ladder.backend(judge_ladder.FALLBACK) if (ladder or {}).get("fallback")
+                          else nullcontext())
+            with same_judge:
+                review_doc = run_review(
+                    request, fix_out / "candidate.patch", verify_dir / "verification.json", out / "review",
+                    observations=observations,
+                    origin="fixture" if source == "fixture" else "muse" if "muse" in source else "developer",
+                )
         real = (review_doc or {}).get("frames") or {}
         if before_frames is None and after_frames is None and "base" in real and "candidate" in real:
             before_frames, after_frames = [real["base"]], [real["candidate"]]  # this run's own frames

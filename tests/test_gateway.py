@@ -4,6 +4,8 @@ mitmproxy, bubblewrap and Muse Code are not needed: a fake mitmdump listens and 
 a fake muse prints what it was given, and the bridge is exercised with real sockets. The real
 programs run in CI (fix-matrix.yml with the gateway on).
 """
+import contextlib
+import io
 import json
 import os
 import socket
@@ -191,6 +193,28 @@ class TimeoutTest(unittest.TestCase):
             e = gw.evidence(root)
         self.assertEqual((e["museRuns"], e["throughGateway"]), (2, 1))  # reported, so the gap shows
 
+
+    def test_a_job_the_pre_run_check_stopped_says_why_there_was_no_muse_run(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "run-01").mkdir()
+            (root / "run-01" / "result.json").write_text(json.dumps({"decision": "needs-review",
+                                                                     "preflight": {"kind": "credit"}}))
+            self.assertEqual(gw.evidence(root)["stoppedBeforeFixer"], 1)
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                gw.main(["--evidence", str(root)])
+        self.assertTrue(out.getvalue().startswith("::notice title=Muse key gateway::no Muse run: the pre-run"))
+
+    def test_a_job_with_no_muse_run_and_no_reason_still_warns(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "run-01").mkdir()
+            (root / "run-01" / "result.json").write_text(json.dumps({"decision": "reject"}))
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                gw.main(["--evidence", str(root)])
+        self.assertTrue(out.getvalue().startswith("::warning title=Muse key gateway::0 of 0"))
 
 class SandboxCommandTest(unittest.TestCase):
     def setUp(self):
