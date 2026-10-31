@@ -5,7 +5,14 @@ did the judging cost? Issue #127 sets the rules. Nobody on the team writes a bug
 
 **Status: draft pre-registration. No case has been judged.** `agents/mutation_bench.py` and the
 **Mutation bench** workflow refuse to run until [`preregistration.json`](preregistration.json) has no
-empty field left, and until the code it pins has not moved.
+empty field left, the code it pins has not moved, and the committed manifest is exactly what the
+generator writes. A judged run starts only from `main`, so nothing is judged before the file is merged.
+The workflow's `dry-run` mode proves the plumbing first on one known pair, on any branch, with no SAM
+and no key; it is never a result.
+
+The pins cover the game, the development bugs, the operators, the specs, the verifier, the observers,
+the generator, the bench and its workflow. Changing any of them after registration refuses every run
+until the pins are set again, which is a change to the registration and has to be reported as one.
 
 ## What a person decides before anything is judged
 

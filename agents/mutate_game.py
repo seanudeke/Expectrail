@@ -74,12 +74,15 @@ def missing_decisions(doc: dict) -> list[str]:
     return [f for f in HUMAN_FIELDS if _get(doc, f) is None]
 
 
-def load_preregistration(path: Path = PREREGISTRATION) -> dict:
+def load_preregistration(path: Path | None = None) -> dict:
     """The pre-registration, refused while a person's decision is missing or a pin has moved."""
+    path = path or PREREGISTRATION
     doc = json.loads(Path(path).read_text(encoding="utf-8"))
     missing = missing_decisions(doc)
     if missing:
         raise PreregistrationError(f"{path} is not complete, so nothing may be judged. Missing: {', '.join(missing)}")
+    if doc["wrongFix"]["commentOnlyLabel"] not in ("good", "bad"):
+        raise PreregistrationError(f"{path}: wrongFix.commentOnlyLabel must be good or bad")
     moved = sorted(k for k, v in current_pins().items() if doc["pins"].get(k) != v)
     if moved:
         raise PreregistrationError(f"{path}: pinned material changed since registration: {', '.join(moved)}")
@@ -93,13 +96,19 @@ def _sha(rel: str) -> str:
 
 # What a judged result depends on. If one of these moves after registration, the run refuses.
 PINNED = ("agents/mutate_game.py", "agents/mutation_bench.py", "agents/verifier.py", "agents/observations.py",
-          "agents/gameplay.py", "agents/trace_checks.py", "expectrail/evaluator.py", "harness/run.py",
-          "harness/godot/expectrail_harness.gd", "harness/get_godot.sh", "harness/routes/smoke.json",
-          "agents/specs/player-stays-above-ground.json", "specs/player-always-visible.json", "specs/coins-visible.json")
+          "agents/sam_observations.py", "agents/sam_health.py", "agents/sam_warm.py", "agents/gameplay.py",
+          "agents/trace_checks.py", "agents/matrix.py", "agents/judge_bench.py", "agents/orchestrator.py",
+          "expectrail/evaluator.py", "harness/run.py", "harness/godot/expectrail_harness.gd", "harness/get_godot.sh",
+          "harness/routes/smoke.json", "agents/specs/player-stays-above-ground.json",
+          "specs/player-always-visible.json", "specs/coins-visible.json", ".github/workflows/mutation-bench.yml")
+# bugs/reported/ is Zayyad's (#120) and shapes nothing here, so only the development families are pinned.
+PINNED_TREES = ("agents/fixtures/operators", "bugs/physics-fall-through", "bugs/sinking", "bugs/missing-texture",
+                "bugs/layering")
 
 
 def current_pins() -> dict:
-    return {"gameTree": tree_digest(GAME), **{rel: _sha(rel) for rel in PINNED}}
+    return {"gameTree": tree_digest(GAME), **{rel: _sha(rel) for rel in PINNED},
+            **{rel: tree_digest(REPO / rel) for rel in PINNED_TREES}}
 
 
 def _fmt(value: float) -> str:
@@ -208,6 +217,15 @@ def build_manifest(prereg: dict, game: Path = GAME) -> dict:
         "sampledByClass": {c: sum(m["class"] == c for m in chosen) for c in OPERATOR_CLASSES},
         "mutants": [dict(m, patchSha256=hashlib.sha256(patch_text(m, game).encode()).hexdigest()) for m in chosen],
     }
+
+
+def load_manifest(prereg: dict, path: Path) -> dict:
+    """The committed manifest, refused unless the generator would write exactly this from this
+    pre-registration. Mutants are regenerated, never edited by hand (#127)."""
+    doc = json.loads(Path(path).read_text(encoding="utf-8"))
+    if doc != build_manifest(prereg):
+        raise PreregistrationError(f"{path} is not what the generator writes from the pre-registration")
+    return doc
 
 
 def mutant_by_id(manifest: dict, mutant_id: str) -> dict:

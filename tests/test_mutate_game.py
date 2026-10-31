@@ -141,14 +141,25 @@ class PreregistrationTest(unittest.TestCase):
             path.write_text(json.dumps(doc))
             return mg.load_preregistration(path)
 
-    def test_the_committed_file_leaves_every_decision_to_a_person(self):
-        self.assertEqual(sorted(mg.missing_decisions(json.loads(mg.PREREGISTRATION.read_text()))),
-                         sorted(mg.HUMAN_FIELDS))
+    def test_the_committed_file_has_a_place_for_every_decision(self):
+        """Holds for the draft and for the completed file, so completing it keeps CI green."""
+        doc = json.loads(mg.PREREGISTRATION.read_text())
+        for field in mg.HUMAN_FIELDS:
+            head, _, tail = field.rpartition(".")
+            self.assertIn(tail, mg._get(doc, head) if head else doc, field)
 
-    def test_the_draft_is_refused(self):
+    def test_a_draft_is_refused_and_names_what_is_missing(self):
+        doc = self.complete()
+        doc["generator"]["seed"] = None
         with self.assertRaises(mg.PreregistrationError) as caught:
-            mg.load_preregistration()
+            self.load(doc)
         self.assertIn("generator.seed", str(caught.exception))
+
+    def test_an_unknown_label_is_refused(self):
+        doc = self.complete()
+        doc["wrongFix"]["commentOnlyLabel"] = "maybe"
+        with self.assertRaises(mg.PreregistrationError):
+            self.load(doc)
 
     def test_one_missing_decision_is_enough(self):
         doc = self.complete()
@@ -169,9 +180,44 @@ class PreregistrationTest(unittest.TestCase):
             self.load(doc)
         self.assertIn("agents/verifier.py", str(caught.exception))
 
-    def test_every_pin_is_a_file_that_exists(self):
+    def test_every_pin_is_a_file_or_tree_that_exists(self):
         for rel in mg.PINNED:
             self.assertTrue((REPO / rel).is_file(), rel)
+        for rel in mg.PINNED_TREES:
+            self.assertTrue((REPO / rel).is_dir(), rel)
+
+    def test_everything_that_shapes_a_result_is_pinned(self):
+        pins = mg.current_pins()
+        for rel in ("agents/sam_observations.py", "agents/matrix.py", "agents/judge_bench.py", "agents/fixtures/operators",
+                    "bugs/layering", ".github/workflows/mutation-bench.yml", "agents/mutate_game.py", "gameTree"):
+            self.assertIn(rel, pins)
+
+    def test_zayyads_files_are_not_pinned(self):
+        self.assertFalse(any(k.startswith("bugs/reported") for k in mg.current_pins()))
+
+
+class ManifestTest(unittest.TestCase):
+    def write(self, doc, tmp):
+        path = Path(tmp) / "manifest.json"
+        path.write_text(json.dumps(doc))
+        return path
+
+    def test_the_generators_own_manifest_is_accepted(self):
+        doc = json.loads(json.dumps(mg.build_manifest(prereg())))
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(mg.load_manifest(prereg(), self.write(doc, tmp)), doc)
+
+    def test_a_hand_edit_a_new_seed_or_a_dropped_mutant_is_refused(self):
+        base = json.loads(json.dumps(mg.build_manifest(prereg())))
+        edited = copy.deepcopy(base)
+        edited["mutants"][0]["after"] = "z_index = 99"
+        reseeded = dict(copy.deepcopy(base), seed=12)
+        dropped = copy.deepcopy(base)
+        dropped["mutants"].pop()
+        with tempfile.TemporaryDirectory() as tmp:
+            for doc in (edited, reseeded, dropped):
+                with self.assertRaises(mg.PreregistrationError):
+                    mg.load_manifest(prereg(), self.write(doc, tmp))
 
 
 class OracleTest(unittest.TestCase):

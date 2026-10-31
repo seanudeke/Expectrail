@@ -6,15 +6,17 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import struct
 import subprocess
 import tempfile
 import unittest
+import zlib
 from pathlib import Path
 from unittest import mock
 
 import agents.mutation_bench as mb
 from agents import mutate_game
-from agents import verifier
+from agents.sam_observations import MetaSamClient, SamError
 from harness.run import REPO, apply_patches
 
 GOOD_CLEAN = {"clean": {"source": "harness"}}
@@ -106,6 +108,10 @@ class PublicDecisionTest(unittest.TestCase):
     def test_a_held_out_failure_cannot_reject(self):
         self.assertEqual(mb.public_decision(verification(("regression", "a", "pass"), ("held-out", "b", "fail"))), "accept")
 
+    def test_a_clean_check_is_never_named_as_a_catch(self):
+        doc = verification(("regression", "a", "fail"), ("clean", "b", "fail"), ("held-out", "c", "fail"))
+        self.assertEqual(mb.failed_checks(doc), ["regression/a"])
+
     def test_the_door_gate_is_not_a_catch(self):
         gate = verification(("regression", "editable-globs", "fail"), decision="reject",
                             suite={"earlyReject": {"gate": "editable-globs"}})
@@ -115,43 +121,81 @@ class PublicDecisionTest(unittest.TestCase):
         fallback = verification(("regression", "a", "fail"), suite={"clean": {"source": "fixture-fallback"}})
         self.assertEqual(mb.public_decision(fallback), "needs-review")
 
+    def test_a_clean_control_that_fails_is_never_a_catch(self):
+        """The clean game says nothing about the case: SAM missing a clean frame is not a vision win."""
+        for clean in ("fail", "needs-review"):
+            with self.subTest(clean=clean):
+                self.assertEqual(mb.public_decision(verification(("regression", "a", "pass"), ("clean", "b", clean))),
+                                 "needs-review")
+                self.assertEqual(mb.public_decision(verification(("regression", "a", "fail"), ("clean", "b", clean))),
+                                 "needs-review")
+
     def test_no_checks_is_never_an_accept(self):
         self.assertEqual(mb.public_decision(verification()), "needs-review")
         self.assertEqual(mb.public_decision(verification(("held-out", "a", "pass"))), "needs-review")
 
 
+def png(salt: bytes) -> bytes:
+    def chunk(kind, data):
+        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", 1600, 960, 8, 0, 0, 0, 0))
+            + chunk(b"IEND", b"") + salt)
+
+
+def harness_with_frames(route, out, patch=None, patches=None, **kwargs):
+    fake_harness(route, out)
+    for i in range(120):
+        Path(out, "frames", f"f{i:08d}.png").write_bytes(png(i.to_bytes(4, "big") + (b"c" if patches else b"k")))
+
+
 class RealVerifierTest(Base):
-    """The Block: verify unmocked, SAM on, no private set, every check passing."""
+    """The Block: verify, the SAM adapter, the sampling and the scoring all real. Only Godot and the
+    HTTP call are stubbed. SAM on, no private set."""
 
-    def run_real(self, sam_results, operator="hide"):
-        def sam_checks(specs, kind, route, *args, **kwargs):
-            return [{"spec": s["id"], "kind": kind, "route": route, "result": sam_results.get(s["id"], "pass"),
-                     "verdictSha256": "0" * 64} for s in specs]
+    def sam(self, *, robot=True, coins=True):
+        def http(client, body):
+            prompt = body["input"][0]["content"][0]["text"]
+            seen = {"blue robot": robot, "gold coin": coins}.get(prompt)
+            box = {"blue robot": "x1=80;y1=410;x2=120;y2=470", "gold coin": "x1=300;y1=300;x2=320;y2=320"}.get(prompt)
+            text = f"<0f>0<|box;{box};w=1600;h=960;c=0.9|>" if seen else "<0f>"
+            return json.dumps({"output_text": text}).encode(), "application/json"
 
-        with mock.patch("agents.verifier.harness_run", fake_harness), \
+        return http
+
+    def run_real(self, operator="hide", **sam):
+        env = {"MODEL_API_KEY": "dummy-sam", "EXPECTRAIL_SAM_CACHE": "off", "META_API_KEY": ""}
+        with mock.patch.dict(os.environ, env), mock.patch("agents.verifier.harness_run", harness_with_frames), \
                 mock.patch("agents.verifier.reference_surfaces", lambda out: TRACE["levelSurfaces"]), \
-                mock.patch("agents.verifier._sam_checks", sam_checks), \
-                mock.patch("agents.verifier._ground_observations", self.ground):
+                mock.patch.object(MetaSamClient, "_http", self.sam(**sam)):
             return mb.run_case("dev/sinking/v2", operator, self.out, prereg=prereg())
 
-    @staticmethod
-    def ground(spec, trace, replay_sha, frames_dir, use_sam, reference):
-        from agents.observations import from_trace_synthetic, with_reference_ground
-
-        return from_trace_synthetic(with_reference_ground(trace, reference)), "engine"
-
     def test_a_survivor_is_a_finding_with_no_private_set(self):
-        row = self.run_real({})
+        row = self.run_real()
         self.assertEqual(row["arms"]["sam"]["verifierDecision"], "needs-review")  # the verifier is unchanged
         self.assertEqual(row["arms"]["sam"]["decision"], "accept")
         self.assertEqual((row["outcome"], row["finding"], row["caught"]), ("survived", True, None))
+        self.assertGreater(row["samImages"], 0)
 
-    def test_a_real_sam_failure_is_a_vision_only_win(self):
-        row = self.run_real({"player-always-visible": "fail"})
-        self.assertEqual((row["outcome"], row["caught"]), ("caught-sam", "sam-on"))
+    def test_a_sam_that_cannot_see_the_clean_game_either_decides_nothing(self):
+        row = self.run_real(robot=False)
+        self.assertEqual(row["arms"]["sam"]["ownResults"]["player-always-visible"], "fail")
+        self.assertEqual((row["outcome"], row["caught"]), ("undecided", None))  # the control failed too
+
+    def test_own_results_are_sams_alone(self):
+        row = self.run_real(coins=False)
+        self.assertEqual(row["arms"]["sam"]["ownResults"]["coins-visible"], "fail")
+        self.assertNotIn("player-stays-above-ground", row["arms"]["sam"]["ownResults"])
 
     def test_a_sam_outage_is_undecided_not_a_win(self):
-        row = self.run_real({"player-always-visible": "needs-review"})
+        def down(client, body):
+            raise SamError("sam-3.1 HTTP 503: down", kind="server", status=503)
+
+        env = {"MODEL_API_KEY": "dummy-sam", "EXPECTRAIL_SAM_CACHE": "off", "META_API_KEY": ""}
+        with mock.patch.dict(os.environ, env), mock.patch("agents.verifier.harness_run", harness_with_frames), \
+                mock.patch("agents.verifier.reference_surfaces", lambda out: TRACE["levelSurfaces"]), \
+                mock.patch.object(MetaSamClient, "_http", down):
+            row = mb.run_case("dev/sinking/v2", "hide", self.out, prereg=prereg())
         self.assertEqual((row["outcome"], row["caught"], row["finding"]), ("undecided", None, False))
 
 
@@ -187,12 +231,42 @@ class OutcomeTest(Base):
         self.assertTrue(row["arms"]["cheap"]["retried"])
 
     def test_the_clean_games_crash_is_tooling_not_the_case(self):
-        row = self.run_pair(SystemExit("godot failed (134); see runs/x/level-reference/replay/godot.log"))
-        self.assertEqual(row["outcome"], "error")
+        row = self.run_pair(SystemExit("godot failed (134); see runs/x/level-reference/replay/godot.log"),
+                            verification(("gameplay", "m", "fail"), ("clean", "g", "pass"), decision="reject"))
+        self.assertEqual(row["outcome"], "error")  # not retried: the second answer is never asked for
+        self.assertEqual(row["arms"], {})
+
+    def test_a_game_that_will_not_import_is_the_cases_crash(self):
+        fail = subprocess.CalledProcessError(1, ["godot", "--headless", "--path", "x/sam-off/replay/work", "--import"])
+        self.assertEqual(self.run_pair(fail, fail)["outcome"], "crash")
+
+    def test_the_clean_games_import_failure_is_tooling(self):
+        fail = subprocess.CalledProcessError(1, ["godot", "--path", "x/level-reference/replay/work", "--import"])
+        self.assertEqual(self.run_pair(fail)["outcome"], "error")
+
+    def test_a_cheap_catch_survives_a_sam_arm_that_dies(self):
+        rejected = verification(("gameplay", "m", "fail"), ("clean", "g", "pass"), decision="reject")
+        boom = SystemExit("godot failed (134); see runs/x/sam-on/replay/godot.log")
+        for answers in ((rejected, boom, boom), (rejected, RuntimeError("tool"))):
+            with self.subTest(answers=len(answers)):
+                row = self.run_pair(*answers, force=True)
+                self.assertEqual((row["outcome"], row["caught"]), ("caught-cheap", "sam-off"))
+                self.assertTrue(row["samArmFailed"])
+
+    def test_a_sam_replay_that_dies_after_a_cheap_accept_is_not_the_cases_crash(self):
+        boom = SystemExit("godot failed (134); see runs/x/sam-on/replay/godot.log")
+        row = self.run_pair(CHEAP_PASS, boom, boom)
+        self.assertEqual((row["outcome"], row["finding"]), ("undecided", False))
+
+    def test_a_good_case_that_passes_is_no_finding(self):
+        row = self.run_pair(CHEAP_PASS, SAM_PASS, operator="comment-only", case="dev/sinking/v1")
+        self.assertEqual((row["outcome"], row["finding"]), ("survived", False))
+        self.assertFalse((self.out / "dev_sinking_v1+comment-only" / "finding.json").exists())
 
     def test_a_patch_that_will_not_apply_is_tooling(self):
-        row = self.run_pair(subprocess.CalledProcessError(1, ["patch"]))
-        self.assertEqual(row["outcome"], "error")
+        row = self.run_pair(subprocess.CalledProcessError(1, ["patch"]),
+                            verification(("gameplay", "m", "fail"), ("clean", "g", "pass"), decision="reject"))
+        self.assertEqual((row["outcome"], row["arms"]), ("error", {}))  # not retried as a flake
 
     def test_a_tool_error_fails_the_job_and_a_crash_does_not(self):
         for outcome, code in (("error", 1), ("crash", 0), ("survived", 0), ("undecided", 0)):
@@ -206,7 +280,9 @@ class OutcomeTest(Base):
         self.assertTrue((self.out / "dev_sinking_v2+hide" / "result.json").is_file())
 
     def test_a_survivor_gets_its_catch_spec(self):
-        self.run_pair(CHEAP_PASS, SAM_PASS, operator="comment-only", case="dev/sinking/v1")
+        with mock.patch.object(mb, "verify", side_effect=lambda r, c, out, **k: (out.mkdir(parents=True, exist_ok=True),
+                                                                                  CHEAP_PASS)[1]):
+            mb.run_case("dev/sinking/v1", "comment-only", self.out, prereg=prereg(commentOnlyLabel="bad"))
         work = self.out / "dev_sinking_v1+comment-only"
         self.assertEqual(json.loads((work / "finding.json").read_text())["catchSpec"]["id"], "comment-only-delta")
         self.assertEqual(json.loads((work / "catch-spec.json").read_text())["id"], "comment-only-delta")
@@ -223,9 +299,24 @@ class OutcomeTest(Base):
         self.assertIn("public checks only", str(ctx.exception))
 
     def test_nothing_is_judged_before_the_pre_registration_is_complete(self):
-        self.assertTrue(mutate_game.missing_decisions(json.loads(mutate_game.PREREGISTRATION.read_text())))
-        with mock.patch.object(mb, "verify", side_effect=AssertionError("judged too early")):
+        draft = self.out / "draft.json"
+        draft.write_text(json.dumps({"generator": {"seed": 1}}))
+        with mock.patch.object(mutate_game, "PREREGISTRATION", draft), \
+                mock.patch.object(mb, "verify", side_effect=AssertionError("judged too early")):
             self.assertEqual(mb.main(["--case", "dev/sinking/v1", "--operator", "hide", "--out", str(self.out)]), 2)
+
+    def test_the_dry_run_needs_no_pre_registration_and_never_asks_sam(self):
+        rejected = verification(("gameplay", "m", "fail"), ("clean", "g", "pass"), decision="reject")
+        with mock.patch.object(mb, "verify", side_effect=lambda r, c, out, **k: (out.mkdir(parents=True, exist_ok=True),
+                                                                                  rejected)[1]):
+            self.assertEqual(mb.main(["--dry-run", "--out", str(self.out)]), 0)
+        self.check.assert_not_called()
+
+    def test_a_dry_run_that_passes_the_cheap_tier_still_never_asks_sam(self):
+        with mock.patch.object(mb, "verify", side_effect=lambda r, c, out, **k: (out.mkdir(parents=True, exist_ok=True),
+                                                                                  CHEAP_PASS)[1]):
+            self.assertEqual(mb.main(["--dry-run", "--out", str(self.out)]), 0)
+        self.check.assert_not_called()
 
 
 class NoopTest(Base):
@@ -261,6 +352,9 @@ class AgreementTest(Base):
 
     def test_gameplay_alone_is_not_agreement(self):
         """Both arms share the gameplay check, so counting it would make every row agree."""
+        self.assertEqual(mb.own_results(verification(("regression", "player-stays-above-ground", "fail"),
+                                                     ("regression", "coins-visible", "pass"), ("gameplay", "m", "fail"),
+                                                     ("clean", "g", "fail"))), {"coins-visible": "pass"})
         sam = verification(("regression", "player-always-visible", "pass"), ("gameplay", "motion", "fail"),
                            ("clean", "g", "pass"), decision="reject")
         self.assertEqual(self.run_pair(self.rejected(), sam, force=True)["agreement"], "disagree")
@@ -291,7 +385,7 @@ class MutantTest(Base):
         left = list(answers) or [CHEAP_PASS]
 
         def fake_verify(request, candidate, out, **kwargs):
-            calls.append(request)
+            calls.append((request, candidate))
             out.mkdir(parents=True, exist_ok=True)
             return left.pop(0)
 
@@ -308,11 +402,10 @@ class MutantTest(Base):
 
     def test_a_mutant_outside_the_editable_files_is_the_seed_never_the_candidate(self):
         row, calls = self.run_mutant(frames=["11"] * 120)
-        request = calls[0]
+        request, candidate = calls[0]
         self.assertTrue(request["base"]["patch"].endswith("mutant.patch"))
-        self.assertFalse(mb.mutate_game.CODE_FILES[1] in request["editable"])
-        work = self.out / mb._safe(self.ID)
-        self.assertEqual((work / "empty.patch").read_text(), "")
+        self.assertEqual(candidate.name, "empty.patch")  # the verifier's editable gate cannot judge it
+        self.assertEqual(candidate.read_text(), "")
         self.assertEqual(row["outcome"], "awaiting-sam")
 
     def test_no_visible_difference_is_dropped_with_its_reason_and_never_judged(self):
@@ -335,6 +428,31 @@ class MutantTest(Base):
         self.assertEqual(row["engineRecord"]["enemies-stay-up"], "fail")
         self.assertEqual(row["outcome"], "caught-cheap")
 
+    def test_a_game_that_runs_but_never_loads_a_player_is_a_crash_not_a_catch(self):
+        row, calls = self.run_mutant(frames=["11"] * 120, trace_extra=dict(TRACE, rows=[{"tick": 0}]))
+        self.assertEqual(row["outcome"], "crash")
+        self.assertEqual(calls, [])
+
+    def test_a_mutant_that_will_not_import_twice_is_a_crash(self):
+        def harness(route, out, patch=None, patches=None, **kwargs):
+            if patches:
+                raise subprocess.CalledProcessError(1, ["godot", "--headless", "--path", "x/mutant/work", "--import"])
+            fake_harness(route, out)
+
+        with mock.patch.object(mb, "harness_run", harness):
+            row = mb.run_mutant(self.ID, "cheap", self.out, prereg=prereg(), manifest=self.MANIFEST)
+        self.assertEqual(row["outcome"], "crash")
+
+    def test_an_engine_record_catch_stands_in_the_sam_phase(self):
+        bad = dict(TRACE, rows=[dict(r, enemies=[[1, 10.0, 100.0 + r["tick"]]]) for r in ROWS])
+        row, _ = self.run_mutant(frames=["11"] * 120, tier="sam", answers=[CHEAP_PASS, SAM_PASS], trace_extra=bad)
+        self.assertEqual(row["outcome"], "caught-cheap")
+
+    def test_an_edited_manifest_is_refused(self):
+        with mock.patch.object(mb.mutate_game, "load_manifest", side_effect=mutate_game.PreregistrationError("edited")), \
+                self.assertRaises(mutate_game.PreregistrationError):
+            mb.run_mutant(self.ID, "cheap", self.out, prereg=prereg())
+
     def test_a_mutant_that_crashes_twice_is_its_own_category(self):
         def harness(route, out, patch=None, patches=None, **kwargs):
             if patches:
@@ -350,7 +468,8 @@ class SummaryTest(Base):
     def write(self, name, **row):
         d = self.out / name
         d.mkdir()
-        (d / "result.json").write_text(json.dumps({"format": mb.FORMAT, "label": "bad", **row}))
+        (d / "result.json").write_text(json.dumps({"format": mb.FORMAT, "label": "bad",
+                                                   "preregistrationSha256": "ab", **row}))
 
     def test_denominators_reconcile_and_undecided_is_outside_the_score(self):
         for i, outcome in enumerate(("caught-cheap", "caught-sam", "survived", "undecided", "crash", "error")):
@@ -378,7 +497,7 @@ class SummaryTest(Base):
         self.write("a", kind="mutant", id="m", tier="cheap", outcome="awaiting-sam")
         self.write("b", kind="mutant", id="m", tier="sam", outcome="caught-sam")
         doc = mb.summarize(self.out)
-        self.assertEqual((doc["cases"], doc["caught-sam"], doc["awaitingSam"]), (1, 1, 0))
+        self.assertEqual((doc["cases"], doc["caught-sam"], doc["awaiting-sam"]), (1, 1, 0))
 
     def test_equivalents_are_listed_with_reasons_and_outside_the_cases(self):
         self.write("a", kind="mutant", id="m", outcome="equivalent", dropReason="no difference")
@@ -389,8 +508,78 @@ class SummaryTest(Base):
     def test_sam_images_are_split_by_why_they_were_spent(self):
         self.write("a", id="m1", outcome="caught-sam", samImages=100, arms={"sam": {"samImages": 100}})
         self.write("b", id="m2", outcome="caught-cheap", agreement="agree", samImages=40, arms={"sam": {"samImages": 40}})
+        (self.out / "sam-warm.json").write_text(json.dumps({"samImages": 233}))
         s = mb.summarize(self.out)["samImages"]
-        self.assertEqual((s["spent"], s["tiered"], s["agreementOnly"]), (140, 100, 40))
+        self.assertEqual((s["spent"], s["tiered"], s["agreementOnly"], s["warm"]), (140, 100, 40, 233))
+        self.assertEqual((s["fullRun"], s["fullRunCases"], s["ofCases"], s["probes"]), (140, 2, 2, 0))
+
+    def test_results_from_two_registrations_are_refused(self):
+        self.write("a", case="c", operator="hide", outcome="survived")
+        self.write("b", case="d", operator="hide", outcome="survived", preregistrationSha256="cd")
+        with self.assertRaises(SystemExit) as caught:
+            mb.summarize(self.out)
+        self.assertIn("2 different registrations", str(caught.exception))
+
+    def test_a_dry_run_row_cannot_mix_in(self):
+        self.write("a", case="c", operator="hide", outcome="survived")
+        self.write("b", case="d", operator="hide", outcome="survived", preregistrationSha256=None)
+        with self.assertRaises(SystemExit):
+            mb.summarize(self.out)
+
+    def test_the_summary_names_its_registration(self):
+        self.write("a", case="c", operator="hide", outcome="survived")
+        doc = mb.summarize(self.out)
+        self.assertEqual(doc["preregistrationSha256"], "ab")
+        self.assertIn("Registration `ab`", mb.markdown(doc))
+
+    def test_the_cheap_tier_score_counts_only_cheap_catches(self):
+        self.write("a", case="c", operator="hide", outcome="caught-cheap")
+        self.write("b", case="d", operator="hide", outcome="caught-sam")
+        doc = mb.summarize(self.out)
+        self.assertEqual((doc["score"], doc["cheapTierScore"]), (1.0, 0.5))
+
+    def test_each_operator_shows_tiered_and_full_run_images(self):
+        self.write("a", case="c", operator="hide", outcome="caught-sam", arms={"sam": {"samImages": 100}})
+        self.write("b", case="d", operator="hide", outcome="caught-cheap", agreement="agree",
+                   arms={"sam": {"samImages": 40}})
+        hide = mb.summarize(self.out)["byOperator"]["hide"]
+        self.assertEqual((hide["samImagesTiered"], hide["samImagesFullRun"]), (100, 140))
+
+    def test_a_probe_image_is_accounted_for(self):
+        self.write("a", id="m1", outcome="caught-cheap", samImages=1)
+        self.assertEqual(mb.summarize(self.out)["samImages"]["probes"], 1)
+
+    def test_a_good_label_is_never_a_blind_spot_or_a_win(self):
+        self.write("a", case="c", operator="comment-only", outcome="survived", label="good")
+        self.write("b", case="d", operator="comment-only", outcome="caught-sam", label="good")
+        doc = mb.summarize(self.out)
+        self.assertEqual((doc["blindSpots"], doc["visionOnlyWins"], doc["goodAccepted"]), ([], [], 1))
+
+    def test_each_operator_reports_its_images_and_each_check_its_catches(self):
+        arms = {"cheap": {"failedChecks": ["gameplay/motion"]}, "sam": {"failedChecks": ["regression/coins-visible"]}}
+        self.write("a", case="c", operator="hide", outcome="caught-cheap", samImages=9, arms=arms,
+                   engineRecord={"fire-rate": "fail", "jump-height": "pass"})
+        doc = mb.summarize(self.out)
+        self.assertEqual(doc["byOperator"]["hide"]["samImages"], 9)
+        self.assertEqual(doc["byCheck"], {"cheap gameplay/motion": 1, "engine-record fire-rate": 1,
+                                          "sam regression/coins-visible": 1})
+        self.assertEqual(doc["cheapTierScore"], 1.0)
+        self.assertIn("## Which checks catch what", mb.markdown(doc))
+
+    def test_outcomes_reconcile_in_a_partial_run(self):
+        self.write("a", kind="mutant", id="m1", outcome="awaiting-sam")
+        self.write("b", kind="mutant", id="m2", outcome="caught-cheap")
+        doc = mb.summarize(self.out)
+        self.assertEqual(sum(doc[o] for o in mb.OUTCOMES), doc["cases"])
+
+    def test_the_sample_reconciles_against_the_manifest(self):
+        manifest = self.out / "manifest.json"
+        manifest.write_text(json.dumps({"mutants": [{"id": "m1"}, {"id": "m2"}, {"id": "m3"}]}))
+        self.write("a", kind="mutant", id="m1", outcome="caught-cheap")
+        self.write("b", kind="mutant", id="m2", outcome="equivalent", dropReason="x")
+        with mock.patch.object(mb, "MANIFEST", manifest):
+            r = mb.summarize(self.out)["reconciliation"]
+        self.assertEqual(r, {"sampled": 3, "judged": 1, "equivalent": 1, "missing": ["m3"]})
 
     def test_the_report_renders(self):
         self.write("a", case="c", operator="hide", outcome="survived")
@@ -426,11 +615,20 @@ class WorkflowTest(unittest.TestCase):
         self.assertNotIn("Nightshift-heldout", text)
         self.assertNotIn("HELDOUT_TOKEN", text)
 
-    def test_the_plan_refuses_an_incomplete_pre_registration(self):
-        self.assertIn("load_preregistration", str(self.doc["jobs"]["plan"]["steps"]))
+    def test_the_plan_refuses_an_incomplete_pre_registration_and_any_branch(self):
+        steps = str(self.doc["jobs"]["plan"]["steps"])
+        self.assertIn("load_preregistration", steps)
+        self.assertIn("load_manifest(prereg, MANIFEST)", steps)
+        self.assertIn("refs/heads/main", steps)
 
-    def test_the_cheap_phase_holds_no_key(self):
-        self.assertIn("generated-cheap", self.doc["jobs"]["run"]["env"]["MODEL_API_KEY"])
+    def test_only_the_dry_run_skips_that_gate(self):
+        gate = next(s for s in self.doc["jobs"]["plan"]["steps"] if "load_preregistration" in str(s))
+        self.assertEqual(gate["if"], "inputs.mode != 'dry-run'")
+
+    def test_only_the_phases_that_ask_sam_hold_the_key(self):
+        key = self.doc["jobs"]["run"]["env"]["MODEL_API_KEY"]
+        self.assertIn("inputs.mode == 'wrong-fix' || inputs.mode == 'generated-sam'", key)
+        self.assertNotIn("dry-run", key)
 
     def test_results_keep_the_trace(self):
         self.assertIn("trace.json", str(self.doc["jobs"]["run"]["steps"]))

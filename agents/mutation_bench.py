@@ -19,6 +19,7 @@ Every case ends in exactly one outcome, and only a rejection is a catch:
   undecided                 a check needs review, SAM did not answer, or a control is not to be trusted
   crash                     the case's own game failed to load or run, twice
   error                     the tooling failed; this says nothing about the case
+  awaiting-sam              a mutant the cheap phase passed, before its SAM phase
 
 Public decision: the verifier's held-out arm is left out. Without the private set it is a constant
 fixture with SAM off and a forced needs-review with SAM on, so counting it would make every SAM-off
@@ -32,6 +33,10 @@ Nothing is judged until bench/mutation/preregistration.json is complete, and eve
     python3 -m agents.mutation_bench --mutant "<id>" --tier sam --out runs/generated [--force-sam]
     python3 -m agents.mutation_bench --plan-sam runs/generated
     python3 -m agents.mutation_bench --summarize runs/mutation
+    python3 -m agents.mutation_bench --dry-run --out runs/dry    # the plumbing: no pre-registration, no SAM, no result
+
+To report both phases of Part 2 together, download each run's artifacts into its own folder under one
+parent and summarize the parent: a mutant judged in both phases counts once, as its SAM phase.
 """
 from __future__ import annotations
 
@@ -66,8 +71,10 @@ HELDOUT_ENV = "EXPECTRAIL_HELDOUT_DIR"
 MANIFEST = REPO / "bench" / "mutation" / "generated" / "manifest.json"
 
 OPERATORS = ("hide", "sink", "freeze", "scale-to-zero", "behind-scenery", "comment-only")
-OUTCOMES = ("caught-cheap", "caught-sam", "survived", "undecided", "crash", "error")
+OUTCOMES = ("caught-cheap", "caught-sam", "survived", "undecided", "crash", "error", "awaiting-sam")
 CAUGHT = ("caught-cheap", "caught-sam")
+GROUND_SPEC = "player-stays-above-ground"
+DRY_RUN = ("dev/physics-fall-through/v1", "freeze")
 
 # Spec that would catch the operator when public checks miss it (finding publish target).
 CATCH_SPECS = {
@@ -159,22 +166,34 @@ def public_decision(verification: dict) -> str:
 
     A rejection needs a check that ran and failed. A candidate turned back at the verifier's door
     (the editable-file or base-tree gate) judged nothing, so it is needs-review here, never a catch.
-    A clean control that did not come from a real replay of the clean game is not to be trusted.
+    A clean control says nothing about the case: one that did not come from a real replay of the
+    clean game, or that did not pass there, means the judge cannot be trusted on this run. It is
+    needs-review, never a catch, whatever the case's own checks said.
     """
     suite = verification.get("suite") or {}
     if suite.get("earlyReject"):
         return "needs-review"
+    if (suite.get("clean") or {}).get("source") != "harness":
+        return "needs-review"
     checks = [c for c in verification.get("checks") or [] if c.get("kind") != "held-out"]
-    if not checks or (suite.get("clean") or {}).get("source") != "harness":
+    if not checks or any(c["result"] != "pass" for c in checks if c.get("kind") == "clean"):
         return "needs-review"
     if any(c["result"] == "fail" for c in checks):
         return "reject"
     return "needs-review" if any(c["result"] != "pass" for c in checks) else "accept"
 
 
-def own_results(verification: dict) -> list[str]:
-    """What the vision checks alone said about this game: gameplay and the controls are left out."""
-    return [c["result"] for c in verification.get("checks") or [] if c.get("kind") == "regression"]
+def own_results(verification: dict) -> dict[str, str]:
+    """What SAM alone said about this game, spec by spec. The ground check is left out as well as
+    gameplay and the controls: its line comes from the engine, so it would agree with the engine."""
+    return {c["spec"]: c["result"] for c in verification.get("checks") or []
+            if c.get("kind") == "regression" and c.get("spec") != GROUND_SPEC}
+
+
+def failed_checks(verification: dict) -> list[str]:
+    """Which public checks failed on the case, for "which checks catch what"."""
+    return sorted({f"{c['kind']}/{c['spec']}" for c in verification.get("checks") or []
+                   if c.get("result") == "fail" and c.get("kind") not in ("held-out", "clean")})
 
 
 def agreement(cheap_caught: bool, sam_arm: dict | None) -> str | None:
@@ -182,17 +201,21 @@ def agreement(cheap_caught: bool, sam_arm: dict | None) -> str | None:
     tier: SAM could never have overturned that rejection."""
     if not cheap_caught or sam_arm is None:
         return None
-    results = sam_arm["ownResults"]
+    results = list(sam_arm["ownResults"].values())
     if "fail" in results:
         return "agree"
     return "disagree" if results and all(r == "pass" for r in results) else "undecided"
 
 
 def _replay_failed(exc: BaseException) -> bool:
-    """True when the case's own replay is what failed: not the clean game's, and not the tooling's."""
+    """True when the case's own replay is what failed: not the clean game's, and not the tooling's.
+    A Godot import that fails is the game failing to load; a patch that fails is the tooling."""
     text = str(exc)
-    return (isinstance(exc, SystemExit) and text.startswith("godot ") and "level-reference" not in text
-            and "clean-replay" not in text)
+    if "level-reference" in text or "clean-replay" in text:
+        return False
+    if isinstance(exc, subprocess.CalledProcessError):
+        return "--import" in exc.cmd
+    return isinstance(exc, SystemExit) and text.startswith("godot ")
 
 
 def _arm(request: dict, candidate: Path, out: Path, name: str, prov: str) -> dict:
@@ -205,7 +228,7 @@ def _arm(request: dict, candidate: Path, out: Path, name: str, prov: str) -> dic
             with provider(prov):
                 verification = verify(request, candidate, out / (name if attempt == 1 else f"{name}-retry"))
             break
-        except SystemExit as exc:
+        except (SystemExit, subprocess.CalledProcessError) as exc:
             if not _replay_failed(exc):
                 raise
             if attempt == 2:
@@ -217,6 +240,7 @@ def _arm(request: dict, candidate: Path, out: Path, name: str, prov: str) -> dic
         reasons=list(dict.fromkeys(r.split(" on ")[0] for r in verification.get("reasons") or []
                                    if "held-out" not in r))[:6],
         ownResults=own_results(verification),
+        failedChecks=failed_checks(verification),
         cleanSource=((verification.get("suite") or {}).get("clean") or {}).get("source"),
         samImages=sam_images_since(before),
     )
@@ -224,8 +248,9 @@ def _arm(request: dict, candidate: Path, out: Path, name: str, prov: str) -> dic
 
 
 def judge_tiers(request: dict, candidate: Path, work: Path, row: dict, *, force_sam: bool = False,
-                cheap: dict | None = None, extra_catch: bool = False) -> None:
-    """The tier, on one case. Writes the outcome into ``row``; a replay that fails raises CaseCrashed.
+                cheap: dict | None = None, extra_catch: bool = False, cheap_only: bool = False) -> None:
+    """The tier, on one case. Writes the outcome into ``row``. A cheap replay that fails raises
+    CaseCrashed. Once the cheap tier has answered, a failure in the SAM arm never erases that answer.
 
     ``cheap`` is a cheap arm already judged, and ``extra_catch`` a cheap check outside the verifier
     that failed (the engine-record checks).
@@ -240,7 +265,9 @@ def judge_tiers(request: dict, candidate: Path, work: Path, row: dict, *, force_
     elif cheap["decision"] != "accept":
         row["outcome"] = "undecided"
         row["undecidedWhy"] = "the cheap tier could not decide"
-    if row.get("outcome") and not (caught and force_sam):
+    if cheap_only and not row.get("outcome"):
+        row["outcome"] = "awaiting-sam"
+    if cheap_only or (row.get("outcome") and not (caught and force_sam)):
         return
     with provider("sam"):
         problem = sam_health.check()
@@ -250,7 +277,20 @@ def judge_tiers(request: dict, candidate: Path, work: Path, row: dict, *, force_
             row["outcome"] = "undecided"
             row["undecidedWhy"] = sam_health.reason(problem)
         return
-    sam = _arm(request, candidate, work, "sam-on", "sam")
+    try:
+        sam = _arm(request, candidate, work, "sam-on", "sam")
+    except CaseCrashed as exc:
+        # The cheap replay of this same game ran, so a dead SAM replay is not the case's own crash.
+        row["samArmFailed"] = str(exc)[:300]
+        if not caught:
+            row["outcome"] = "undecided"
+            row["undecidedWhy"] = "the SAM arm's replay failed twice, though the cheap arm's ran"
+        return
+    except (Exception, SystemExit) as exc:  # noqa: BLE001
+        if not caught:
+            raise
+        row["samArmFailed"] = f"{type(exc).__name__}: {exc}"[:300]
+        return
     arms["sam"] = sam
     row["agreement"] = agreement(caught, sam)
     if caught:
@@ -266,7 +306,8 @@ def judge_tiers(request: dict, candidate: Path, work: Path, row: dict, *, force_
 
 def _finish(row: dict, work: Path, t0: float, images: dict) -> dict:
     row.setdefault("outcome", "error")
-    row["finding"] = row["outcome"] == "survived"
+    # A good case that passes is the checker being right, not a miss.
+    row["finding"] = row["outcome"] == "survived" and row.get("label") == "bad"
     row["caught"] = {"caught-cheap": "sam-off", "caught-sam": "sam-on"}.get(row["outcome"])
     row["samImages"] = sam_images_since(images)
     row["wallClockSeconds"] = round(time.perf_counter() - t0, 1)
@@ -291,7 +332,8 @@ def _record_failure(row: dict, work: Path, exc: BaseException) -> None:
     row["error"] = f"{type(exc).__name__}: {exc}"[:300]
 
 
-def run_case(case: str, operator: str, out: Path, *, prereg: dict | None = None, force_sam: bool = False) -> dict:
+def run_case(case: str, operator: str, out: Path, *, prereg: dict | None = None, force_sam: bool = False,
+             cheap_only: bool = False) -> dict:
     """Correct fix + operator, through the tier. A survivor is a finding, not a failure."""
     _public_only()
     if case not in dev_variants():
@@ -314,8 +356,8 @@ def run_case(case: str, operator: str, out: Path, *, prereg: dict | None = None,
         row["noop"] = not candidate.read_text(encoding="utf-8").strip()  # the operator re-creates the bug
         request = _request(f"rr-mutation-{case.replace('/', '-')}-{operator}", case_spec(case),
                            str(bug.relative_to(REPO)))
-        judge_tiers(request, candidate, work, row, force_sam=force_sam)
-        if row.get("outcome") == "survived":
+        judge_tiers(request, candidate, work, row, force_sam=force_sam, cheap_only=cheap_only)
+        if row.get("outcome") == "survived" and row["label"] == "bad":
             _write_finding(work, row, operator)
     except (Exception, SystemExit) as exc:  # noqa: BLE001
         _record_failure(row, work, exc)
@@ -355,7 +397,7 @@ def run_mutant(mutant_id: str, tier: str, out: Path, *, prereg: dict | None = No
     checks. ``sam``: the second phase, for what the cheap tier left and the agreement sample."""
     _public_only()
     prereg = prereg or mutate_game.load_preregistration()
-    manifest = manifest or json.loads(MANIFEST.read_text(encoding="utf-8"))
+    manifest = manifest or mutate_game.load_manifest(prereg, MANIFEST)
     mutant = mutate_game.mutant_by_id(manifest, mutant_id)
     work = out / _safe(mutant_id)
     work.mkdir(parents=True, exist_ok=True)
@@ -371,6 +413,8 @@ def run_mutant(mutant_id: str, tier: str, out: Path, *, prereg: dict | None = No
         request = _request(f"rr-mutant-{_safe(mutant_id)}"[:80], load(REGRESSION_SPEC, "test-spec"), str(patch.resolve()))
         clean_trace, clean_frames = _render_replay(SMOKE_ROUTE, work / "clean", [])
         trace, frames = _render_mutant(work, patch)
+        if not any(r.get("player") for r in trace.get("rows") or []):
+            raise CaseCrashed("the game ran but its scene never loaded a player")
         row["oracle"] = mutate_game.oracle(clean_trace, clean_frames, trace, frames, prereg["oracle"])
         row["category"] = row["oracle"]["category"]
         if row["category"] == "equivalent":
@@ -399,7 +443,7 @@ def _render_mutant(work: Path, patch: Path) -> tuple[dict, list[str]]:
     for name in ("mutant", "mutant-retry"):
         try:
             return _render_replay(SMOKE_ROUTE, work / name, [patch])
-        except SystemExit as exc:
+        except (SystemExit, subprocess.CalledProcessError) as exc:
             if not _replay_failed(exc):
                 raise
             failure = exc
@@ -437,48 +481,87 @@ def _rows(out: Path) -> list[dict]:
     return [r for r in rows if not (r.get("id") in second and r.get("tier") == "cheap")]
 
 
+def _sam_arm_images(row: dict) -> int:
+    return ((row.get("arms") or {}).get("sam") or {}).get("samImages") or 0
+
+
+def _name(row: dict) -> str:
+    return row.get("id") or f"{row['case']} {row['operator']}"
+
+
 def _tally(rows: list[dict]) -> dict:
     counts = {o: sum(r.get("outcome") == o for r in rows) for o in OUTCOMES}
     bad = [r for r in rows if r.get("label") == "bad"]
     caught = sum(r.get("outcome") in CAUGHT for r in bad)
+    cheap = sum(r.get("outcome") == "caught-cheap" for r in bad)
     survived = sum(r.get("outcome") == "survived" for r in bad)
+    decided = caught + survived
     return {"cases": len(rows), **counts, "badCaught": caught, "badSurvived": survived,
-            "score": round(caught / (caught + survived), 4) if caught + survived else None}
+            "score": round(caught / decided, 4) if decided else None,
+            "cheapTierScore": round(cheap / decided, 4) if decided else None,
+            "samImages": sum(int(r.get("samImages") or 0) for r in rows),
+            "samImagesTiered": sum(_sam_arm_images(r) for r in rows if not r.get("agreement")),
+            "samImagesFullRun": sum(_sam_arm_images(r) for r in rows)}
+
+
+def _by_check(rows: list[dict]) -> dict:
+    """How many cases each check failed on, in each tier: which checks catch what."""
+    counts: dict[str, int] = {}
+    for r in rows:
+        arms = r.get("arms") or {}
+        names = [f"cheap {c}" for c in (arms.get("cheap") or {}).get("failedChecks") or []]
+        names += [f"sam {c}" for c in (arms.get("sam") or {}).get("failedChecks") or []]
+        names += [f"engine-record {k}" for k, v in (r.get("engineRecord") or {}).items() if v == "fail"]
+        for name in names:
+            counts[name] = counts.get(name, 0) + 1
+    return dict(sorted(counts.items()))
 
 
 def summarize(out: Path) -> dict:
     rows = _rows(out)
+    registrations = {r.get("preregistrationSha256") for r in rows}
+    if len(registrations) > 1:
+        raise SystemExit(f"{out}: these results come from {len(registrations)} different registrations, so they "
+                         "cannot be reported as one result")
     finals = [r for r in rows if r.get("outcome") != "equivalent"]
+    bad = [r for r in finals if r.get("label") == "bad"]
     by = lambda key: {k: _tally([r for r in finals if r.get(key) == k])  # noqa: E731
                       for k in sorted({r.get(key) for r in finals if r.get(key)})}
     agreed = [r for r in finals if r.get("agreement")]
-    arm_images = lambda r, name: ((r.get("arms") or {}).get(name) or {}).get("samImages") or 0  # noqa: E731
+    warm = [json.loads(p.read_text(encoding="utf-8")) for p in sorted(Path(out).rglob("sam-warm.json"))]
+    spent = sum(int(r.get("samImages") or 0) for r in rows)
+    tiered = sum(_sam_arm_images(r) for r in finals if not r.get("agreement"))
+    agreement_only = sum(_sam_arm_images(r) for r in agreed)
+    with_sam = [r for r in finals if _sam_arm_images(r)]
     doc = {
         "format": FORMAT + "-summary",
+        "preregistrationSha256": next(iter(registrations), None),
         **_tally(finals),
         "equivalentDropped": [{"id": r["id"], "reason": r.get("dropReason")}
                               for r in rows if r.get("outcome") == "equivalent"],
-        "awaitingSam": sum(r.get("outcome") == "awaiting-sam" for r in rows),
         "unlabelled": sum(r.get("label") not in ("bad", "good") for r in finals),
         "noopCandidates": sum(bool(r.get("noop")) for r in finals),
-        "byOperator": by("operator"), "byCase": by("case"), "byClass": by("class"),
-        "visionOnlyWins": [r.get("id") or f"{r['case']} {r['operator']}" for r in finals
-                           if r.get("outcome") == "caught-sam"],
-        "blindSpots": [r.get("id") or f"{r['case']} {r['operator']}" for r in finals if r.get("outcome") == "survived"],
-        "falseRejects": [r.get("id") or f"{r['case']} {r['operator']}" for r in finals
-                         if r.get("label") == "good" and r.get("outcome") in CAUGHT],
+        "byOperator": by("operator"), "byCase": by("case"), "byClass": by("class"), "byCheck": _by_check(finals),
+        "visionOnlyWins": [_name(r) for r in bad if r.get("outcome") == "caught-sam"],
+        "blindSpots": [_name(r) for r in bad if r.get("outcome") == "survived"],
+        "goodAccepted": sum(r.get("label") == "good" and r.get("outcome") == "survived" for r in finals),
+        "falseRejects": [_name(r) for r in finals if r.get("label") == "good" and r.get("outcome") in CAUGHT],
         "agreement": {"checked": len(agreed), "agree": sum(r["agreement"] == "agree" for r in agreed),
                       "disagree": sum(r["agreement"] == "disagree" for r in agreed),
                       "undecided": sum(r["agreement"] == "undecided" for r in agreed),
-                      "disagreements": [r.get("id") or f"{r['case']} {r['operator']}" for r in agreed
-                                        if r["agreement"] == "disagree"]},
-        # Tiered: SAM only on what the cheap tier passed. Full: SAM on all, which only cases that
-        # went through --force-sam can show, so it is a sum over those and says how many.
-        "samImages": {"spent": sum(int(r.get("samImages") or 0) for r in finals),
-                      "tiered": sum(arm_images(r, "sam") for r in finals if not r.get("agreement")),
-                      "agreementOnly": sum(arm_images(r, "sam") for r in agreed)},
+                      "disagreements": [_name(r) for r in agreed if r["agreement"] == "disagree"]},
+        # A full SAM run is only measured on cases SAM saw, so the figure says how many that is.
+        "samImages": {"spent": spent, "tiered": tiered, "agreementOnly": agreement_only,
+                      "probes": spent - tiered - agreement_only,
+                      "warm": sum(int(w.get("samImages") or 0) for w in warm),
+                      "fullRun": tiered + agreement_only, "fullRunCases": len(with_sam), "ofCases": len(finals)},
         "rows": rows,
     }
+    if MANIFEST.is_file() and any(r.get("kind") == "mutant" for r in rows):
+        sampled = [m["id"] for m in json.loads(MANIFEST.read_text(encoding="utf-8"))["mutants"]]
+        doc["reconciliation"] = {"sampled": len(sampled), "judged": len(finals),
+                                 "equivalent": len(doc["equivalentDropped"]),
+                                 "missing": sorted(set(sampled) - {r.get("id") for r in rows})}
     (Path(out) / "mutation-summary.json").write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
     return doc
 
@@ -487,21 +570,30 @@ def markdown(doc: dict) -> str:
     score = "not yet" if doc["score"] is None else f"{doc['score']:.1%}"
     lines = ["# Mutation bench", "",
              "Public checks only. A survivor is a finding, not a CI failure. Only a check that ran and failed "
-             "counts as a catch.", "",
+             f"counts as a catch. Registration `{doc['preregistrationSha256']}`.", "",
              f"Mutation score: **{score}** ({doc['badCaught']} of {doc['badCaught'] + doc['badSurvived']} decided "
-             "bad cases caught).", "",
+             f"bad cases caught). Good cases accepted: {doc['goodAccepted']}.", "",
              "| Outcome | Cases |", "| --- | --- |"]
     lines += [f"| {o} | {doc[o]} |" for o in OUTCOMES]
     lines += ["", f"Unlabelled, left out of the score: {doc['unlabelled']}. No-op candidates: {doc['noopCandidates']}. "
-              f"Equivalent, dropped with a reason: {len(doc['equivalentDropped'])}. "
-              f"Still waiting for SAM: {doc['awaitingSam']}.", ""]
+              f"Equivalent, dropped with a reason: {len(doc['equivalentDropped'])}.", ""]
+    if doc.get("reconciliation"):
+        r = doc["reconciliation"]
+        lines += [f"Of {r['sampled']} sampled: {r['judged']} judged, {r['equivalent']} equivalent, "
+                  f"{len(r['missing'])} missing.", ""]
     for title, key in (("Per operator", "byOperator"), ("Per class", "byClass"), ("Per case", "byCase")):
         if doc[key]:
-            lines += [f"## {title}", "", "| | Caught, cheap | Caught, SAM only | Survived | Undecided | Crash | Error |",
-                      "| --- | --- | --- | --- | --- | --- | --- |"]
+            lines += [f"## {title}", "",
+                      "| | Caught, cheap | Caught, SAM only | Survived | Undecided | Crash | Error | "
+                      "SAM images, tiered | SAM images, full run |",
+                      "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
             lines += [f"| {k} | {t['caught-cheap']} | {t['caught-sam']} | {t['survived']} | {t['undecided']} | "
-                      f"{t['crash']} | {t['error']} |" for k, t in doc[key].items()]
+                      f"{t['crash']} | {t['error']} | {t['samImagesTiered']} | {t['samImagesFullRun']} |"
+                      for k, t in doc[key].items()]
             lines.append("")
+    if doc["byCheck"]:
+        lines += ["## Which checks catch what", "", "| Check | Cases it failed on |", "| --- | --- |"]
+        lines += [f"| {k} | {n} |" for k, n in doc["byCheck"].items()] + [""]
     a = doc["agreement"]
     lines += ["## Agreement with the cheap tier", "",
               f"{a['checked']} cheap rejections also judged by SAM's own checks: {a['agree']} agree, "
@@ -512,8 +604,10 @@ def markdown(doc: dict) -> str:
         if items:
             lines += [f"## {title}", ""] + [f"- {i}" for i in items] + [""]
     s = doc["samImages"]
-    lines += ["## SAM images", "", f"Spent {s['spent']}: {s['tiered']} on what the cheap tier passed, "
-              f"{s['agreementOnly']} on the agreement check."]
+    lines += ["## SAM images", "", f"Spent {s['spent'] + s['warm']}: {s['warm']} judging the clean game once, "
+              f"{s['tiered']} on what the cheap tier passed, {s['agreementOnly']} on the agreement check, "
+              f"{s['probes']} on the pre-run check. A full SAM run, measured on {s['fullRunCases']} of "
+              f"{s['ofCases']} cases: {s['fullRun']}."]
     return "\n".join(lines) + "\n"
 
 
@@ -527,6 +621,8 @@ def main(argv: list[str] | None = None) -> int:
     g.add_argument("--mutant", help="a mutant id from bench/mutation/generated/manifest.json")
     g.add_argument("--plan-sam", type=Path, help="the cheap phase's results: print what the SAM phase must judge")
     g.add_argument("--summarize", type=Path)
+    g.add_argument("--dry-run", action="store_true",
+                   help="one known pair, cheap tier only, to prove the plumbing; needs no pre-registration")
     p.add_argument("--operator", choices=OPERATORS, help="with --case")
     p.add_argument("--tier", choices=("cheap", "sam"), default="cheap", help="with --mutant")
     p.add_argument("--force-sam", action="store_true", help="also ask SAM about a cheap rejection (agreement table)")
@@ -541,6 +637,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.plan_sam:
         print(json.dumps(plan_sam(args.plan_sam, mutate_game.load_preregistration()), indent=2))
         return 0
+    if args.dry_run:
+        row = run_case(*DRY_RUN, args.out, prereg={"sha256": None, "wrongFix": {"commentOnlyLabel": None}}, cheap_only=True)
+        print(f"::notice title=Mutation dry run::{row['outcome']}; a test of the plumbing, never a result")
+        return 1 if row["outcome"] in ("error", "crash") else 0
     try:
         if args.mutant:
             row = run_mutant(args.mutant, args.tier, args.out, force_sam=args.force_sam)

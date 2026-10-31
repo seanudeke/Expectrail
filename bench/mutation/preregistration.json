@@ -27,7 +27,7 @@
   "agreement": {
     "seed": null,
     "minimum": null,
-    "definition": "SAM's own regression checks on a cheap rejection. Agree: one fails. Disagree: all pass. Gameplay and the controls are left out, since both arms share them."
+    "definition": "SAM's own checks (player-always-visible, coins-visible) on a cheap rejection. Agree: one fails. Disagree: all pass, so SAM saw nothing wrong and could never have overturned the rejection. Undecided: otherwise. Gameplay, the controls and the ground check are left out: both arms share the first two, and the ground line comes from the engine."
   },
   "retryRule": "A replay that fails is tried once more, and the retry is recorded. Failing twice is a crash of the case. Nothing is rerun because of how Expectrail did on it.",
   "reportTemplate": null,

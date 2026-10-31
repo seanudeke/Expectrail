@@ -8,9 +8,9 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "wrong-fix: Part 1. generated-cheap: Part 2, no SAM. generated-sam: Part 2, the mutants named below"
+        description: "dry-run: one known pair, no SAM and no pre-registration, to prove the plumbing; never a result. wrong-fix: Part 1. generated-cheap: Part 2, no SAM. generated-sam: Part 2, the mutants named below"
         type: choice
-        options: [wrong-fix, generated-cheap, generated-sam]
+        options: [dry-run, wrong-fix, generated-cheap, generated-sam]
         default: wrong-fix
       cases:
         description: wrong-fix only, comma-separated case ids (default all eight), e.g. dev/sinking/v2
@@ -49,8 +49,20 @@ jobs:
         with:
           python-version: '3.13'
       - run: python -m pip install -r requirements-dev.txt
-      - name: Refuse to plan before the pre-registration is complete
-        run: python -c "from agents.mutate_game import load_preregistration; load_preregistration()"
+      - name: Judge only from main, on a complete pre-registration
+        if: inputs.mode != 'dry-run'
+        env:
+          MODE: ${{ inputs.mode }}
+        run: |
+          [ "$GITHUB_REF" = "refs/heads/main" ] || { echo "::error::judged runs start from main, so nothing is judged before the pre-registration is merged (#127)"; exit 1; }
+          python - <<'PY'
+          import os
+          from agents.mutate_game import load_manifest, load_preregistration
+          from agents.mutation_bench import MANIFEST
+          prereg = load_preregistration()
+          if os.environ["MODE"] != "wrong-fix":
+              load_manifest(prereg, MANIFEST)
+          PY
       - name: Plan the cases
         id: plan
         env:
@@ -64,7 +76,9 @@ jobs:
           from agents.matrix import dev_variants
           from agents.mutation_bench import MANIFEST, OPERATORS
           split = lambda name: [x.strip() for x in os.environ[name].split(",") if x.strip()]
-          if os.environ["MODE"] == "wrong-fix":
+          if os.environ["MODE"] == "dry-run":
+              rows, bad = [{"case": "dry-run"}], []
+          elif os.environ["MODE"] == "wrong-fix":
               every_cases = sorted(dev_variants())
               cases, ops = split("CASES") or every_cases, split("OPERATORS") or list(OPERATORS)
               bad = sorted(set(cases) - set(every_cases)) + sorted(set(ops) - set(OPERATORS))
@@ -85,7 +99,7 @@ jobs:
   # Runs beside the plan; a job runs without it if it fails or is skipped.
   sam-warm:
     needs: plan
-    if: ${{ inputs.mode != 'generated-cheap' && inputs.sam_cache == 'shared' }}
+    if: ${{ (inputs.mode == 'wrong-fix' || inputs.mode == 'generated-sam') && inputs.sam_cache == 'shared' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -111,6 +125,11 @@ jobs:
           name: sam-cache
           path: runs/sam-warm/cache/
           retention-days: 1
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: mutation-warm
+          path: runs/sam-warm/sam-warm.json
+          retention-days: 14
 
   run:
     needs: [plan, sam-warm]
@@ -128,8 +147,8 @@ jobs:
       CASE: ${{ matrix.case }}
       OPERATOR: ${{ matrix.operator }}
       MUTANT: ${{ matrix.mutant }}
-      # The cheap phase never needs the key, so it never holds it.
-      MODEL_API_KEY: ${{ inputs.mode != 'generated-cheap' && secrets.MODEL_API_KEY || '' }}
+      # Only the phases that ask SAM hold the key.
+      MODEL_API_KEY: ${{ (inputs.mode == 'wrong-fix' || inputs.mode == 'generated-sam') && secrets.MODEL_API_KEY || '' }}
       # Public only: do not set EXPECTRAIL_HELDOUT_DIR.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -144,14 +163,14 @@ jobs:
       - name: Download Godot
         run: ./harness/get_godot.sh
       - name: Fetch this run's shared SAM answers
-        if: inputs.mode != 'generated-cheap' && inputs.sam_cache == 'shared'
+        if: (inputs.mode == 'wrong-fix' || inputs.mode == 'generated-sam') && inputs.sam_cache == 'shared'
         continue-on-error: true
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: sam-cache
           path: sam-cache
       - name: Restore them into the SAM cache
-        if: inputs.mode != 'generated-cheap' && inputs.sam_cache == 'shared'
+        if: (inputs.mode == 'wrong-fix' || inputs.mode == 'generated-sam') && inputs.sam_cache == 'shared'
         continue-on-error: true
         run: |
           [ -d sam-cache ] || { echo "::notice title=SAM shared cache::none for this run, so this job judges every frame itself"; exit 0; }
@@ -164,6 +183,7 @@ jobs:
           force=""; [ "$FORCE_SAM" = "on" ] && force="--force-sam"
           set +e
           case "$MODE" in
+            dry-run) python -m agents.mutation_bench --dry-run --out runs/mutation > mut.log 2>&1 ;;
             wrong-fix) python -m agents.mutation_bench --case "$CASE" --operator "$OPERATOR" $force --out runs/mutation > mut.log 2>&1 ;;
             generated-cheap) python -m agents.mutation_bench --mutant "$MUTANT" --tier cheap --out runs/mutation > mut.log 2>&1 ;;
             generated-sam) python -m agents.mutation_bench --mutant "$MUTANT" --tier sam $force --out runs/mutation > mut.log 2>&1 ;;
@@ -190,7 +210,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
-      DEST: bench/mutation/${{ inputs.mode == 'wrong-fix' && 'wrong-fix' || 'generated' }}
+      DEST: bench/mutation/${{ inputs.mode == 'dry-run' && 'dry-run' || inputs.mode == 'wrong-fix' && 'wrong-fix' || 'generated' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -206,11 +226,10 @@ jobs:
           merge-multiple: true
       - name: Summarize
         run: |
-          python -m agents.mutation_bench --summarize results/runs/mutation | tee -a "$GITHUB_STEP_SUMMARY"
-          mkdir -p "$DEST/findings"
-          cp results/runs/mutation/mutation-summary.json "$DEST/summary.json"
-          python -m agents.mutation_bench --summarize results/runs/mutation > "$DEST/README.md"
-          find results/runs/mutation -name finding.json -print | while read -r f; do
+          mkdir -p results "$DEST/findings"
+          python -m agents.mutation_bench --summarize results | tee -a "$GITHUB_STEP_SUMMARY" > "$DEST/README.md"
+          cp results/mutation-summary.json "$DEST/summary.json"
+          find results -name finding.json -print | while read -r f; do
             rel=${f#results/runs/mutation/}
             mkdir -p "$DEST/findings/$(dirname "$rel")"
             cp "$f" "$DEST/findings/$rel"
