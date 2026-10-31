@@ -191,6 +191,30 @@ def resolve_provider(name: str | None = None) -> str:
     return raw
 
 
+DRILL_ENV = "EXPECTRAIL_JUDGE_DRILL"
+
+
+def judge_drill() -> str | None:
+    """A judge-outage drill (docs/fallbacks.md): ``EXPECTRAIL_JUDGE_DRILL=sam-unavailable`` makes every
+    SAM request fail as an outage would, before any cache, so the judge ladder can be run end to end on
+    purpose. It touches SAM only (backends ``sam`` and ``both``); Glimmer checked against the engine
+    answers, or fails to, for real. Returns the outage message, or None when no drill is on."""
+    raw = os.environ.get(DRILL_ENV, "").strip().lower()
+    if not raw:
+        return None
+    if raw != "sam-unavailable":
+        raise SystemExit(f"{DRILL_ENV}={raw!r}: the only drill is sam-unavailable")
+    from agents.sam_observations import SamError, vision_backend
+
+    try:
+        backend = vision_backend()
+    except SamError:
+        backend = "sam"
+    if backend not in ("sam", "both"):
+        return None
+    return f"drill ({DRILL_ENV}=sam-unavailable): SAM made unavailable on purpose"
+
+
 def from_trace(
     trace: dict,
     replay_sha256: str = "0" * 64,
@@ -214,6 +238,9 @@ def from_trace(
         return from_trace_synthetic(
             trace, replay_sha256=replay_sha256, fps=fps, physics_tps=physics_tps,
         )
+    drill = judge_drill()
+    if drill:
+        raise SystemExit(f"sam observations unavailable: {drill}")
     sam = _load_sam_provider()
     sam_error = getattr(importlib.import_module("agents.sam_observations"), "SamError", None)
     catch = sam_error if isinstance(sam_error, type) and issubclass(sam_error, Exception) else ()
