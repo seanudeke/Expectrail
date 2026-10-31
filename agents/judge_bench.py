@@ -1,8 +1,8 @@
 """Judge benchmark: who accepts a fix that only looks right?
 
-The fix matrix showed Muse Code fixes the development bugs about as well from screenshots as with
-Expectrail's specs. What Expectrail is for is the other half: telling a real fix from one that
-only looks right. This puts candidate fixes with a known answer in front of three judges and
+The fix matrix showed Muse Code fixes most bugs about as well from screenshots as with Expectrail's
+evidence (the sinking bugs are the exception: docs/report-first.md). What Expectrail is for first
+is the other half: telling a real fix from one that only looks right. This puts candidate fixes with a known answer in front of three judges and
 counts their mistakes:
 
   - Expectrail's verifier with SAM on (the submission's setting);
