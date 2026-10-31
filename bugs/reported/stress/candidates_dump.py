@@ -26,6 +26,7 @@ Run:
 Writes ../candidates.md and candidates-search-dump.md beside this script (the dump verbatim, so
 every hit looked at is in the repo). Ids are assignment order, never a ranking.
 """
+import json
 import re
 import sys
 from pathlib import Path
@@ -60,9 +61,12 @@ in this fixed order, first match wins:
    web, or a repo whose subject can't be ported into `game/platformer` or `apps/checkout/site`.
 2. **Not a bug fix** — the record shows a feature, art pass, map, theme, docs, refactor,
    rebuild, scaffold or housekeeping, not a fix for a reported symptom.
-3. **No outside reporter's words transcribed** — the row carries only the PR title; the PR body
-   and any linked bug report were not fetched. (Recoverable: the adjudicator can order a body
-   fetch for a specific row instead of dropping it.)
+3. **No outside reporter's words transcribed** — neither the fetched PR body nor a linked issue
+   describes broken behaviour. (Recoverable: the adjudicator can order a fetch for a specific
+   row instead of dropping it.)
+4. **No visible symptom indicated** (rule 2) — the transcribed record names nothing a player or
+   shopper can see or feel and nothing the engine record shows (positions, facing, shots,
+   enemies).
 
 Forum/reddit rows pass 3 when the thread quotes the reporter's own words. A first-pass mark is
 never final: the adjudicator may overturn any row, and every overturn is recorded with a reason.
@@ -100,6 +104,8 @@ OUT_REFS = {
 # Rule 2 of the filter: feature-shaped titles (word-bounded; "Add missing ..." stays a fix).
 NOT_FIX_RE = re.compile(
     r"^(add(?!.*\bmissing\b)|feat\b|improve|rebuild|redesign|enhance|update theme|streamline|"
+    r"(?:ajouter|ajout\b|am\u00e9lioration|am\u00e9liorer|mise \u00e0 jour|cr\u00e9er|cr\u00e9ation|refonte|agregar|a\u00f1adir|a\u00f1ade|"
+    r"mejorar|mejora\b|actualizar|actualizaci\u00f3n|redise\u00f1ar|adicionar|melhorar|criar\b)|"
     r"align .* with .* spec|make .* api\b)", re.I)
 # Rule 2, refs whose record shows non-fix work despite a fix-shaped title.
 NOT_FIX_REFS = {
@@ -112,9 +118,18 @@ STRONG_SECTIONS = {
     "copilot-agent-godot", "copilot-agent-web", "devin-godot",
 }
 STRONG_QUOTE_RE = re.compile(
-    r"\b(use AI|AI tools|Generated with Claude|Co-[Aa]uthored-[Bb]y:? Copilot|LLM|ChatGPT|"
-    r"OpenHands|Devin|Codex)\b")
+    r"\b(use AI|AI tools|used AI|asked chatgpt|Generated with Claude|Co-[Aa]uthored-[Bb]y:? Copilot|LLM|"
+    r"ChatGPT|OpenHands|Devin|Codex)\b", re.I)
 WEAK_RE = re.compile(r"\b(ai|claude|copilot|devin|openhands|sweep|codex|chatgpt|llm)\b", re.I)
+# Rule 1 from fetched text: an outside description of broken behaviour (PR body or linked issue).
+SYMPTOM_RE = re.compile(r"(doesn'?t|didn'?t|not work|no longer|broken|broke\b|bug|fail|crash|error|"
+                        r"wrong|incorrect|missing|cannot|can'?t|unable|regression|invalid|unexpected)", re.I)
+# Rule 2 of the filter: the record indicates something a player or shopper sees or feels, or the
+# engine record shows (positions, facing, shots, enemies).
+VISIBLE_RE = re.compile(r"(mov|jump|fall|collid|enemy|enemies|gun|shoot|shot|coin|sprite|draw|"
+                        r"z[_ -]?index|visib|hidden|hide|texture|button|click|layout|overflow|image|"
+                        r"form\b|scroll|animat|position|facing|patrol|platform|tilemap|camera|ysort|"
+                        r"y-sort|render|display|screen|menu|input|focus)", re.I)
 POLICY_CLOSE_RE = re.compile(r"AI tools|moderation question|lack of response", re.I)
 
 DEFAULT_LABEL_SUFFIX = "**label: pending adjudication**"
@@ -135,7 +150,8 @@ def domain(repo: str, title: str) -> str:
     return "—"
 
 
-def first_pass(ref: str, repo: str, title: str, has_reporter_words: bool) -> str | None:
+def first_pass(ref: str, repo: str, title: str, has_reporter_words: bool,
+               visible_text: str = "") -> str | None:
     """The uniform filter: a drop reason, or None when the row survives."""
     if ref in OUT_REFS:
         return f"out of scope — {OUT_REFS[ref]}"
@@ -147,8 +163,10 @@ def first_pass(ref: str, repo: str, title: str, has_reporter_words: bool) -> str
     if NOT_FIX_RE.search(title.strip()):
         return f"not a bug fix — feature-shaped title (\"{esc(title, 60)}\")"
     if not has_reporter_words:
-        return ("no outside reporter's words transcribed — title only; PR body / linked report "
-                "not fetched (recoverable: order a body fetch instead)")
+        return ("no outside reporter's words transcribed — neither the PR body nor a linked issue "
+                "describes broken behaviour (recoverable: order a fetch instead)")
+    if not VISIBLE_RE.search(visible_text):
+        return "no player/shopper-visible symptom indicated in the record (rule 2)"
     return None
 
 
@@ -204,6 +222,7 @@ def main() -> None:
               re.finditer(r"^\| ([^-][^|]*?) \| (.*?) \| (.*?) \| (\S+) \|$", forum_part, re.M)
               if m.group(1).strip() != "ref"]
 
+    bodies = json.loads((HERE / "pr-bodies.json").read_text()) if (HERE / "pr-bodies.json").exists() else {}
     existing = load_existing()
     table = ["| id | source (link) | domain (game / web) | symptom, in the reporter's words | the fixes on record (link, author, AI? how you know) | label for each fix from the record (good / bad, and why) | reproducible here? | kept / dropped, and why |",
              "| --- | --- | --- | --- | --- | --- | --- | --- |"]
@@ -261,23 +280,38 @@ def main() -> None:
             label = ("record: PR merged (rule 4's \"merged and kept\"; not yet verified against a later revert)"
                      f"<br>{DEFAULT_LABEL_SUFFIX}")
             fixes = f"[{key}]({r['link']}) — {r['author']}" + (f" ({'; '.join(ai)})" if ai else "")
-        drop = first_pass(key, r["repo"], r["title"], has_reporter_words=False)
+        body_info = bodies.get(key) or {}
+        symptom = f"\"{esc(r['title'], 160)}\" (PR title, author's words)"
+        has_words, visible = False, r["title"]
+        if body_info.get("prBody"):
+            symptom += f"<br>PR body: \"{esc(body_info['prBody'], 300)}\""
+            visible += " " + body_info["prBody"]
+            has_words = bool(SYMPTOM_RE.search(body_info["prBody"]))
+        if body_info.get("issueTitle"):
+            symptom += (f"<br>linked issue #{body_info['linkedIssue']} by {body_info['issueAuthor']}: "
+                        f"\"{esc(body_info['issueTitle'], 120)} — {esc(body_info.get('issueBody') or '', 250)}\"")
+            visible += " " + body_info["issueTitle"] + " " + (body_info.get("issueBody") or "")
+            has_words = True
+        if body_info.get("unavailable"):
+            symptom += "<br>(PR unavailable: 404 or hidden)"
+        if not body_info:
+            symptom += "; body not fetched"
+        drop = first_pass(key, r["repo"], r["title"], has_reporter_words=has_words, visible_text=visible)
         kept = (f"first-pass: **drop** — {drop} (adjudicator may overturn)" if drop
                 else "first-pass: survives — adjudication pending")
-        emit(f"[{key}]({r['link']})", domain(r["repo"], r["title"]),
-             f"\"{esc(r['title'], 160)}\" (PR title, author's words; linked bug report not fetched)",
-             fixes, label, kept, strong)
+        emit(f"[{key}]({r['link']})", domain(r["repo"], r["title"]), symptom, fixes, label, kept, strong)
 
     for ref, symptom, signals, link in forums:
         ref = ref.strip()
-        strong = bool(STRONG_QUOTE_RE.search(signals))
+        strong = bool(STRONG_QUOTE_RE.search(f"{signals} {symptom}"))
         ai = "thread quotes the AI advice by name (strong)" if strong else "no AI evidence quoted in the record signals"
-        drop = first_pass(ref, "", ref + " " + symptom, has_reporter_words=True)
+        drop = first_pass(ref, "", ref + " " + symptom, has_reporter_words=True,
+                          visible_text=f"{symptom} {signals}")
         kept = (f"first-pass: **drop** — {drop} (adjudicator may overturn)" if drop
                 else "first-pass: survives — adjudication pending")
         emit(f"[{ref}]({link})", "game", f"\"{esc(symptom)}\"",
              f"fixes described in-thread ([{ref}]({link})) — {ai}",
-             f"record: \"{esc(signals, 400)}\"<br>{DEFAULT_LABEL_SUFFIX}", kept, strong)
+             f"record: \"{esc(signals, 800)}\"<br>{DEFAULT_LABEL_SUFFIX}", kept, strong)
 
     n += 1
     table.append(f"| c{n:02d} | [godotengine/godot-demo-projects#927](https://github.com/godotengine/godot-demo-projects/pull/927) "
@@ -298,9 +332,18 @@ Domain guesses carry a `?` and are corrected by the adjudicator. Labels quote th
 never characterize a person.
 
 {n} candidates logged; {strong_n} rows carry strong AI evidence (bot author, exact-disclosure
-query match, or an AI admission/quote in the record), {survives} survive the first-pass filter
-({survive_strong} of those with strong AI evidence). Regenerating this file preserves every
-adjudicated cell (matched by source link).
+query match, or an AI admission/quote in the record — the grader is case-insensitive and reads
+the symptom column too), {survives} survive the first-pass filter ({survive_strong} of those
+with strong AI evidence). PR bodies and linked issues were fetched for every row the filter had
+dropped unread (`bugs/reported/stress/fetch_pr_bodies.py` → `pr-bodies.json`, excerpts in the
+symptom cells). Regenerating this file preserves every adjudicated cell (matched by source link).
+
+**Write-up caution (PR #125 review, @seanudeke, Oct 31):** most surviving records are setup
+mistakes — a missing `move_and_slide`, a collision shape in the wrong place, a Focus Mode left
+at None; ported into our game they break it in ways any check catches. Keep "Expectrail caught
+the bug" separate from "only Expectrail rejected a bad fix" in the results. The AI-involved
+survivors are advice in threads, not AI-written patches; if the AI-written-bad-fix count lands
+near zero, the write-up says so plainly.
 
 {RULES}
 {FILTER}
