@@ -117,9 +117,14 @@ jobs:
             snapshot="$ID:base:heldout-set/$patch"
             set_args=(--set heldout-set)
           fi
+          # With the planner on, the clean game runs in the same job as the healthy reference: a model's
+          # contract that fails on it is rejected, never a finding. Without a reference nothing can
+          # falsify a model's contract, and live runs showed them failing on the clean game itself.
+          reference=()
+          if [[ "$PLANNER" == spark ]]; then reference=(--snapshot reference:reference); fi
           start=$(date +%s)
           if ! python -m expectrail.discovery.cli discover --profile discovery/platformer.profile.json \
-              --snapshot "$snapshot" --out "runs/blind/$ID" --planner "$PLANNER" \
+              --snapshot "$snapshot" "${reference[@]}" --out "runs/blind/$ID" --planner "$PLANNER" \
               --label "FRESH LIVE" --run-id "blind-${GITHUB_RUN_ID}-${ID}" --max-seconds 1800 \
               > "runs/blind-$ID.log" 2>&1; then
             echo "::error title=Blind ${ID} error::discovery did not finish (its log stays private)"
