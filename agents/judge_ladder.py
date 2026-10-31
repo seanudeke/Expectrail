@@ -41,6 +41,18 @@ DEFAULT_RETRY_WAIT_S = 30.0
 DEFAULT_WARM_TIMEOUT_S = 600.0
 
 
+def outage_error(verify_dir: Path) -> str | None:
+    """The first observer error under ``verify_dir`` that says a vision model did not answer."""
+    for path in sorted(verify_dir.rglob("observations*-error.txt")):
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        if UNAVAILABLE in text:
+            return " ".join(text.split())[:200]
+    return None
+
+
 def judge_unavailable(verification: dict, verify_dir: Path) -> bool:
     """True when the verifier could not decide only because a vision model did not answer: the
     decision is needs-review, no check failed, and an observer error under ``verify_dir`` says so."""
@@ -48,13 +60,7 @@ def judge_unavailable(verification: dict, verify_dir: Path) -> bool:
         return False
     if any(c.get("result") == "fail" for c in verification.get("checks") or []):
         return False
-    for path in verify_dir.rglob("observations*-error.txt"):
-        try:
-            if UNAVAILABLE in path.read_text(encoding="utf-8", errors="replace"):
-                return True
-        except OSError:
-            continue
-    return False
+    return outage_error(verify_dir) is not None
 
 
 def current_judge() -> str:
@@ -66,14 +72,34 @@ def current_judge() -> str:
         return "sam"
 
 
-def glimmer_problem() -> str | None:
-    """Why the Glimmer step cannot run here, or None when it can."""
+def glimmer_problem(read_deployment: Callable | None = None) -> str | None:
+    """Why the Glimmer step cannot run here, or None when it can.
+
+    A Fireworks deployment is read through the control plane first, which sends no frame and wakes
+    nothing. One scaled to 0 replicas (a person scaled it down, or the account was suspended) cannot
+    answer, so it is skipped at once instead of waited on. The ladder never changes a deployment's
+    scaling: that spends money, and it is a person's decision (agents/fireworks_deployment.py --restore).
+    """
     from agents.glimmer_client import api_key
 
-    if not api_key():
+    key = api_key()
+    if not key:
         return "no Glimmer key (EXPECTRAIL_GLIMMER_API_KEY or FIREWORKS_API_KEY)"
-    if not os.environ.get("EXPECTRAIL_GLIMMER_MODEL", "").strip():
+    model = os.environ.get("EXPECTRAIL_GLIMMER_MODEL", "").strip()
+    if not model:
         return "no Glimmer deployment (EXPECTRAIL_GLIMMER_MODEL)"
+    from agents import fireworks_deployment as fd
+
+    target = fd.parse_deployment(model)
+    if target is None:
+        return None  # not a Fireworks deployment id (a self-hosted server): nothing to read
+    try:
+        dep = (read_deployment or fd.get)(target[0], target[1], key)
+    except (fd.DeploymentError, OSError) as exc:
+        return f"the Glimmer deployment could not be read: {' '.join(str(exc).split())[:160]}"
+    if int(dep.get("maxReplicaCount") or 0) < 1:
+        return (f"the Glimmer deployment is scaled to {dep.get('minReplicaCount', 0)}-{dep.get('maxReplicaCount', 0)} "
+                "replicas, so it cannot answer; the ladder does not scale it up")
     return None
 
 
@@ -109,6 +135,8 @@ def judge(request: dict, candidate: Path, verify_dir: Path, *, verify_fn: Callab
     verification = verify_fn(request, candidate, verify_dir, **verify_kwargs)
     down = judge_unavailable(verification, verify_dir)
     steps = [{"judge": first, "decision": verification["decision"], "unavailable": down}]
+    if down:
+        steps[-1]["error"] = outage_error(verify_dir)
     if not down:
         return verification, verify_dir, {"judgedBy": first, "steps": steps, "stopped": False}
 
@@ -118,6 +146,8 @@ def judge(request: dict, candidate: Path, verify_dir: Path, *, verify_fn: Callab
     verification = verify_fn(request, candidate, retry_dir, **verify_kwargs)
     down = judge_unavailable(verification, retry_dir)
     steps.append({"judge": first, "retry": True, "decision": verification["decision"], "unavailable": down})
+    if down:
+        steps[-1]["error"] = outage_error(retry_dir)
     if not down:
         return verification, retry_dir, {"judgedBy": f"{first} (retried)", "steps": steps, "stopped": False}
 
@@ -141,6 +171,8 @@ def judge(request: dict, candidate: Path, verify_dir: Path, *, verify_fn: Callab
                 verification = verify_fn(request, candidate, glimmer_dir, **verify_kwargs)
             down = judge_unavailable(verification, glimmer_dir)
             steps.append({"judge": FALLBACK, "decision": verification["decision"], "unavailable": down})
+            if down:
+                steps[-1]["error"] = outage_error(glimmer_dir)
             last_dir = glimmer_dir
             if not down:
                 return verification, glimmer_dir, {"judgedBy": f"{FALLBACK} ({first} did not answer)",

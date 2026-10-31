@@ -48,7 +48,9 @@ class LadderTest(unittest.TestCase):
         patches = [mock.patch.dict(os.environ, {jl.RETRY_WAIT_ENV: "0", BACKEND_ENV: "sam",
                                                  "EXPECTRAIL_GLIMMER_MODEL": "accounts/x/deployments/y",
                                                  "EXPECTRAIL_GLIMMER_API_KEY": "glimmer-key"}),
-                   mock.patch.object(jl, "sam_on", lambda: True)]
+                   mock.patch.object(jl, "sam_on", lambda: True),
+                   mock.patch("agents.fireworks_deployment.get",
+                              lambda account, deployment, key: {"minReplicaCount": 0, "maxReplicaCount": 1})]
         for p in patches:
             p.start()
             self.addCleanup(p.stop)
@@ -128,6 +130,33 @@ class LadderTest(unittest.TestCase):
         self.assertTrue(record["stopped"])
         self.assertIn("did not wake", record["steps"][-1]["skipped"])
 
+    def test_a_deployment_scaled_to_zero_is_skipped_at_once_and_never_woken(self):
+        judge = Judge("down", "down")
+        with mock.patch("agents.fireworks_deployment.get",
+                        lambda account, deployment, key: {"minReplicaCount": 0, "maxReplicaCount": 0}):
+            _, _, record = self.run_ladder(judge)
+        self.assertEqual(self.woke, [])  # no request went to the deployment
+        self.assertEqual(len(judge.calls), 2)
+        self.assertTrue(record["stopped"])
+        self.assertIn("scaled to 0-0 replicas", record["steps"][-1]["skipped"])
+        self.assertIn("glimmer-engine: skipped", jl.report_note(record))
+
+    def test_a_deployment_that_cannot_be_read_is_skipped(self):
+        from agents.fireworks_deployment import DeploymentError
+
+        def suspended(account, deployment, key):
+            raise DeploymentError("HTTP 412: account suspended")
+
+        with mock.patch("agents.fireworks_deployment.get", suspended):
+            _, _, record = self.run_ladder(Judge("down", "down"))
+        self.assertTrue(record["stopped"])
+        self.assertIn("could not be read", record["steps"][-1]["skipped"])
+        self.assertEqual(self.woke, [])
+
+    def test_each_outage_step_records_what_the_judge_said(self):
+        _, _, record = self.run_ladder(Judge("down", "down", "down"))
+        self.assertTrue(all("HTTP 503" in s["error"] for s in record["steps"]))
+
     def test_glimmer_is_not_its_own_fallback(self):
         with mock.patch.dict(os.environ, {BACKEND_ENV: "glimmer-engine"}):
             judge = Judge("down", "down")
@@ -143,6 +172,32 @@ class LadderTest(unittest.TestCase):
         failing = {"decision": "needs-review", "checks": [{"result": "fail"}, {"result": "needs-review"}]}
         self.assertFalse(jl.judge_unavailable(failing, self.dir))
         self.assertFalse(jl.judge_unavailable(verdict("accept"), self.dir))
+
+
+class DrillTest(unittest.TestCase):
+    def test_the_drill_takes_sam_down_before_any_cache_and_leaves_glimmer_alone(self):
+        from agents.observations import from_trace
+
+        with mock.patch.dict(os.environ, {"EXPECTRAIL_JUDGE_DRILL": "sam-unavailable", BACKEND_ENV: "sam"}):
+            with self.assertRaises(SystemExit) as caught:
+                from_trace({"rows": []}, provider="sam", frames_dir="/nonexistent")
+        self.assertIn(jl.UNAVAILABLE, str(caught.exception))
+        self.assertIn("drill", str(caught.exception))
+        from agents.observations import judge_drill
+
+        with mock.patch.dict(os.environ, {"EXPECTRAIL_JUDGE_DRILL": "sam-unavailable", BACKEND_ENV: "glimmer-engine"}):
+            self.assertIsNone(judge_drill())
+        with mock.patch.dict(os.environ, {"EXPECTRAIL_JUDGE_DRILL": ""}):
+            self.assertIsNone(judge_drill())
+        with mock.patch.dict(os.environ, {"EXPECTRAIL_JUDGE_DRILL": "everything-down"}), self.assertRaises(SystemExit):
+            judge_drill()
+
+    def test_the_trace_provider_ignores_the_drill(self):
+        from agents.observations import from_trace
+
+        with mock.patch.dict(os.environ, {"EXPECTRAIL_JUDGE_DRILL": "sam-unavailable"}):
+            obs = from_trace({"rows": [], "physicsTicksPerSecond": 120}, provider="trace")
+        self.assertIn("frames", obs)
 
 
 class KeysTest(unittest.TestCase):
@@ -185,6 +240,8 @@ class LoopLadderTest(unittest.TestCase):
                 mock.patch("agents.loop.run_fixer", fixer), \
                 mock.patch("agents.loop.verify", verifier), \
                 mock.patch.object(jl, "current_judge", lambda: "sam"), \
+                mock.patch("agents.fireworks_deployment.get",
+                           lambda account, deployment, key: {"minReplicaCount": 0, "maxReplicaCount": 1}), \
                 mock.patch("agents.glimmer_client.warm", lambda timeout_s: 0.0):
             result = one_run(Path(tmp) / "loop", use_muse=True, offline_triage=True,
                              observations=FIXTURES / "obs-fixed.json", candidate_patch=None,

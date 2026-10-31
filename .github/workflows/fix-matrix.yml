@@ -61,6 +61,11 @@ on:
         type: choice
         options: ['on', 'off']
         default: 'on'
+      judge_drill:
+        description: "demo only: off, or sam-unavailable, a drill that makes every SAM request fail as an outage would, so the judge ladder runs end to end (docs/fallbacks.md). Glimmer answers, or does not, for real. Use with sam_cache off."
+        type: choice
+        options: ['off', sam-unavailable]
+        default: 'off'
       sam_cache:
         description: "shared: judge the clean game once (smoke and private routes) and share SAM's answers, encrypted, with this run's jobs; public: the smoke route only; off: every job judges every frame itself"
         type: choice
@@ -74,7 +79,7 @@ jobs:
   # Judge the clean game once for the whole run (see sam_cache above). Runs beside the plan job; the
   # jobs that verify wait for it, and run without it if it fails or is skipped.
   sam-warm:
-    if: ${{ inputs.sam_cache != 'off' && inputs.set != 'reported' && (inputs.live || inputs.bench == 'demo') }}
+    if: ${{ inputs.sam_cache != 'off' && inputs.set != 'reported' && inputs.judge_drill != 'sam-unavailable' && (inputs.live || inputs.bench == 'demo') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     env:
@@ -779,8 +784,13 @@ jobs:
           # Code (agents.keys.muse_subprocess_env is an allowlist). Without them that step is skipped.
           EXPECTRAIL_GLIMMER_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
           EXPECTRAIL_GLIMMER_MODEL: ${{ vars.GLIMMER_MODEL }}
+          EXPECTRAIL_JUDGE_DRILL: ${{ inputs.judge_drill == 'sam-unavailable' && 'sam-unavailable' || '' }}
           RUN: ${{ matrix.run }}
-        run: python -m agents.demo_loop --run "$RUN" --out runs/demo
+        run: |
+          if [ -n "$EXPECTRAIL_JUDGE_DRILL" ]; then
+            echo "::warning title=Judge drill::SAM is made unavailable on purpose in this run ($EXPECTRAIL_JUDGE_DRILL); its result is a drill, not a demo result"
+          fi
+          python -m agents.demo_loop --run "$RUN" --out runs/demo
       - name: Muse key gateway evidence
         if: always()
         run: python -m agents.gateway --evidence runs/demo

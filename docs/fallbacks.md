@@ -44,7 +44,14 @@ Every step judges the same candidate again; the fixer is not asked for anything.
 2. **Muse Glimmer checked against the engine** (`glimmer-engine`), when a Glimmer deployment is
    configured (`EXPECTRAIL_GLIMMER_API_KEY` or `FIREWORKS_API_KEY`, and `EXPECTRAIL_GLIMMER_MODEL`)
    and it wakes within `EXPECTRAIL_GLIMMER_WARM_TIMEOUT` (600 s). It is never Glimmer alone.
-   Otherwise this step is skipped, and the skip and its reason are recorded.
+   - **The deployment is read first, and nothing is woken.** The ladder reads it through Fireworks'
+     control plane, which sends no frame. If it is scaled to 0 replicas, because a person scaled it
+     down or the account was suspended, it cannot answer. The step is skipped at once rather than
+     waited on.
+   - **The ladder never changes a deployment's scaling.** That spends money, and it is a person's
+     decision (`python -m agents.fireworks_deployment --restore`).
+   - In every other case where the step cannot run, it is skipped too, and the skip and its reason
+     are recorded.
 3. **Stop.** The candidate stays "needs review". No further fix is attempted, because the fix may
    well be right. The morning report says which judges were tried and that a person must judge
    the candidate.
@@ -52,6 +59,14 @@ Every step judges the same candidate again; the fixer is not asked for anything.
 When Glimmer decides, the morning report says so for the person who approves the release. Glimmer's
 boxes are too loose for the ground check, so the ground was judged on the engine's position log, not
 on SAM's view of the robot. A robot drawn inside the ground is what to look for in the after frames.
+
+## Drills
+
+A fallback that has never run is a guess. `EXPECTRAIL_JUDGE_DRILL=sam-unavailable` makes every SAM
+request fail the way an outage does, before any cache. Glimmer answers, or fails to, for real. The
+Fix matrix's demo runs take it as the input `judge_drill`; run it with `sam_cache` off. Each run
+reports, on its own annotation lines, what the fixer was told on each attempt and every step the
+judge ladder took. A drill run is labelled as a drill and is never collected as a demo result.
 
 ## What the judge ladder must never do
 
