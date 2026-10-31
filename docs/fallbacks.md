@@ -64,7 +64,7 @@ on SAM's view of the robot. A robot drawn inside the ground is what to look for 
 
 A fallback that has never run is a guess. `EXPECTRAIL_JUDGE_DRILL=sam-unavailable` makes every SAM
 request fail the way an outage does, before any cache. Glimmer answers, or fails to, for real. The
-Fix matrix's demo runs take it as the input `judge_drill`; run it with `sam_cache` off. Each run
+Fix matrix's demo runs take it as the input `judge_drill`. A drill skips the job that shares the clean game's SAM answers, so every SAM request goes out and fails. Each run
 reports, on its own annotation lines, what the fixer was told on each attempt and every step the
 judge ladder took. A drill run is labelled as a drill and is never collected as a demo result.
 

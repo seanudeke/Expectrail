@@ -62,14 +62,14 @@ on:
         options: ['on', 'off']
         default: 'on'
       judge_drill:
-        description: "demo only: off, or sam-unavailable, a drill that makes every SAM request fail as an outage would, so the judge ladder runs end to end (docs/fallbacks.md). Glimmer answers, or does not, for real. Use with sam_cache off."
+        description: "demo only: off, or sam-unavailable, a drill that makes every SAM request fail as an outage would, so the judge ladder runs end to end (docs/fallbacks.md). Glimmer answers, or does not, for real. The drill skips the shared SAM cache by itself."
         type: choice
         options: ['off', sam-unavailable]
         default: 'off'
       sam_cache:
         description: "shared: judge the clean game once (smoke and private routes) and share SAM's answers, encrypted, with this run's jobs; public: the smoke route only; off: every job judges every frame itself"
         type: choice
-        options: [shared, public, off]
+        options: [shared, public, 'off']
         default: shared
 
 permissions:
