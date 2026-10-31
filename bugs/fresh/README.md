@@ -1,0 +1,12 @@
+# The fresh defect set: commitment only
+
+The blind discovery run ([docs/discovery.md](../../docs/discovery.md#the-blind-run)) is scored on a
+set of fresh defects and intentional changes that live only in the private held-out repository, under
+`fresh/`. They were written after discovery was frozen (`discovery/freeze.json`, tag
+`discovery-freeze-1`), by someone working without the discoverer's rules in front of them.
+
+`fresh.sha256` (added in its own pull request once the set is written, before any blind run) holds
+the digest of every file under `fresh/`, computed with
+`python -m expectrail.discovery.fresh digest <set>/fresh`. The blind run refuses a set with any
+other digest. Nothing else about the set (its patches, descriptions, routes or areas) enters this
+repository until the event is over.
