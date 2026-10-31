@@ -313,6 +313,49 @@ class OutcomeTest(Base):
             self.assertEqual(mb.main(["--dry-run", "--out", str(self.out)]), 0)
         self.check.assert_not_called()
 
+    def test_the_sam_rehearsal_forces_sam_on_a_cheap_rejection(self):
+        rejected = verification(("gameplay", "m", "fail"), ("clean", "g", "pass"), decision="reject")
+        sam = verification(("regression", "player-always-visible", "pass"), ("gameplay", "m", "fail"),
+                           ("clean", "g", "pass"), decision="reject")
+        left = [rejected, sam]
+        with mock.patch.object(mb, "verify", side_effect=lambda r, c, out, **k: (out.mkdir(parents=True, exist_ok=True),
+                                                                                  left.pop(0))[1]):
+            self.assertEqual(mb.main(["--dry-run", "sam", "--out", str(self.out)]), 0)
+        self.check.assert_called_once()
+        self.assertEqual(left, [])
+        row = json.loads((self.out / "dev_physics-fall-through_v1+freeze" / "result.json").read_text())
+        self.assertEqual((row["agreement"], row["preregistrationSha256"]), ("disagree", None))
+
+    def test_a_sam_rehearsal_that_could_not_ask_sam_fails(self):
+        self.check.return_value = {"kind": "credit", "error": "402"}
+        with mock.patch.object(mb, "verify", side_effect=lambda r, c, out, **k: (out.mkdir(parents=True, exist_ok=True),
+                                                                                  CHEAP_PASS)[1]):
+            self.assertEqual(mb.main(["--dry-run", "sam", "--out", str(self.out)]), 1)
+
+    def test_the_mutant_rehearsal_runs_a_mutant_that_plays_and_a_broken_scene(self):
+        ids = [m["id"] for m in mb.dry_mutants()]
+        self.assertEqual(ids[0], "code:player/player.gd:7:sign.WALK_SPEED")
+        broken = mb.dry_mutants()[1]
+        self.assertEqual(broken["class"], "resource-path")
+        self.assertIn("player.gd.missing", broken["after"])
+        self.assertNotIn("uid=", broken["after"])
+
+    def test_a_broken_scene_may_crash_a_rehearsal_but_the_tooling_may_not(self):
+        for outcome, code in (("crash", 0), ("equivalent", 0), ("error", 1)):
+            with self.subTest(outcome=outcome), \
+                    mock.patch.object(mb, "rehearse", return_value=[{"id": "m", "outcome": outcome, "samImages": 0}]):
+                self.assertEqual(mb.main(["--dry-run", "mutants", "--out", str(self.out)]), code)
+
+    def test_a_rehearsal_never_counts_as_a_judged_result(self):
+        """Its rows name no registration, so a summary refuses them beside a judged row."""
+        for name, sha in (("a", "ab" * 32), ("b", None)):
+            d = self.out / name
+            d.mkdir()
+            (d / "result.json").write_text(json.dumps({"format": mb.FORMAT, "label": "bad", "case": name, "operator": "x",
+                                                       "outcome": "survived", "preregistrationSha256": sha}))
+        with self.assertRaises(SystemExit):
+            mb.summarize(self.out)
+
     def test_a_dry_run_that_passes_the_cheap_tier_still_never_asks_sam(self):
         with mock.patch.object(mb, "verify", side_effect=lambda r, c, out, **k: (out.mkdir(parents=True, exist_ok=True),
                                                                                   CHEAP_PASS)[1]):
@@ -666,12 +709,19 @@ class WorkflowTest(unittest.TestCase):
 
     def test_only_the_dry_run_skips_that_gate(self):
         gate = next(s for s in self.doc["jobs"]["plan"]["steps"] if "load_preregistration" in str(s))
-        self.assertEqual(gate["if"], "inputs.mode != 'dry-run'")
+        self.assertEqual(gate["if"], "${{ !startsWith(inputs.mode, 'dry-run') }}")
+
+    def test_every_mode_is_handled_by_the_judging_step(self):
+        step = next(s for s in self.doc["jobs"]["run"]["steps"] if s.get("name", "").startswith("Judge one case"))
+        for mode in self.doc[True]["workflow_dispatch"]["inputs"]["mode"]["options"]:
+            self.assertIn(f"{mode}) python", step["run"], mode)
 
     def test_only_the_phases_that_ask_sam_hold_the_key(self):
         key = self.doc["jobs"]["run"]["env"]["MODEL_API_KEY"]
-        self.assertIn("inputs.mode == 'wrong-fix' || inputs.mode == 'generated-sam'", key)
-        self.assertNotIn("dry-run", key)
+        for mode in ("wrong-fix", "generated-sam", "dry-run-sam"):
+            self.assertIn(f"inputs.mode == '{mode}'", key)
+        for mode in ("generated-cheap", "dry-run-mutants", "'dry-run'"):
+            self.assertNotIn(mode, key)
 
     def test_results_keep_the_trace(self):
         self.assertIn("trace.json", str(self.doc["jobs"]["run"]["steps"]))

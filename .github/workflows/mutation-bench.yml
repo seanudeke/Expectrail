@@ -8,9 +8,9 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "dry-run: one known pair, no SAM and no pre-registration, to prove the plumbing; never a result. wrong-fix: Part 1. generated-cheap: Part 2, no SAM. generated-sam: Part 2, the mutants named below"
+        description: "Rehearsals, on any branch with no pre-registration, never a result: dry-run (one known pair, no SAM), dry-run-sam (the same pair through forced SAM, about $1.20), dry-run-mutants (two mutants, no SAM). Judged, from main: wrong-fix (Part 1), generated-cheap (Part 2, no SAM), generated-sam (Part 2, the mutants named below)"
         type: choice
-        options: [dry-run, wrong-fix, generated-cheap, generated-sam]
+        options: [dry-run, dry-run-sam, dry-run-mutants, wrong-fix, generated-cheap, generated-sam]
         default: wrong-fix
       cases:
         description: wrong-fix only, comma-separated case ids (default all eight), e.g. dev/sinking/v2
@@ -50,7 +50,7 @@ jobs:
           python-version: '3.13'
       - run: python -m pip install -r requirements-dev.txt
       - name: Judge only from main, on a complete pre-registration
-        if: inputs.mode != 'dry-run'
+        if: ${{ !startsWith(inputs.mode, 'dry-run') }}
         env:
           MODE: ${{ inputs.mode }}
         run: |
@@ -76,7 +76,7 @@ jobs:
           from agents.matrix import dev_variants
           from agents.mutation_bench import MANIFEST, OPERATORS
           split = lambda name: [x.strip() for x in os.environ[name].split(",") if x.strip()]
-          if os.environ["MODE"] == "dry-run":
+          if os.environ["MODE"].startswith("dry-run"):
               rows, bad = [{"case": "dry-run"}], []
           elif os.environ["MODE"] == "wrong-fix":
               every_cases = sorted(dev_variants())
@@ -99,7 +99,7 @@ jobs:
   # Runs beside the plan; a job runs without it if it fails or is skipped.
   sam-warm:
     needs: plan
-    if: ${{ (inputs.mode == 'wrong-fix' || inputs.mode == 'generated-sam') && inputs.sam_cache == 'shared' }}
+    if: ${{ (inputs.mode == 'wrong-fix' || inputs.mode == 'generated-sam' || inputs.mode == 'dry-run-sam') && inputs.sam_cache == 'shared' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -150,7 +150,7 @@ jobs:
       OPERATOR: ${{ matrix.operator }}
       MUTANT: ${{ matrix.mutant }}
       # Only the phases that ask SAM hold the key.
-      MODEL_API_KEY: ${{ (inputs.mode == 'wrong-fix' || inputs.mode == 'generated-sam') && secrets.MODEL_API_KEY || '' }}
+      MODEL_API_KEY: ${{ (inputs.mode == 'wrong-fix' || inputs.mode == 'generated-sam' || inputs.mode == 'dry-run-sam') && secrets.MODEL_API_KEY || '' }}
       # Public only: do not set EXPECTRAIL_HELDOUT_DIR.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -165,14 +165,14 @@ jobs:
       - name: Download Godot
         run: ./harness/get_godot.sh
       - name: Fetch this run's shared SAM answers
-        if: (inputs.mode == 'wrong-fix' || inputs.mode == 'generated-sam') && inputs.sam_cache == 'shared'
+        if: (inputs.mode == 'wrong-fix' || inputs.mode == 'generated-sam' || inputs.mode == 'dry-run-sam') && inputs.sam_cache == 'shared'
         continue-on-error: true
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: sam-cache
           path: sam-cache
       - name: Restore them into the SAM cache
-        if: (inputs.mode == 'wrong-fix' || inputs.mode == 'generated-sam') && inputs.sam_cache == 'shared'
+        if: (inputs.mode == 'wrong-fix' || inputs.mode == 'generated-sam' || inputs.mode == 'dry-run-sam') && inputs.sam_cache == 'shared'
         continue-on-error: true
         run: |
           [ -d sam-cache ] || { echo "::notice title=SAM shared cache::none for this run, so this job judges every frame itself"; exit 0; }
@@ -186,6 +186,8 @@ jobs:
           set +e
           case "$MODE" in
             dry-run) python -m agents.mutation_bench --dry-run --out runs/mutation > mut.log 2>&1 ;;
+            dry-run-sam) python -m agents.mutation_bench --dry-run sam --out runs/mutation > mut.log 2>&1 ;;
+            dry-run-mutants) python -m agents.mutation_bench --dry-run mutants --out runs/mutation > mut.log 2>&1 ;;
             wrong-fix) python -m agents.mutation_bench --case "$CASE" --operator "$OPERATOR" $force --out runs/mutation > mut.log 2>&1 ;;
             generated-cheap) python -m agents.mutation_bench --mutant "$MUTANT" --tier cheap --out runs/mutation > mut.log 2>&1 ;;
             generated-sam) python -m agents.mutation_bench --mutant "$MUTANT" --tier sam $force --out runs/mutation > mut.log 2>&1 ;;
@@ -218,7 +220,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
-      DEST: bench/mutation/${{ inputs.mode == 'dry-run' && 'dry-run' || inputs.mode == 'wrong-fix' && 'wrong-fix' || 'generated' }}
+      DEST: bench/mutation/${{ startsWith(inputs.mode, 'dry-run') && 'dry-run' || inputs.mode == 'wrong-fix' && 'wrong-fix' || 'generated' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

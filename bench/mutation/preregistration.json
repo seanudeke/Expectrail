@@ -10,6 +10,8 @@
   "generator": {
     "seed": null,
     "sampleSize": null,
+    "sampling": null,
+    "samplingWhy": null,
     "positionStep": null,
     "offsetStep": null,
     "scaleStep": null,

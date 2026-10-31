@@ -33,7 +33,12 @@ Nothing is judged until bench/mutation/preregistration.json is complete, and eve
     python3 -m agents.mutation_bench --mutant "<id>" --tier sam --out runs/generated [--force-sam]
     python3 -m agents.mutation_bench --plan-sam runs/generated
     python3 -m agents.mutation_bench --summarize runs/mutation
-    python3 -m agents.mutation_bench --dry-run --out runs/dry    # the plumbing: no pre-registration, no SAM, no result
+
+Rehearsals need no pre-registration, run on any branch, and are never a result:
+
+    python3 -m agents.mutation_bench --dry-run --out runs/dry           # one known pair, no SAM
+    python3 -m agents.mutation_bench --dry-run sam --out runs/dry       # the same pair through forced SAM (spends SAM)
+    python3 -m agents.mutation_bench --dry-run mutants --out runs/dry   # two mutants through the cheap phase, no SAM
 
 To report both phases of Part 2 together, download each run's artifacts into its own folder under one
 parent and summarize the parent: a mutant judged in both phases counts once, as its SAM phase.
@@ -75,6 +80,12 @@ OUTCOMES = ("caught-cheap", "caught-sam", "survived", "undecided", "crash", "err
 CAUGHT = ("caught-cheap", "caught-sam")
 GROUND_SPEC = "player-stays-above-ground"
 DRY_RUN = ("dev/physics-fall-through/v1", "freeze")
+# Stand-ins for a rehearsal, so the mutant path runs for real before anything is registered. They
+# are not the pre-registered steps or thresholds, and nothing rehearsed is ever recorded as a result.
+DRY_PREREG = {"sha256": None, "wrongFix": {"commentOnlyLabel": None},
+              "oracle": {"traceThresholdPx": 0, "frameThreshold": 0}}
+DRY_PARAMS = {"positionStep": 1, "offsetStep": 1, "scaleStep": 1, "zIndexStep": 1, "constantScale": 2,
+              "collisionBits": 1}
 
 # Spec that would catch the operator when public checks miss it (finding publish target).
 CATCH_SPECS = {
@@ -463,6 +474,27 @@ def _cheap_phase(cheap: dict, row: dict) -> None:
         row["undecidedWhy"] = "the cheap tier could not decide"
 
 
+def dry_mutants() -> list[dict]:
+    """Two mutants that exercise the mutant path's two ends: one that plays differently, and one
+    whose scene has lost its script, to see what the game really does with a broken resource."""
+    every = mutate_game.enumerate_mutants(DRY_PARAMS)
+    plays = next(m for m in every if m["id"] == "code:player/player.gd:7:sign.WALK_SPEED")
+    broken = next(m for m in every if m["class"] == "resource-path" and m["file"] == "player/player.tscn"
+                  and "player.gd" in m["before"])
+    return [plays, broken]
+
+
+def rehearse(kind: str, out: Path) -> list[dict]:
+    """A rehearsal of one path, real Godot and all. Its rows name no registration, so a summary can
+    never mix them with a judged run."""
+    if kind == "pair":
+        return [run_case(*DRY_RUN, out, prereg=DRY_PREREG, cheap_only=True)]
+    if kind == "sam":
+        return [run_case(*DRY_RUN, out, prereg=DRY_PREREG, force_sam=True)]
+    mutants = dry_mutants()
+    return [run_mutant(m["id"], "cheap", out, prereg=DRY_PREREG, manifest={"mutants": mutants}) for m in mutants]
+
+
 def plan_sam(root: Path, prereg: dict) -> dict:
     """Which mutants the SAM phase looks at, from the cheap phase's results: every one the cheap tier
     passed, and the pre-registered seeded sample of its rejections for the agreement table."""
@@ -623,8 +655,9 @@ def main(argv: list[str] | None = None) -> int:
     g.add_argument("--mutant", help="a mutant id from bench/mutation/generated/manifest.json")
     g.add_argument("--plan-sam", type=Path, help="the cheap phase's results: print what the SAM phase must judge")
     g.add_argument("--summarize", type=Path)
-    g.add_argument("--dry-run", action="store_true",
-                   help="one known pair, cheap tier only, to prove the plumbing; needs no pre-registration")
+    g.add_argument("--dry-run", nargs="?", const="pair", choices=("pair", "sam", "mutants"),
+                   help="a rehearsal that is never a result; needs no pre-registration: pair (the default), "
+                        "sam (spends SAM), or mutants")
     p.add_argument("--operator", choices=OPERATORS, help="with --case")
     p.add_argument("--tier", choices=("cheap", "sam"), default="cheap", help="with --mutant")
     p.add_argument("--force-sam", action="store_true", help="also ask SAM about a cheap rejection (agreement table)")
@@ -640,9 +673,13 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(plan_sam(args.plan_sam, mutate_game.load_preregistration()), indent=2))
         return 0
     if args.dry_run:
-        row = run_case(*DRY_RUN, args.out, prereg={"sha256": None, "wrongFix": {"commentOnlyLabel": None}}, cheap_only=True)
-        print(f"::notice title=Mutation dry run::{row['outcome']}; a test of the plumbing, never a result")
-        return 1 if row["outcome"] in ("error", "crash") else 0
+        rows = rehearse(args.dry_run, args.out)
+        for row in rows:
+            print(f"::notice title=Mutation dry run {args.dry_run}::{row.get('id') or row['case']}: {row['outcome']}; "
+                  f"agreement {row.get('agreement')}; SAM images {row['samImages']}; a test of the plumbing, never a result")
+        # A broken scene is meant to crash, so only the tooling failing fails a rehearsal of mutants.
+        bad = ("error",) if args.dry_run == "mutants" else ("error", "crash", "undecided")
+        return 1 if any(r["outcome"] in bad for r in rows) else 0
     try:
         if args.mutant:
             row = run_mutant(args.mutant, args.tier, args.out, force_sam=args.force_sam)

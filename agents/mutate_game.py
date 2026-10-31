@@ -42,7 +42,8 @@ PREREGISTRATION = REPO / "bench" / "mutation" / "preregistration.json"
 OPERATOR_CLASSES = ("numeric", "boolean", "collision-bit", "code", "resource-path")
 CODE_FILES = ("player/player.gd", "enemy/enemy.gd")
 HUMAN_FIELDS = ("wrongFix.commentOnlyLabel", "wrongFix.publicSamRuleApprovedBy",
-                "generator.seed", "generator.sampleSize", "generator.positionStep", "generator.offsetStep",
+                "generator.seed", "generator.sampleSize", "generator.sampling", "generator.samplingWhy",
+                "generator.positionStep", "generator.offsetStep",
                 "generator.scaleStep", "generator.zIndexStep", "generator.constantScale", "generator.collisionBits",
                 "oracle.traceThresholdPx", "oracle.frameThreshold", "stopRule", "agreement.seed",
                 "agreement.minimum", "reportTemplate", "pins")
@@ -83,6 +84,9 @@ def load_preregistration(path: Path | None = None) -> dict:
         raise PreregistrationError(f"{path} is not complete, so nothing may be judged. Missing: {', '.join(missing)}")
     if doc["wrongFix"]["commentOnlyLabel"] not in ("good", "bad"):
         raise PreregistrationError(f"{path}: wrongFix.commentOnlyLabel must be good or bad")
+    problem = sampling_problem(doc["generator"])
+    if problem:
+        raise PreregistrationError(f"{path}: {problem}")
     moved = sorted(k for k, v in current_pins().items() if doc["pins"].get(k) != v)
     if moved:
         raise PreregistrationError(f"{path}: pinned material changed since registration: {', '.join(moved)}")
@@ -189,6 +193,41 @@ def sample(mutants: list[dict], seed: int, size: int) -> list[dict]:
     return [mutants[i] for i in sorted(chosen)]
 
 
+def sampling_problem(gen: dict) -> str | None:
+    """What is wrong with a sampling plan, or None. ``generator.sampling`` is a person's decision:
+    ``{"method": "uniform"}``, or ``{"method": "stratified", "perClass": {<class>: <count>, ...}}``."""
+    plan = gen.get("sampling") or {}
+    method = plan.get("method")
+    if method == "uniform":
+        return "generator.sampling: a uniform plan takes no perClass" if "perClass" in plan else None
+    if method != "stratified":
+        return f"generator.sampling.method must be uniform or stratified, not {method!r}"
+    per_class = plan.get("perClass") or {}
+    unknown = sorted(set(per_class) - set(OPERATOR_CLASSES))
+    if unknown or not per_class:
+        return f"generator.sampling.perClass: unknown or no classes: {unknown}"
+    if any(not isinstance(n, int) or isinstance(n, bool) or n < 0 for n in per_class.values()):
+        return "generator.sampling.perClass: every count must be a whole number, 0 or more"
+    if sum(per_class.values()) != gen.get("sampleSize"):
+        return f"generator.sampling.perClass adds up to {sum(per_class.values())}, not sampleSize {gen.get('sampleSize')}"
+    return None
+
+
+def draw(mutants: list[dict], gen: dict) -> list[dict]:
+    """The sample the plan asks for, in enumeration order. A stratified plan draws each class with its
+    own seeded generator, so a change to one class's count leaves the others' draws alone. A class
+    with fewer mutants than its count gives all it has, and the manifest reports the shortfall; the
+    rest is never moved to another class."""
+    plan = gen["sampling"]
+    if plan["method"] == "uniform":
+        return sample(mutants, int(gen["seed"]), int(gen["sampleSize"]))
+    chosen: set[str] = set()
+    for cls, count in sorted(plan["perClass"].items()):
+        pool = [m["id"] for m in mutants if m["class"] == cls]
+        chosen.update(random.Random(f"{gen['seed']}:{cls}").sample(pool, min(count, len(pool))))
+    return [m for m in mutants if m["id"] in chosen]
+
+
 def patch_text(mutant: dict, game: Path = GAME) -> str:
     """The mutant as a unified diff against the clean game, regenerated from the game itself."""
     rel = mutant["file"]
@@ -204,17 +243,22 @@ def patch_text(mutant: dict, game: Path = GAME) -> str:
 def build_manifest(prereg: dict, game: Path = GAME) -> dict:
     gen = prereg["generator"]
     every = enumerate_mutants(gen, game)
-    chosen = sample(every, int(gen["seed"]), int(gen["sampleSize"]))
+    chosen = draw(every, gen)
+    enumerated = {c: sum(m["class"] == c for m in every) for c in OPERATOR_CLASSES}
+    sampled = {c: sum(m["class"] == c for m in chosen) for c in OPERATOR_CLASSES}
+    asked = (gen["sampling"].get("perClass") or {})
     return {
         "format": MANIFEST_FORMAT,
         "gameTree": tree_digest(game),
         "generatorSha256": _sha("agents/mutate_game.py"),
         "seed": gen["seed"],
         "sampleSize": gen["sampleSize"],
+        "sampling": gen["sampling"],
         "enumerated": len(every),
-        "enumeratedByClass": {c: sum(m["class"] == c for m in every) for c in OPERATOR_CLASSES},
+        "enumeratedByClass": enumerated,
         "sampled": len(chosen),
-        "sampledByClass": {c: sum(m["class"] == c for m in chosen) for c in OPERATOR_CLASSES},
+        "sampledByClass": sampled,
+        "shortByClass": {c: n - sampled[c] for c, n in sorted(asked.items()) if n > sampled[c]},
         "mutants": [dict(m, patchSha256=hashlib.sha256(patch_text(m, game).encode()).hexdigest()) for m in chosen],
     }
 
@@ -298,6 +342,8 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument("--sites", action="store_true", help="what each operator can reach; needs no decisions")
+    g.add_argument("--mutants-by-class", action="store_true",
+                   help="how many mutants each class has at the pre-registration's steps; needs only those filled in")
     g.add_argument("--pins", action="store_true", help="print the current pins for the pre-registration")
     g.add_argument("--manifest", type=Path, help="write the sampled manifest here")
     g.add_argument("--patch", metavar="MUTANT_ID", help="regenerate one mutant's patch")
@@ -310,6 +356,11 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.pins:
         print(json.dumps(current_pins(), indent=2))
+        return 0
+    if args.mutants_by_class:
+        gen = json.loads(args.prereg.read_text(encoding="utf-8"))["generator"]
+        every = enumerate_mutants(gen)
+        print(json.dumps({c: sum(m["class"] == c for m in every) for c in OPERATOR_CLASSES}, indent=2))
         return 0
     if args.patch:
         manifest = json.loads(args.from_manifest.read_text(encoding="utf-8"))

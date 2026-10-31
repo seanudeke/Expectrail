@@ -7,8 +7,10 @@ did the judging cost? Issue #127 sets the rules. Nobody on the team writes a bug
 **Mutation bench** workflow refuse to run until [`preregistration.json`](preregistration.json) has no
 empty field left, the code it pins has not moved, and the committed manifest is exactly what the
 generator writes. A judged run starts only from `main`, so nothing is judged before the file is merged.
-The workflow's `dry-run` mode proves the plumbing first on one known pair, on any branch, with no SAM
-and no key; it is never a result.
+Rehearsals prove the plumbing first, on any branch: `dry-run` (one known pair, no SAM, no key),
+`dry-run-sam` (the same pair through forced SAM, about $1.20) and `dry-run-mutants` (two mutants, one
+of them a scene that has lost its script, no SAM, no key). A rehearsal is never a result, and its rows
+name no registration, so a summary refuses to mix one with a judged run.
 
 The pins cover the game, the development bugs, the operators, the specs, the verifier, the observers,
 the generator, the bench and its workflow. Changing any of them after registration refuses every run
@@ -21,6 +23,7 @@ until the pins are set again, which is a change to the registration and has to b
 | `wrongFix.commentOnlyLabel` | Sean | `good` or `bad`. A comment stacked on the correct undo leaves the game correct, so #127's "bad by construction" does not hold for these 8 of the 48 pairs. |
 | `wrongFix.publicSamRuleApprovedBy` | Sean | Approves leaving the verifier's held-out arm out of the bench's decision. Without this rule, SAM-on can never accept here. |
 | `generator.*` | Taofeek | Seed, sample size and the operator steps. |
+| `generator.sampling`, `generator.samplingWhy` | Taofeek | `{"method": "uniform"}`, or `{"method": "stratified", "perClass": {"numeric": n, ...}}`, whose counts must add up to `sampleSize`; and why. A class with fewer mutants than its count gives all it has, the manifest reports the shortfall, and the rest is never moved to another class. |
 | `oracle.traceThresholdPx`, `oracle.frameThreshold` | Taofeek | What counts as visible. |
 | `stopRule` | Taofeek | What happens if few mutants are visible. |
 | `agreement.seed`, `agreement.minimum` | Taofeek | The seeded sample of cheap rejections SAM also judges. Sean asked for at least 20. |
@@ -45,6 +48,9 @@ bit. These are facts about the game, and they bear on the operator list and the 
 | `collision_mask`, `collision_layer`, one bit | 13 |
 | `one_way_collision` | 1 |
 | `visible`, `disabled` | **0** |
+
+`python3 -m agents.mutate_game --mutants-by-class` gives the same counts at the steps in the
+pre-registration, once they are filled in.
 
 Godot leaves a property out of a scene file when it holds its default, so `visible` and `disabled`
 have no line to flip. An unstratified sample of this list is nearly all `position`, `scale` and
