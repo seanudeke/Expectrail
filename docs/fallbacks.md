@@ -68,6 +68,20 @@ Fix matrix's demo runs take it as the input `judge_drill`. A drill skips the job
 reports, on its own annotation lines, what the fixer was told on each attempt and every step the
 judge ladder took. A drill run is labelled as a drill and is never collected as a demo result.
 
+**First drill, October 30** ([run 41157496280](https://github.com/seanudeke/Expectrail/actions/runs/41157496280),
+one live overnight run, SAM made unavailable, Glimmer left as it was):
+
+| Step | What happened |
+| --- | --- |
+| Triage and fix | Wonder triaged live; Muse Code fixed the bug on its first attempt, from the report |
+| Judge: SAM | No answer (the drill) |
+| Judge: SAM again, 30 s later | No answer |
+| Judge: Glimmer checked against the engine | Skipped at once: reading the deployment returned HTTP 412, the Fireworks account is suspended (out of credits or past its spend limit). Nothing was woken and nothing was waited on |
+| Stop | Decision needs-review, after 1 fix attempt (none spent on the outage); the morning report signed and handed to a person; 0 SAM images; 676 s |
+
+The review against the failing base was INCONCLUSIVE, as it should be with no judge: it could not
+compare the two runs. The job is red, as every loop run that does not end in an accept is.
+
 ## What the judge ladder must never do
 
 - **Re-judge a rejection.** A rejection is final at every step. The ladder climbs only when the
