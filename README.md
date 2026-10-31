@@ -24,7 +24,7 @@ It catches fixes that only look right. Given a "fix" that stops the robot fallin
 the floor by drawing it sunk into the ground, a position-only check passed it, and Muse Code, shown
 the before-and-after screenshots, said the fall was fixed. Expectrail saw the robot's feet below the
 floor and rejected it. In our judge benchmark it accepted none of the 7 fixes that only look right
-and turned down none of the 8 correct ones, in both runs ([Results](#results)).
+and turned down none of the 8 correct ones, in all three runs ([Results](#results)).
 
 Every fix is also reviewed against its failing base: the same checks run on the game with the bug
 and on the game with the fix, so the report shows the requested behavior failing before and passing
@@ -95,11 +95,13 @@ flowchart LR
    bubblewrap is not available, the fixer falls back to a worktree that does not contain those files.
 4. **Verify.** A separate verifier rebuilds, replays, and runs the regression, gameplay, held-out
    and clean checks. It accepts a candidate only if every check passes, and it rejects a fix that
-   only looks right, such as one that stops the fall by drawing the robot inside the ground. If the
-   judge itself cannot answer (SAM down or out of credit), the same fix is judged again: by SAM
-   once more, then by Muse Glimmer checked against the engine, labelled as such, then left for a
-   person. A rejection is never sent to a second judge, and an outage never costs the fixer an
-   attempt ([docs/fallbacks.md](docs/fallbacks.md)).
+   only looks right, such as one that stops the fall by drawing the robot inside the ground. Before
+   anything is spent, one image checks that SAM answers; if it does not, the run stops before the
+   fixer. If the judge stops answering later (SAM down or out of credit), the same fix is judged
+   again: by SAM once more (unless the key was refused or is out of credit), then by Muse Glimmer
+   checked against the engine, labelled as such, then left for a person. A rejection is never sent
+   to a second judge, an outage never costs the fixer an attempt, and the review against the
+   failing base uses whichever judge decided ([docs/fallbacks.md](docs/fallbacks.md)).
 5. **Hand over.** Before-and-after frames, the diff, unresolved cases, and a release candidate
    signed outside the fixer's reach, for a person to approve. It can run overnight; the point is the
    sign-off, not the hour.
@@ -148,8 +150,8 @@ four more reproduce bugs other people reported ([Bugs we did not write](#bugs-we
 | Advisory discovery (checks nobody wrote), one job per build, no reference build: the clean game, the four reported bugs, and the eight development bugs it was not written for | Reported bugs **4 of 4** found, each 3 times out of 3, no false alarm on the clean game; development bugs 2 of 8. Development reproduction: its rules were written after reading the four reports | [41238187197](https://github.com/seanudeke/Expectrail/actions/runs/41238187197) |
 | Advisory discovery, blind: the frozen discoverer on ten fresh entries written after the freeze (8 defects, 2 intentional changes) and the clean game, planner off | **4 of 8** defects flagged, each 3 times out of 3; **0 of 3** healthy builds flagged; no job incomplete | [41248745687](https://github.com/seanudeke/Expectrail/actions/runs/41248745687) |
 | Natural-catch trial: Muse Code given each reported bug in the reporter's words, 5 times each (20 cases) | 20 of 20 fixed on the first attempt; Expectrail accepted 20, the bug's own check passed 20, Muse from screenshots accepted 19; **0 natural catches** | [41129722699](https://github.com/seanudeke/Expectrail/actions/runs/41129722699) |
-| Bad fixes that only look right, accepted by the judge (7 cases, 2 runs) | Expectrail with SAM **0 of 7**; Expectrail without SAM 3 of 7; Muse from screenshots 2 of 7 | [judge](bench/judge/README.md) |
-| Good fixes accepted by the judge (8 cases, 2 runs) | Expectrail 8 of 8 both runs; Muse from screenshots 6 and 7 of 8 | [judge](bench/judge/README.md) |
+| Bad fixes that only look right, accepted by the judge (7 cases, 3 runs) | Expectrail with SAM **0 of 7**; Expectrail without SAM 3 of 7; Muse from screenshots 2 of 7; Expectrail with Muse Glimmer checked against the engine, no SAM (1 run) 0 of 7, one of them stopped only on a held-out route | [judge](bench/judge/README.md), [with Glimmer](bench/judge/glimmer/README.md) |
+| Good fixes accepted by the judge (8 cases, 3 runs) | Expectrail 8 of 8 every run, with Glimmer too; Muse from screenshots 6, 7 and 6 of 8 | [judge](bench/judge/README.md), [with Glimmer](bench/judge/glimmer/README.md) |
 | Development bugs fixed by Muse Code, October 30 | 8 of 8 with Expectrail's evidence; 8 of 8 from screenshots alone | [fix matrix](bench/fix-matrix/README.md) |
 | Development bugs fixed by Muse Code, October 31, all three briefings | Evidence first **8 of 8**; report first, evidence after a failed attempt 7 of 8; report only 6 of 8. Every miss was a sinking bug where the report-only attempts timed out | [41223754703](https://github.com/seanudeke/Expectrail/actions/runs/41223754703) |
 | Demo path, live, end to end, 10 independent runs | **10 of 10 accepted**, each on the first attempt; 12 to 22 minutes a run (median 14.5) and 1,164 SAM images ($2.91) a run; Muse Code's share is not reported per run | [40990485265](https://github.com/seanudeke/Expectrail/actions/runs/40990485265) |
@@ -159,9 +161,10 @@ four more reproduce bugs other people reported ([Bugs we did not write](#bugs-we
 ### Who catches a fix that only looks right
 
 Each of these stops the reported symptom, or claims to, and each is wrong. The same candidate patch
-went to three judges, twice: Expectrail with SAM, Expectrail with the position log only (no vision),
-and Muse Code looking at before-and-after screenshots ([`bench/judge/`](bench/judge/README.md)). The
-decisions were the same in both runs.
+went to three judges, in three runs: Expectrail with SAM, Expectrail with the position log only (no vision),
+and Muse Code looking at before-and-after screenshots ([`bench/judge/`](bench/judge/README.md), and the
+third run in [`bench/judge/glimmer/`](bench/judge/glimmer/README.md)). Every decision was the same in
+all three runs except one of Muse Code's, on a correct fix.
 
 | The candidate fix | Expectrail with SAM | Expectrail, position log only | Muse Code from screenshots |
 | --- | --- | --- | --- |
@@ -175,9 +178,15 @@ decisions were the same in both runs.
 
 The first row is the one to remember: a model looking at the same pictures said the fall was fixed,
 and only the measured check against the clean game said no. On the 8 correct fixes, Expectrail with
-SAM accepted all 8 in both runs, and it accepted all 10 live runs of the demo path: 26 judgments of a
-correct fix, none rejected. Muse Code from screenshots turned down one correct fix in both runs and
-another in one.
+SAM accepted all 8 in all three runs, and it accepted all 10 live runs of the demo path: 34 judgments of a
+correct fix, none rejected. Muse Code from screenshots turned down one correct fix in every run and
+another in two of the three.
+
+The third run (October 31) added a fourth judge, Muse Glimmer checked against the engine, with no
+SAM. It accepted all 8 correct fixes and none of the 7. One of the seven, the deleted trees, passed
+every public check under Glimmer and was stopped only on a held-out route; SAM stops it on the
+public visibility check. So Glimmer is the fallback for when SAM does not answer, not its equal
+([docs/open-weights.md](docs/open-weights.md)).
 
 What these numbers do and do not say:
 
@@ -185,7 +194,7 @@ What these numbers do and do not say:
   development bugs from screenshots alone, as well as with our evidence. What screenshots alone cannot do is judge:
   Muse from screenshots accepted 2 of 7 fixes that only look right (one lowers the floor, one sinks
   the robot) and turned down one or two good ones. Expectrail with SAM accepted none of the bad and
-  all of the good, in both runs. So since October 30 the fixer gets a plain report first, every
+  all of the good, in all three runs. So since October 30 the fixer gets a plain report first, every
   attempt is verified, and Expectrail's evidence goes to the fixer after a failed attempt. The
   evidence still matters for fixing on the subtle bugs: on October 31 it fixed both sinking bugs
   on the first attempt, where the report alone timed out

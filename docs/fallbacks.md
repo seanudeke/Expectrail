@@ -124,16 +124,17 @@ What it showed:
 
 - **The fallback answers.** With SAM gone, Glimmer checked against the engine decided the
   candidate, and the decision carries its label to the person who approves the release.
-- **The review against the failing base does not use the ladder.** It reported INCONCLUSIVE
+- **The review against the failing base did not use the ladder.** It reported INCONCLUSIVE
   ("player-stays-above-ground cannot be compared: before needs-review, after pass"): it judged the
   bugged base with SAM, which the drill had made unavailable, and did not fall back. The accept
-  stands, but the before-and-after evidence is missing on a fallback night (#129). Since #146, after a
-  fallback accept the review judges the base and the candidate with Glimmer checked against the
-  engine, the judge that decided. Without a fallback, it judges with SAM as before.
+  stands, but the before-and-after evidence was missing on a fallback night (#129). Since #146, after
+  a fallback accept the review judges the base and the candidate with Glimmer checked against the
+  engine, the judge that decided. Without a fallback, it judges with SAM as before. The fourth drill
+  shows it.
 - **It is slow.** About 37 minutes against 12 to 22 for a SAM run, with the deployment billed by
   the hour while it is up.
-- **It judged one correct fix.** Glimmer's rate on fixes that only look right is still unmeasured
-  (#129, item 4).
+- **It judged one correct fix.** The judge benchmark has since run Glimmer on fixes that only look
+  right (see "Why Glimmer is the second judge" below).
 
 **Third drill, October 31: the pre-run check** ([run 41234190741](https://github.com/seanudeke/Expectrail/actions/runs/41234190741),
 `sam-unavailable`, one live overnight run on the pull request that added the check). The run stopped
@@ -141,6 +142,31 @@ What it showed:
 signed, and the morning report gave the reason. A normal run beside it
 ([41234197674](https://github.com/seanudeke/Expectrail/actions/runs/41234197674)) was accepted and
 used 158 SAM images: the usual 157 plus the check's one.
+
+**Fourth drill, October 31, after #146, with `sam-outage-mid-run`** ([run 41244537695](https://github.com/seanudeke/Expectrail/actions/runs/41244537695),
+one live overnight run on main at 38559cc). The pre-run check passed for real, then every SAM request
+failed:
+
+| Step | What happened |
+| --- | --- |
+| Pre-run check | SAM answered (1 image), so the run went on |
+| Triage and fix | Wonder triaged live; Muse Code fixed the bug on its first attempt, from the report, through the key gateway (2 of 2 Muse runs, the key swapped in at the gateway) |
+| Judge: SAM | No answer (the drill) |
+| Judge: SAM again, 30 s later | No answer |
+| Judge: Glimmer checked against the engine | **Accept** |
+| Review against the failing base | **REPAIR DEMONSTRATED** on FRESH LIVE evidence, no reasons against it |
+| Result | Decision accept after 1 fix attempt (none spent on the outage); release candidate signed for a person to approve; 1 SAM image, the pre-run check's; 2,741 s, against 2,216 s for the second drill |
+
+What it showed:
+
+- **The review now uses the ladder's judge.** Both arms were judged by Glimmer checked against the
+  engine. With SAM unavailable, a base judged by SAM could only have been INCONCLUSIVE, as in the
+  second drill, and a review whose two arms were judged differently is INCONCLUSIVE by rule
+  ([docs/review.md](review.md)). So a fallback night now carries the before-and-after evidence too.
+- **The pre-run check passes a SAM that answers, and the ladder still catches a later outage.** The
+  check is one image at the start; it cannot see an outage that begins after it.
+- **It is slow.** About 46 minutes against 7 to 12 for a SAM run of the loop as it ships
+  ([docs/review.md](review.md)), with the Glimmer deployment billed by the hour while it is up.
 
 ## What the judge ladder must never do
 
@@ -162,9 +188,18 @@ used 158 SAM images: the usual 157 plus the check's one.
 Glimmer is the weaker judge for the bugs that matter most. Its boxes are 15 to 20 px taller than
 the robot, too loose for the 20 px ground check, so under Glimmer the ground is judged on the
 engine's position log. In the judge benchmark, the position-log ground check accepted the fix that
-draws the robot inside the ground. SAM's view caught it. The judge benchmark has not been run with
-Glimmer, so its rate on fixes that only look right is unmeasured. It is a fallback for an outage,
-labelled as such, and never a second opinion.
+draws the robot inside the ground. SAM's view caught it.
+
+The judge benchmark has now been run with Glimmer checked against the engine, once (Oct 31,
+`bench/judge/glimmer/`, [docs/open-weights.md](open-weights.md)). It accepted 8 of 8 correct fixes
+and 0 of 7 that only look right, the same counts as SAM. But it is not SAM's equal:
+
+- The fix that shows the robot by deleting every tree passed every public check under Glimmer,
+  `player-always-visible` included, and was stopped only on a held-out route. SAM stops it on the
+  public visibility check. On the public checks alone, Glimmer would have accepted 1 of 7.
+- The robot drawn inside the ground was stopped by the visibility check, not the ground check.
+
+It is a fallback for an outage, labelled as such, and never a second opinion.
 
 ## Where it applies
 
