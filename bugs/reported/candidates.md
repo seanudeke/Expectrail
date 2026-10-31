@@ -18,12 +18,23 @@ with strong AI evidence). PR bodies and linked issues were fetched for every row
 dropped unread (`bugs/reported/stress/fetch_pr_bodies.py` → `pr-bodies.json`, excerpts in the
 symptom cells). Regenerating this file preserves every adjudicated cell (matched by source link).
 
+**What "survives the first pass" means:** the first pass is a word-matching screen, not a check of
+the selection rules, and no survivor has been shown to meet rules 1–4. Rows that pass rule 1 on a
+PR description alone rest on the PR author's own words, and that author is often the AI agent that
+wrote the fix. Rule 3 (can it be ported here in an hour or two) is not screened at all.
+
+**Status at the numbers freeze (November 1, 2026):** Part 1 is this log, the rules registered before
+any judging, and the tooling. No candidate was selected, ported or judged before the freeze, so
+Part 2 was closed (issue #120) and no stress-test numbers are claimed anywhere. Anyone continuing it
+starts from the adjudication: label each survivor from its record, then select 4–6 by the rules.
+
 **Write-up caution (PR #125 review, @seanudeke, Oct 31):** most surviving records are setup
 mistakes — a missing `move_and_slide`, a collision shape in the wrong place, a Focus Mode left
 at None; ported into our game they break it in ways any check catches. Keep "Expectrail caught
 the bug" separate from "only Expectrail rejected a bad fix" in the results. The AI-involved
-survivors are advice in threads, not AI-written patches; if the AI-written-bad-fix count lands
-near zero, the write-up says so plainly.
+forum survivors are advice in threads, not patches, and the AI-written PR survivors are mostly
+merged fixes, whose record label would be good; if the AI-written-bad-fix count lands near zero,
+the write-up says so plainly.
 
 ## Selection rules (pre-registered, verbatim from issue #120 — a candidate is kept only if all of these hold)
 
@@ -55,9 +66,11 @@ never final: the adjudicator may overturn any row, and every overturn is recorde
 
 ## Done for Part 1 (from issue #120)
 
-- [ ] At least 20 candidates logged; at least 2 with an AI-written fix.
-- [ ] 4–6 selected by the rules, with the selection marked in `candidates.md`.
-- [ ] PR "Stress test: candidates and pre-registered selection" opened and merged before any fix is judged.
+- [x] At least 20 candidates logged; at least 2 with an AI-written fix.
+- [ ] 4–6 selected by the rules, with the selection marked in `candidates.md`. Not done by the
+  November 1 numbers freeze; see the status note above.
+- [x] PR "Stress test: candidates and pre-registered selection" opened and merged before any fix is
+  judged (no fix was judged).
 
 ## Candidates
 
