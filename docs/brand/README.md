@@ -25,10 +25,11 @@ is one x-height tall and sits on the word's baseline, so the rail is the line th
 | [`expectrail-mark.svg`](expectrail-mark.svg), [`expectrail-mark-reverse.svg`](expectrail-mark-reverse.svg) | The mark alone, where the name is already said |
 | [`favicon.svg`](favicon.svg) | The mark on an ink tile: browser tabs, app icons, avatars |
 | [`png/`](png) | The same at 1200 px (lockups) and 512 px (mark, app icon), transparent |
-| [`expectrail-brand-sheet.png`](expectrail-brand-sheet.png) | This page as one image, for slides and the video |
+| [`expectrail-brand-sheet.png`](expectrail-brand-sheet.png) | The mark, its construction, colours and use as one image, for slides and the video |
 
-Every file is built by [`build_logo.py`](build_logo.py) from one construction; edit that, not the
-SVGs. It needs `fontTools` and the TeX Gyre Adventor Bold OpenType file (set `ADVENTOR_BOLD_OTF`
+The SVGs are built by [`build_logo.py`](build_logo.py) from one construction; edit that, not the
+SVGs. The PNGs and the brand sheet were rendered from the SVGs in Chromium, so re-render them after
+any change. It needs `fontTools` and the TeX Gyre Adventor Bold OpenType file (set `ADVENTOR_BOLD_OTF`
 if it isn't at the TeX Live path).
 
 ## Construction
@@ -56,7 +57,7 @@ text.
 
 - **Clear space:** the height of the box on every side.
 - **Minimum size:** the lockup 20 px tall on screen; below that, use the mark or the favicon. The
-  favicon holds at 16 px.
+  brand sheet shows the favicon at 16 px.
 - **Type:** TeX Gyre Adventor for headings, labels and numbers, in sentence case; Lora for reading.
   Both are self-hosted on the site with their licences ([`../assets/fonts/`](../assets/fonts/README.md)).
 
