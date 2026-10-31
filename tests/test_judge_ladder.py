@@ -264,6 +264,32 @@ class LoopLadderTest(unittest.TestCase):
         self.assertEqual(result["attempts"][0]["judge"], "glimmer-engine (sam did not answer)")
         self.assertIn("ground was judged on the engine's position log", md)
 
+    def review_backend(self, answers):
+        """Run the loop with the review on; return the vision backend in force when the review ran."""
+        seen = {}
+
+        def fake_review(_request, _candidate, out, **_kw):
+            seen["backend"] = os.environ.get(BACKEND_ENV)
+            return {"status": "REPAIR DEMONSTRATED", "evidenceLabel": "FRESH LIVE", "reasons": [],
+                    "arms": {"base": None, "candidate": None}}
+
+        with mock.patch.dict(os.environ, {"EXPECTRAIL_REVIEW": "on"}), \
+                mock.patch("agents.review_change.review", side_effect=fake_review):
+            result, _calls, _md = self.run_loop(answers)
+        return result, seen.get("backend", "review not run"), os.environ.get(BACKEND_ENV)
+
+    def test_after_a_fallback_the_review_judges_the_base_with_the_same_judge(self):
+        result, during, after = self.review_backend(["down", "down", "accept"])
+        self.assertEqual(result["decision"], "accept")
+        self.assertEqual(during, jl.FALLBACK)  # the base is judged by Glimmer checked against the engine
+        self.assertNotEqual(after, jl.FALLBACK)  # and the setting does not outlive the review
+
+    def test_without_a_fallback_the_review_keeps_the_usual_judge(self):
+        result, during, _after = self.review_backend(["accept"])
+        self.assertEqual(result["decision"], "accept")
+        self.assertNotEqual(during, jl.FALLBACK)
+        self.assertNotEqual(during, "review not run")
+
 
 if __name__ == "__main__":
     unittest.main()

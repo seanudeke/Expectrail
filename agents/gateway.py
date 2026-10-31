@@ -254,7 +254,14 @@ def evidence(root: Path) -> dict:
         elif path.name == "sandbox.json":
             runs.append({"mode": "unrecorded"})  # a Muse run that left no gateway record still counts as a run
     on = [g for g in runs if g.get("mode") == "on"]
+    stopped = 0  # runs the pre-run SAM check stopped before the fixer (agents/sam_health.py)
+    for path in Path(root).rglob("result.json"):
+        try:
+            stopped += bool((json.loads(path.read_text(encoding="utf-8")) or {}).get("preflight"))
+        except (OSError, ValueError, AttributeError):
+            continue
     return {
+        "stoppedBeforeFixer": stopped,
         "museRuns": len(runs),
         "throughGateway": len(on),
         "requests": sum(g.get("requests", 0) for g in on),
@@ -271,6 +278,11 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--evidence", type=Path, required=True, help="a run directory: summarize its Muse runs")
     args = p.parse_args(argv)
     e = evidence(args.evidence)
+    if not e["museRuns"] and e["stoppedBeforeFixer"]:
+        # Nothing to check, and the reason is known: never a warning that evidence is missing.
+        print(f"::notice title=Muse key gateway::no Muse run: the pre-run SAM check stopped "
+              f"{e['stoppedBeforeFixer']} run(s) before the fixer, so nothing needed the gateway")
+        return 0
     level = "notice" if e["museRuns"] and e["throughGateway"] == e["museRuns"] else "warning"
     print(f"::{level} title=Muse key gateway::{e['throughGateway']} of {e['museRuns']} Muse runs through the gateway; "
           f"{e['requests']} requests to {', '.join(e['hosts']) or 'nothing'}; key swapped in "
