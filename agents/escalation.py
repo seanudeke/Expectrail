@@ -1,8 +1,9 @@
 """Report first, evidence on rejection: what the fixer is told on each attempt.
 
-The decision and its evidence are in docs/report-first.md. In short: Muse Code fixes these bugs as
-well from a plain report as from Expectrail's evidence (45 of 46 live cases on the first attempt),
-and the verifier, not the briefing, is what stops a fix that only looks right. So:
+The decision and its evidence are in docs/report-first.md. In short: the verifier, not the briefing,
+is what stops a fix that only looks right, and on most bugs Muse Code fixes as well from a plain
+report as from Expectrail's evidence. The measured exception is the sinking family, where it timed
+out without the evidence (docs/report-first.md has every run). So:
 
 - **Attempt 1, the report:** the failing check's one sentence in plain English, screenshots of the
   failing run spaced from its first frame to its last, the route and the run's log. No spec, no

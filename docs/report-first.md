@@ -30,7 +30,7 @@ after a rejection.
 
 ## Why
 
-### The fixer does not need our evidence
+### What the evidence does for the fixer
 
 Every live repair we have run, with and without Expectrail's evidence:
 
@@ -38,13 +38,30 @@ Every live repair we have run, with and without Expectrail's evidence:
 | --- | --- | --- | --- |
 | Fix matrix, development bugs ([`bench/fix-matrix/`](../bench/fix-matrix/README.md)) | Screenshots and the expected behaviour in plain English | 8 of 8 | 8 of 8 |
 | The same 8 bugs | Expectrail's evidence (spec, verdict, first failing frame) | 8 of 8 | 7 of 8 |
+| Fix matrix, held-out run 1 ([`bench/fix-matrix/held-out/`](../bench/fix-matrix/held-out/README.md)) | Screenshots | 7 of 8 | 7 of 8 |
+| The same 8 bugs | Expectrail's evidence | 8 of 8 | 7 of 8 |
+| Fix matrix, held-out run 2 ([`bench/fix-matrix/held-out-run-2/`](../bench/fix-matrix/held-out-run-2/README.md)) | Screenshots | 7 of 8 | 7 of 8 |
+| The same 8 bugs | Expectrail's evidence | 8 of 8 | 7 of 8 |
+| Fix matrix, development bugs, Oct 31 on this policy ([`bench/fix-matrix/report-first/`](../bench/fix-matrix/report-first/README.md), [41223754703](https://github.com/seanudeke/Expectrail/actions/runs/41223754703)) | Screenshots | 6 of 8 | 6 of 8 |
+| The same 8 bugs | Expectrail's evidence | 8 of 8 | 8 of 8 |
+| The same 8 bugs | A plain report, the evidence after a rejection (this policy, `escalate`) | 7 of 8 | 6 of 8 |
 | Natural-catch trial, 4 reported bugs × 5 ([`bench/reported/trial.md`](../bench/reported/trial.md)) | The reporter's own words and screenshots | 20 of 20 | 20 of 20 |
 | Demo loop, 10 live runs ([`bench/demo-loop/`](../bench/demo-loop/README.md)) | Expectrail's evidence | 10 of 10 | 10 of 10 |
 | Demo loop on this policy, 3 live runs ([41223748922](https://github.com/seanudeke/Expectrail/actions/runs/41223748922), Oct 31; [a review](review/report-first-run-1/)) | A plain report | 3 of 3 | 3 of 3 |
 
-That is 48 of 49 cases fixed on the first attempt. The one that needed a second attempt had the
-evidence. On these bugs, the evidence did not help Muse fix anything it could not fix from a
-report.
+With Expectrail's evidence from the first attempt, Muse Code fixed every case: 42 of 42. Without
+it, from screenshots or a plain report, it fixed 51 of 55. All four misses are sinking bugs (held-out
+`sinking/v4` in both held-out runs, development `sinking/v1` and `sinking/v2` on Oct 31), and every
+one ended in Muse Code timing out, not in a wrong fix accepted. Counting the sinking cases alone,
+across the four fix-matrix runs: 8 of 8 fixed with the evidence, 4 of 8 without. On every other bug
+family the briefing made no difference.
+
+So the evidence does help, on one family of bugs, by keeping Muse Code from running out of time. It
+is four runs and one family, and the misses are timeouts, so it is a signal, not a rate.
+
+This policy did not recover `sinking/v1` on Oct 31: all three attempts timed out, and a timeout is
+an empty attempt, which stays on the report, so the evidence was never given. On `sinking/v2` the
+second attempt was rejected, the third got the evidence and was accepted.
 
 ### The judge is what matters
 
@@ -89,10 +106,10 @@ stays on every candidate, and what moves is what the fixer is told.
 
 ## What we do not know yet
 
-- **Whether the evidence helps on a second attempt.** In 49 live cases, Muse needed a second
-  attempt once. The escalation step is a reasonable fallback, not a measured improvement. The Fix
-  matrix now runs it by default (condition `escalate`) beside the two older conditions, so the next
-  run measures it.
+- **Whether the evidence helps on a later attempt.** The first `escalate` run (Oct 31) escalated
+  once, on `sinking/v2`, and that attempt was accepted. It never escalated on `sinking/v1`, because
+  its attempts timed out and an empty attempt is not a rejection. Whether escalating after a timeout
+  would have recovered it is unmeasured.
 - **Whether a report is enough for harder bugs.** Every bug so far is a small, local change. A bug
   that spans several files, or whose obvious fix is wrong, may need the evidence earlier.
 - **Overnight, the "report" is still Expectrail's own check.** When no person reported the bug,

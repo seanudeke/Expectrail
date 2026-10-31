@@ -81,11 +81,12 @@ budget for small patches.
 Next: multi-file fixes, a root-cause note in the morning report, and a link to the commit that
 introduced the bug.
 
-**The fixer starts from a plain report; we have not shown that the evidence helps it.** Since
+**The fixer starts from a plain report, and on one family of bugs that costs fixes.** Since
 October 30, Muse Code gets Expectrail's evidence only after a rejected attempt
-([report-first.md](report-first.md)), because it fixed 48 of 49 live cases on the first attempt
-with or without it. Whether the evidence helps on a second attempt is unmeasured: it has been
-needed once.
+([report-first.md](report-first.md)). With the evidence from the first attempt it fixed 42 of 42
+live cases; without it, 51 of 55, and all four misses are sinking bugs that ended in Muse Code
+timing out. A timeout is not a rejection, so the policy never gave the evidence to the one it
+missed (`sinking/v1`, Oct 31). Whether escalating after a timeout recovers those is unmeasured.
 
 Next: run the Fix matrix's `escalate` condition on harder bugs, ones that span several files or
 whose obvious fix is wrong, where a first attempt fails often enough to measure the second.

@@ -101,6 +101,7 @@ diagnostics with a stable code; the status, label and reasons; and the command t
   review is evidence of that run, not of a rerun.
 - Reviews add traceability, not a trust root: the release candidate's signature does not cover
   `change-evidence.json`.
-- Nothing here shows Expectrail makes fixes more likely to succeed: on the development fix matrix both
-  conditions fixed all 8 bugs ([bench/fix-matrix](../bench/fix-matrix/README.md)). What it shows is
-  which fixes only look right.
+- A review shows which fixes only look right, not whether Expectrail makes fixes more likely to
+  succeed. On that, the fix matrix has one signal: on the sinking bugs Muse Code fixed 8 of 8 cases
+  with Expectrail's evidence and 4 of 8 without it, every miss a timeout; on every other family both
+  fixed all ([report-first.md](report-first.md)).
