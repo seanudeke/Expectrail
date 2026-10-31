@@ -23,10 +23,10 @@ it is in [What's next](#whats-next).
 ## Status, October 31
 
 - **Built and measured:** everything on this page, locally and in CI (below).
-- **Frozen for a blind test:** the discoverer is frozen (`discovery/freeze.json`). Ten fresh entries
-  were written after the freeze in the private held-out repository, and their digest is committed in
-  [`bugs/fresh/fresh.sha256`](../bugs/fresh/fresh.sha256) (pull request #150). The blind run itself has
-  not run yet.
+- **Tested blind once:** with the discoverer frozen, ten fresh entries written after the freeze
+  and their digest committed (pull request #150), the blind run flagged **4 of 8 defects** and
+  **none** of the 2 intentional changes or the clean game, every job complete
+  ([below](#blind-run-1-october-31)).
 - **Not run live:** the Muse Spark planner. It is built and tested against a fake transport; every
   result on this page is with the planner off.
 
@@ -104,9 +104,10 @@ replays), complete within budget.
 | enemy-ledge | 22 | 90 | 1 | 64 | an enemy drops 256 px below where it settled, while the robot stands still (`enemy-max-drop`) |
 
 Each bug was found by at least one contract, and the clean game failed none. No contract names a
-bug, replays a bug's route or takes a threshold from a bug report (see [What these results do and do
-not say](#what-these-results-do-and-do-not-say) for how the profile was chosen). The guards held where the feature still works: the double jump still exists on every build,
-a ready press still fires, the enemies are all still there and still patrol. "Not exercised" is
+bug, replays a bug's route or takes a threshold from a bug report (see [What the development
+results do and do not say](#what-the-development-results-do-and-do-not-say) for how the profile
+was chosen). The guards held where the feature still works: the double jump still exists on every
+build, a ready press still fires, the enemies are all still there and still patrol. "Not exercised" is
 mostly a contract on a probe that cannot trigger it (a weapon rule on a jump probe). A second full
 run gave the same 110 episodes tick for tick. The record: [`bench/discovery/local-oct31/`](../bench/discovery/local-oct31/report.md).
 
@@ -154,7 +155,7 @@ The results above are development reproduction. The blind run is the test that i
    profile and templates, probes, route compiler, signals, interpreter, job, planner prompt and
    model, record schemas, recorder, replay harness) and of the clean game, plus the exact blind
    command, as of commit `0b6556c14a51`. `python -m expectrail.discovery.freeze verify` names
-   any file that changed, and a test keeps the freeze holding on main until the blind run is recorded.
+   any file that changed, and a test keeps the freeze holding on main while the fresh set is in use.
 2. **Fresh defects, written after the freeze.** Eight to ten defects and one or two intentional
    changes, in the private held-out repository under `fresh/`, each with a private route showing it.
    They are written without the discoverer's rules in front of the writer, and chosen by a random
@@ -169,7 +170,48 @@ The results above are development reproduction. The blind run is the test that i
 Scored: defects flagged out of defects, intentional changes and the clean game flagged (false
 alarms), and incomplete jobs. A miss is a result, not a reason to change the frozen system.
 
-## What these results do and do not say
+### Blind run 1, October 31
+
+Run [41248745687](https://github.com/seanudeke/Expectrail/actions/runs/41248745687), main at
+`81f692c`, planner off. Before replaying anything, every job verified the freeze (`6e9ca2bd…`) and
+the set's digest against [`bugs/fresh/fresh.sha256`](../bugs/fresh/fresh.sha256). Recorded from the
+jobs' counts-only notices in
+[`bench/discovery/blind-run-41248745687.json`](../bench/discovery/blind-run-41248745687.json).
+
+| Id | Kind | Flagged | Reproduced findings | Replays |
+| --- | --- | --- | ---: | ---: |
+| clean | control | no | 0 | 22 |
+| f01 | defect | **yes** | 1 | 24 |
+| f02 | defect | **yes** | 4 | 38 |
+| f03 | intentional | no | 0 | 22 |
+| f04 | defect | no | 0 | 22 |
+| f05 | defect | no | 0 | 22 |
+| f06 | defect | **yes** | 1 | 24 |
+| f07 | defect | no | 0 | 22 |
+| f08 | defect | no | 0 | 22 |
+| f09 | defect | **yes** | 4 | 38 |
+| f10 | intentional | no | 0 | 22 |
+
+**4 of 8 defects flagged, 0 false alarms on 3 healthy builds, 0 incomplete jobs.** Every flag
+reproduced three times out of three; no finding was flaky.
+
+What it does and does not show:
+
+- **It is the first discovery result on defects nobody tuned the discoverer to.** They were written
+  after the freeze, by a separate session that never saw the discoverer's rules, and chosen by a
+  seeded random draw from a list of sixteen candidate defects committed first.
+- **Eight defects is a small sample.** 4 of 8 says the slice reaches some unseen defects; it does
+  not estimate a rate.
+- **The writer was not fully independent of us.** The prompt it followed was written by the session
+  that built the discoverer, and it suggested the areas to draw from (walking, jumping, shooting,
+  enemies, coins, collision, the camera and more), which include the four mechanics the profile
+  covers. The writer was an AI agent, not a person.
+- **The set's descriptions reached the discoverer's author before the run.** The freeze, verified by
+  the run before it replayed anything, is what guarantees the discoverer did not change after that.
+- **Which rules fired, and what each entry is, stay private until the event is over,** like the
+  held-out bugs. The ids, kinds and flags above are what the run published.
+
+## What the development results do and do not say
 
 - **This is development reproduction, not discovery.** The profile's four claims (the double jump,
   the gun's cooldown, the sprite's facing, the enemies' patrol) and the probe families were written
@@ -199,15 +241,16 @@ air-jump was added after the first jump contract missed it (next point). No bug 
   advisory. Promotion into the verifier (approval, validation against causal variants and
   feature-removal challenges, paired verdicts, signing) is the specification's next stage and is not
   built.
-- **No blind claim yet.** A blind-discovery claim needs fresh defects under a frozen protocol; the
-  four public reproductions cannot provide it. The blind run above is that test, and it has not run.
+- **The four reported bugs are not the blind claim.** A blind-discovery claim needs fresh defects
+  under a frozen protocol; the four public reproductions cannot provide it. Blind run 1 above is
+  that test: 4 of 8, on a small set.
 
 ## What's next
 
 In order, and none of it built yet unless it says so.
 
-1. **The blind run.** Frozen, with the fresh set's digest committed; run it once, publish the counts,
-   and record misses as misses.
+1. **The blind run.** Done once, planner off (above). The same frozen set can measure the planner:
+   run it once more with the planner on, under the same freeze.
 2. **The Muse Spark planner, live.** One call per job; its proposals go through the same reference
    check and reproduction. Measured against the planner-off run on the same builds.
 3. **The rest of the autonomous-discovery specification.** The team's specification has three

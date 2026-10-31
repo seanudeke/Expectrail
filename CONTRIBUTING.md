@@ -12,9 +12,11 @@
 - **Two kinds of checks.** Checks people write (specs a person approves, the gameplay check, the
   held-out cases) decide a fix. Discovery's contracts ([docs/discovery.md](docs/discovery.md)) only
   advise; never wire one into the verifier's decision without the promotion stage it describes.
-- **Discovery is frozen for the blind run.** Do not change a file listed in `discovery/freeze.json`
-  until the blind run is recorded in `bench/discovery/`; `tests/test_discovery_freeze.py` fails if
-  you do. The fresh defect set stays in the private repository; only its digest is here.
+- **Discovery stays frozen while the fresh set is in use.** Blind run 1 (planner off) is recorded;
+  the planner-on run uses the same set and the same freeze. Do not change a file listed in
+  `discovery/freeze.json` until the team retires that set; `tests/test_discovery_freeze.py` fails if
+  you do. Changing the discoverer after that needs a new freeze and a new fresh set. The fresh set
+  stays in the private repository; only its digest is here.
 - **No secrets.** API keys go in your environment or the CI secret store, never in a file.
 - **Log new work.** Add a line to [docs/new-work.md](docs/new-work.md) when something lands.
 - **Tests.** `python3 -m pip install -r requirements-dev.txt` once, then

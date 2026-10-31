@@ -129,10 +129,13 @@ benchmark.
   raised nothing (run 41238187197, `bench/discovery/`). The profile was written after reading those
   four reports, so this counts as development evidence only. The eight seeded development variants
   are the builds it was not written for: two flagged, six missed.
-- **Blind run** (frozen, not yet run): the discoverer's files are frozen (`discovery/freeze.json`),
-  a fresh set of ten entries (defects and intentional changes) was written after the freeze in the
-  private repository, and its digest is committed in `bugs/fresh/fresh.sha256` before any run. It
-  runs once, from a checkout that passes the freeze check, and publishes counts only.
+- **Blind run** (recorded, run 41248745687): the discoverer's files are frozen
+  (`discovery/freeze.json`), a fresh set of ten entries (8 defects, 2 intentional changes) was
+  written after the freeze in the private repository, and its digest was committed in
+  `bugs/fresh/fresh.sha256` before the run. It ran once, planner off, from a checkout that passed the
+  freeze check, and published counts only: **4 of 8 defects flagged, 0 of 3 healthy builds (the two
+  intentional changes and the clean game), no incomplete job**
+  (`bench/discovery/blind-run-41248745687.json`).
 - **What we report for discovery:** defects flagged out of defects; intentional changes and the
   clean game flagged (false alarms); findings that did not reproduce three times out of three;
   incomplete jobs. Development and blind results are reported apart, and a miss is never answered
