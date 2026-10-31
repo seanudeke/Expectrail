@@ -179,6 +179,7 @@ footer a { color:var(--on-ink); }
   .row .run { grid-column:1 / -1; }
 }
 @media (max-width:640px) {
+  .lede { font-size:1.125rem; }
   .top nav a:not(.gh) { display:none; }
   .shots { grid-template-columns:1fr; gap:32px; }
   .frame .rail, .shot:last-child .frame .rail { left:-6px; right:-6px; }
@@ -208,10 +209,10 @@ footer a { color:var(--on-ink); }
 <main id="main">
   <div class="wrap hero">
     <h1><span>An AI coding agent says it fixed the bug.</span> <span>Expectrail plays the game and watches to find out.</span></h1>
-    <p class="lede">It replays the changed game, has Meta's vision models find what each plain-English check names in every frame, and measures that against the engine's own record. The change is accepted only if every check passes, and the checks live where the agent can't reach them.</p>
+    <p class="lede">It replays the changed game, has Meta's vision models find what each plain-English check names in the frames, and measures that against the engine's own record. The change is accepted only if every check passes, and the agent can't change the checks.</p>
     <div class="actions">
       <a class="btn primary" href="https://github.com/seanudeke/Expectrail">View the code on GitHub</a>
-      <a class="btn" href="review/sinking-fix/">See a rejected fix, frame by frame</a>
+      <a class="btn" href="review/sinking-fix/">See a rejected fix, before and after</a>
     </div>
 
     <div class="evidence" aria-labelledby="ev-title">
@@ -224,7 +225,7 @@ footer a { color:var(--on-ink); }
           </div>
           <figcaption class="verdict">
             <h3>Muse Code's fix</h3><span class="chip pass">Accepted</span>
-            <p>One line: the robot's body collides with the ground again. Every check passes, on the public routes and the private ones.</p>
+            <p>Written from a plain bug report, in one line: the robot's body collides with the ground again. Every check passes, on the public route and the private ones.</p>
           </figcaption>
         </figure>
         <figure class="shot">
@@ -238,7 +239,7 @@ footer a { color:var(--on-ink); }
           </figcaption>
         </figure>
       </div>
-      <p class="caption">Real frames: frame 5 of each replay, from the recorded reviews of runs <a href="https://github.com/seanudeke/Expectrail/actions/runs/41105875960">41105875960</a> (<a href="review/live-demo-run-1/">review</a>) and <a href="https://github.com/seanudeke/Expectrail/actions/runs/41123758768">41123758768</a> (<a href="review/sinking-fix/">review</a>). The right-hand fix was written by us for the judge benchmark. The yellow line is drawn here at the floor's edge; the verdicts are the runs' own.</p>
+      <p class="caption">Real frames: frame 5 of each replay, from the recorded reviews of runs <a href="https://github.com/seanudeke/Expectrail/actions/runs/41223748922">41223748922</a> (<a href="review/report-first-run-1/">review</a>) and <a href="https://github.com/seanudeke/Expectrail/actions/runs/41123758768">41123758768</a> (<a href="review/sinking-fix/">review</a>). The right-hand fix was written by us for the judge benchmark. The yellow line is drawn here at the floor's edge; the verdicts are the runs' own.</p>
     </div>
   </div>
 
@@ -249,7 +250,7 @@ footer a { color:var(--on-ink); }
       <table class="judges">
         <tbody>
           <tr>
-            <th scope="row">A check on the engine's position log</th>
+            <th scope="row">Expectrail with vision off, on the engine's position log</th>
             <td class="v"><span class="chip pass">Accepted</span></td>
             <td class="why">The engine says the robot stopped on the floor, which is true. Where it is drawn is not in the log.</td>
           </tr>
@@ -261,7 +262,7 @@ footer a { color:var(--on-ink); }
           <tr class="ours">
             <th scope="row">Expectrail, with SAM 3.1</th>
             <td class="v"><span class="chip fail">Rejected</span></td>
-            <td class="why">SAM found the robot's feet below the floor's edge, on the public routes and the private ones.</td>
+            <td class="why">SAM found the robot's feet below the floor's edge, on the public route and the private ones.</td>
           </tr>
         </tbody>
       </table>
@@ -272,12 +273,12 @@ footer a { color:var(--on-ink); }
   <section id="how" aria-labelledby="how-title">
     <div class="wrap">
       <h2 id="how-title">How it works</h2>
-      <p class="lede">A person writes what the player should see. Plain code, not a model, decides whether they see it.</p>
+      <p class="lede">A person writes what the player should see. Plain code, not a model, decides whether the check passes.</p>
       <ol class="steps">
         <li><h3>Play</h3><p>A harness replays a fixed route through the changed game and captures every frame, the same way every time.</p></li>
         <li><h3>See</h3><p>SAM 3.1, or the open-weight Muse Glimmer, finds what the check names. The engine logs where things really are.</p></li>
         <li><h3>Decide</h3><p>A deterministic evaluator compares the two. A missing or uncertain observation is "needs review", never a pass.</p></li>
-        <li><h3>Fix</h3><p>Muse Code gets a plain bug report and patches the game in a sandbox. Expectrail's evidence comes only after a rejection.</p></li>
+        <li><h3>Fix</h3><p>Muse Code gets a plain bug report and patches the game in a sandbox. If an attempt fails, the next one gets Expectrail's evidence; the two sinking bugs needed it.</p></li>
         <li><h3>Hand over</h3><p>Every check passes on public and private routes, or nothing ships. A signed release candidate waits for a person.</p></li>
       </ol>
 
@@ -287,18 +288,18 @@ footer a { color:var(--on-ink); }
           <ul>
             <li>The game's editable files, in its own worktree</li>
             <li>The bug report: the failing check's sentence, screenshots, the route and its log</li>
-            <li>Expectrail's evidence, only after a rejection</li>
+            <li>After a failed attempt, Expectrail's evidence: the failing check's approved spec (read-only), the verdict and the first failing frame</li>
           </ul>
-          <p class="note">Muse Code runs inside bubblewrap with only its worktree mounted. It keeps network access to reach Meta's API and shares the host's kernel, so this is a boundary by absence, not a VM.</p>
+          <p class="note">In the live runs Muse Code works inside bubblewrap with only its worktree mounted; without bubblewrap it falls back to a plain worktree. It keeps network access to reach Meta's API and shares the host's kernel, so this is a boundary by absence, not a VM.</p>
         </div>
         <div class="zone verifier">
-          <h3>What it never sees</h3>
+          <h3>Kept out of its reach</h3>
           <ul>
-            <li>The approved checks and the evaluator</li>
-            <li>The held-out bugs and the private routes</li>
+            <li>The held-out bugs, the private routes, and why a guard failed</li>
+            <li>The evaluator's code, and write access to any check</li>
             <li>The key that signs a release</li>
           </ul>
-          <p class="note">If the vision model doesn't answer, the same candidate is judged again, then by Glimmer checked against the engine. It is never sent back to the fixer, and never passed quietly.</p>
+          <p class="note">If the vision model doesn't answer, the same candidate is judged again (unless the key was refused or is out of credit), then by Glimmer checked against the engine. It is never sent back to the fixer. When Glimmer decides, the report says so, because the ground is then judged on the engine's log alone.</p>
         </div>
       </div>
     </div>
@@ -319,7 +320,7 @@ footer a { color:var(--on-ink); }
 
       <div class="group">
         <h3>Fixes that only look right, accepted</h3>
-        <p>Seven bad fixes, judged twice; fewer is better. Expectrail also accepted all eight correct fixes in both runs.</p>
+        <p>Seven bad fixes, judged twice; fewer is better. Expectrail also accepted all eight correct fixes, each an exact revert of a seeded bug, in both runs.</p>
         <div class="row ours"><span class="who">Expectrail with SAM 3.1</span><span class="units" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="n">0 <small>of 7</small></span><span class="run"><a href="https://github.com/seanudeke/Expectrail/blob/main/bench/judge/README.md">Judge benchmark</a></span></div>
         <div class="row"><span class="who">Expectrail, position log only</span><span class="units" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i></span><span class="n">3 <small>of 7</small></span><span class="run">The same verifier with its vision checks off.</span></div>
         <div class="row"><span class="who">Muse Code from screenshots</span><span class="units" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i></span><span class="n">2 <small>of 7</small></span><span class="run">It also turned down one or two of the correct fixes.</span></div>
@@ -327,36 +328,37 @@ footer a { color:var(--on-ink); }
 
       <div class="group">
         <h3>The whole loop, live</h3>
-        <div class="row ours"><span class="who">Overnight runs accepted</span><span class="units" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="n">10 <small>of 10</small></span><span class="run">Wonder triage, Muse Code in its sandbox, the verifier and a signed report; each on the first attempt, median 14.5 minutes. Run <a href="https://github.com/seanudeke/Expectrail/actions/runs/40990485265">40990485265</a></span></div>
+        <div class="row ours"><span class="who">Live runs accepted</span><span class="units" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="n">10 <small>of 10</small></span><span class="run">One seeded bug, ten times: Wonder triage, Muse Code given the evidence first, the verifier and a signed report. Each accepted on the first attempt, median 14.5 minutes. Run <a href="https://github.com/seanudeke/Expectrail/actions/runs/40990485265">40990485265</a></span></div>
+        <div class="row ours"><span class="who">Live runs, report first</span><span class="units" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="n">3 <small>of 3</small></span><span class="run">The same bug on the loop as it ships, Muse Code starting from the plain report. Each fix accepted on the first attempt, its review a demonstrated repair. Run <a href="https://github.com/seanudeke/Expectrail/actions/runs/41223748922">41223748922</a></span></div>
       </div>
 
       <div class="group">
         <h3>Beyond games: a web checkout page</h3>
-        <p>The same evaluator, contracts and fixer, with Chromium in place of the game engine and the page's layout in place of the position log.</p>
+        <p>The same evaluator, contracts and fixer, with Chromium in place of the game engine and the page's layout in place of the position log. The checks were tuned on the development bugs and changes below; the four private bugs are the test they were not tuned on.</p>
         <div class="row ours"><span class="who">Bugs caught with SAM</span><span class="units" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="n">8 <small>of 8</small></span><span class="run">4 of 8 without SAM; no false alarm. Run <a href="https://github.com/seanudeke/Expectrail/actions/runs/41109233666">41109233666</a></span></div>
         <div class="row ours"><span class="who">Private bugs caught with SAM</span><span class="units" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="n">4 <small>of 4</small></span><span class="run">Written by a separate agent that never saw the checks; 2 of 4 without SAM. Run <a href="https://github.com/seanudeke/Expectrail/actions/runs/41130091655">41130091655</a></span></div>
         <div class="row ours"><span class="who">Bad changes accepted</span><span class="units" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span class="n">0 <small>of 5</small></span><span class="run">All 5 good changes accepted. A pixel diff also rejected the bad ones, and rejected 4 of the 5 good. <a href="https://github.com/seanudeke/Expectrail/blob/main/bench/web/judge.md">Web judge</a></span></div>
         <div class="row ours"><span class="who">Live repairs accepted</span><span class="units" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="n">16 <small>of 16</small></span><span class="run">Muse Code on all 8 bugs, with Expectrail's evidence and from screenshots alone. <a href="https://github.com/seanudeke/Expectrail/blob/main/bench/web/fix-matrix/README.md">Fix matrix</a></span></div>
       </div>
 
-      <p class="note-ink"><strong>What we have not shown yet.</strong> We gave Muse Code four bugs that other people reported in Godot games, in the reporters' own words, five times each. All 20 fixes were correct, so there was nothing for Expectrail to catch: no blind catch on a real-world bug yet. One of the eight held-out catches came from a check built after that bug was first missed. <a href="https://github.com/seanudeke/Expectrail#results">All results and their limits</a></p>
+      <p class="note-ink"><strong>What we have not shown yet.</strong> We gave Muse Code four bugs that other people reported in Godot games, in the reporters' own words, five times each. Expectrail accepted all 20, each bug's own check passed, and no guard fired; Muse from screenshots rejected one that we have not yet judged ourselves. So there is no blind catch on a real-world bug yet. One of the eight held-out catches came from a check built after that bug was first missed. <a href="https://github.com/seanudeke/Expectrail#results">All results and their limits</a></p>
     </div>
   </section>
 
   <section id="models" aria-labelledby="models-title">
     <div class="wrap">
-      <h2 id="models-title">Seven Meta models, each with one job</h2>
+      <h2 id="models-title">Seven Meta models, and what each does</h2>
       <p class="lede">The models look, write and fix. None of them decides whether a change passes.</p>
       <ul class="models">
-        <li><b>SAM 3.1</b><span class="job">Finds what a check names in every frame: the robot, the coins, the checkout button.</span></li>
-        <li><b>Muse Glimmer 30B <span class="ow">open weights</span></b><span class="job">Judges every vision check with no SAM key, its boxes checked against the engine. It is also the fallback when SAM doesn't answer.</span></li>
+        <li><b>SAM 3.1</b><span class="job">Finds what a check names in the frames of a replay: the robot, the coins, the checkout button.</span></li>
+        <li><b>Muse Glimmer 30B <span class="ow">open weights</span></b><span class="job">Judges the vision checks with no SAM key, its boxes checked against the engine. Its boxes are too loose for the ground check, which then uses the engine's log. Also the fallback when SAM doesn't answer.</span></li>
         <li><b>Muse Spark</b><span class="job">Turns a one-sentence check into a test spec that a person approves once, and sorts playtest remarks into draft checks.</span></li>
         <li><b>Muse Spark Open <span class="ow">open weights</span></b><span class="job">The same two jobs on open weights, served on Baseten.</span></li>
-        <li><b>Muse Code</b><span class="job">The fixer. It patches the game in a sandbox that cannot reach the checks.</span></li>
+        <li><b>Muse Code</b><span class="job">The fixer. It patches the game in a sandbox, and can neither change the checks nor see the held-out ones.</span></li>
         <li><b>Muse Wonder</b><span class="job">Triage: turns failure evidence into a bug report and a repair request.</span></li>
         <li><b>Muse Voice Transcribe</b><span class="job">Turns a recorded playtest into who said what. Raw speech never becomes a check, and a request to switch one off is refused and queued for a person.</span></li>
       </ul>
-      <p class="src">Why open weights matter here: an unreleased game build is confidential. With Glimmer, every vision check can run on a studio's own hardware. <a href="https://github.com/seanudeke/Expectrail/blob/main/docs/open-weights.md">How we use them</a></p>
+      <p class="src">Why open weights matter here: an unreleased game build is confidential. With Glimmer, the vision checks could run on a studio's own hardware; so far we have run it only on a Fireworks deployment. <a href="https://github.com/seanudeke/Expectrail/blob/main/docs/open-weights.md">How we use them</a></p>
     </div>
   </section>
 
@@ -385,8 +387,8 @@ footer a { color:var(--on-ink); }
       <h3>See it work</h3>
       <ul>
         <li><a href="review/sinking-fix/">A rejected fix, before and after</a></li>
-        <li><a href="review/live-demo-run-1/">Muse Code's fix, before and after</a></li>
-        <li><a href="review/report-first-run-1/">A run on the loop as it ships</a></li>
+        <li><a href="review/report-first-run-1/">Muse Code's fix, before and after</a></li>
+        <li><a href="review/live-demo-run-1/">The same fix, given the evidence first</a></li>
         <li><a href="demo/">The illustrated walkthrough</a></li>
       </ul>
     </div>
