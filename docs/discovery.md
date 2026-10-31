@@ -131,8 +131,8 @@ The results above are development reproduction. The blind run is the test that i
 1. **Freeze.** `discovery/freeze.json` records the sha256 of every file that decides a finding (the
    profile and templates, probes, route compiler, signals, interpreter, job, planner prompt and
    model, record schemas, recorder, replay harness) and of the clean game, plus the exact blind
-   command. Tag `discovery-freeze-1` marks the commit. `python -m expectrail.discovery.freeze verify`
-   names any file that changed.
+   command, as of commit `0b6556c14a51`. `python -m expectrail.discovery.freeze verify` names
+   any file that changed, and a test keeps the freeze holding on main until the blind run is recorded.
 2. **Fresh defects, written after the freeze.** Eight to ten defects and one or two intentional
    changes, in the private held-out repository under `fresh/`, each with a private route showing it.
    They are written without the discoverer's rules in front of the writer, and chosen by a random

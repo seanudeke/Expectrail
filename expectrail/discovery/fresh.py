@@ -16,7 +16,7 @@ the public logs until the event is over.
 Manifest (``fresh/manifest.json``)::
 
     {"format": "expectrail.fresh-set/v1",
-     "frozenDiscovery": {"tag": "discovery-freeze-1", "sha256": "<discovery/freeze.json sha256>"},
+     "frozenDiscovery": {"commit": "<the freeze commit>", "sha256": "<discovery/freeze.json sha256>"},
      "createdAt": "2026-11-01T...Z",
      "entries": [{"id": "f01", "kind": "defect" | "intentional", "patch": "fresh/f01.patch",
                   "area": "...", "description": "...", "howItShows": "...", "route": "fresh/routes/f01.json",

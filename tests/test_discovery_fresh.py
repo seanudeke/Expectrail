@@ -23,7 +23,7 @@ def make_set(freeze_sha="f" * 64):
         entries.append({"id": fid, "kind": "intentional" if i == 7 else "defect", "patch": f"fresh/{fid}.patch",
                         "area": "a", "description": "d", "howItShows": "h", "route": f"fresh/routes/{fid}.json",
                         "traceVisible": "yes", "timing": "immediate"})
-    doc = {"format": fresh.FORMAT, "frozenDiscovery": {"tag": "discovery-freeze-1", "sha256": freeze_sha},
+    doc = {"format": fresh.FORMAT, "frozenDiscovery": {"commit": "0" * 40, "sha256": freeze_sha},
            "createdAt": "2026-11-01T00:00:00Z", "entries": entries}
     (root / "fresh" / "manifest.json").write_text(json.dumps(doc))
     return root

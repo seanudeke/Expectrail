@@ -9,6 +9,16 @@ from expectrail.discovery import freeze
 REPO = Path(__file__).resolve().parents[1]
 
 
+class FreezeHoldsOnMain(unittest.TestCase):
+    """Until the blind run is recorded (docs/discovery.md, The blind run), no file that decides a
+    finding may change. Remove this test, deliberately, once that run is in bench/discovery/."""
+
+    def test_the_frozen_files_and_the_clean_game_are_unchanged(self):
+        ok, problems, digest = freeze.verify(REPO)
+        self.assertTrue(ok, f"discovery is frozen for the blind run: {problems}")
+        self.assertEqual(digest, "6e9ca2bda1c0cf3d0d491ae411bbeb54e18c6701ebd1ed6274c742c02a644824")
+
+
 class Freeze(unittest.TestCase):
     def copy(self):
         root = Path(tempfile.mkdtemp())

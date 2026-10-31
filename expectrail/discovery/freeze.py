@@ -8,7 +8,9 @@ records the sha256 of every file that decides a finding (the probes, the route c
 and its templates, the signals and the interpreter, the job, the planner's prompt and model, the
 record schemas, the recorder and the replay harness, and the clean game's whole tree) and the exact
 command a blind job runs. Its own digest is what the fresh defect set's manifest names, and the
-blind run checks out the tagged commit and verifies it before it replays anything.
+blind run verifies it on the commit it checks out before it replays anything. Until the blind run is
+recorded, tests/test_discovery_freeze.py keeps the freeze holding on main, so a frozen file cannot
+change without a test failing.
 
 The report and collection code (cli.py's report, annotate and collect) is left out on purpose: it
 formats findings and decides none.
