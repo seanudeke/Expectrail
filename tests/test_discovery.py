@@ -369,6 +369,15 @@ class Planner(unittest.TestCase):
         self.assertIn("412", stage["detail"])
         self.assertTrue(doc["findings"])  # the deterministic part still ran
 
+    def test_an_empty_answer_names_its_finish_reason(self):
+        profile = load_strict(PROFILE, "mechanics-profile")
+        empty = {"choices": [{"message": {"content": None}, "finish_reason": "length"}]}
+        with self.assertRaisesRegex(ValueError, "finish_reason 'length'"):
+            planner_mod.spark_planner(Transport(empty))(profile, [], {}, {})
+        transport = Transport(reply({"probes": [], "candidates": []}))
+        planner_mod.spark_planner(transport)(profile, [], {}, {})
+        self.assertNotIn("max_tokens", transport.bodies[0])
+
     def test_non_json_answer_is_refused(self):
         profile = load_strict(PROFILE, "mechanics-profile")
         bad = {"choices": [{"message": {"content": "Sure! Here are some ideas"}}]}
