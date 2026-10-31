@@ -1,8 +1,17 @@
 # Report first, verify always
 
-Decided October 30, 2026, after the natural-catch trial. In one line: **let the fixer work from a
-plain bug report, and make Expectrail the gate every fix has to pass.** Expectrail's detailed
-evidence goes to the fixer only after the gate has rejected an attempt.
+Decided October 30, 2026, after the natural-catch trial; amended October 31 after the first Fix
+matrix run that measured it. In one line: **let the fixer work from a plain bug report, and make
+Expectrail the gate every fix has to pass.** Expectrail's detailed evidence goes to the fixer after
+any failed attempt.
+
+> **October 31 amendment.** The first claim behind this decision, that the fixer does not need
+> our evidence, did not hold for the sinking bugs. In Fix matrix run 41223754703, report-only
+> attempts on both sinking bugs timed out three times in a row, while the evidence fixed each on
+> the first attempt. Because a timed-out attempt did not count as a failure, the loop never
+> escalated on the bug where it mattered most. Now any failed attempt escalates: a rejection, a
+> timeout, or an attempt that changes nothing. The evidence has also been rewritten below
+> ([What the October 31 run changed](#what-the-october-31-run-changed)).
 
 ## The decision
 
@@ -12,10 +21,11 @@ evidence goes to the fixer only after the gate has rejected an attempt.
    log. No spec, no verdict, no evidence.
 2. **Every candidate is verified, on every attempt.** The fixer never decides that it is done. A
    candidate is accepted only when every check passes, as before.
-3. **Only after the verifier rejects an attempt does the next one get the evidence:** the repair
-   request (the approved spec, the evaluator's verdict on the failing run, its first failing frame)
-   and the public checks that did not pass. An empty attempt is not a rejection; the next attempt
-   stays on the report.
+3. **After any failed attempt, the next one gets the evidence:** the repair request (the approved
+   spec, the evaluator's verdict on the failing run, its first failing frame) and, after a
+   rejection, the public checks that did not pass. An attempt fails when the verifier rejects it,
+   or when it produces no fix (it times out or changes nothing). Until October 31, an empty or
+   timed-out attempt stayed on the report.
 4. **The fixer never learns about the held-out routes or the guards.** Not their names, not that
    one failed, not why. When only a held-out check rejected a candidate, the fixer learns that the
    attempt was rejected and nothing else.
@@ -28,11 +38,45 @@ evidence goes to the fixer only after the gate has rejected an attempt.
 Before this, the fixer got the evidence from the first attempt, and the verifier's full reasons
 after a rejection.
 
+## What the October 31 run changed
+
+[Fix matrix run 41223754703](https://github.com/seanudeke/Expectrail/actions/runs/41223754703)
+([`bench/fix-matrix/report-first/`](../bench/fix-matrix/report-first/README.md)) ran the 8 development
+bugs under all three conditions, with SAM on and the private routes mounted:
+
+| Condition | Fixed | Fixed on the first attempt | Not fixed |
+| --- | --- | --- | --- |
+| `expectrail`: the evidence from the first attempt | **8 of 8** | 8 | none |
+| `escalate`: the report first, the evidence after a failed attempt (as it then stood) | 7 of 8 | 6 | sinking/v1: three timeouts |
+| `screenshots`: the report on every attempt | 6 of 8 | 6 | sinking/v1 and sinking/v2: three timeouts each |
+
+- **Every failure was a sinking bug, and every one was a timeout.** Muse Code ran out of time
+  without changing a file it may edit. With the evidence (the spec, the verdict and the first
+  failing frame), it fixed both sinking bugs on its first attempt. In a sinking bug the robot is
+  drawn or collides a few pixels into the ground, which is easy to miss in a screenshot and easy
+  to find with a verdict that names the frame and the boundary.
+- **Escalation helped where it was allowed to run.** On sinking/v2 under `escalate`, the first
+  attempt timed out and the second, still on the report, was rejected. The third attempt got the
+  evidence and was accepted. On sinking/v1 every attempt timed out. A timeout did not count as a
+  failure then, so the evidence never came. That is the rule this amendment changes.
+- **Across every live run so far:** report-only first attempts fixed 43 of 47 cases (91%), and all
+  four misses were sinking. Evidence-first attempts fixed 25 of 26 (96%). The difference is
+  concentrated in one family. It is still a small sample, and Muse Code does not give the same
+  answer twice.
+- **The other decisions stand.** Every candidate is still verified. The judge results are
+  unchanged. The demo loop under the new policy accepted 3 of 3 runs on the first attempt from the
+  report ([run 41223748922](https://github.com/seanudeke/Expectrail/actions/runs/41223748922)).
+
+**What would make us switch back to evidence first:** if the next matrix run with the amended rule
+still loses cases that `expectrail` fixes, or takes much longer to fix them, the evidence should go
+first, and the report becomes the fallback for fixers that cannot read our contracts.
+
 ## Why
 
-### The fixer does not need our evidence
+### The fixer usually does not need our evidence (as of October 30)
 
-Every live repair we have run, with and without Expectrail's evidence:
+This section is the evidence as it stood when we decided. The October 31 run below changes it.
+Every live repair we had run, with and without Expectrail's evidence:
 
 | Run | What Muse Code got first | Fixed | First attempt |
 | --- | --- | --- | --- |
@@ -42,9 +86,9 @@ Every live repair we have run, with and without Expectrail's evidence:
 | Demo loop, 10 live runs ([`bench/demo-loop/`](../bench/demo-loop/README.md)) | Expectrail's evidence | 10 of 10 | 10 of 10 |
 | Demo loop on this policy, 3 live runs ([41223748922](https://github.com/seanudeke/Expectrail/actions/runs/41223748922), Oct 31; [a review](review/report-first-run-1/)) | A plain report | 3 of 3 | 3 of 3 |
 
-That is 48 of 49 cases fixed on the first attempt. The one that needed a second attempt had the
-evidence. On these bugs, the evidence did not help Muse fix anything it could not fix from a
-report.
+That was 48 of 49 cases fixed on the first attempt, counting the October 31 demo runs. The one
+that needed a second attempt had the evidence. On those bugs, the evidence did not help Muse fix
+anything it could not fix from a report. The October 31 Fix matrix run found bugs where it did.
 
 ### The judge is what matters
 
@@ -70,6 +114,15 @@ confidence in its own fix is no better evidence than that. Under that rule, a fi
 robot inside the ground would never trigger "Muse cannot fix it", so it would ship. So the gate
 stays on every candidate, and what moves is what the fixer is told.
 
+## First live runs
+
+- **Demo loop, October 31** ([run 41223748922](https://github.com/seanudeke/Expectrail/actions/runs/41223748922),
+  [`bench/demo-loop/report-first/`](../bench/demo-loop/report-first/README.md)): **3 of 3 accepted, each on
+  the first attempt from the report.** Every review against the failing base showed the repair, and SAM
+  judged every run with nothing falling back. Each run used 157 SAM images, against 1,164 in the earlier
+  demo runs; those ran before the clean game's SAM answers were shared across a run's jobs, so the
+  drop is mostly that change, not this one.
+
 ## What this buys
 
 - **A product that does not care who writes the fix.** The first attempt's briefing is a plain
@@ -89,10 +142,10 @@ stays on every candidate, and what moves is what the fixer is told.
 
 ## What we do not know yet
 
-- **Whether the evidence helps on a second attempt.** In 49 live cases, Muse needed a second
-  attempt once. The escalation step is a reasonable fallback, not a measured improvement. The Fix
-  matrix now runs it by default (condition `escalate`) beside the two older conditions, so the next
-  run measures it.
+- **How much the evidence helps after a failed attempt.** One measured case so far: sinking/v2
+  was fixed on its third attempt, the first with the evidence. The amended rule (a timeout also
+  escalates) has not run live yet. The Fix matrix runs `escalate` by default, so the next run
+  measures it.
 - **Whether a report is enough for harder bugs.** Every bug so far is a small, local change. A bug
   that spans several files, or whose obvious fix is wrong, may need the evidence earlier.
 - **Overnight, the "report" is still Expectrail's own check.** When no person reported the bug,

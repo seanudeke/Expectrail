@@ -28,8 +28,9 @@ flowchart TD
 [report-first.md](report-first.md) has the reasoning. In short:
 
 1. The first attempt gets a plain report.
-2. After a rejection, the next attempt gets Expectrail's evidence and the public checks that failed,
-   never a held-out route or its reason.
+2. After a failed attempt (rejected, timed out or changed nothing), the next attempt gets
+   Expectrail's evidence, and after a rejection the public checks that failed, never a held-out
+   route or its reason.
 3. After the third attempt, the loop stops. There is no release candidate, and the morning report
    lists the case under "Unresolved for a human" with the verifier's reasons.
 
