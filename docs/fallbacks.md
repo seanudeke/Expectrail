@@ -82,6 +82,33 @@ one live overnight run, SAM made unavailable, Glimmer left as it was):
 The review against the failing base was INCONCLUSIVE, as it should be with no judge: it could not
 compare the two runs. The job is red, as every loop run that does not end in an accept is.
 
+**Second drill, October 31** ([run 41224918059](https://github.com/seanudeke/Expectrail/actions/runs/41224918059),
+one live overnight run, SAM made unavailable). Before it, Fireworks credit was added and the
+deployment's scaling restored (min 0, max 1, 15 minutes to scale to zero) by the Glimmer probe's
+restore step ([run 41224869758](https://github.com/seanudeke/Expectrail/actions/runs/41224869758),
+cancelled once the deployment had woken, in 2.5 minutes). The whole ladder ran for the first time:
+
+| Step | What happened |
+| --- | --- |
+| Triage and fix | Wonder triaged live; Muse Code fixed the bug on its first attempt, from the report, through the key gateway |
+| Judge: SAM | No answer (the drill) |
+| Judge: SAM again, 30 s later | No answer |
+| Judge: Glimmer checked against the engine | **Accept.** The morning report carries the note that the ground was judged on the engine's position log |
+| Result | Decision accept after 1 fix attempt (none spent on the outage); release candidate signed for a person to approve; 0 SAM images; 2,216 s, about twice a SAM run |
+
+What it showed:
+
+- **The fallback answers.** With SAM gone, Glimmer checked against the engine decided the
+  candidate, and the decision carries its label to the person who approves the release.
+- **The review against the failing base does not use the ladder.** It reported INCONCLUSIVE
+  ("player-stays-above-ground cannot be compared: before needs-review, after pass"): it judged the
+  bugged base with SAM, which the drill had made unavailable, and did not fall back. The accept
+  stands, but the before-and-after evidence is missing on a fallback night (#129).
+- **It is slow.** About 37 minutes against 12 to 22 for a SAM run, with the deployment billed by
+  the hour while it is up.
+- **It judged one correct fix.** Glimmer's rate on fixes that only look right is still unmeasured
+  (#129, item 4).
+
 ## What the judge ladder must never do
 
 - **Re-judge a rejection.** A rejection is final at every step. The ladder climbs only when the
