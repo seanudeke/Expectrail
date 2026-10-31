@@ -266,7 +266,7 @@ footer a { color:var(--on-ink); }
           </tr>
         </tbody>
       </table>
-      <p class="src">The same decisions in both runs of the <a href="https://github.com/seanudeke/Expectrail/blob/main/bench/judge/README.md">judge benchmark</a>.</p>
+      <p class="src">The same decisions in all three runs of the <a href="https://github.com/seanudeke/Expectrail/blob/main/bench/judge/README.md">judge benchmark</a>.</p>
     </div>
   </section>
 
@@ -320,8 +320,9 @@ footer a { color:var(--on-ink); }
 
       <div class="group">
         <h3>Fixes that only look right, accepted</h3>
-        <p>Seven bad fixes, judged twice; fewer is better. Expectrail also accepted all eight correct fixes, each an exact revert of a seeded bug, in both runs.</p>
+        <p>Seven bad fixes, judged three times; fewer is better. Expectrail also accepted all eight correct fixes, each an exact revert of a seeded bug, in every run.</p>
         <div class="row ours"><span class="who">Expectrail with SAM 3.1</span><span class="units" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="n">0 <small>of 7</small></span><span class="run"><a href="https://github.com/seanudeke/Expectrail/blob/main/bench/judge/README.md">Judge benchmark</a></span></div>
+        <div class="row ours"><span class="who">Expectrail with Muse Glimmer, no SAM</span><span class="units" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="n">0 <small>of 7</small></span><span class="run">One run. One of the seven passed every public check and was stopped only on a private route, where SAM stops it on a public check. <a href="https://github.com/seanudeke/Expectrail/blob/main/bench/judge/glimmer/README.md">Run 41230177124</a></span></div>
         <div class="row"><span class="who">Expectrail, position log only</span><span class="units" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i></span><span class="n">3 <small>of 7</small></span><span class="run">The same verifier with its vision checks off.</span></div>
         <div class="row"><span class="who">Muse Code from screenshots</span><span class="units" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i></span><span class="n">2 <small>of 7</small></span><span class="run">It also turned down one or two of the correct fixes.</span></div>
       </div>
