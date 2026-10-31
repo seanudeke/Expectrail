@@ -10,6 +10,10 @@ renders the bugged game, briefs Muse Code, and judges every candidate with the s
   - ``expectrail``: the same files, plus the repair request: the approved spec, the evaluator's
     verdict on the bugged run with its evidence and first failing frame, and the verifier's reasons
     after a rejected attempt. Expectrail only opens a repair when its own check caught the bug.
+  - ``escalate``: what the overnight loop now does (agents/escalation.py, docs/report-first.md).
+    The first attempt gets the ``screenshots`` briefing; only after the verifier rejects an attempt
+    does the next get the ``expectrail`` briefing, with the verifier's reasons limited to the public
+    checks. Like ``expectrail``, it opens a repair only when Expectrail's own check caught the bug.
 
 "Existing checks" (the game's build) catches none of the seeded bugs; it needs no run.
 
@@ -54,7 +58,7 @@ from expectrail.contracts import digest, load, validate
 from expectrail.evaluator import EVALUATOR, evaluate
 
 FORMAT = "expectrail.fix-matrix/v0"
-CONDITIONS = ("screenshots", "expectrail")
+CONDITIONS = ("screenshots", "expectrail", "escalate")
 EDITABLE = ["player/**", "level/**", "game_singleplayer.tscn"]
 SMOKE_ROUTE = REPO / "harness" / "routes" / "smoke.json"
 ATTEMPTS = 3
@@ -225,7 +229,7 @@ def run_case(key: str, condition: str, out: Path, *, live: bool, use_sam: bool |
         detection = detect(patch, spec, work, use_sam=use_sam, reference=reference)
         verdict = detection["verdict"]
         row["detected"] = verdict["result"]
-        if condition == "expectrail" and verdict["result"] != "fail":
+        if condition in ("expectrail", "escalate") and verdict["result"] != "fail":
             row.update(outcome="not-detected", detail=f"Expectrail's check did not catch it: {verdict['reason']}")
             return _finish(row, work, t0)
         files = briefing_files(detection, work)
@@ -238,16 +242,24 @@ def run_case(key: str, condition: str, out: Path, *, live: bool, use_sam: bool |
         )
         (work / "repair-request.json").write_text(json.dumps(request, indent=2) + "\n", encoding="utf-8")
         prior: dict | None = None
+        verifier_rejected = False
         offline_patch = fixture
         if offline_patch is None:
             offline_patch = work / "empty.patch"
             offline_patch.write_text("", encoding="utf-8")
         for attempt in range(1, ATTEMPTS + 1):
             attempt_out = work / f"attempt-{attempt:02d}"
-            if condition == "screenshots":
+            # An empty attempt is not a rejection: escalate only after the verifier rejected one.
+            escalated = condition == "escalate" and verifier_rejected
+            if condition == "screenshots" or (condition == "escalate" and not escalated):
                 briefing = {"prompt": screenshots_prompt(detection["spec"], files, attempt, prior is not None),
-                            "policy": "matrix-screenshots-v1", "files": files, "withRequest": False}
-                feedback = {"attempt": attempt - 1, "decision": "reject"} if prior else None
+                            "policy": "matrix-screenshots-v1" if condition == "screenshots" else "matrix-escalate-v1-report",
+                            "files": files, "withRequest": False}
+                feedback = {"attempt": attempt - 1, "decision": "reject"} if prior and condition == "screenshots" else None
+            elif condition == "escalate":
+                briefing = {"prompt": expectrail_prompt(request, files, attempt),
+                            "policy": "matrix-escalate-v1-evidence", "files": files, "withRequest": True}
+                feedback = prior
             else:
                 briefing = {"prompt": expectrail_prompt(request, files, attempt),
                             "policy": "matrix-expectrail-v1", "files": files, "withRequest": True}
@@ -257,6 +269,8 @@ def run_case(key: str, condition: str, out: Path, *, live: bool, use_sam: bool |
                              require_sandbox=require_sandbox)
             film = {"attempt": attempt, "source": meta.get("source"), "empty": meta.get("empty", False),
                     "patchSha256": meta.get("patchSha256")}
+            if condition == "escalate":
+                film["briefing"] = "evidence" if escalated else "report"
             if meta.get("timedOut"):
                 film["timedOut"] = True
             row["attempts"].append(film)
@@ -276,7 +290,13 @@ def run_case(key: str, condition: str, out: Path, *, live: bool, use_sam: bool |
             film["checks"] = {f"{c['kind']}:{c['spec']}": c["result"] for c in v.get("checks", [])}
             if v["decision"] == "accept" or not live:
                 break
-            prior = {"decision": v["decision"], "reasons": v.get("reasons"), "attempt": attempt}
+            verifier_rejected = True
+            if condition == "escalate":
+                from agents.escalation import public_feedback
+
+                prior = public_feedback(v, attempt)  # public checks only, never a held-out reason
+            else:
+                prior = {"decision": v["decision"], "reasons": v.get("reasons"), "attempt": attempt}
         decisions = [a.get("decision") for a in row["attempts"]]
         row["outcome"] = ("fixed" if "accept" in decisions
                           else "needs-review" if "needs-review" in decisions else "not-fixed")

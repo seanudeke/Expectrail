@@ -51,8 +51,8 @@ on:
         description: Comma-separated case ids (default all in the set), e.g. dev/sinking/v2,dev/layering/v1
         default: ''
       conditions:
-        description: Comma-separated conditions (default both), screenshots and/or expectrail
-        default: 'screenshots,expectrail'
+        description: "Comma-separated conditions: escalate (what the loop does: the report first, Expectrail's evidence only after a rejection; docs/report-first.md), screenshots (the report on every attempt) and expectrail (the evidence from the first attempt)"
+        default: 'escalate,screenshots,expectrail'
       runs:
         description: demo only, how many independent live runs of the overnight loop (1 to 20); always live
         default: '10'

@@ -158,6 +158,12 @@ verifier's reasons, and opens a repair only when its own check caught the bug. E
 judged by the same verifier with SAM on and the private routes mounted; Muse Code runs only inside
 bubblewrap there. "Existing checks" needs no run: the game has no tests, so it catches nothing.
 
+A third condition, `escalate` (added October 30), is what the overnight loop now does
+([report-first.md](report-first.md)). The first attempt gets the screenshots briefing. Only after
+the verifier rejects an attempt does the next one get the Expectrail briefing, with the verifier's
+reasons limited to the public checks. The workflow runs it by default beside the other two, so
+every matrix run measures the policy the loop ships.
+
 The held-out variants go through the same matrix once, after the code freeze (`set: held-out`).
 Only ids, outcomes and per-attempt decisions leave the runner for them: a candidate patch, a
 verifier reason or Muse's log would describe the private bug.

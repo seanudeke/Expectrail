@@ -81,6 +81,15 @@ budget for small patches.
 Next: multi-file fixes, a root-cause note in the morning report, and a link to the commit that
 introduced the bug.
 
+**The fixer starts from a plain report; we have not shown that the evidence helps it.** Since
+October 30, Muse Code gets Expectrail's evidence only after a rejected attempt
+([report-first.md](report-first.md)), because it fixed 45 of 46 live cases on the first attempt
+with or without it. Whether the evidence helps on a second attempt is unmeasured: it has been
+needed once.
+
+Next: run the Fix matrix's `escalate` condition on harder bugs, ones that span several files or
+whose obvious fix is wrong, where a first attempt fails often enough to measure the second.
+
 **"Accepted" means it passed our suite, not that the game is correct.** The held-out variants are
 bugs we seeded ourselves.
 

@@ -9,6 +9,11 @@ Modes:
 
 Live Muse honors repair-request ``budget.attempts`` (re-prompt on verify reject /
 empty patch). Fixture path is always a single attempt.
+
+What Muse is told follows agents/escalation.py (docs/report-first.md): the first attempt gets the
+report (the failing check's sentence, screenshots of the failing run, the route and its log); only
+after the verifier rejects an attempt does the next one get the evidence (the repair request and the
+public checks that failed). Every candidate is verified either way.
 Exit 0 only if every run ends with verification accept. Crashes never forge accept.
 """
 from __future__ import annotations
@@ -22,14 +27,15 @@ import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 
+from agents import escalation
 from agents.fixer import run_fixer
 from agents.keys import resolve_mode, seal_mode_flags
 from agents.report import build_report, gameplay_film_stub, write_loop_rollup
 from agents.signing import generate_run_keys
 from agents.triage import WONDER_MODEL, triage
 from agents.trust import run_trust_check
-from agents.verifier import verify
-from harness.run import REPO
+from agents.verifier import _resolve, verify
+from harness.run import REPO, run as harness_run
 from expectrail.contracts import load, validate
 
 DEFAULT_BEFORE = REPO / "agents" / "fixtures" / "frames" / "before-fall.png"
@@ -37,6 +43,23 @@ DEFAULT_AFTER = REPO / "agents" / "fixtures" / "frames" / "after-fixed.png"
 # The failing base's observations when the loop runs on fixtures (the loop's bug is the fall-through).
 SAMPLE_BASE_OBS = REPO / "agents" / "fixtures" / "obs-fallthrough.json"
 REVIEW_ENV = "EXPECTRAIL_REVIEW"
+
+
+def render_report(request: dict, out: Path) -> dict[str, Path] | None:
+    """Replay the failing base on the request's route for the report's screenshots. None when it
+    cannot be rendered: the fixer then starts from the evidence, as before."""
+    try:
+        failing = request["failing"][0]
+        route = out / "route.json"
+        out.mkdir(parents=True, exist_ok=True)
+        route.write_text(json.dumps(failing["route"], indent=2) + "\n", encoding="utf-8")
+        seed = request["base"].get("patch")
+        harness_run(route, out / "replay", patches=[_resolve(seed)] if seed else [])
+        files = escalation.report_files(out / "replay", route)
+        return files if any("/screenshots/" in k for k in files) else None
+    except (Exception, SystemExit):  # noqa: BLE001 - no report screenshots is a fallback, never a crash
+        (out / "report-error.txt").write_text(traceback.format_exc(), encoding="utf-8")
+        return None
 
 
 def review_on() -> bool:
@@ -146,6 +169,10 @@ def one_run(
         prior_reject: dict | None = None
         verification = None
         last_meta: dict | None = None
+        # The report's screenshots: only a live fixer reads them, so only a live run renders them.
+        report = render_report(request, out / "report") if use_muse and escalation.mode() == "report-first" else None
+        rejected_before = False
+        empty_before = False
 
         for attempt in range(1, max_attempts + 1):
             if signing_key.exists():
@@ -154,6 +181,7 @@ def one_run(
             if pub.exists():
                 pub.unlink()
             attempt_out = fix_out / f"attempt-{attempt:02d}"
+            brief, stage = escalation.briefing(request, report, attempt, rejected_before, empty_before=empty_before)
             meta = run_fixer(
                 request,
                 attempt_out,
@@ -161,7 +189,9 @@ def one_run(
                 attempt=attempt,
                 allow_empty=use_muse,
                 require_sandbox=require_sandbox,
-                prior_reject=prior_reject,
+                # The report stage carries no verifier output; the evidence stage gets the public reasons.
+                prior_reject=prior_reject if stage == "evidence" else None,
+                briefing=brief,
             )
             last_meta = meta
             _promote_candidate(attempt_out, fix_out)
@@ -172,11 +202,14 @@ def one_run(
                 "empty": meta.get("empty", False),
                 "patchSha256": meta.get("patchSha256"),
                 "dir": str(attempt_out.relative_to(out)) if attempt_out.is_relative_to(out) else str(attempt_out),
+                "briefing": stage if use_muse else "fixture",
             }
             attempt_films.append(film)
 
             if meta.get("empty"):
-                prior_reject = {"reason": "empty-patch", "attempt": attempt}
+                if prior_reject is None:
+                    prior_reject = {"reason": "empty-patch", "attempt": attempt}
+                empty_before = True
                 film["decision"] = "retry-empty"
                 continue
 
@@ -225,11 +258,11 @@ def one_run(
             film["reasons"] = verification.get("reasons")
             if verification["decision"] == "accept":
                 break
-            prior_reject = {
-                "decision": verification["decision"],
-                "reasons": verification.get("reasons"),
-                "attempt": attempt,
-            }
+            # Escalate: the next attempt gets the evidence and the public checks that did not pass,
+            # never a held-out route or its reason (agents/escalation.py).
+            prior_reject = escalation.public_feedback(verification, attempt)
+            rejected_before = True
+            empty_before = False
             for stale in (signing_key, signing_key.with_name(signing_key.name + ".pub")):
                 if stale.exists():
                     stale.unlink()
