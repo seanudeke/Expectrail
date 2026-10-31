@@ -17,6 +17,7 @@ from unittest import mock
 
 import agents.mutation_bench as mb
 from agents import mutate_game
+from agents.judge_bench import cases as judge_cases
 from agents.sam_observations import MetaSamClient, SamError
 from harness.run import REPO, apply_patches
 
@@ -25,6 +26,9 @@ ROWS = [{"tick": t, "frame": t, "player": [90.0 + 2 * t, 452.0], "onFloor": True
          "ground": 465.25, "view": [1, 0, 0, 1, 0, 0]} for t in range(240)]
 TRACE = {"format": "expectrail.trace/v0", "physicsTicksPerSecond": 120, "rows": ROWS,
          "levelSurfaces": [[[-4000.0, 465.25], [4000.0, 465.25], [4000.0, 900.0], [-4000.0, 900.0]]]}
+
+
+STEPS = {"positionStep": 1, "offsetStep": 1, "scaleStep": 1, "zIndexStep": 1, "constantScale": 2, "collisionBits": 1}
 
 
 def prereg(**wrong_fix) -> dict:
@@ -306,45 +310,84 @@ class OutcomeTest(Base):
                 mock.patch.object(mb, "verify", side_effect=AssertionError("judged too early")):
             self.assertEqual(mb.main(["--case", "dev/sinking/v1", "--operator", "hide", "--out", str(self.out)]), 2)
 
+    def verify_says(self, *answers):
+        left = list(answers)
+
+        def fake(request, candidate, out, **kwargs):
+            out.mkdir(parents=True, exist_ok=True)
+            answer = left.pop(0)
+            if isinstance(answer, BaseException):
+                raise answer
+            return answer
+
+        return mock.patch.object(mb, "verify", side_effect=fake)
+
+    REJECTED = verification(("gameplay", "m", "fail"), ("clean", "g", "pass"), decision="reject")
+    SAM_ON_REJECTION = verification(("regression", "player-always-visible", "pass"), ("gameplay", "m", "fail"),
+                                    ("clean", "g", "pass"), decision="reject")
+
     def test_the_dry_run_needs_no_pre_registration_and_never_asks_sam(self):
-        rejected = verification(("gameplay", "m", "fail"), ("clean", "g", "pass"), decision="reject")
-        with mock.patch.object(mb, "verify", side_effect=lambda r, c, out, **k: (out.mkdir(parents=True, exist_ok=True),
-                                                                                  rejected)[1]):
+        with self.verify_says(self.REJECTED):
+            self.assertEqual(mb.main(["--dry-run", "--out", str(self.out)]), 0)
+        self.check.assert_not_called()
+
+    def test_a_dry_run_that_passes_the_cheap_tier_still_never_asks_sam(self):
+        with self.verify_says(CHEAP_PASS):
             self.assertEqual(mb.main(["--dry-run", "--out", str(self.out)]), 0)
         self.check.assert_not_called()
 
     def test_the_sam_rehearsal_forces_sam_on_a_cheap_rejection(self):
-        rejected = verification(("gameplay", "m", "fail"), ("clean", "g", "pass"), decision="reject")
-        sam = verification(("regression", "player-always-visible", "pass"), ("gameplay", "m", "fail"),
-                           ("clean", "g", "pass"), decision="reject")
-        left = [rejected, sam]
-        with mock.patch.object(mb, "verify", side_effect=lambda r, c, out, **k: (out.mkdir(parents=True, exist_ok=True),
-                                                                                  left.pop(0))[1]):
+        with self.verify_says(self.REJECTED, self.SAM_ON_REJECTION):
             self.assertEqual(mb.main(["--dry-run", "sam", "--out", str(self.out)]), 0)
         self.check.assert_called_once()
-        self.assertEqual(left, [])
-        row = json.loads((self.out / "dev_physics-fall-through_v1+freeze" / "result.json").read_text())
-        self.assertEqual((row["agreement"], row["preregistrationSha256"]), ("disagree", None))
+        row = json.loads((self.out / "rehearsal-pair" / "result.json").read_text())
+        self.assertEqual((row["agreement"], row["preregistrationSha256"], row["rehearsal"]), ("disagree", None, True))
 
-    def test_a_sam_rehearsal_that_could_not_ask_sam_fails(self):
+    def test_a_sam_rehearsal_that_never_reached_sam_fails_though_the_pair_was_caught(self):
+        """The real path: the pair is a cheap catch, so a dead SAM would otherwise read as a pass."""
         self.check.return_value = {"kind": "credit", "error": "402"}
-        with mock.patch.object(mb, "verify", side_effect=lambda r, c, out, **k: (out.mkdir(parents=True, exist_ok=True),
-                                                                                  CHEAP_PASS)[1]):
+        with self.verify_says(self.REJECTED):
             self.assertEqual(mb.main(["--dry-run", "sam", "--out", str(self.out)]), 1)
 
-    def test_the_mutant_rehearsal_runs_a_mutant_that_plays_and_a_broken_scene(self):
-        ids = [m["id"] for m in mb.dry_mutants()]
-        self.assertEqual(ids[0], "code:player/player.gd:7:sign.WALK_SPEED")
-        broken = mb.dry_mutants()[1]
-        self.assertEqual(broken["class"], "resource-path")
-        self.assertIn("player.gd.missing", broken["after"])
-        self.assertNotIn("uid=", broken["after"])
+    def test_a_sam_rehearsal_whose_sam_arm_died_fails(self):
+        boom = SystemExit("godot failed (134); see runs/x/sam-on/replay/godot.log")
+        with self.verify_says(self.REJECTED, boom, boom):
+            self.assertEqual(mb.main(["--dry-run", "sam", "--out", str(self.out)]), 1)
 
-    def test_a_broken_scene_may_crash_a_rehearsal_but_the_tooling_may_not(self):
-        for outcome, code in (("crash", 0), ("equivalent", 0), ("error", 1)):
-            with self.subTest(outcome=outcome), \
-                    mock.patch.object(mb, "rehearse", return_value=[{"id": "m", "outcome": outcome, "samImages": 0}]):
-                self.assertEqual(mb.main(["--dry-run", "mutants", "--out", str(self.out)]), code)
+    def test_the_rehearsal_pair_is_not_one_of_the_48(self):
+        self.assertNotIn(mb.OPERATORS_DIR, mb.DRY_RUN[1].parents)
+        self.assertTrue(mb.DRY_RUN[1].is_file())
+        self.assertIn("freeze-player", judge_cases()["bad/fall-through-freeze"]["fixture"])
+
+    def test_the_stand_ins_are_outside_the_population(self):
+        every = {m["file"] for m in mutate_game.enumerate_mutants(STEPS)}
+        for m in mb.dry_mutants():
+            with self.subTest(id=m["id"]):
+                self.assertFalse(mutate_game.in_population(m["file"]))
+                self.assertNotIn(m["file"], every)
+                self.assertTrue(mutate_game.patch_text(m))
+
+    def test_the_stand_ins_cover_the_three_ends(self):
+        self.assertEqual(sorted(mb.DRY_STAND_INS), ["rehearsal:cannot-start", "rehearsal:plays-differently",
+                                                    "rehearsal:runs-with-a-load-failure"])
+
+    def test_the_mutant_rehearsal_runs_every_stand_in_and_marks_them(self):
+        def harness(route, out, patch=None, patches=None, **kwargs):
+            fake_harness(route, out)
+            if patches:
+                Path(out, "replay.json").write_text(json.dumps({"frameSha256": ["11"] * 120}))
+
+        with self.verify_says(CHEAP_PASS, CHEAP_PASS, CHEAP_PASS), mock.patch.object(mb, "harness_run", harness):
+            rows = mb.rehearse("mutants", self.out)
+        self.assertEqual([r["id"] for r in rows], list(mb.DRY_STAND_INS))
+        self.assertTrue(all(r["rehearsal"] and r["preregistrationSha256"] is None for r in rows))
+        self.assertTrue(all(r["outcome"] == "awaiting-sam" for r in rows))
+        self.check.assert_not_called()
+
+    def test_a_rehearsal_refuses_the_private_set(self):
+        os.environ[mb.HELDOUT_ENV] = "/tmp/private"
+        with self.assertRaises(SystemExit):
+            mb.rehearse("pair", self.out)
 
     def test_a_rehearsal_never_counts_as_a_judged_result(self):
         """Its rows name no registration, so a summary refuses them beside a judged row."""
@@ -356,11 +399,77 @@ class OutcomeTest(Base):
         with self.assertRaises(SystemExit):
             mb.summarize(self.out)
 
-    def test_a_dry_run_that_passes_the_cheap_tier_still_never_asks_sam(self):
+
+class RehearsalPassedTest(unittest.TestCase):
+    PLAYS, LOADS, DEAD = list(mb.DRY_STAND_INS)
+    GOOD = [{"id": PLAYS, "category": "visible", "outcome": "awaiting-sam"},
+            {"id": LOADS, "category": "visible", "outcome": "caught-cheap", "loadFailures": 2},
+            {"id": DEAD, "outcome": "crash"}]
+
+    def changed(self, index, **change):
+        rows = [dict(r) for r in self.GOOD]
+        rows[index].update(change)
+        return rows
+
+    def test_mutants_pass_only_when_each_end_did_what_it_is_for(self):
+        self.assertTrue(mb.rehearsal_passed("mutants", self.GOOD))
+        for rows in (self.changed(0, outcome="crash"), self.changed(0, category="equivalent"),
+                     self.changed(1, loadFailures=0), self.changed(1, category="equivalent"),
+                     self.changed(2, outcome="caught-cheap"), self.changed(0, outcome="error"),
+                     self.changed(2, outcome="error"), self.GOOD[:2]):
+            with self.subTest(rows=rows):
+                self.assertFalse(mb.rehearsal_passed("mutants", rows))
+
+    def test_the_sam_rehearsal_needs_sam_to_have_answered(self):
+        good = {"outcome": "caught-cheap", "arms": {"cheap": {}, "sam": {}}}
+        self.assertTrue(mb.rehearsal_passed("sam", [good]))
+        for row in ({"outcome": "caught-cheap", "arms": {"cheap": {}}}, {**good, "samPreflight": {"kind": "credit"}},
+                    {**good, "samArmFailed": "x"}, {**good, "outcome": "crash"}, {**good, "outcome": "error"}):
+            with self.subTest(row=row):
+                self.assertFalse(mb.rehearsal_passed("sam", [row]))
+
+    def test_the_pair_needs_a_cheap_answer(self):
+        for outcome, passed in (("caught-cheap", True), ("awaiting-sam", True), ("undecided", False), ("crash", False),
+                                ("error", False)):
+            with self.subTest(outcome=outcome):
+                self.assertEqual(mb.rehearsal_passed("pair", [{"outcome": outcome}]), passed)
+
+    def test_a_rehearsal_with_no_rows_or_too_many_fails(self):
+        self.assertFalse(mb.rehearsal_passed("pair", []))
+        self.assertFalse(mb.rehearsal_passed("sam", [{"outcome": "caught-cheap"}] * 2))
+
+
+class LoadFailureTest(Base):
+    def log(self, name, *lines):
+        path = self.out / name
+        path.write_text("\n".join(lines))
+        return path
+
+    def test_only_lines_the_clean_game_does_not_have_count(self):
+        clean = self.log("clean.log", "ERROR: Failed to load script x", "fine")
+        log = self.log("m.log", "ERROR: Failed to load script x", "ERROR: Cannot open file 'res://a.missing'.",
+                       "ERROR: Failed loading resource: res://a.missing.", "fine")
+        self.assertEqual(mb.load_failures(clean, log), 2)
+
+    def test_a_missing_log_is_none(self):
+        self.assertEqual(mb.load_failures(self.out / "a", self.out / "b"), 0)
+
+    def test_a_game_that_runs_with_a_load_failure_is_judged_and_never_a_crash(self):
+        """A missing texture is the bug a resource-path mutant makes: it must reach the checks."""
+        manifest = {"mutants": [m for m in mb.dry_mutants() if "load-failure" in m["id"]]}
+
+        def harness(route, out, patch=None, patches=None, **kwargs):
+            fake_harness(route, out)
+            Path(out, "godot.log").write_text("ERROR: Failed loading resource: x\n" if patches else "")
+            if patches:
+                Path(out, "replay.json").write_text(json.dumps({"frameSha256": ["11"] * 120}))
+
+        rejected = verification(("regression", "g", "fail"), ("clean", "g", "pass"), decision="reject")
         with mock.patch.object(mb, "verify", side_effect=lambda r, c, out, **k: (out.mkdir(parents=True, exist_ok=True),
-                                                                                  CHEAP_PASS)[1]):
-            self.assertEqual(mb.main(["--dry-run", "--out", str(self.out)]), 0)
-        self.check.assert_not_called()
+                                                                                  rejected)[1]), \
+                mock.patch.object(mb, "harness_run", harness):
+            row = mb.run_mutant(manifest["mutants"][0]["id"], "cheap", self.out, prereg=prereg(), manifest=manifest)
+        self.assertEqual((row["outcome"], row["loadFailures"]), ("caught-cheap", 1))
 
 
 class NoopTest(Base):
@@ -650,13 +759,77 @@ class SummaryTest(Base):
         self.assertIn("## Blind spots", text)
 
     def test_plan_sam_takes_every_survivor_and_a_seeded_sample_of_rejections(self):
+        reg = dict(prereg(), sha256="ab")
         for i in range(5):
             self.write(f"c{i}", kind="mutant", id=f"caught{i}", outcome="caught-cheap")
         self.write("s", kind="mutant", id="left", outcome="awaiting-sam")
-        first = mb.plan_sam(self.out, prereg())
+        first = mb.plan_sam(self.out, reg)
         self.assertEqual(first["survivors"], ["left"])
         self.assertEqual(len(first["agreement"]), 2)
-        self.assertEqual(first, mb.plan_sam(self.out, prereg()))
+        self.assertEqual(first, mb.plan_sam(self.out, reg))
+
+    def test_plan_sam_refuses_results_from_elsewhere(self):
+        self.write("a", kind="mutant", id="m", outcome="awaiting-sam", preregistrationSha256=None)
+        with self.assertRaises(SystemExit) as caught:
+            mb.plan_sam(self.out, dict(prereg(), sha256="ab"))
+        self.assertIn("not from this registration", str(caught.exception))
+
+    def test_a_rehearsal_summary_says_so_and_has_no_score(self):
+        self.write("a", case="c", operator="rehearsal", outcome="caught-cheap", rehearsal=True,
+                   preregistrationSha256=None)
+        text = mb.markdown(mb.summarize(self.out))
+        self.assertIn("never a result", text)
+        self.assertNotIn("Mutation score", text)
+
+    def stratified(self):
+        """Numeric, the biggest class by far, all survive; every small class is caught."""
+        for i in range(10):
+            self.write(f"n{i}", kind="mutant", id=f"n{i}", outcome="survived", **{"class": "numeric"})
+        for cls, n in (("collision-bit", 5), ("code", 8), ("resource-path", 6)):
+            for i in range(n):
+                self.write(f"{cls}{i}", kind="mutant", id=f"{cls}{i}", outcome="caught-cheap", **{"class": cls})
+        manifest = self.out / "manifest.json"
+        manifest.write_text(json.dumps({
+            "sampling": {"method": "stratified"}, "shortByClass": {"boolean": 2}, "shortOfSample": 2,
+            "enumeratedByClass": {"numeric": 2642, "boolean": 1, "collision-bit": 39, "code": 20, "resource-path": 66},
+            "sampledByClass": {"numeric": 10, "boolean": 1, "collision-bit": 5, "code": 8, "resource-path": 6},
+            "mutants": [{"id": f"n{i}"} for i in range(10)]}))
+        with mock.patch.object(mb, "MANIFEST", manifest):
+            return mb.summarize(self.out)
+
+    def test_a_stratified_score_is_weighted_by_each_classs_real_size(self):
+        doc = self.stratified()
+        self.assertAlmostEqual(doc["score"], 19 / 29, places=3)  # what the allocation happens to give
+        view = doc["sampling"]
+        self.assertEqual(view["weightedScore"], round(125 / 2767, 4))
+        self.assertEqual(view["classes"]["numeric"], {"enumerated": 2642, "sampled": 10, "score": 0.0})
+        self.assertEqual(view["classesWithNoScore"], ["boolean"])
+        self.assertEqual(view["shortByClass"], {"boolean": 2})
+
+    def test_the_report_leads_with_the_weighted_score_and_says_why(self):
+        text = mb.markdown(self.stratified())
+        self.assertIn("weighted by each class's real size: **4.5%**", text)
+        self.assertIn("not a score for the whole game", text)
+        self.assertIn("| numeric | 2642 | 10 | 0.0% |", text)
+        self.assertIn("classes with no score: boolean", text)
+        self.assertIn("Short of the plan by 2", text)
+        self.assertNotIn("Mutation score: **", text)
+
+    def test_a_uniform_sample_keeps_the_plain_score_and_its_table(self):
+        self.write("a", kind="mutant", id="m1", outcome="caught-cheap", **{"class": "code"})
+        manifest = self.out / "manifest.json"
+        manifest.write_text(json.dumps({"sampling": {"method": "uniform"}, "enumeratedByClass": {"code": 20},
+                                        "sampledByClass": {"code": 1}, "mutants": [{"id": "m1"}]}))
+        with mock.patch.object(mb, "MANIFEST", manifest):
+            text = mb.markdown(mb.summarize(self.out))
+        self.assertIn("Mutation score: **100.0%**", text)
+        self.assertIn("Method: uniform", text)
+
+    def test_per_class_and_per_operator_tables_show_a_score(self):
+        self.write("a", kind="mutant", id="m", outcome="caught-cheap", operator="hide", **{"class": "code"})
+        text = mb.markdown(mb.summarize(self.out))
+        self.assertIn("| code | 100.0% | 1 |", text)
+        self.assertIn("| hide | 100.0% | 1 |", text)
 
 
 class WorkflowTest(unittest.TestCase):
@@ -711,10 +884,39 @@ class WorkflowTest(unittest.TestCase):
         gate = next(s for s in self.doc["jobs"]["plan"]["steps"] if "load_preregistration" in str(s))
         self.assertEqual(gate["if"], "${{ !startsWith(inputs.mode, 'dry-run') }}")
 
+    def judge_step(self):
+        return next(s for s in self.doc["jobs"]["run"]["steps"] if s.get("name", "").startswith("Judge one case"))
+
     def test_every_mode_is_handled_by_the_judging_step(self):
-        step = next(s for s in self.doc["jobs"]["run"]["steps"] if s.get("name", "").startswith("Judge one case"))
         for mode in self.doc[True]["workflow_dispatch"]["inputs"]["mode"]["options"]:
-            self.assertIn(f"{mode}) python", step["run"], mode)
+            self.assertIn(f"{mode}) python", self.judge_step()["run"], mode)
+
+    def test_each_rehearsal_runs_what_it_says(self):
+        run = self.judge_step()["run"]
+        self.assertIn("dry-run) python -m agents.mutation_bench --dry-run --out", run)
+        self.assertIn("dry-run-sam) python -m agents.mutation_bench --dry-run sam --out", run)
+        self.assertIn("dry-run-mutants) python -m agents.mutation_bench --dry-run mutants --out", run)
+
+    def test_the_sam_rehearsal_gets_the_shared_answers_like_a_judged_run(self):
+        steps = self.doc["jobs"]["run"]["steps"]
+        guards = [self.doc["jobs"]["sam-warm"]["if"]] + [s["if"] for s in steps if "sam" in str(s.get("name", "")).lower()
+                                                          and "if" in s]
+        self.assertEqual(len(guards), 3)
+        for guard in guards:
+            with self.subTest(guard=guard):
+                self.assertIn("inputs.mode == 'dry-run-sam'", guard)
+                self.assertIn("inputs.mode == 'wrong-fix'", guard)
+                self.assertIn("inputs.mode == 'generated-sam'", guard)
+
+    def test_a_rehearsal_never_lands_with_judged_results(self):
+        jobs = self.doc["jobs"]["summarize"]
+        self.assertEqual(jobs["env"]["DEST"], "bench/mutation/${{ startsWith(inputs.mode, 'dry-run') && 'dry-run' || "
+                                              "inputs.mode == 'wrong-fix' && 'wrong-fix' || 'generated' }}")
+        upload = next(s for s in jobs["steps"] if "upload-artifact" in str(s.get("uses")))
+        self.assertIn("mutation-rehearsal", upload["with"]["name"])
+
+    def test_results_keep_godots_log(self):
+        self.assertIn("godot.log", self.judge_step()["run"])
 
     def test_only_the_phases_that_ask_sam_hold_the_key(self):
         key = self.doc["jobs"]["run"]["env"]["MODEL_API_KEY"]

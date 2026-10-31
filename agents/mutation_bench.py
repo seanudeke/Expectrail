@@ -49,6 +49,7 @@ import argparse
 import json
 import os
 import random
+import re
 import shutil
 import subprocess
 import sys
@@ -79,13 +80,24 @@ OPERATORS = ("hide", "sink", "freeze", "scale-to-zero", "behind-scenery", "comme
 OUTCOMES = ("caught-cheap", "caught-sam", "survived", "undecided", "crash", "error", "awaiting-sam")
 CAUGHT = ("caught-cheap", "caught-sam")
 GROUND_SPEC = "player-stays-above-ground"
-DRY_RUN = ("dev/physics-fall-through/v1", "freeze")
-# Stand-ins for a rehearsal, so the mutant path runs for real before anything is registered. They
-# are not the pre-registered steps or thresholds, and nothing rehearsed is ever recorded as a result.
-DRY_PREREG = {"sha256": None, "wrongFix": {"commentOnlyLabel": None},
-              "oracle": {"traceThresholdPx": 0, "frameThreshold": 0}}
-DRY_PARAMS = {"positionStep": 1, "offsetStep": 1, "scaleStep": 1, "zIndexStep": 1, "constantScale": 2,
-              "collisionBits": 1}
+# Rehearsals run the real paths before anything is registered, on cases the study can never draw, so
+# that nothing in the population is judged early. The pair is the judge benchmark's freeze fixture
+# (public in bench/judge), not one of the 48. The stand-ins edit files the generator never touches.
+DRY_RUN = ("dev/physics-fall-through/v1", REPO / "agents" / "fixtures" / "freeze-player.patch")
+DRY_PREREG = {"sha256": None, "oracle": {"traceThresholdPx": 0, "frameThreshold": 0}}
+# id: (file, the line as it stands, what it becomes)
+DRY_STAND_INS = {
+    "rehearsal:plays-differently": ("project.godot", "2d/default_gravity=2100", "2d/default_gravity=1400"),
+    "rehearsal:runs-with-a-load-failure": (
+        "level/tileset.tres", '[ext_resource type="Texture2D" uid="uid://8bv0mysvxgle" path="res://level/tiles.webp" id="1"]',
+        '[ext_resource type="Texture2D" path="res://level/tiles.webp.missing" id="1"]'),
+    "rehearsal:cannot-start": ("project.godot", 'run/main_scene="res://game_singleplayer.tscn"',
+                               'run/main_scene="res://game_singleplayer.tscn.missing"'),
+}
+# A failed load in Godot's log. A game that still runs is judged as usual: a missing texture is the
+# very bug a resource-path mutant makes. These lines are recorded, and only a game that does not run,
+# or never loads a player, is a crash.
+LOAD_FAILURE = re.compile(r"Failed loading resource|Cannot open file|Failed to load|File not found")
 
 # Spec that would catch the operator when public checks miss it (finding publish target).
 CATCH_SPECS = {
@@ -415,6 +427,7 @@ def run_mutant(mutant_id: str, tier: str, out: Path, *, prereg: dict | None = No
     t0, images = time.perf_counter(), sam_usage()
     row: dict = {"format": FORMAT, "kind": "mutant", "id": mutant_id, "class": mutant["class"], "file": mutant["file"],
                  "label": "bad", "tier": tier, "preregistrationSha256": prereg["sha256"],
+                 "rehearsal": prereg["sha256"] is None,
                  "commit": os.environ.get("GITHUB_SHA")}
     try:
         patch = work / "mutant.patch"
@@ -423,7 +436,8 @@ def run_mutant(mutant_id: str, tier: str, out: Path, *, prereg: dict | None = No
         empty.write_text("", encoding="utf-8")
         request = _request(f"rr-mutant-{_safe(mutant_id)}"[:80], load(REGRESSION_SPEC, "test-spec"), str(patch.resolve()))
         clean_trace, clean_frames = _render_replay(SMOKE_ROUTE, work / "clean", [])
-        trace, frames = _render_mutant(work, patch)
+        trace, frames, replay = _render_mutant(work, patch)
+        row["loadFailures"] = load_failures(work / "clean" / "godot.log", replay / "godot.log")
         if not any(r.get("player") for r in trace.get("rows") or []):
             raise CaseCrashed("the game ran but its scene never loaded a player")
         row["oracle"] = mutate_game.oracle(clean_trace, clean_frames, trace, frames, prereg["oracle"])
@@ -441,7 +455,7 @@ def run_mutant(mutant_id: str, tier: str, out: Path, *, prereg: dict | None = No
                             extra_catch=row["engineRecordCaught"])
             else:
                 _cheap_phase(cheap, row)
-        if row.get("outcome") == "survived":
+        if row.get("outcome") == "survived" and not row["rehearsal"]:
             _write_finding(work, row, None)
     except (Exception, SystemExit) as exc:  # noqa: BLE001
         _record_failure(row, work, exc)
@@ -449,11 +463,21 @@ def run_mutant(mutant_id: str, tier: str, out: Path, *, prereg: dict | None = No
     return row
 
 
-def _render_mutant(work: Path, patch: Path) -> tuple[dict, list[str]]:
+def load_failures(clean_log: Path, log: Path) -> int:
+    """How many load-failure lines this replay's log has that the clean game's does not."""
+    def lines(path):
+        return set() if not path.is_file() else {
+            line.strip() for line in path.read_text(encoding="utf-8", errors="replace").splitlines()
+            if LOAD_FAILURE.search(line)}
+
+    return len(lines(log) - lines(clean_log))
+
+
+def _render_mutant(work: Path, patch: Path) -> tuple[dict, list[str], Path]:
     """The mutant's replay. Failing twice is the mutant's own crash; once is a flake, and is recorded."""
     for name in ("mutant", "mutant-retry"):
         try:
-            return _render_replay(SMOKE_ROUTE, work / name, [patch])
+            return (*_render_replay(SMOKE_ROUTE, work / name, [patch]), work / name)
         except (SystemExit, subprocess.CalledProcessError) as exc:
             if not _replay_failed(exc):
                 raise
@@ -475,30 +499,68 @@ def _cheap_phase(cheap: dict, row: dict) -> None:
 
 
 def dry_mutants() -> list[dict]:
-    """Two mutants that exercise the mutant path's two ends: one that plays differently, and one
-    whose scene has lost its script, to see what the game really does with a broken resource."""
-    every = mutate_game.enumerate_mutants(DRY_PARAMS)
-    plays = next(m for m in every if m["id"] == "code:player/player.gd:7:sign.WALK_SPEED")
-    broken = next(m for m in every if m["class"] == "resource-path" and m["file"] == "player/player.tscn"
-                  and "player.gd" in m["before"])
-    return [plays, broken]
+    """The stand-ins, as mutants. Each edits a file the generator never touches."""
+    found = []
+    for mutant_id, (rel, before, after) in DRY_STAND_INS.items():
+        lines = (GAME / rel).read_text(encoding="utf-8").splitlines()
+        found.append({"id": mutant_id, "class": "rehearsal", "file": rel, "line": lines.index(before) + 1,
+                      "before": before, "after": after})
+    return found
+
+
+def _rehearse_pair(out: Path, *, force_sam: bool, cheap_only: bool) -> dict:
+    case, fixture = DRY_RUN
+    work = out / "rehearsal-pair"
+    work.mkdir(parents=True, exist_ok=True)
+    t0, images = time.perf_counter(), sam_usage()
+    row: dict = {"format": FORMAT, "kind": "rehearsal", "rehearsal": True, "case": case, "operator": "rehearsal",
+                 "label": "bad", "preregistrationSha256": None, "commit": os.environ.get("GITHUB_SHA")}
+    try:
+        request = _request("rr-mutation-rehearsal", case_spec(case), str(dev_variants()[case].relative_to(REPO)))
+        judge_tiers(request, fixture, work, row, force_sam=force_sam, cheap_only=cheap_only)
+    except (Exception, SystemExit) as exc:  # noqa: BLE001
+        _record_failure(row, work, exc)
+    return _finish(row, work, t0, images)
 
 
 def rehearse(kind: str, out: Path) -> list[dict]:
-    """A rehearsal of one path, real Godot and all. Its rows name no registration, so a summary can
-    never mix them with a judged run."""
+    """A rehearsal of one path, real Godot and all, on cases the study cannot draw. Its rows name no
+    registration and say they are rehearsals, so a summary can never mix them with a judged run."""
+    _public_only()
     if kind == "pair":
-        return [run_case(*DRY_RUN, out, prereg=DRY_PREREG, cheap_only=True)]
+        return [_rehearse_pair(out, force_sam=False, cheap_only=True)]
     if kind == "sam":
-        return [run_case(*DRY_RUN, out, prereg=DRY_PREREG, force_sam=True)]
+        return [_rehearse_pair(out, force_sam=True, cheap_only=False)]
     mutants = dry_mutants()
     return [run_mutant(m["id"], "cheap", out, prereg=DRY_PREREG, manifest={"mutants": mutants}) for m in mutants]
+
+
+def rehearsal_passed(kind: str, rows: list[dict]) -> bool:
+    """Whether the path really ran. A rehearsal that never reached what it rehearses has failed,
+    whatever it scored: a cheap catch says nothing about the SAM arm."""
+    if len(rows) != (3 if kind == "mutants" else 1) or any(r.get("outcome") == "error" for r in rows):
+        return False
+    if kind == "pair":
+        return rows[0].get("outcome") in ("caught-cheap", "awaiting-sam")
+    if kind == "sam":
+        row = rows[0]
+        return ("sam" in (row.get("arms") or {}) and not row.get("samPreflight") and not row.get("samArmFailed")
+                and row.get("outcome") != "crash")
+    by_id = {r["id"]: r for r in rows}
+    plays = by_id["rehearsal:plays-differently"]
+    loads = by_id["rehearsal:runs-with-a-load-failure"]
+    return (plays.get("category") == "visible" and plays.get("outcome") != "crash"
+            and loads.get("category") == "visible" and int(loads.get("loadFailures") or 0) > 0
+            and by_id["rehearsal:cannot-start"].get("outcome") == "crash")
 
 
 def plan_sam(root: Path, prereg: dict) -> dict:
     """Which mutants the SAM phase looks at, from the cheap phase's results: every one the cheap tier
     passed, and the pre-registered seeded sample of its rejections for the agreement table."""
     rows = _rows(root)
+    foreign = sum(r.get("preregistrationSha256") != prereg["sha256"] for r in rows)
+    if foreign:
+        raise SystemExit(f"{root}: {foreign} results are not from this registration")
     waiting = sorted(r["id"] for r in rows if r.get("outcome") == "awaiting-sam")
     caught = sorted(r["id"] for r in rows if r.get("outcome") == "caught-cheap")
     size = min(int(prereg["agreement"]["minimum"]), len(caught))
@@ -549,6 +611,20 @@ def _by_check(rows: list[dict]) -> dict:
     return dict(sorted(counts.items()))
 
 
+def _sampling_view(manifest: dict, by_class: dict) -> dict:
+    """How the sample stands to the game, so the score can be read. With counts set per class, the
+    pooled score depends on those counts, so a score weighted by each class's real size goes beside it."""
+    enumerated, drawn = manifest.get("enumeratedByClass") or {}, manifest.get("sampledByClass") or {}
+    scored = {c: t["score"] for c, t in by_class.items() if t.get("score") is not None}
+    weight = sum(enumerated.get(c, 0) for c in scored)
+    return {"method": (manifest.get("sampling") or {}).get("method"), "shortByClass": manifest.get("shortByClass") or {},
+            "shortOfSample": manifest.get("shortOfSample") or 0,
+            "classes": {c: {"enumerated": n, "sampled": drawn.get(c, 0), "score": scored.get(c)}
+                        for c, n in enumerated.items()},
+            "weightedScore": round(sum(enumerated.get(c, 0) * s for c, s in scored.items()) / weight, 4) if weight else None,
+            "classesWithNoScore": sorted(c for c, n in enumerated.items() if n and c not in scored)}
+
+
 def summarize(out: Path) -> dict:
     rows = _rows(out)
     if not rows:
@@ -570,6 +646,7 @@ def summarize(out: Path) -> dict:
     doc = {
         "format": FORMAT + "-summary",
         "preregistrationSha256": next(iter(registrations), None),
+        "rehearsal": any(r.get("rehearsal") for r in rows),
         **_tally(finals),
         "equivalentDropped": [{"id": r["id"], "reason": r.get("dropReason")}
                               for r in rows if r.get("outcome") == "equivalent"],
@@ -591,23 +668,40 @@ def summarize(out: Path) -> dict:
                       "fullRun": tiered + agreement_only, "fullRunCases": len(with_sam), "ofCases": len(finals)},
         "rows": rows,
     }
-    if MANIFEST.is_file() and any(r.get("kind") == "mutant" for r in rows):
-        sampled = [m["id"] for m in json.loads(MANIFEST.read_text(encoding="utf-8"))["mutants"]]
+    if MANIFEST.is_file() and any(r.get("kind") == "mutant" for r in rows) and not doc["rehearsal"]:
+        manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+        sampled = [m["id"] for m in manifest["mutants"]]
         doc["reconciliation"] = {"sampled": len(sampled), "judged": len(finals),
                                  "equivalent": len(doc["equivalentDropped"]),
                                  "missing": sorted(set(sampled) - {r.get("id") for r in rows})}
+        doc["sampling"] = _sampling_view(manifest, doc["byClass"])
     (Path(out) / "mutation-summary.json").write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
     return doc
 
 
 def markdown(doc: dict) -> str:
     score = "not yet" if doc["score"] is None else f"{doc['score']:.1%}"
-    lines = ["# Mutation bench", "",
-             "Public checks only. A survivor is a finding, not a CI failure. Only a check that ran and failed "
-             f"counts as a catch. Registration `{doc['preregistrationSha256']}`.", "",
-             f"Mutation score: **{score}** ({doc['badCaught']} of {doc['badCaught'] + doc['badSurvived']} decided "
-             f"bad cases caught). Good cases accepted: {doc['goodAccepted']}.", "",
-             "| Outcome | Cases |", "| --- | --- |"]
+    decided = doc["badCaught"] + doc["badSurvived"]
+    view = doc.get("sampling")
+    lines = ["# Mutation bench", ""]
+    if doc["rehearsal"]:
+        lines += ["**A rehearsal of the plumbing, never a result.** It has no score, and no case in it can be drawn by "
+                  "the study.", ""]
+    else:
+        lines += ["Public checks only. A survivor is a finding, not a CI failure. Only a check that ran and failed "
+                  f"counts as a catch. Registration `{doc['preregistrationSha256']}`.", ""]
+        if view and view["method"] == "stratified":
+            weighted = "not yet" if view["weightedScore"] is None else f"{view['weightedScore']:.1%}"
+            no_score = ", ".join(view["classesWithNoScore"]) or "none"
+            lines += [f"Mutation score, weighted by each class's real size: **{weighted}** (classes with no score: "
+                      f"{no_score}).", "",
+                      f"Over the sample as drawn: {score} ({doc['badCaught']} of {decided} decided bad cases caught). The "
+                      "sample's class counts were set by hand, so this figure depends on them and is not a score "
+                      "for the whole game.", ""]
+        else:
+            lines += [f"Mutation score: **{score}** ({doc['badCaught']} of {decided} decided bad cases caught).", ""]
+        lines += [f"Good cases accepted: {doc['goodAccepted']}.", ""]
+    lines += ["| Outcome | Cases |", "| --- | --- |"]
     lines += [f"| {o} | {doc[o]} |" for o in OUTCOMES]
     lines += ["", f"Unlabelled, left out of the score: {doc['unlabelled']}. No-op candidates: {doc['noopCandidates']}. "
               f"Equivalent, dropped with a reason: {len(doc['equivalentDropped'])}.", ""]
@@ -615,13 +709,20 @@ def markdown(doc: dict) -> str:
         r = doc["reconciliation"]
         lines += [f"Of {r['sampled']} sampled: {r['judged']} judged, {r['equivalent']} equivalent, "
                   f"{len(r['missing'])} missing.", ""]
+    if view:
+        lines += ["## How the sample stands to the game", "", f"Method: {view['method']}. Short of the plan by "
+                  f"{view['shortOfSample']}" + (f" ({view['shortByClass']})." if view["shortByClass"] else "."), "",
+                  "| Class | Mutants in the game | Sampled | Score |", "| --- | --- | --- | --- |"]
+        lines += [f"| {c} | {v['enumerated']} | {v['sampled']} | {'-' if v['score'] is None else format(v['score'], '.1%')} |"
+                  for c, v in view["classes"].items()] + [""]
     for title, key in (("Per operator", "byOperator"), ("Per class", "byClass"), ("Per case", "byCase")):
         if doc[key]:
             lines += [f"## {title}", "",
-                      "| | Caught, cheap | Caught, SAM only | Survived | Undecided | Crash | Error | "
+                      "| | Score | Caught, cheap | Caught, SAM only | Survived | Undecided | Crash | Error | "
                       "SAM images, tiered | SAM images, full run |",
-                      "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
-            lines += [f"| {k} | {t['caught-cheap']} | {t['caught-sam']} | {t['survived']} | {t['undecided']} | "
+                      "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
+            lines += [f"| {k} | {'-' if t['score'] is None else format(t['score'], '.1%')} | {t['caught-cheap']} | "
+                      f"{t['caught-sam']} | {t['survived']} | {t['undecided']} | "
                       f"{t['crash']} | {t['error']} | {t['samImagesTiered']} | {t['samImagesFullRun']} |"
                       for k, t in doc[key].items()]
             lines.append("")
@@ -676,10 +777,9 @@ def main(argv: list[str] | None = None) -> int:
         rows = rehearse(args.dry_run, args.out)
         for row in rows:
             print(f"::notice title=Mutation dry run {args.dry_run}::{row.get('id') or row['case']}: {row['outcome']}; "
-                  f"agreement {row.get('agreement')}; SAM images {row['samImages']}; a test of the plumbing, never a result")
-        # A broken scene is meant to crash, so only the tooling failing fails a rehearsal of mutants.
-        bad = ("error",) if args.dry_run == "mutants" else ("error", "crash", "undecided")
-        return 1 if any(r["outcome"] in bad for r in rows) else 0
+                  f"category {row.get('category')}; load failures {row.get('loadFailures')}; agreement "
+                  f"{row.get('agreement')}; SAM images {row['samImages']}; a test of the plumbing, never a result")
+        return 0 if rehearsal_passed(args.dry_run, rows) else 1
     try:
         if args.mutant:
             row = run_mutant(args.mutant, args.tier, args.out, force_sam=args.force_sam)

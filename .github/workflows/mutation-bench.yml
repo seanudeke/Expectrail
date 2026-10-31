@@ -1,6 +1,7 @@
 # Mutation bench (agents/mutation_bench.py, #127): wrong fixes and generated mutants, judged by the
 # tiered checker. Public checks only — never checks out the private held-out set. Nothing is judged
-# until bench/mutation/preregistration.json is complete, so a dispatch before that stops at the plan.
+# until bench/mutation/preregistration.json is complete and merged, so a judged dispatch before that
+# stops at the plan. The dry-run modes rehearse the plumbing on cases the study cannot draw.
 # A case that survives every public check is a finding (published with a catch-spec), not a failure.
 name: Mutation bench
 
@@ -8,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "Rehearsals, on any branch with no pre-registration, never a result: dry-run (one known pair, no SAM), dry-run-sam (the same pair through forced SAM, about $1.20), dry-run-mutants (two mutants, no SAM). Judged, from main: wrong-fix (Part 1), generated-cheap (Part 2, no SAM), generated-sam (Part 2, the mutants named below)"
+        description: "Rehearsals, on any branch with no pre-registration, never a result: dry-run (one public pair, no SAM), dry-run-sam (the same pair through forced SAM, about $1.20), dry-run-mutants (three stand-ins, no SAM). Judged, from main: wrong-fix (Part 1), generated-cheap (Part 2, no SAM), generated-sam (Part 2, the mutants named below)"
         type: choice
         options: [dry-run, dry-run-sam, dry-run-mutants, wrong-fix, generated-cheap, generated-sam]
         default: wrong-fix
@@ -197,7 +198,8 @@ jobs:
           tail -n 40 mut.log
           mkdir -p keep
           find runs/mutation -type f \( -name result.json -o -name finding.json -o -name catch-spec.json \
-            -o -name candidate.patch -o -name operator.patch -o -name mutant.patch -o -name trace.json \) \
+            -o -name candidate.patch -o -name operator.patch -o -name mutant.patch -o -name trace.json \
+            -o -name godot.log \) \
             -not -path '*/clean/*' -print \
             | while read -r f; do mkdir -p "keep/$(dirname "$f")"; cp "$f" "keep/$f"; done
           exit "$code"
@@ -251,6 +253,6 @@ jobs:
         run: python -m agents.export_scan bench/mutation
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: mutation-summary
+          name: ${{ startsWith(inputs.mode, 'dry-run') && 'mutation-rehearsal' || 'mutation-summary' }}
           path: bench/mutation/
           retention-days: 30

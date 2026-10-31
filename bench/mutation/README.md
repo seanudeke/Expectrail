@@ -7,10 +7,12 @@ did the judging cost? Issue #127 sets the rules. Nobody on the team writes a bug
 **Mutation bench** workflow refuse to run until [`preregistration.json`](preregistration.json) has no
 empty field left, the code it pins has not moved, and the committed manifest is exactly what the
 generator writes. A judged run starts only from `main`, so nothing is judged before the file is merged.
-Rehearsals prove the plumbing first, on any branch: `dry-run` (one known pair, no SAM, no key),
-`dry-run-sam` (the same pair through forced SAM, about $1.20) and `dry-run-mutants` (two mutants, one
-of them a scene that has lost its script, no SAM, no key). A rehearsal is never a result, and its rows
-name no registration, so a summary refuses to mix one with a judged run.
+Rehearsals prove the plumbing first, on any branch, on cases the study cannot draw: `dry-run` (the
+judge benchmark's public freeze fixture, no SAM, no key), `dry-run-sam` (the same pair through forced
+SAM, about $1.20) and `dry-run-mutants` (three stand-ins in files the generator never edits, no SAM,
+no key). A rehearsal is never a result: it has no score, its rows name no registration, a summary
+refuses to mix it with a judged run, and it fails if it did not reach what it rehearses. The
+pre-registration discloses what earlier rehearsals, on members of the population, happened to show.
 
 The pins cover the game, the development bugs, the operators, the specs, the verifier, the observers,
 the generator, the bench and its workflow. Changing any of them after registration refuses every run
@@ -55,6 +57,14 @@ pre-registration, once they are filled in.
 Godot leaves a property out of a scene file when it holds its default, so `visible` and `disabled`
 have no line to flip. An unstratified sample of this list is nearly all `position`, `scale` and
 `z_index` in the level's scenery.
+
+## How to read a stratified score
+
+With counts set per class, the pooled score over the sample depends on those counts: a class of 13
+mutants given as many cases as a class of 2,642 counts as much. So the report leads with the score
+weighted by each class's real size, shows the pooled figure as a figure about the sample, and gives
+every class's own score beside how many mutants it has in the game and how many were sampled. A class
+with no score is named and left out of the weights.
 
 ## How a case is scored
 

@@ -123,6 +123,14 @@ class SampleTest(unittest.TestCase):
         printed = json.loads("".join(c.args[0] for c in out.call_args_list))
         self.assertEqual(sum(printed.values()), len(mg.enumerate_mutants(PARAMS)))
 
+    def test_the_cli_names_the_steps_still_empty(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "p.json"
+            path.write_text(json.dumps({"generator": {**PARAMS, "scaleStep": None}}))
+            with mock.patch("sys.stderr.write") as err:
+                self.assertEqual(mg.main(["--mutants-by-class", "--prereg", str(path)]), 2)
+        self.assertIn("generator.scaleStep", "".join(c.args[0] for c in err.call_args_list))
+
     def test_nothing_private_can_be_mutated(self):
         self.assertFalse(any("held" in m["file"] for m in mg.enumerate_mutants(PARAMS)))
 
@@ -150,11 +158,28 @@ class StratifiedTest(unittest.TestCase):
         self.assertEqual([m["id"] for m in first], [m["id"] for m in every if m in first])
         self.assertNotEqual(first, mg.draw(every, self.gen(seed=12)))
 
-    def test_changing_one_class_leaves_the_others_draws_alone(self):
+    def test_changing_any_class_leaves_every_others_draw_alone(self):
         ids = lambda gen, cls: [m["id"] for m in mg.draw(mg.enumerate_mutants(gen), gen) if m["class"] == cls]  # noqa: E731
-        other = self.gen(sampleSize=31)
-        other["sampling"]["perClass"]["numeric"] = 11
-        self.assertEqual(ids(self.gen(), "code"), ids(other, "code"))
+        base = self.gen()
+        for changed in ("numeric", "collision-bit", "code", "resource-path"):
+            other = self.gen(sampleSize=32)
+            other["sampling"]["perClass"][changed] += 2
+            for cls in mg.OPERATOR_CLASSES:
+                if cls != changed:
+                    with self.subTest(changed=changed, cls=cls):
+                        self.assertEqual(ids(base, cls), ids(other, cls))
+
+    def test_the_manifest_carries_the_plan(self):
+        with mock.patch.object(mg, "_sha", return_value="x"):
+            doc = mg.build_manifest({"generator": self.gen()})
+        self.assertEqual(doc["sampling"]["method"], "stratified")
+        self.assertEqual(doc["sampled"], 30)
+
+    def test_a_uniform_plan_larger_than_the_game_says_how_short_it_fell(self):
+        gen = {**PARAMS, "sampleSize": 10 ** 6}
+        with mock.patch.object(mg, "_sha", return_value="x"):
+            doc = mg.build_manifest({"generator": gen})
+        self.assertEqual(doc["shortOfSample"], 10 ** 6 - doc["enumerated"])
 
     def test_a_short_class_gives_all_it_has_and_the_manifest_says_so(self):
         gen = self.gen(sampleSize=32)
@@ -178,7 +203,14 @@ class StratifiedTest(unittest.TestCase):
                              "whole number"),
                             (self.gen(sampling={"method": "stratified", "perClass": {"numeric": True, "code": 29}}),
                              "whole number"),
-                            (self.gen(sampling={"method": "stratified"}), "no classes")):
+                            (self.gen(sampling={"method": "stratified"}), "no classes"),
+                            (self.gen(sampling={"method": "stratified", "perClass": ["numeric"]}), "no classes"),
+                            (self.gen(sampling="uniform"), "must be an object"),
+                            ({**PARAMS, "seed": "abc"}, "generator.seed"),
+                            ({**PARAMS, "seed": True}, "generator.seed"),
+                            ({**PARAMS, "sampleSize": "10"}, "generator.sampleSize"),
+                            ({**PARAMS, "sampleSize": 0}, "generator.sampleSize"),
+                            (self.gen(sampleSize=2.0), "generator.sampleSize")):
             with self.subTest(needle=needle):
                 self.assertIn(needle, mg.sampling_problem(gen))
 
@@ -248,6 +280,21 @@ class PreregistrationTest(unittest.TestCase):
         with self.assertRaises(mg.PreregistrationError) as caught:
             self.load(doc)
         self.assertIn("adds up to", str(caught.exception))
+
+    def test_a_sampling_decision_needs_its_reason(self):
+        for why in (None, "", "   "):
+            doc = self.complete()
+            doc["generator"]["samplingWhy"] = why
+            with self.subTest(why=why), self.assertRaises(mg.PreregistrationError) as caught:
+                self.load(doc)
+            self.assertIn("generator.samplingWhy", str(caught.exception))
+
+    def test_the_agreement_sample_is_at_least_what_127_asked_for(self):
+        doc = self.complete()
+        doc["agreement"]["minimum"] = 19
+        with self.assertRaises(mg.PreregistrationError) as caught:
+            self.load(doc)
+        self.assertIn("at least 20", str(caught.exception))
 
     def test_moved_material_is_refused(self):
         doc = self.complete()

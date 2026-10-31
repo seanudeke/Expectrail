@@ -40,6 +40,7 @@ GAME = REPO / "game" / "platformer"
 MANIFEST_FORMAT = "expectrail.mutation-manifest/v0"
 PREREGISTRATION = REPO / "bench" / "mutation" / "preregistration.json"
 OPERATOR_CLASSES = ("numeric", "boolean", "collision-bit", "code", "resource-path")
+STEPS = ("positionStep", "offsetStep", "scaleStep", "zIndexStep", "constantScale", "collisionBits")
 CODE_FILES = ("player/player.gd", "enemy/enemy.gd")
 HUMAN_FIELDS = ("wrongFix.commentOnlyLabel", "wrongFix.publicSamRuleApprovedBy",
                 "generator.seed", "generator.sampleSize", "generator.sampling", "generator.samplingWhy",
@@ -60,8 +61,15 @@ _NEGATED = re.compile(r"= -([A-Z][A-Z_]*)\b")
 _FLIP = {"<": ">", ">": "<", "<=": ">=", ">=": "<=", "==": "!=", "!=": "=="}
 
 
+MIN_AGREEMENT = 20
+
+
 class PreregistrationError(RuntimeError):
     pass
+
+
+def _whole(value) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
 
 
 def _get(doc: dict, dotted: str):
@@ -71,8 +79,8 @@ def _get(doc: dict, dotted: str):
 
 
 def missing_decisions(doc: dict) -> list[str]:
-    """The human-only fields still empty in a pre-registration."""
-    return [f for f in HUMAN_FIELDS if _get(doc, f) is None]
+    """The human-only fields still empty in a pre-registration. Blank text is empty; a 0 is a decision."""
+    return [f for f in HUMAN_FIELDS if _get(doc, f) is None or str(_get(doc, f)).strip() == ""]
 
 
 def load_preregistration(path: Path | None = None) -> dict:
@@ -87,6 +95,8 @@ def load_preregistration(path: Path | None = None) -> dict:
     problem = sampling_problem(doc["generator"])
     if problem:
         raise PreregistrationError(f"{path}: {problem}")
+    if not _whole(doc["agreement"]["minimum"]) or doc["agreement"]["minimum"] < MIN_AGREEMENT:
+        raise PreregistrationError(f"{path}: agreement.minimum must be at least {MIN_AGREEMENT} (#127)")
     moved = sorted(k for k, v in current_pins().items() if doc["pins"].get(k) != v)
     if moved:
         raise PreregistrationError(f"{path}: pinned material changed since registration: {', '.join(moved)}")
@@ -119,6 +129,11 @@ def _fmt(value: float) -> str:
     """A number as a scene file writes it: no trailing .0, and no float noise from the arithmetic."""
     rounded = round(value, 6)
     return str(int(rounded)) if rounded == int(rounded) else repr(rounded)
+
+
+def in_population(rel: str) -> bool:
+    """Whether the generator can edit this file at all. A rehearsal must only use files outside it."""
+    return rel.endswith(".tscn") or rel in CODE_FILES
 
 
 def _mutant(cls: str, rel: str, line_no: int, tag: str, before: str, after: str) -> dict:
@@ -196,17 +211,25 @@ def sample(mutants: list[dict], seed: int, size: int) -> list[dict]:
 def sampling_problem(gen: dict) -> str | None:
     """What is wrong with a sampling plan, or None. ``generator.sampling`` is a person's decision:
     ``{"method": "uniform"}``, or ``{"method": "stratified", "perClass": {<class>: <count>, ...}}``."""
-    plan = gen.get("sampling") or {}
+    plan = gen.get("sampling")
+    if not isinstance(plan, dict):
+        return "generator.sampling must be an object with a method"
+    if not _whole(gen.get("seed")):
+        return "generator.seed must be a whole number"
+    if not _whole(gen.get("sampleSize")) or gen["sampleSize"] < 1:
+        return "generator.sampleSize must be a whole number, 1 or more"
     method = plan.get("method")
     if method == "uniform":
         return "generator.sampling: a uniform plan takes no perClass" if "perClass" in plan else None
     if method != "stratified":
         return f"generator.sampling.method must be uniform or stratified, not {method!r}"
-    per_class = plan.get("perClass") or {}
+    per_class = plan.get("perClass")
+    if not isinstance(per_class, dict):
+        return "generator.sampling.perClass: no classes"
     unknown = sorted(set(per_class) - set(OPERATOR_CLASSES))
     if unknown or not per_class:
         return f"generator.sampling.perClass: unknown or no classes: {unknown}"
-    if any(not isinstance(n, int) or isinstance(n, bool) or n < 0 for n in per_class.values()):
+    if any(not _whole(n) or n < 0 for n in per_class.values()):
         return "generator.sampling.perClass: every count must be a whole number, 0 or more"
     if sum(per_class.values()) != gen.get("sampleSize"):
         return f"generator.sampling.perClass adds up to {sum(per_class.values())}, not sampleSize {gen.get('sampleSize')}"
@@ -259,6 +282,7 @@ def build_manifest(prereg: dict, game: Path = GAME) -> dict:
         "sampled": len(chosen),
         "sampledByClass": sampled,
         "shortByClass": {c: n - sampled[c] for c, n in sorted(asked.items()) if n > sampled[c]},
+        "shortOfSample": int(gen["sampleSize"]) - len(chosen),
         "mutants": [dict(m, patchSha256=hashlib.sha256(patch_text(m, game).encode()).hexdigest()) for m in chosen],
     }
 
@@ -359,6 +383,10 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.mutants_by_class:
         gen = json.loads(args.prereg.read_text(encoding="utf-8"))["generator"]
+        empty = [k for k in STEPS if gen.get(k) is None]
+        if empty:
+            print(f"error: fill in these steps first: {', '.join(f'generator.{k}' for k in empty)}", file=sys.stderr)
+            return 2
         every = enumerate_mutants(gen)
         print(json.dumps({c: sum(m["class"] == c for m in every) for c in OPERATOR_CLASSES}, indent=2))
         return 0
