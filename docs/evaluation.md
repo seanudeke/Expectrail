@@ -57,6 +57,27 @@ and never in this one:
 **Clean controls:** each family's spec must pass on the clean route. A spec that fails a clean run
 is a false alarm and counts against us, not a bug.
 
+Detection on the held-out variants, ids and verdicts only, as the benchmark published them (run
+41003749744, October 30; the record is `bench/detection/held-out.json`, per-check counts in
+docs/sam.md):
+
+| Held-out variant | Caught, SAM on | Caught, SAM off |
+| --- | --- | --- |
+| clean (control) | no false alarm | no false alarm |
+| physics-fall-through/v5 | yes | yes |
+| physics-fall-through/v6 | yes | yes |
+| sinking/v3 | yes | yes |
+| sinking/v4 | yes | yes |
+| missing-texture/v5 | yes | no |
+| missing-texture/v6 | yes | no |
+| layering/v5 | yes | no |
+| layering/v6 | yes | no |
+
+With SAM on, 8 of 8 variants were caught; without it, 4 of 8; no false alarm on the clean routes
+either way. The first full run (40805529944, October 28) caught 7 of 8 with SAM on and 3 of 8
+without; the difference, sinking/v4, and the check built after that miss, are documented in
+docs/sam.md ("The drawn floor").
+
 ## Reported bugs (added Oct 30)
 
 The families above were seeded by the team. `bugs/reported/` holds the other kind: four

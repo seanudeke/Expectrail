@@ -196,7 +196,7 @@ class SandboxCommandTest(unittest.TestCase):
     def setUp(self):
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
-        self.tmp = Path(tmp.name)
+        self.tmp = Path(tmp.name).resolve()  # macOS: /var -> /private/var, as _bwrap_cmd resolves it
         self.bin = self.tmp / "bin"
         self.bin.mkdir()
         for name in ("muse", "muse-bin-1.4.14-R1", ".muse-version", ".muse-release-info.json",
