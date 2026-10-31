@@ -433,7 +433,7 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
       
       <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
         <h2 class="text-base font-bold text-white">Trust Architecture: "Deny-by-Absence" & Canary Probes</h2>
-        <p class="text-xs text-slate-400">Coding agents must never hold signing keys or test assertions. Expectrail isolates the fixer by physical unmounting, verified by an active honeytoken canary probe.</p>
+        <p class="text-xs text-slate-400">Coding agents must never hold signing keys or held-out checks, or be able to change a check. Expectrail keeps those files out of the fixer's sandbox entirely, verified by an active honeytoken canary probe.</p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -456,7 +456,7 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
               </ul>
             </div>
 
-            <div class="flex justify-center text-slate-600 font-bold text-sm">▲ ▼ PHYSICAL BOUNDARY (Deny-by-Absence)</div>
+            <div class="flex justify-center text-slate-600 font-bold text-sm">▲ ▼ BOUNDARY BY ABSENCE (not a VM)</div>
 
             <div class="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1.5">
               <div class="font-bold text-white flex items-center justify-between">
