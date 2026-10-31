@@ -71,10 +71,12 @@ class PolicyTest(unittest.TestCase):
         for evidence in ("Spec id", "Assertion", "Verdict", "First fail frame", "repair-request.json"):
             self.assertNotIn(evidence, brief["prompt"])
 
-    def test_an_empty_attempt_stays_on_the_report(self):
+    def test_an_attempt_with_no_fix_escalates_too(self):
+        # Oct 31: report-only attempts on both sinking bugs timed out three times running; the
+        # evidence fixed each on the first attempt. No fix is a failed attempt.
         brief, stage = esc.briefing(request(), self.files, 2, rejected_before=False, empty_before=True)
-        self.assertEqual(stage, "report")
-        self.assertIn("changed no file", brief["prompt"])
+        self.assertEqual(stage, "evidence")
+        self.assertTrue(brief["withRequest"])
 
     def test_after_a_rejection_the_next_attempt_gets_the_evidence(self):
         brief, stage = esc.briefing(request(), self.files, 2, rejected_before=True)
@@ -108,7 +110,7 @@ class LoopEscalationTest(unittest.TestCase):
     """The overnight loop with Muse replaced: report first, evidence only after a verifier rejection,
     every candidate verified."""
 
-    def test_report_then_empty_then_rejected_then_evidence_then_accept(self):
+    def test_report_then_empty_then_evidence_rejected_then_evidence_accepted(self):
         calls, verified = [], []
         outcomes = ["empty", "reject", "accept"]
 
@@ -138,12 +140,13 @@ class LoopEscalationTest(unittest.TestCase):
                              observations=FIXTURES / "obs-fixed.json", candidate_patch=None,
                              skip_harness=True, run_trust=False)
         self.assertEqual(result["decision"], "accept")
-        self.assertEqual([a["briefing"] for a in result["attempts"]], ["report", "report", "evidence"])
+        self.assertEqual([a["briefing"] for a in result["attempts"]], ["report", "evidence", "evidence"])
         self.assertEqual([a["decision"] for a in result["attempts"]], ["retry-empty", "reject", "accept"])
         self.assertEqual(len(verified), 2)  # every candidate, and only candidates, were verified
         self.assertFalse(calls[0]["briefing"]["withRequest"])
         self.assertIsNone(calls[0]["prior"])
-        self.assertIsNone(calls[1]["prior"])  # an empty attempt does not escalate
+        self.assertTrue(calls[1]["briefing"]["withRequest"])  # no fix is a failed attempt: escalate
+        self.assertEqual(calls[1]["prior"]["reason"], "empty-patch")
         self.assertTrue(calls[2]["briefing"]["withRequest"])
         self.assertEqual(calls[2]["prior"]["reasons"], ["regression check player-stays-above-ground failed on smoke"])
 

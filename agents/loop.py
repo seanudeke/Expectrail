@@ -11,9 +11,9 @@ Live Muse honors repair-request ``budget.attempts`` (re-prompt on verify reject 
 empty patch). Fixture path is always a single attempt.
 
 What Muse is told follows agents/escalation.py (docs/report-first.md): the first attempt gets the
-report (the failing check's sentence, screenshots of the failing run, the route and its log); only
-after the verifier rejects an attempt does the next one get the evidence (the repair request and the
-public checks that failed). Every candidate is verified either way.
+report (the failing check's sentence, screenshots of the failing run, the route and its log); after
+any failed attempt (rejected by the verifier, or no fix at all) the next one gets the evidence (the
+repair request and, after a rejection, the public checks that failed). Every candidate is verified either way.
 
 When the judge itself cannot answer (SAM down or out of credit, so the verifier can only say
 needs-review), agents/judge_ladder.py judges the same candidate again instead of spending a fix
