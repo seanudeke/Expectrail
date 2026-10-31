@@ -90,7 +90,39 @@ run gave the same 110 episodes tick for tick. The record: [`bench/discovery/loca
 
 ### CI
 
-Pending: the Discovery workflow runs on this pull request (planner off), one job per build, with the eight development bugs added as builds the profile was not written for.
+Run [41238187197](https://github.com/seanudeke/Expectrail/actions/runs/41238187197), October 31,
+planner off: one job per build, each with no reference build, all 22 library probes, recorded from
+the jobs' own notices in [`bench/discovery/run-41238187197.json`](../bench/discovery/run-41238187197.json).
+
+| Build | Written for? | pass | fail | not exercised | Findings, each 3 of 3 |
+| --- | --- | ---: | ---: | ---: | --- |
+| clean | the false-alarm control | 91 | 0 | 64 | none |
+| air-jump | yes | 87 | 4 | 64 | as in the local run |
+| gun-cooldown | yes | 87 | 4 | 64 | as in the local run |
+| body-flip | yes | 84 | 7 | 64 | as in the local run |
+| enemy-ledge | yes | 90 | 1 | 64 | as in the local run |
+| physics-fall-through v1 | no | 75 | 4 | 76 | the double jump no longer works (`jump-air-jump-exists`, all four positions) |
+| physics-fall-through v2 | no | 59 | 20 | 76 | the same, and an enemy drops through the floor (`enemy-max-drop`) |
+| sinking v1 | no | 91 | 0 | 64 | missed |
+| sinking v2 | no | 91 | 0 | 64 | missed |
+| missing-texture v1 | no | 91 | 0 | 64 | missed |
+| missing-texture v2 | no | 91 | 0 | 64 | missed |
+| layering v1 | no | 91 | 0 | 64 | missed |
+| layering v2 | no | 91 | 0 | 64 | missed |
+
+- **The four reported bugs and the clean game gave exactly the local counts** on a different machine.
+- **The recorder change moved nothing else.** The reported-bug bench ran on the same commit
+  ([run 41238187161](https://github.com/seanudeke/Expectrail/actions/runs/41238187161)): today's
+  checks still catch none of the four, the engine-record checks still catch all four, and neither
+  raises a false alarm on the clean game.
+- **Two of the eight development bugs were flagged, by contracts written for something else.** In
+  both fall-through variants the robot drops through the ground at once and never stands, so it
+  cannot jump at all: the guard that the double jump still works fails. That is a true symptom, not
+  the cause; the report says "no air jump", not "fell through the floor". In v2 the ground loses its
+  collision for everything, and the enemy rule says so directly.
+- **Six were missed, as expected.** Sinking v1 rests the robot inside the ground and no claim is
+  about ground contact; sinking v2, missing texture and layering are visual and cannot show in a
+  trace. The verifier's approved checks and SAM catch all six today.
 
 ## What these results do and do not say
 

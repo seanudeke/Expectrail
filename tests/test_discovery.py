@@ -252,10 +252,11 @@ class Job(unittest.TestCase):
                            probe_ids=["jump-w0-x1", "jump-w0-x2", "jump-w0-x8"])
             title, _, message = cli.annotation(doc).partition("::")[2].partition("::")
             notes.append({"title": title.removeprefix("notice title="), "message": message})
+        notes[0:0] = [{"title": "Discovery time clean", "message": "123 s"}]
 
         def fetch(path):
             if path.endswith("/annotations?per_page=100"):
-                return [notes.pop(0)]
+                return [notes.pop(0)] + ([notes.pop(0)] if len(notes) == 2 else [])
             if "/jobs" in path:
                 return {"jobs": [{"name": "discovery (clean)", "id": 1}, {"name": "discovery (air-jump)", "id": 2}]}
             return {"html_url": "https://example.invalid/run", "head_sha": "abc", "created_at": "2026-10-31"}

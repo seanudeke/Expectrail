@@ -327,9 +327,10 @@ What this does and does not show:
   checks what nobody described: today's checks caught none of the four reported bugs. Advisory
   discovery ([docs/discovery.md](docs/discovery.md)) is the first answer: 22 generic probes judged by
   contracts read from the game's code found all four, each 3 times out of 3, with no false alarm on
-  the clean game. It does not gate anything, its profile was written after reading those four
-  reports (development reproduction, not blind discovery), and it reaches only the mechanics the
-  profile claims.
+  the clean game, locally and in CI. It does not gate anything, and its profile was written after
+  reading those four reports (development reproduction, not blind discovery). On the eight
+  development bugs it was not written for, it flagged the two fall-through variants by a symptom and
+  missed the six that are visual or about ground contact.
 - **One game and one web page, mostly with bugs we seeded.** The game's held-out bugs were kept from
   the fixer, but a teammate wrote them, and the same team wrote the checks. The four reproduced
   public bug reports are caught only by engine-record checks written after we saw them, which the

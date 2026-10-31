@@ -97,7 +97,8 @@ def collect(run_id: int, out_dir: Path, fetch=None) -> dict:
     from agents.bench_collect import gh_json, run_annotations
 
     run, notes = run_annotations(run_id, fetch or gh_json, prefix="discovery")
-    jobs = [json.loads(n["message"]) for n in notes if (n.get("title") or "").startswith("Discovery ")]
+    jobs = [json.loads(n["message"]) for n in notes
+            if (n.get("title") or "").startswith("Discovery ") and not n["title"].startswith("Discovery time ")]
     if not jobs:
         raise SystemExit(f"run {run_id}: no discovery notices")
     clean_fails = {sid for j in jobs if any(n == "clean" for n, _ in j["snapshots"])
