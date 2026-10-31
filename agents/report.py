@@ -519,6 +519,18 @@ def build_report(
     return summary
 
 
+def write_preflight_stop(out: Path, reason: str) -> Path:
+    """The morning report of a run the pre-run check stopped: nothing was fixed, so nothing is signed."""
+    out.mkdir(parents=True, exist_ok=True)
+    path = out / "morning-report.md"
+    path.write_text("\n".join([
+        "# Expectrail morning report", "", "**Decision:** `needs-review`", "",
+        "## Unresolved for a human", f"- {reason}",
+        "- Muse Code was not started, so no fix was attempted and there is no release candidate.", "",
+    ]), encoding="utf-8")
+    return path
+
+
 def _result_gameplay(result: dict) -> dict | None:
     stub = result.get("gameplay")
     if isinstance(stub, dict):
