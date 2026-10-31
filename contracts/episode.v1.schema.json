@@ -1,0 +1,351 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/seanudeke/expectrail/contracts/episode.v1.schema.json",
+  "title": "Episode: a normalized, validated view of one replay's trace",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "id",
+    "adapter",
+    "source",
+    "physicsTicksPerSecond",
+    "captureFps",
+    "frameMapping",
+    "capabilities",
+    "completeness",
+    "inputs",
+    "samples",
+    "events"
+  ],
+  "properties": {
+    "format": {
+      "const": "expectrail.episode/v1"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._/-]*$"
+    },
+    "adapter": {
+      "type": "string"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "routeName",
+        "routeSha256",
+        "traceSha256",
+        "replaySha256"
+      ],
+      "properties": {
+        "routeName": {
+          "type": "string"
+        },
+        "routeSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "traceSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "replaySha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "physicsTicksPerSecond": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "captureFps": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1
+    },
+    "frameMapping": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "protocol",
+            "step"
+          ],
+          "properties": {
+            "protocol": {
+              "const": "tick-step/v1"
+            },
+            "step": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      ]
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "player",
+        "onFloor",
+        "facing",
+        "enemies",
+        "projectiles"
+      ],
+      "properties": {
+        "player": {
+          "type": "boolean"
+        },
+        "onFloor": {
+          "type": "boolean"
+        },
+        "facing": {
+          "type": "boolean"
+        },
+        "enemies": {
+          "enum": [
+            "complete",
+            "initial-instances",
+            "absent",
+            "unknown"
+          ]
+        },
+        "projectiles": {
+          "enum": [
+            "complete",
+            "absent",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "completeness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contiguous",
+        "firstTick",
+        "lastTick",
+        "gaps"
+      ],
+      "properties": {
+        "contiguous": {
+          "type": "boolean"
+        },
+        "firstTick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lastTick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "gaps": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "integer",
+                "minimum": 0
+              }
+            ],
+            "items": false,
+            "minItems": 2
+          }
+        }
+      }
+    },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tick",
+          "action",
+          "pressed"
+        ],
+        "properties": {
+          "tick": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "action": {
+            "type": "string"
+          },
+          "pressed": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "samples": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tick",
+          "player",
+          "onFloor",
+          "facing",
+          "enemies",
+          "projectiles"
+        ],
+        "properties": {
+          "tick": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "player": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "items": false,
+                "minItems": 2
+              }
+            ]
+          },
+          "onFloor": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "facing": {
+            "enum": [
+              -1,
+              1,
+              null
+            ]
+          },
+          "enemies": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ],
+                  "items": false,
+                  "minItems": 3
+                }
+              }
+            ]
+          },
+          "projectiles": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ],
+                  "items": false,
+                  "minItems": 3
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "tick",
+          "id"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "projectile_spawn",
+              "projectile_gone",
+              "enemy_gone",
+              "takeoff",
+              "landing"
+            ]
+          },
+          "tick": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "x": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "y": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

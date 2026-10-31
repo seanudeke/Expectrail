@@ -176,7 +176,9 @@ def godot_cmd(godot: Path, display: bool) -> list[str]:
 
 def run(route: Path, out: Path, patch: Path | None = None, game: Path | None = None, fps: int = 60,
         godot: Path | None = None, patches: list[Path] | None = None,
-        force_import: bool = False) -> dict:
+        force_import: bool = False, capture_frames: bool = True) -> dict:
+    """Replay one route and write trace.json and replay.json (and the frames, unless capture_frames is
+    False: discovery reads only the trace, so it runs headless and skips writing a PNG per frame)."""
     game = game or REPO / "game" / "platformer"
     godot = godot or find_godot()
     out.mkdir(parents=True, exist_ok=True)
@@ -202,12 +204,15 @@ def run(route: Path, out: Path, patch: Path | None = None, game: Path | None = N
                                            encoding="utf-8")
             raise SystemExit(f"godot import timed out; see {out / 'godot.log'}") from exc
     display = bool(os.environ.get("DISPLAY"))
-    cmd = godot_cmd(godot, display) + [
-        "--path", str(work), "--audio-driver", "Dummy", "--rendering-driver", "opengl3",
-        "--write-movie", str((frames / "f.png").resolve()), "--fixed-fps", str(fps),
-        "--disable-vsync",
-        "--", f"--route={route.resolve()}", f"--trace={(out / 'trace.json').resolve()}",
-        f"--seed={route_doc.get('seed', 1)}"]
+    if capture_frames:
+        cmd = godot_cmd(godot, display) + [
+            "--path", str(work), "--audio-driver", "Dummy", "--rendering-driver", "opengl3",
+            "--write-movie", str((frames / "f.png").resolve()), "--fixed-fps", str(fps)]
+    else:
+        cmd = [str(godot), "--headless", "--path", str(work), "--audio-driver", "Dummy", "--fixed-fps", str(fps)]
+    cmd += ["--disable-vsync",
+            "--", f"--route={route.resolve()}", f"--trace={(out / 'trace.json').resolve()}",
+            f"--seed={route_doc.get('seed', 1)}"]
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=1800)
     except subprocess.TimeoutExpired as exc:

@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/seanudeke/expectrail/contracts/trace-verdict.v1.schema.json",
+  "title": "Trace verdict: one spec on one episode (or a pair, for a relation)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "specId",
+    "specSha256",
+    "episodeIds",
+    "evaluator",
+    "result",
+    "applicable",
+    "triggeredCount",
+    "evaluatedCount",
+    "excludedCount",
+    "coverageComplete",
+    "metrics",
+    "evidence",
+    "diagnostics"
+  ],
+  "properties": {
+    "format": {
+      "const": "expectrail.trace-verdict/v1"
+    },
+    "specId": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._/-]*$"
+    },
+    "specSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "episodeIds": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9._/-]*$"
+      },
+      "minItems": 1,
+      "maxItems": 2
+    },
+    "evaluator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "result": {
+      "enum": [
+        "pass",
+        "fail",
+        "not_exercised",
+        "insufficient_observation",
+        "execution_error"
+      ]
+    },
+    "applicable": {
+      "enum": [
+        "yes",
+        "no",
+        "unknown"
+      ]
+    },
+    "triggeredCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "evaluatedCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "excludedCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "coverageComplete": {
+      "type": "boolean"
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "number",
+          "null"
+        ]
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "episodeId",
+          "fromTick",
+          "toTick",
+          "detail"
+        ],
+        "properties": {
+          "episodeId": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._/-]*$"
+          },
+          "fromTick": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "toTick": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

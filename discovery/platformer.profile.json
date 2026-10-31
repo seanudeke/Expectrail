@@ -1,0 +1,179 @@
+{
+ "format": "expectrail.mechanics-profile/v1",
+ "id": "godot-platformer",
+ "adapter": "godot-platformer/v1",
+ "game": {
+  "path": "game/platformer",
+  "description": "Godot's official 2D platformer demo, one level: a robot that walks, jumps, double-jumps and shoots, and enemies that patrol platforms."
+ },
+ "actions": [
+  "move_left",
+  "move_right",
+  "jump",
+  "shoot"
+ ],
+ "selectors": {
+  "player": "Player",
+  "sprite": "Sprite2D",
+  "enemy": "Enemy",
+  "projectile": "Bullet"
+ },
+ "claims": [
+  {
+   "claimId": "player.jump",
+   "statement": "The player jumps from the floor, and once more in the air (a double jump). Pressing jump again in the air does nothing until it lands.",
+   "authority": "inferred_code",
+   "parameters": {
+    "airJumps": {
+     "value": 1,
+     "unit": "count"
+    },
+    "jumpVelocity": {
+     "value": 725,
+     "unit": "px/s"
+    },
+    "gravity": {
+     "value": 2100,
+     "unit": "px/s^2"
+    }
+   },
+   "evidenceRefs": [
+    "game/platformer/player/player.gd: JUMP_VELOCITY, try_jump, _double_jump_charged, the early-release cut",
+    "game/platformer/project.godot: physics/2d/default_gravity"
+   ],
+   "exceptions": [
+    "Moving platforms and slopes can carry the player above the floor it left.",
+    "Releasing jump while still rising cuts the upward speed to 60%, so a short press jumps lower."
+   ],
+   "approvalRef": null
+  },
+  {
+   "claimId": "weapon.cooldown",
+   "statement": "The gun fires one bullet per press, and not again until its cooldown has passed.",
+   "authority": "inferred_code",
+   "parameters": {
+    "cooldown": {
+     "value": 0.3,
+     "unit": "s"
+    }
+   },
+   "evidenceRefs": [
+    "game/platformer/player/player.tscn: Gun/Cooldown wait_time",
+    "game/platformer/player/gun.gd: shoot"
+   ],
+   "exceptions": [],
+   "approvalRef": null
+  },
+  {
+   "claimId": "player.facing",
+   "statement": "The player's sprite faces the way it moves, and a bullet flies the way the player faces.",
+   "authority": "inferred_code",
+   "parameters": {},
+   "evidenceRefs": [
+    "game/platformer/player/player.gd: sprite.scale.x, gun.shoot"
+   ],
+   "exceptions": [
+    "For a few ticks after a turn the sprite may still face the old way."
+   ],
+   "approvalRef": null
+  },
+  {
+   "claimId": "enemy.patrol",
+   "statement": "Enemies walk along their platform and turn back at its edge; they do not walk off it.",
+   "authority": "inferred_code",
+   "parameters": {
+    "walkSpeed": {
+     "value": 22,
+     "unit": "px/s"
+    },
+    "tileSize": {
+     "value": 64,
+     "unit": "px"
+    }
+   },
+   "evidenceRefs": [
+    "game/platformer/enemy/enemy.gd: WALK_SPEED, floor detectors",
+    "game/platformer/level/tileset.tres: tile_size"
+   ],
+   "exceptions": [
+    "The player's bullets destroy enemies.",
+    "Enemies settle onto the floor in their first ticks."
+   ],
+   "approvalRef": null
+  }
+ ],
+ "templates": [
+  {
+   "templateId": "jump.max-rise",
+   "claimId": "player.jump",
+   "operation": "max_episode_rise",
+   "approvalRef": null
+  },
+  {
+   "templateId": "jump.extra-presses-add-no-air-jumps",
+   "claimId": "player.jump",
+   "operation": "relation",
+   "approvalRef": null
+  },
+  {
+   "templateId": "jump.air-jump-exists",
+   "claimId": "player.jump",
+   "operation": "relation",
+   "approvalRef": null
+  },
+  {
+   "templateId": "weapon.min-interval",
+   "claimId": "weapon.cooldown",
+   "operation": "min_event_interval",
+   "approvalRef": null
+  },
+  {
+   "templateId": "weapon.ready-press-fires",
+   "claimId": "weapon.cooldown",
+   "operation": "event_response",
+   "approvalRef": null
+  },
+  {
+   "templateId": "weapon.faster-taps-add-no-shots",
+   "claimId": "weapon.cooldown",
+   "operation": "relation",
+   "approvalRef": null
+  },
+  {
+   "templateId": "facing.follows-motion",
+   "claimId": "player.facing",
+   "operation": "direction_agreement",
+   "approvalRef": null
+  },
+  {
+   "templateId": "facing.bullets-follow-facing",
+   "claimId": "player.facing",
+   "operation": "direction_agreement",
+   "approvalRef": null
+  },
+  {
+   "templateId": "facing.mirror",
+   "claimId": "player.facing",
+   "operation": "relation",
+   "approvalRef": null
+  },
+  {
+   "templateId": "enemy.max-drop",
+   "claimId": "enemy.patrol",
+   "operation": "max_entity_drop",
+   "approvalRef": null
+  },
+  {
+   "templateId": "enemy.present",
+   "claimId": "enemy.patrol",
+   "operation": "entity_present",
+   "approvalRef": null
+  },
+  {
+   "templateId": "enemy.patrols",
+   "claimId": "enemy.patrol",
+   "operation": "min_motion_extent",
+   "approvalRef": null
+  }
+ ]
+}
