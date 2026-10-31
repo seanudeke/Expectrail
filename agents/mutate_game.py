@@ -131,9 +131,10 @@ def _fmt(value: float) -> str:
     return str(int(rounded)) if rounded == int(rounded) else repr(rounded)
 
 
-def in_population(rel: str) -> bool:
-    """Whether the generator can edit this file at all. A rehearsal must only use files outside it."""
-    return rel.endswith(".tscn") or rel in CODE_FILES
+def source_files(game: Path = GAME) -> list[str]:
+    """Every file the generator reads, in order. The one statement of what the population can touch."""
+    scenes = sorted(p.relative_to(game).as_posix() for p in game.rglob("*.tscn") if ".godot" not in p.parts)
+    return scenes + list(CODE_FILES)
 
 
 def _mutant(cls: str, rel: str, line_no: int, tag: str, before: str, after: str) -> dict:
@@ -187,15 +188,10 @@ def _code_mutants(rel: str, n: int, line: str, params: dict) -> list[dict]:
 def enumerate_mutants(params: dict, game: Path = GAME) -> list[dict]:
     """Every possible mutant, in a fixed order: sorted by file, then line, then operator."""
     found: list[dict] = []
-    for path in sorted(game.rglob("*.tscn")):
-        rel = path.relative_to(game).as_posix()
-        if ".godot" in path.parts:
-            continue
-        for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-            found += _scene_mutants(rel, n, line, params)
-    for rel in CODE_FILES:
+    for rel in source_files(game):
+        make = _code_mutants if rel in CODE_FILES else _scene_mutants
         for n, line in enumerate((game / rel).read_text(encoding="utf-8").splitlines(), 1):
-            found += _code_mutants(rel, n, line, params)
+            found += make(rel, n, line, params)
     ids = [m["id"] for m in found]
     if len(ids) != len(set(ids)):
         raise ValueError("two mutants share an id")
@@ -263,9 +259,18 @@ def patch_text(mutant: dict, game: Path = GAME) -> str:
     return "".join(difflib.unified_diff(before, after, fromfile=f"a/{rel}", tofile=f"b/{rel}"))
 
 
+def excluded_mutants(prereg: dict) -> list[str]:
+    return list((prereg.get("excludedBeforeDraw") or {}).get("mutants") or [])
+
+
 def build_manifest(prereg: dict, game: Path = GAME) -> dict:
     gen = prereg["generator"]
     every = enumerate_mutants(gen, game)
+    excluded = excluded_mutants(prereg)
+    unknown = sorted(set(excluded) - {m["id"] for m in every})
+    if unknown:
+        raise PreregistrationError(f"excludedBeforeDraw names mutants the generator does not make: {unknown}")
+    every = [m for m in every if m["id"] not in excluded]  # before the draw, whatever they did
     chosen = draw(every, gen)
     enumerated = {c: sum(m["class"] == c for m in every) for c in OPERATOR_CLASSES}
     sampled = {c: sum(m["class"] == c for m in chosen) for c in OPERATOR_CLASSES}
@@ -277,6 +282,7 @@ def build_manifest(prereg: dict, game: Path = GAME) -> dict:
         "seed": gen["seed"],
         "sampleSize": gen["sampleSize"],
         "sampling": gen["sampling"],
+        "excludedBeforeDraw": sorted(excluded),
         "enumerated": len(every),
         "enumeratedByClass": enumerated,
         "sampled": len(chosen),

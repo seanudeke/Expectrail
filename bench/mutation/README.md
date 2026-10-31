@@ -14,6 +14,10 @@ no key). A rehearsal is never a result: it has no score, its rows name no regist
 refuses to mix it with a judged run, and it fails if it did not reach what it rehearses. The
 pre-registration discloses what earlier rehearsals, on members of the population, happened to show.
 
+Three cases judged before registration are excluded before the draw, by Sean's decision, whatever
+they did: the `freeze` pair on physics fall-through v1 and two mutants (`excludedBeforeDraw`). So Part 1
+is 47 pairs, not 48. The registration names them, and the manifest lists them.
+
 The pins cover the game, the development bugs, the operators, the specs, the verifier, the observers,
 the generator, the bench and its workflow. Changing any of them after registration refuses every run
 until the pins are set again, which is a change to the registration and has to be reported as one.
@@ -64,9 +68,9 @@ With counts set per class, the pooled score over the sample depends on those cou
 mutants given as many cases as a class of 2,642 counts as much. So the report leads with a weighted
 score, shows the pooled figure as a figure about the sample, and gives every class's own score.
 
-A class weighs what it is estimated to hold of mutants that show: its size times the share of its
-sample that was not dropped as equivalent. Its plain size would count scenery edits nobody could
-ever catch. A class with no score is named and left out of the weights, and the report says what
+A class's score is over its decided cases, so it weighs what it is estimated to hold of those: its
+size times the share of its sample that was decided. Its plain size would count scenery edits nobody
+could ever catch. A class with no score is named and left out of the weights, and the report says what
 share of the estimated visible mutants the score covers. The estimate is only as good as each class's
 sample: a class sampled lightly has a rough share and a rough score.
 

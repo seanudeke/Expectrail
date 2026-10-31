@@ -139,6 +139,19 @@ def pairs() -> list[tuple[str, str]]:
     return [(case, op) for case in sorted(dev_variants()) for op in OPERATORS]
 
 
+def excluded_pairs(prereg: dict) -> set[tuple[str, str]]:
+    return {(p["case"], p["operator"]) for p in (prereg.get("excludedBeforeDraw") or {}).get("pairs") or []}
+
+
+def study_pairs(prereg: dict) -> list[tuple[str, str]]:
+    """The pairs the study judges: every pair but those excluded before registration."""
+    excluded = excluded_pairs(prereg)
+    unknown = sorted(excluded - set(pairs()))
+    if unknown:
+        raise mutate_game.PreregistrationError(f"excludedBeforeDraw names pairs that do not exist: {unknown}")
+    return [p for p in pairs() if p not in excluded]
+
+
 def _diff_trees(before: Path, after: Path, rels: list[str]) -> str:
     chunks = []
     for rel in rels:
@@ -366,6 +379,8 @@ def run_case(case: str, operator: str, out: Path, *, prereg: dict | None = None,
     if operator not in OPERATORS:
         raise SystemExit(f"{operator}: unknown operator (want {', '.join(OPERATORS)})")
     prereg = prereg or mutate_game.load_preregistration()
+    if (case, operator) in excluded_pairs(prereg):
+        raise SystemExit(f"{case} {operator} was excluded before registration, so the study never judges it")
     work = out / f"{case.replace('/', '_')}+{operator}"
     work.mkdir(parents=True, exist_ok=True)
     t0, images = time.perf_counter(), sam_usage()
@@ -618,20 +633,22 @@ def _by_check(rows: list[dict]) -> dict:
 
 def _sampling_view(manifest: dict, by_class: dict, rows: list[dict]) -> dict:
     """How the sample stands to the game, so the score can be read. With counts set per class, the
-    pooled score depends on those counts, so a weighted score goes beside it. A class weighs what it
-    is estimated to hold of mutants that show: its size times the share of its sample that was not
-    dropped as equivalent. Its plain size would count mutants nobody could ever catch."""
+    pooled score depends on those counts, so a weighted score goes beside it. A class's score is over
+    its decided cases, so it weighs what it is estimated to hold of those: its size times the share of
+    its sample that was decided. Its plain size would count mutants nobody could ever catch."""
     enumerated, drawn = manifest.get("enumeratedByClass") or {}, manifest.get("sampledByClass") or {}
     dropped = {c: sum(r.get("outcome") == "equivalent" and r.get("class") == c for r in rows) for c in enumerated}
-    classes, weights = {}, {}
+    classes, weights, visible = {}, {}, {}
     for cls, size in enumerated.items():
-        sampled = drawn.get(cls, 0)
-        visible = max(sampled - dropped[cls], 0)
-        weights[cls] = size * visible / sampled if sampled else 0.0
-        classes[cls] = {"enumerated": size, "sampled": sampled, "equivalent": dropped[cls],
-                        "score": (by_class.get(cls) or {}).get("score"), "estimatedVisible": round(weights[cls], 1)}
+        sampled, tally = drawn.get(cls, 0), by_class.get(cls) or {}
+        decided = tally.get("badCaught", 0) + tally.get("badSurvived", 0)
+        weights[cls] = size * decided / sampled if sampled else 0.0
+        visible[cls] = size * max(sampled - dropped[cls], 0) / sampled if sampled else 0.0
+        classes[cls] = {"enumerated": size, "sampled": sampled, "equivalent": dropped[cls], "decided": decided,
+                        "score": tally.get("score"), "estimatedVisible": round(visible[cls], 1),
+                        "estimatedDecided": round(weights[cls], 1)}
     scored = {c: v["score"] for c, v in classes.items() if v["score"] is not None and weights[c] > 0}
-    weight, total = sum(weights[c] for c in scored), sum(weights.values())
+    weight, total = sum(weights[c] for c in scored), sum(visible.values())
     return {"method": (manifest.get("sampling") or {}).get("method"), "shortByClass": manifest.get("shortByClass") or {},
             "shortOfSample": manifest.get("shortOfSample") or 0, "classes": classes,
             "weightedScore": round(sum(weights[c] * s for c, s in scored.items()) / weight, 4) if weight else None,
@@ -714,7 +731,7 @@ def markdown(doc: dict) -> str:
             covers = "no" if view["weightedCovers"] is None else f"{view['weightedCovers']:.0%} of the"
             no_score = ", ".join(view["classesWithNoScore"]) or "none"
             unsampled = ", ".join(view["classesNotSampled"]) or "none"
-            lines += [f"Mutation score, weighted by each class's estimated visible mutants: **{weighted}**, covering "
+            lines += [f"Mutation score, weighted by each class's estimated decided mutants: **{weighted}**, covering "
                       f"{covers} estimated visible mutants of the sampled classes (classes with no score: {no_score}; "
                       f"classes never sampled: {unsampled}).", "",
                       f"Over the sample as drawn: {score} ({doc['badCaught']} of {decided} decided bad cases caught). The "
@@ -743,9 +760,9 @@ def markdown(doc: dict) -> str:
     if view:
         lines += ["## How the sample stands to the game", "", f"Method: {view['method']}. Short of the plan by "
                   f"{view['shortOfSample']}" + (f" ({view['shortByClass']})." if view["shortByClass"] else "."), "",
-                  "| Class | Mutants in the game | Sampled | Equivalent | Estimated visible | Score |",
-                  "| --- | --- | --- | --- | --- | --- |"]
-        lines += [f"| {c} | {v['enumerated']} | {v['sampled']} | {v['equivalent']} | {v['estimatedVisible']} | "
+                  "| Class | Mutants in the game | Sampled | Equivalent | Decided | Estimated decided | Score |",
+                  "| --- | --- | --- | --- | --- | --- | --- |"]
+        lines += [f"| {c} | {v['enumerated']} | {v['sampled']} | {v['equivalent']} | {v['decided']} | {v['estimatedDecided']} | "
                   f"{'-' if v['score'] is None else format(v['score'], '.1%')} |" for c, v in view["classes"].items()] + [""]
     for title, key in (("Per operator", "byOperator"), ("Per class", "byClass"), ("Per case", "byCase")):
         if doc[key]:

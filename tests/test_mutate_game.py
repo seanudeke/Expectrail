@@ -219,6 +219,38 @@ class StratifiedTest(unittest.TestCase):
         self.assertIsNone(mg.sampling_problem(PARAMS))
 
 
+class ExcludedMutantTest(unittest.TestCase):
+    IDS = ["code:player/player.gd:7:sign.WALK_SPEED", "resource-path:player/player.tscn:3:missing"]
+
+    def manifest(self, ids, sampling=None):
+        gen = {**PARAMS, "sampling": sampling or {"method": "uniform"}, "sampleSize": 3000}
+        with mock.patch.object(mg, "_sha", return_value="x"):
+            return mg.build_manifest({"generator": gen, "excludedBeforeDraw": {"mutants": ids}})
+
+    def test_the_rehearsed_mutants_can_never_be_drawn(self):
+        doc = self.manifest(self.IDS)
+        drawn = {m["id"] for m in doc["mutants"]}
+        self.assertFalse(drawn & set(self.IDS))
+        self.assertEqual(doc["excludedBeforeDraw"], sorted(self.IDS))
+
+    def test_they_exist_at_any_steps(self):
+        for step in (1, 8, 0.25):
+            every = {m["id"] for m in mg.enumerate_mutants({**PARAMS, "positionStep": step, "scaleStep": step})}
+            self.assertTrue(set(self.IDS) <= every)
+
+    def test_the_population_shrinks_by_exactly_them(self):
+        self.assertEqual(self.manifest([])["enumerated"] - self.manifest(self.IDS)["enumerated"], 2)
+
+    def test_a_mutant_that_does_not_exist_is_refused(self):
+        with self.assertRaises(mg.PreregistrationError):
+            self.manifest(["code:player/player.gd:7:sign.NOPE"])
+
+    def test_stratified_draws_exclude_them_too(self):
+        plan = {"method": "stratified", "perClass": {"code": 2000, "resource-path": 1000}}
+        drawn = {m["id"] for m in self.manifest(self.IDS, plan)["mutants"]}
+        self.assertFalse(drawn & set(self.IDS))
+
+
 class SiteCountTest(unittest.TestCase):
     def test_operators_with_no_sites_are_reported_not_hidden(self):
         sites = mg.site_counts()

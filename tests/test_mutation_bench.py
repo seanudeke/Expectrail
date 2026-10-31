@@ -85,6 +85,40 @@ class Base(unittest.TestCase):
             return mb.run_case(case, operator, self.out, prereg=prereg(), force_sam=force)
 
 
+EXCLUDED = {"excludedBeforeDraw": {"pairs": [{"case": "dev/physics-fall-through/v1", "operator": "freeze"}]}}
+
+
+class ExcludedPairTest(Base):
+    def test_part_1_is_47_pairs_and_the_rehearsed_one_is_gone(self):
+        study = mb.study_pairs(EXCLUDED)
+        self.assertEqual(len(study), 47)
+        self.assertNotIn(("dev/physics-fall-through/v1", "freeze"), study)
+
+    def test_the_committed_registration_excludes_the_rehearsed_cases(self):
+        doc = json.loads(mutate_game.PREREGISTRATION.read_text())
+        self.assertEqual(len(mb.study_pairs(doc)), 47)
+        self.assertEqual(mutate_game.excluded_mutants(doc), ["code:player/player.gd:7:sign.WALK_SPEED",
+                                                             "resource-path:player/player.tscn:3:missing"])
+
+    def test_a_pair_that_does_not_exist_is_refused(self):
+        with self.assertRaises(mutate_game.PreregistrationError):
+            mb.study_pairs({"excludedBeforeDraw": {"pairs": [{"case": "dev/x/v9", "operator": "freeze"}]}})
+
+    def test_an_excluded_pair_is_refused_even_if_asked_for(self):
+        with mock.patch.object(mb, "verify", side_effect=AssertionError("judged an excluded pair")), \
+                self.assertRaises(SystemExit) as caught:
+            mb.run_case("dev/physics-fall-through/v1", "freeze", self.out, prereg={**prereg(), **EXCLUDED})
+        self.assertIn("excluded before registration", str(caught.exception))
+
+    def test_the_workflow_plans_only_the_study(self):
+        import yaml
+
+        doc = yaml.safe_load((REPO / ".github" / "workflows" / "mutation-bench.yml").read_text(encoding="utf-8"))
+        steps = str(doc["jobs"]["plan"]["steps"])
+        self.assertIn("study_pairs(load_preregistration())", steps)
+        self.assertIn("for c in cases for o in ops if (c, o) in study]", steps)
+
+
 class OperatorFixturesTest(unittest.TestCase):
     def test_every_operator_applies_to_the_clean_game(self):
         for name in mb.OPERATORS:
@@ -382,11 +416,14 @@ class OutcomeTest(Base):
         self.assertEqual(judge_cases()["bad/fall-through-comment-only"]["fixture"], mb.DRY_RUN[1].stem)
 
     def test_the_stand_ins_are_outside_the_population(self):
-        every = {m["file"] for m in mutate_game.enumerate_mutants(STEPS)}
+        """Against the files the generator really reads, so a change to what it reads breaks this."""
+        with mock.patch.object(mutate_game, "source_files", wraps=mutate_game.source_files) as read:
+            mutate_game.enumerate_mutants(STEPS)
+        read.assert_called_once()
+        files = set(mutate_game.source_files())
         for m in mb.dry_mutants():
             with self.subTest(id=m["id"]):
-                self.assertFalse(mutate_game.in_population(m["file"]))
-                self.assertNotIn(m["file"], every)
+                self.assertNotIn(m["file"], files)
                 self.assertTrue(mutate_game.patch_text(m))
 
     def test_the_stand_ins_cover_the_three_ends(self):
@@ -839,17 +876,18 @@ class SummaryTest(Base):
         self.assertAlmostEqual(doc["score"], 19 / 29, places=3)  # what the allocation happens to give
         view = doc["sampling"]
         self.assertEqual(view["weightedScore"], round(125 / 2767, 4))
-        self.assertEqual(view["classes"]["numeric"], {"enumerated": 2642, "sampled": 10, "equivalent": 0, "score": 0.0,
-                                                      "estimatedVisible": 2642.0})
+        self.assertEqual(view["classes"]["numeric"], {"enumerated": 2642, "sampled": 10, "equivalent": 0, "decided": 10,
+                                                      "score": 0.0, "estimatedVisible": 2642.0,
+                                                      "estimatedDecided": 2642.0})
         self.assertEqual(view["weightedCovers"], round(2767 / 2768, 4))
         self.assertEqual(view["classesWithNoScore"], ["boolean"])
         self.assertEqual(view["shortByClass"], {"boolean": 2})
 
     def test_the_report_leads_with_the_weighted_score_and_says_why(self):
         text = mb.markdown(self.stratified())
-        self.assertIn("estimated visible mutants: **4.5%**", text)
+        self.assertIn("estimated decided mutants: **4.5%**", text)
         self.assertIn("not a score for the whole game", text)
-        self.assertIn("| numeric | 2642 | 10 | 0 | 2642.0 | 0.0% |", text)
+        self.assertIn("| numeric | 2642 | 10 | 0 | 10 | 2642.0 | 0.0% |", text)
         self.assertIn("classes with no score: boolean", text)
         self.assertIn("Short of the plan by 2", text)
         self.assertNotIn("Mutation score: **", text)
@@ -871,6 +909,19 @@ class SummaryTest(Base):
         view = self.view_of({"numeric": 1000, "code": 100}, {"numeric": 10, "code": 10})["sampling"]
         self.assertEqual(view["weightedScore"], 0.5)
         self.assertEqual(view["classes"]["numeric"]["estimatedVisible"], 100.0)
+        self.assertEqual(view["classes"]["numeric"]["estimatedDecided"], 100.0)
+
+    def test_a_class_weighs_its_decided_cases_not_only_its_visible_ones(self):
+        """Half of numeric's visible cases are undecided, so it weighs half. Its score covers only the rest."""
+        self.write("a", kind="mutant", id="a", outcome="caught-cheap", **{"class": "numeric"})
+        self.write("b", kind="mutant", id="b", outcome="undecided", **{"class": "numeric"})
+        self.write("c", kind="mutant", id="c", outcome="survived", **{"class": "code"})
+        self.write("d", kind="mutant", id="d", outcome="survived", **{"class": "code"})
+        view = self.view_of({"numeric": 100, "code": 50}, {"numeric": 2, "code": 2})["sampling"]
+        self.assertEqual(view["classes"]["numeric"]["estimatedVisible"], 100.0)
+        self.assertEqual(view["classes"]["numeric"]["estimatedDecided"], 50.0)
+        self.assertEqual(view["weightedScore"], 0.5)  # 50 at 100%, 50 at 0%
+        self.assertEqual(view["weightedCovers"], round(100 / 150, 4))
 
     def test_a_class_with_no_score_is_not_hidden_behind_the_rest(self):
         self.write("a", kind="mutant", id="a", outcome="caught-cheap", **{"class": "code"})

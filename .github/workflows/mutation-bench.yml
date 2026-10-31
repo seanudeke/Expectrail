@@ -83,7 +83,11 @@ jobs:
               every_cases = sorted(dev_variants())
               cases, ops = split("CASES") or every_cases, split("OPERATORS") or list(OPERATORS)
               bad = sorted(set(cases) - set(every_cases)) + sorted(set(ops) - set(OPERATORS))
-              rows = [{"case": c, "operator": o} for c in cases for o in ops]
+              # A pair excluded before registration is never judged, whatever the inputs asked for.
+              from agents.mutate_game import load_preregistration
+              from agents.mutation_bench import study_pairs
+              study = set(study_pairs(load_preregistration()))
+              rows = [{"case": c, "operator": o} for c in cases for o in ops if (c, o) in study]
           else:
               every = [m["id"] for m in json.loads(MANIFEST.read_text())["mutants"]]
               chosen = split("MUTANTS") or every
