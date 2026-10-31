@@ -765,7 +765,7 @@ class SummaryTest(Base):
         self.write("b", kind="mutant", id="m2", outcome="equivalent", dropReason="x")
         with mock.patch.object(mb, "MANIFEST", manifest):
             r = mb.summarize(self.out)["reconciliation"]
-        self.assertEqual(r, {"sampled": 3, "judged": 1, "equivalent": 1, "missing": ["m3"]})
+        self.assertEqual(r, {"sampled": 3, "judged": 1, "equivalent": 1, "missing": ["m3"], "notInManifest": []})
 
     def test_an_empty_folder_has_nothing_to_summarize(self):
         with self.assertRaises(SystemExit) as caught:
@@ -878,6 +878,33 @@ class SummaryTest(Base):
         doc = self.view_of({"numeric": 2642, "code": 20}, {"numeric": 1, "code": 1})
         self.assertEqual(doc["sampling"]["weightedCovers"], round(20 / 2662, 4))
         self.assertIn("covering 1% of the estimated visible mutants", mb.markdown(doc))
+
+    def test_a_class_never_sampled_is_named_beside_the_coverage(self):
+        self.write("a", kind="mutant", id="a", outcome="caught-cheap", **{"class": "code"})
+        doc = self.view_of({"numeric": 1000, "code": 20}, {"numeric": 0, "code": 1})
+        self.assertEqual(doc["sampling"]["classesNotSampled"], ["numeric"])
+        self.assertIn("classes never sampled: numeric", mb.markdown(doc))
+
+    def test_repeated_equivalents_never_give_a_negative_estimate(self):
+        for i in range(3):
+            self.write(f"e{i}", kind="mutant", id=f"e{i}", outcome="equivalent", dropReason="x", **{"class": "code"})
+        view = self.view_of({"code": 20}, {"code": 1})["sampling"]
+        self.assertEqual(view["classes"]["code"]["estimatedVisible"], 0.0)
+
+    def test_a_rehearsal_survivor_is_not_a_blind_spot(self):
+        self.write("a", case="c", operator="rehearsal", outcome="survived", rehearsal=True, preregistrationSha256=None)
+        self.write("b", case="d", operator="rehearsal", outcome="caught-sam", rehearsal=True, preregistrationSha256=None)
+        doc = mb.summarize(self.out)
+        self.assertEqual((doc["blindSpots"], doc["visionOnlyWins"]), ([], []))
+
+    def test_results_the_manifest_never_sampled_are_flagged(self):
+        manifest = self.out / "manifest.json"
+        manifest.write_text(json.dumps({"mutants": [{"id": "m1"}]}))
+        self.write("a", kind="mutant", id="stray", outcome="caught-cheap")
+        with mock.patch.object(mb, "MANIFEST", manifest):
+            doc = mb.summarize(self.out)
+        self.assertEqual(doc["reconciliation"]["notInManifest"], ["stray"])
+        self.assertIn("1 not in the manifest", mb.markdown(doc))
 
     def test_cases_outside_the_score_are_counted_beside_it(self):
         self.write("a", kind="mutant", id="a", outcome="caught-cheap", **{"class": "code"})

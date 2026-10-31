@@ -539,7 +539,7 @@ def rehearse(kind: str, out: Path) -> list[dict]:
 
 def rehearsal_passed(kind: str, rows: list[dict]) -> bool:
     """Whether the path really ran. A rehearsal that never reached what it rehearses has failed,
-    whatever it scored: a cheap catch says nothing about the SAM arm."""
+    whatever its outcome: a cheap catch says nothing about the SAM arm."""
     if len(rows) != (3 if kind == "mutants" else 1) or any(r.get("outcome") == "error" for r in rows):
         return False
     if kind == "pair":
@@ -626,7 +626,7 @@ def _sampling_view(manifest: dict, by_class: dict, rows: list[dict]) -> dict:
     classes, weights = {}, {}
     for cls, size in enumerated.items():
         sampled = drawn.get(cls, 0)
-        visible = sampled - dropped[cls]
+        visible = max(sampled - dropped[cls], 0)
         weights[cls] = size * visible / sampled if sampled else 0.0
         classes[cls] = {"enumerated": size, "sampled": sampled, "equivalent": dropped[cls],
                         "score": (by_class.get(cls) or {}).get("score"), "estimatedVisible": round(weights[cls], 1)}
@@ -637,6 +637,8 @@ def _sampling_view(manifest: dict, by_class: dict, rows: list[dict]) -> dict:
             "weightedScore": round(sum(weights[c] * s for c, s in scored.items()) / weight, 4) if weight else None,
             "weightedCovers": round(weight / total, 4) if total else None,
             "classesWithNoScore": sorted(c for c, v in classes.items() if v["sampled"] and c not in scored),
+            # Unsampled, so nothing estimates them: the coverage above says nothing about these.
+            "classesNotSampled": sorted(c for c, v in classes.items() if v["enumerated"] and not v["sampled"]),
             "classesNotInManifest": sorted({r["class"] for r in rows if r.get("class") and r["class"] not in enumerated})}
 
 
@@ -668,8 +670,8 @@ def summarize(out: Path) -> dict:
         "unlabelled": sum(r.get("label") not in ("bad", "good") for r in finals),
         "noopCandidates": sum(bool(r.get("noop")) for r in finals),
         "byOperator": by("operator"), "byCase": by("case"), "byClass": by("class"), "byCheck": _by_check(finals),
-        "visionOnlyWins": [_name(r) for r in bad if r.get("outcome") == "caught-sam"],
-        "blindSpots": [_name(r) for r in bad if r.get("outcome") == "survived"],
+        "visionOnlyWins": [_name(r) for r in bad if r.get("outcome") == "caught-sam" and not r.get("rehearsal")],
+        "blindSpots": [_name(r) for r in bad if r.get("outcome") == "survived" and not r.get("rehearsal")],
         "goodAccepted": sum(r.get("label") == "good" and r.get("outcome") == "survived" for r in finals),
         "falseRejects": [_name(r) for r in finals if r.get("label") == "good" and r.get("outcome") in CAUGHT],
         "agreement": {"checked": len(agreed), "agree": sum(r["agreement"] == "agree" for r in agreed),
@@ -689,7 +691,8 @@ def summarize(out: Path) -> dict:
         sampled = [m["id"] for m in manifest.get("mutants") or []]
         doc["reconciliation"] = {"sampled": len(sampled), "judged": len(finals),
                                  "equivalent": len(doc["equivalentDropped"]),
-                                 "missing": sorted(set(sampled) - {r.get("id") for r in rows})}
+                                 "missing": sorted(set(sampled) - {r.get("id") for r in rows}),
+                                 "notInManifest": sorted({r["id"] for r in rows if r.get("id")} - set(sampled))}
         doc["sampling"] = _sampling_view(manifest, doc["byClass"], rows)
     (Path(out) / "mutation-summary.json").write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
     return doc
@@ -710,8 +713,10 @@ def markdown(doc: dict) -> str:
             weighted = "not yet" if view["weightedScore"] is None else f"{view['weightedScore']:.1%}"
             covers = "no" if view["weightedCovers"] is None else f"{view['weightedCovers']:.0%} of the"
             no_score = ", ".join(view["classesWithNoScore"]) or "none"
+            unsampled = ", ".join(view["classesNotSampled"]) or "none"
             lines += [f"Mutation score, weighted by each class's estimated visible mutants: **{weighted}**, covering "
-                      f"{covers} estimated visible mutants (classes with no score: {no_score}).", "",
+                      f"{covers} estimated visible mutants of the sampled classes (classes with no score: {no_score}; "
+                      f"classes never sampled: {unsampled}).", "",
                       f"Over the sample as drawn: {score} ({doc['badCaught']} of {decided} decided bad cases caught). The "
                       "sample's class counts were set by hand, so this figure depends on them and is not a score "
                       "for the whole game.", ""]
@@ -734,7 +739,7 @@ def markdown(doc: dict) -> str:
     if doc.get("reconciliation"):
         r = doc["reconciliation"]
         lines += [f"Of {r['sampled']} sampled: {r['judged']} judged, {r['equivalent']} equivalent, "
-                  f"{len(r['missing'])} missing.", ""]
+                  f"{len(r['missing'])} missing, {len(r['notInManifest'])} not in the manifest.", ""]
     if view:
         lines += ["## How the sample stands to the game", "", f"Method: {view['method']}. Short of the plan by "
                   f"{view['shortOfSample']}" + (f" ({view['shortByClass']})." if view["shortByClass"] else "."), "",
