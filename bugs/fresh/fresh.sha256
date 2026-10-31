@@ -1,0 +1,3 @@
+# sha256 of every file under fresh/ in the private held-out set (python -m expectrail.discovery.fresh digest),
+# committed before any blind run. The set is published after the event.
+79dd0023a89f863fcec84a5766c9ede51c2d5cddb8f9d5dbefefd41cf590dba5  fresh/
