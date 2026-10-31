@@ -8,6 +8,7 @@ import os
 import shutil
 import struct
 import subprocess
+import sys
 import tempfile
 import unittest
 import zlib
@@ -581,6 +582,24 @@ class SummaryTest(Base):
             r = mb.summarize(self.out)["reconciliation"]
         self.assertEqual(r, {"sampled": 3, "judged": 1, "equivalent": 1, "missing": ["m3"]})
 
+    def test_an_empty_folder_has_nothing_to_summarize(self):
+        with self.assertRaises(SystemExit) as caught:
+            mb.summarize(self.out)
+        self.assertIn("nothing to summarize", str(caught.exception))
+        self.assertFalse((self.out / "mutation-summary.json").exists())
+
+    def test_the_cli_exits_non_zero_on_an_empty_folder(self):
+        result = subprocess.run([sys.executable, "-m", "agents.mutation_bench", "--summarize", str(self.out)],
+                                capture_output=True, text=True, cwd=REPO)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("nothing to summarize", result.stderr)
+
+    def test_a_folder_of_other_files_has_nothing_to_summarize(self):
+        (self.out / "sam-warm.json").write_text(json.dumps({"samImages": 233}))
+        (self.out / "result.json").write_text(json.dumps({"format": "something-else"}))
+        with self.assertRaises(SystemExit):
+            mb.summarize(self.out)
+
     def test_the_report_renders(self):
         self.write("a", case="c", operator="hide", outcome="survived")
         text = mb.markdown(mb.summarize(self.out))
@@ -609,6 +628,30 @@ class WorkflowTest(unittest.TestCase):
             with self.subTest(job=job):
                 self.assertIn("xvfb", steps)
                 self.assertIn("libgl1-mesa-dri", steps)
+
+    def test_every_upload_is_scanned_first(self):
+        """The Fix matrix's rule since #107. Walks every job, so a new upload cannot skip it."""
+        uploads = 0
+        for name, job in self.doc["jobs"].items():
+            scanned = []
+            for step in job["steps"]:
+                run = str(step.get("run", ""))
+                if "agents.export_scan" in run:
+                    scanned.append(step)
+                if "upload-artifact" not in str(step.get("uses", "")):
+                    continue
+                uploads += 1
+                path = step["with"]["path"].strip().rstrip("/")
+                with self.subTest(job=name, path=path):
+                    scan = next((s for s in scanned if path in str(s["run"])), None)
+                    self.assertIsNotNone(scan, f"{path} is uploaded unscanned")
+                    if "always()" in str(step.get("if", "")):  # it runs even if the scan failed, unless gated
+                        self.assertIn(f"steps.{scan['id']}.outcome == 'success'", step["if"])
+        self.assertEqual(uploads, 4)
+
+    def test_an_empty_summary_fails_its_step(self):
+        step = next(s for s in self.doc["jobs"]["summarize"]["steps"] if s.get("name") == "Summarize")
+        self.assertIn("set -o pipefail", step["run"])
 
     def test_the_private_set_is_never_checked_out(self):
         text = str(self.doc)
