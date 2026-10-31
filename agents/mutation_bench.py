@@ -38,7 +38,7 @@ Rehearsals need no pre-registration, run on any branch, and are never a result:
 
     python3 -m agents.mutation_bench --dry-run --out runs/dry           # one known pair, no SAM
     python3 -m agents.mutation_bench --dry-run sam --out runs/dry       # the same pair through forced SAM (spends SAM)
-    python3 -m agents.mutation_bench --dry-run mutants --out runs/dry   # two mutants through the cheap phase, no SAM
+    python3 -m agents.mutation_bench --dry-run mutants --out runs/dry   # three stand-ins, cheap phase, no SAM
 
 To report both phases of Part 2 together, download each run's artifacts into its own folder under one
 parent and summarize the parent: a mutant judged in both phases counts once, as its SAM phase.
@@ -81,9 +81,11 @@ OUTCOMES = ("caught-cheap", "caught-sam", "survived", "undecided", "crash", "err
 CAUGHT = ("caught-cheap", "caught-sam")
 GROUND_SPEC = "player-stays-above-ground"
 # Rehearsals run the real paths before anything is registered, on cases the study can never draw, so
-# that nothing in the population is judged early. The pair is the judge benchmark's freeze fixture
-# (public in bench/judge), not one of the 48. The stand-ins edit files the generator never touches.
-DRY_RUN = ("dev/physics-fall-through/v1", REPO / "agents" / "fixtures" / "freeze-player.patch")
+# that nothing in the population is judged early. The pair is the judge benchmark's comment-only
+# fixture on an unfixed bug (public in bench/judge): the robot still falls. Every one of the 48 starts
+# from the correct undo, so this game can never be one of them, which a test holds by comparing the
+# game trees. The stand-ins edit files the generator never touches.
+DRY_RUN = ("dev/physics-fall-through/v1", REPO / "agents" / "fixtures" / "fix-comment-only.patch")
 DRY_PREREG = {"sha256": None, "oracle": {"traceThresholdPx": 0, "frameThreshold": 0}}
 # id: (file, the line as it stands, what it becomes)
 DRY_STAND_INS = {
@@ -463,14 +465,14 @@ def run_mutant(mutant_id: str, tier: str, out: Path, *, prereg: dict | None = No
     return row
 
 
-def load_failures(clean_log: Path, log: Path) -> int:
-    """How many load-failure lines this replay's log has that the clean game's does not."""
+def load_failures(clean_log: Path, log: Path) -> int | None:
+    """How many load-failure lines this replay's log has that the clean game's does not; None when
+    either log is missing, since the clean game's own lines could not be told apart."""
     def lines(path):
-        return set() if not path.is_file() else {
-            line.strip() for line in path.read_text(encoding="utf-8", errors="replace").splitlines()
-            if LOAD_FAILURE.search(line)}
+        return {line.strip() for line in path.read_text(encoding="utf-8", errors="replace").splitlines()
+                if LOAD_FAILURE.search(line)}
 
-    return len(lines(log) - lines(clean_log))
+    return len(lines(log) - lines(clean_log)) if clean_log.is_file() and log.is_file() else None
 
 
 def _render_mutant(work: Path, patch: Path) -> tuple[dict, list[str], Path]:
@@ -546,7 +548,9 @@ def rehearsal_passed(kind: str, rows: list[dict]) -> bool:
         row = rows[0]
         return ("sam" in (row.get("arms") or {}) and not row.get("samPreflight") and not row.get("samArmFailed")
                 and row.get("outcome") != "crash")
-    by_id = {r["id"]: r for r in rows}
+    by_id = {r.get("id"): r for r in rows}
+    if set(by_id) != set(DRY_STAND_INS):
+        return False
     plays = by_id["rehearsal:plays-differently"]
     loads = by_id["rehearsal:runs-with-a-load-failure"]
     return (plays.get("category") == "visible" and plays.get("outcome") != "crash"
@@ -590,9 +594,10 @@ def _tally(rows: list[dict]) -> dict:
     cheap = sum(r.get("outcome") == "caught-cheap" for r in bad)
     survived = sum(r.get("outcome") == "survived" for r in bad)
     decided = caught + survived
+    scored = decided and not any(r.get("rehearsal") for r in rows)  # a rehearsal has no score, anywhere
     return {"cases": len(rows), **counts, "badCaught": caught, "badSurvived": survived,
-            "score": round(caught / decided, 4) if decided else None,
-            "cheapTierScore": round(cheap / decided, 4) if decided else None,
+            "score": round(caught / decided, 4) if scored else None,
+            "cheapTierScore": round(cheap / decided, 4) if scored else None,
             "samImages": sum(int(r.get("samImages") or 0) for r in rows),
             "samImagesTiered": sum(_sam_arm_images(r) for r in rows if not r.get("agreement")),
             "samImagesFullRun": sum(_sam_arm_images(r) for r in rows)}
@@ -611,18 +616,28 @@ def _by_check(rows: list[dict]) -> dict:
     return dict(sorted(counts.items()))
 
 
-def _sampling_view(manifest: dict, by_class: dict) -> dict:
+def _sampling_view(manifest: dict, by_class: dict, rows: list[dict]) -> dict:
     """How the sample stands to the game, so the score can be read. With counts set per class, the
-    pooled score depends on those counts, so a score weighted by each class's real size goes beside it."""
+    pooled score depends on those counts, so a weighted score goes beside it. A class weighs what it
+    is estimated to hold of mutants that show: its size times the share of its sample that was not
+    dropped as equivalent. Its plain size would count mutants nobody could ever catch."""
     enumerated, drawn = manifest.get("enumeratedByClass") or {}, manifest.get("sampledByClass") or {}
-    scored = {c: t["score"] for c, t in by_class.items() if t.get("score") is not None}
-    weight = sum(enumerated.get(c, 0) for c in scored)
+    dropped = {c: sum(r.get("outcome") == "equivalent" and r.get("class") == c for r in rows) for c in enumerated}
+    classes, weights = {}, {}
+    for cls, size in enumerated.items():
+        sampled = drawn.get(cls, 0)
+        visible = sampled - dropped[cls]
+        weights[cls] = size * visible / sampled if sampled else 0.0
+        classes[cls] = {"enumerated": size, "sampled": sampled, "equivalent": dropped[cls],
+                        "score": (by_class.get(cls) or {}).get("score"), "estimatedVisible": round(weights[cls], 1)}
+    scored = {c: v["score"] for c, v in classes.items() if v["score"] is not None and weights[c] > 0}
+    weight, total = sum(weights[c] for c in scored), sum(weights.values())
     return {"method": (manifest.get("sampling") or {}).get("method"), "shortByClass": manifest.get("shortByClass") or {},
-            "shortOfSample": manifest.get("shortOfSample") or 0,
-            "classes": {c: {"enumerated": n, "sampled": drawn.get(c, 0), "score": scored.get(c)}
-                        for c, n in enumerated.items()},
-            "weightedScore": round(sum(enumerated.get(c, 0) * s for c, s in scored.items()) / weight, 4) if weight else None,
-            "classesWithNoScore": sorted(c for c, n in enumerated.items() if n and c not in scored)}
+            "shortOfSample": manifest.get("shortOfSample") or 0, "classes": classes,
+            "weightedScore": round(sum(weights[c] * s for c, s in scored.items()) / weight, 4) if weight else None,
+            "weightedCovers": round(weight / total, 4) if total else None,
+            "classesWithNoScore": sorted(c for c, v in classes.items() if v["sampled"] and c not in scored),
+            "classesNotInManifest": sorted({r["class"] for r in rows if r.get("class") and r["class"] not in enumerated})}
 
 
 def summarize(out: Path) -> dict:
@@ -668,13 +683,14 @@ def summarize(out: Path) -> dict:
                       "fullRun": tiered + agreement_only, "fullRunCases": len(with_sam), "ofCases": len(finals)},
         "rows": rows,
     }
+    doc["samplingUnknown"] = any(r.get("kind") == "mutant" for r in rows) and not doc["rehearsal"] and not MANIFEST.is_file()
     if MANIFEST.is_file() and any(r.get("kind") == "mutant" for r in rows) and not doc["rehearsal"]:
         manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
-        sampled = [m["id"] for m in manifest["mutants"]]
+        sampled = [m["id"] for m in manifest.get("mutants") or []]
         doc["reconciliation"] = {"sampled": len(sampled), "judged": len(finals),
                                  "equivalent": len(doc["equivalentDropped"]),
                                  "missing": sorted(set(sampled) - {r.get("id") for r in rows})}
-        doc["sampling"] = _sampling_view(manifest, doc["byClass"])
+        doc["sampling"] = _sampling_view(manifest, doc["byClass"], rows)
     (Path(out) / "mutation-summary.json").write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
     return doc
 
@@ -692,14 +708,24 @@ def markdown(doc: dict) -> str:
                   f"counts as a catch. Registration `{doc['preregistrationSha256']}`.", ""]
         if view and view["method"] == "stratified":
             weighted = "not yet" if view["weightedScore"] is None else f"{view['weightedScore']:.1%}"
+            covers = "no" if view["weightedCovers"] is None else f"{view['weightedCovers']:.0%} of the"
             no_score = ", ".join(view["classesWithNoScore"]) or "none"
-            lines += [f"Mutation score, weighted by each class's real size: **{weighted}** (classes with no score: "
-                      f"{no_score}).", "",
+            lines += [f"Mutation score, weighted by each class's estimated visible mutants: **{weighted}**, covering "
+                      f"{covers} estimated visible mutants (classes with no score: {no_score}).", "",
                       f"Over the sample as drawn: {score} ({doc['badCaught']} of {decided} decided bad cases caught). The "
                       "sample's class counts were set by hand, so this figure depends on them and is not a score "
                       "for the whole game.", ""]
+        elif doc.get("samplingUnknown") or (view and view["method"] != "uniform"):
+            lines += [f"Over the sample: {score} ({doc['badCaught']} of {decided} decided bad cases caught). **Nothing here "
+                      "says how this sample stands to the game, so this is not a score for the whole game.**", ""]
         else:
             lines += [f"Mutation score: **{score}** ({doc['badCaught']} of {decided} decided bad cases caught).", ""]
+        outside = doc["undecided"] + doc["crash"] + doc["error"] + doc["awaiting-sam"]
+        if outside:
+            lines += [f"Outside the score: {outside} of {doc['cases']} cases ({doc['undecided']} undecided, {doc['crash']} "
+                      f"crashed, {doc['error']} errors, {doc['awaiting-sam']} waiting for SAM).", ""]
+        if view and view["classesNotInManifest"]:
+            lines += [f"Classes the manifest does not know: {', '.join(view['classesNotInManifest'])}.", ""]
         lines += [f"Good cases accepted: {doc['goodAccepted']}.", ""]
     lines += ["| Outcome | Cases |", "| --- | --- |"]
     lines += [f"| {o} | {doc[o]} |" for o in OUTCOMES]
@@ -712,9 +738,10 @@ def markdown(doc: dict) -> str:
     if view:
         lines += ["## How the sample stands to the game", "", f"Method: {view['method']}. Short of the plan by "
                   f"{view['shortOfSample']}" + (f" ({view['shortByClass']})." if view["shortByClass"] else "."), "",
-                  "| Class | Mutants in the game | Sampled | Score |", "| --- | --- | --- | --- |"]
-        lines += [f"| {c} | {v['enumerated']} | {v['sampled']} | {'-' if v['score'] is None else format(v['score'], '.1%')} |"
-                  for c, v in view["classes"].items()] + [""]
+                  "| Class | Mutants in the game | Sampled | Equivalent | Estimated visible | Score |",
+                  "| --- | --- | --- | --- | --- | --- |"]
+        lines += [f"| {c} | {v['enumerated']} | {v['sampled']} | {v['equivalent']} | {v['estimatedVisible']} | "
+                  f"{'-' if v['score'] is None else format(v['score'], '.1%')} |" for c, v in view["classes"].items()] + [""]
     for title, key in (("Per operator", "byOperator"), ("Per class", "byClass"), ("Per case", "byCase")):
         if doc[key]:
             lines += [f"## {title}", "",

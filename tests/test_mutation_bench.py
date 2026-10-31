@@ -19,7 +19,7 @@ import agents.mutation_bench as mb
 from agents import mutate_game
 from agents.judge_bench import cases as judge_cases
 from agents.sam_observations import MetaSamClient, SamError
-from harness.run import REPO, apply_patches
+from harness.run import REPO, apply_patches, tree_digest
 
 GOOD_CLEAN = {"clean": {"source": "harness"}}
 ROWS = [{"tick": t, "frame": t, "player": [90.0 + 2 * t, 452.0], "onFloor": True, "facing": 1,
@@ -354,10 +354,32 @@ class OutcomeTest(Base):
         with self.verify_says(self.REJECTED, boom, boom):
             self.assertEqual(mb.main(["--dry-run", "sam", "--out", str(self.out)]), 1)
 
-    def test_the_rehearsal_pair_is_not_one_of_the_48(self):
-        self.assertNotIn(mb.OPERATORS_DIR, mb.DRY_RUN[1].parents)
-        self.assertTrue(mb.DRY_RUN[1].is_file())
-        self.assertIn("freeze-player", judge_cases()["bad/fall-through-freeze"]["fixture"])
+    def game_tree(self, *patches):
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp) / "game"
+            shutil.copytree(mb.GAME, work, ignore=shutil.ignore_patterns(".godot"))
+            apply_patches(work, list(patches))
+            return tree_digest(work)
+
+    def test_the_rehearsal_pair_is_not_the_same_game_as_any_of_the_48(self):
+        """By the game, not by the file: two patches can make one game."""
+        case, fixture = mb.DRY_RUN
+        rehearsed = self.game_tree(mb.dev_variants()[case], fixture)
+        for pair_case, operator in mb.pairs():
+            bug = mb.dev_variants()[pair_case]
+            candidate = mb.build_candidate(bug, mb.operator_path(operator), self.out / "c.patch")
+            with self.subTest(case=pair_case, operator=operator):
+                self.assertNotEqual(rehearsed, self.game_tree(bug, candidate))
+
+    def test_the_old_freeze_stand_in_really_was_one_of_the_48(self):
+        """Why the check above compares games: this is the mistake it exists to catch."""
+        bug = mb.dev_variants()[mb.DRY_RUN[0]]
+        candidate = mb.build_candidate(bug, mb.operator_path("freeze"), self.out / "c.patch")
+        self.assertEqual(self.game_tree(bug, mb.REPO / "agents" / "fixtures" / "freeze-player.patch"),
+                         self.game_tree(bug, candidate))
+
+    def test_the_rehearsal_pair_is_public_in_the_judge_benchmark(self):
+        self.assertEqual(judge_cases()["bad/fall-through-comment-only"]["fixture"], mb.DRY_RUN[1].stem)
 
     def test_the_stand_ins_are_outside_the_population(self):
         every = {m["file"] for m in mutate_game.enumerate_mutants(STEPS)}
@@ -434,6 +456,9 @@ class RehearsalPassedTest(unittest.TestCase):
             with self.subTest(outcome=outcome):
                 self.assertEqual(mb.rehearsal_passed("pair", [{"outcome": outcome}]), passed)
 
+    def test_a_stand_in_nobody_expects_fails_safely(self):
+        self.assertFalse(mb.rehearsal_passed("mutants", [dict(self.GOOD[0], id="other"), *self.GOOD[1:]]))
+
     def test_a_rehearsal_with_no_rows_or_too_many_fails(self):
         self.assertFalse(mb.rehearsal_passed("pair", []))
         self.assertFalse(mb.rehearsal_passed("sam", [{"outcome": "caught-cheap"}] * 2))
@@ -451,8 +476,16 @@ class LoadFailureTest(Base):
                        "ERROR: Failed loading resource: res://a.missing.", "fine")
         self.assertEqual(mb.load_failures(clean, log), 2)
 
-    def test_a_missing_log_is_none(self):
-        self.assertEqual(mb.load_failures(self.out / "a", self.out / "b"), 0)
+    def test_a_missing_log_is_unknown_not_zero(self):
+        log = self.log("m.log", "ERROR: Failed to load script x")
+        self.assertIsNone(mb.load_failures(self.out / "gone", log))
+        self.assertIsNone(mb.load_failures(log, self.out / "gone"))
+
+    def test_bytes_that_are_not_text_do_not_stop_it(self):
+        clean = self.log("clean.log", "fine")
+        log = self.out / "m.log"
+        log.write_bytes(b"\xff\xfe ERROR: Failed to load script x\n")
+        self.assertEqual(mb.load_failures(clean, log), 1)
 
     def test_a_game_that_runs_with_a_load_failure_is_judged_and_never_a_crash(self):
         """A missing texture is the bug a resource-path mutant makes: it must reach the checks."""
@@ -777,9 +810,13 @@ class SummaryTest(Base):
     def test_a_rehearsal_summary_says_so_and_has_no_score(self):
         self.write("a", case="c", operator="rehearsal", outcome="caught-cheap", rehearsal=True,
                    preregistrationSha256=None)
-        text = mb.markdown(mb.summarize(self.out))
+        doc = mb.summarize(self.out)
+        text = mb.markdown(doc)
         self.assertIn("never a result", text)
         self.assertNotIn("Mutation score", text)
+        self.assertIsNone(doc["score"])
+        self.assertIsNone(doc["byOperator"]["rehearsal"]["score"])
+        self.assertIn("| rehearsal | - |", text)
 
     def stratified(self):
         """Numeric, the biggest class by far, all survive; every small class is caught."""
@@ -802,18 +839,67 @@ class SummaryTest(Base):
         self.assertAlmostEqual(doc["score"], 19 / 29, places=3)  # what the allocation happens to give
         view = doc["sampling"]
         self.assertEqual(view["weightedScore"], round(125 / 2767, 4))
-        self.assertEqual(view["classes"]["numeric"], {"enumerated": 2642, "sampled": 10, "score": 0.0})
+        self.assertEqual(view["classes"]["numeric"], {"enumerated": 2642, "sampled": 10, "equivalent": 0, "score": 0.0,
+                                                      "estimatedVisible": 2642.0})
+        self.assertEqual(view["weightedCovers"], round(2767 / 2768, 4))
         self.assertEqual(view["classesWithNoScore"], ["boolean"])
         self.assertEqual(view["shortByClass"], {"boolean": 2})
 
     def test_the_report_leads_with_the_weighted_score_and_says_why(self):
         text = mb.markdown(self.stratified())
-        self.assertIn("weighted by each class's real size: **4.5%**", text)
+        self.assertIn("estimated visible mutants: **4.5%**", text)
         self.assertIn("not a score for the whole game", text)
-        self.assertIn("| numeric | 2642 | 10 | 0.0% |", text)
+        self.assertIn("| numeric | 2642 | 10 | 0 | 2642.0 | 0.0% |", text)
         self.assertIn("classes with no score: boolean", text)
         self.assertIn("Short of the plan by 2", text)
         self.assertNotIn("Mutation score: **", text)
+
+    def view_of(self, enumerated, sampled, method="stratified"):
+        manifest = self.out / "manifest.json"
+        manifest.write_text(json.dumps({"sampling": {"method": method}, "enumeratedByClass": enumerated,
+                                        "sampledByClass": sampled, "mutants": []}))
+        with mock.patch.object(mb, "MANIFEST", manifest):
+            return mb.summarize(self.out)
+
+    def test_a_class_mostly_equivalent_weighs_what_it_can_show_not_its_size(self):
+        """1,000 numeric, 90% equivalent, the rest caught; 100 code, all survive. The estimate is 50%."""
+        for i in range(9):
+            self.write(f"e{i}", kind="mutant", id=f"e{i}", outcome="equivalent", dropReason="x", **{"class": "numeric"})
+        self.write("n", kind="mutant", id="n", outcome="caught-cheap", **{"class": "numeric"})
+        for i in range(10):
+            self.write(f"c{i}", kind="mutant", id=f"c{i}", outcome="survived", **{"class": "code"})
+        view = self.view_of({"numeric": 1000, "code": 100}, {"numeric": 10, "code": 10})["sampling"]
+        self.assertEqual(view["weightedScore"], 0.5)
+        self.assertEqual(view["classes"]["numeric"]["estimatedVisible"], 100.0)
+
+    def test_a_class_with_no_score_is_not_hidden_behind_the_rest(self):
+        self.write("a", kind="mutant", id="a", outcome="caught-cheap", **{"class": "code"})
+        self.write("b", kind="mutant", id="b", outcome="undecided", **{"class": "numeric"})
+        doc = self.view_of({"numeric": 2642, "code": 20}, {"numeric": 1, "code": 1})
+        self.assertEqual(doc["sampling"]["weightedCovers"], round(20 / 2662, 4))
+        self.assertIn("covering 1% of the estimated visible mutants", mb.markdown(doc))
+
+    def test_cases_outside_the_score_are_counted_beside_it(self):
+        self.write("a", kind="mutant", id="a", outcome="caught-cheap", **{"class": "code"})
+        self.write("b", kind="mutant", id="b", outcome="awaiting-sam", **{"class": "code"})
+        self.assertIn("Outside the score: 1 of 2 cases", mb.markdown(mb.summarize(self.out)))
+
+    def test_a_manifest_that_does_not_know_a_class_says_so(self):
+        self.write("a", kind="mutant", id="a", outcome="caught-cheap", **{"class": "new"})
+        doc = self.view_of({"code": 20}, {"code": 1})
+        self.assertIn("Classes the manifest does not know: new", mb.markdown(doc))
+
+    def test_with_no_manifest_the_report_will_not_call_it_a_score_for_the_game(self):
+        self.write("a", kind="mutant", id="a", outcome="caught-cheap", **{"class": "code"})
+        with mock.patch.object(mb, "MANIFEST", self.out / "gone.json"):
+            text = mb.markdown(mb.summarize(self.out))
+        self.assertIn("not a score for the whole game", text)
+        self.assertNotIn("Mutation score: **", text)
+
+    def test_a_manifest_with_no_method_is_treated_the_same(self):
+        self.write("a", kind="mutant", id="a", outcome="caught-cheap", **{"class": "code"})
+        text = mb.markdown(self.view_of({"code": 20}, {"code": 1}, method=None))
+        self.assertIn("not a score for the whole game", text)
 
     def test_a_uniform_sample_keeps_the_plain_score_and_its_table(self):
         self.write("a", kind="mutant", id="m1", outcome="caught-cheap", **{"class": "code"})
