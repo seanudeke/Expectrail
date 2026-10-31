@@ -135,6 +135,13 @@ What it showed:
 - **It judged one correct fix.** Glimmer's rate on fixes that only look right is still unmeasured
   (#129, item 4).
 
+**Third drill, October 31: the pre-run check** ([run 41234190741](https://github.com/seanudeke/Expectrail/actions/runs/41234190741),
+`sam-unavailable`, one live overnight run on the pull request that added the check). The run stopped
+0.1 s in, before triage. Wonder and Muse Code never started, 0 SAM images were used, nothing was
+signed, and the morning report gave the reason. A normal run beside it
+([41234197674](https://github.com/seanudeke/Expectrail/actions/runs/41234197674)) was accepted and
+used 158 SAM images: the usual 157 plus the check's one.
+
 ## What the judge ladder must never do
 
 - **Re-judge a rejection.** A rejection is final at every step. The ladder climbs only when the

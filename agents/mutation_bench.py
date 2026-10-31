@@ -33,7 +33,12 @@ Nothing is judged until bench/mutation/preregistration.json is complete, and eve
     python3 -m agents.mutation_bench --mutant "<id>" --tier sam --out runs/generated [--force-sam]
     python3 -m agents.mutation_bench --plan-sam runs/generated
     python3 -m agents.mutation_bench --summarize runs/mutation
-    python3 -m agents.mutation_bench --dry-run --out runs/dry    # the plumbing: no pre-registration, no SAM, no result
+
+Rehearsals need no pre-registration, run on any branch, and are never a result:
+
+    python3 -m agents.mutation_bench --dry-run --out runs/dry           # one known pair, no SAM
+    python3 -m agents.mutation_bench --dry-run sam --out runs/dry       # the same pair through forced SAM (spends SAM)
+    python3 -m agents.mutation_bench --dry-run mutants --out runs/dry   # three stand-ins, cheap phase, no SAM
 
 To report both phases of Part 2 together, download each run's artifacts into its own folder under one
 parent and summarize the parent: a mutant judged in both phases counts once, as its SAM phase.
@@ -44,6 +49,7 @@ import argparse
 import json
 import os
 import random
+import re
 import shutil
 import subprocess
 import sys
@@ -74,7 +80,26 @@ OPERATORS = ("hide", "sink", "freeze", "scale-to-zero", "behind-scenery", "comme
 OUTCOMES = ("caught-cheap", "caught-sam", "survived", "undecided", "crash", "error", "awaiting-sam")
 CAUGHT = ("caught-cheap", "caught-sam")
 GROUND_SPEC = "player-stays-above-ground"
-DRY_RUN = ("dev/physics-fall-through/v1", "freeze")
+# Rehearsals run the real paths before anything is registered, on cases the study can never draw, so
+# that nothing in the population is judged early. The pair is the judge benchmark's comment-only
+# fixture on an unfixed bug (public in bench/judge): the robot still falls. Every one of the 48 starts
+# from the correct undo, so this game can never be one of them, which a test holds by comparing the
+# game trees. The stand-ins edit files the generator never touches.
+DRY_RUN = ("dev/physics-fall-through/v1", REPO / "agents" / "fixtures" / "fix-comment-only.patch")
+DRY_PREREG = {"sha256": None, "oracle": {"traceThresholdPx": 0, "frameThreshold": 0}}
+# id: (file, the line as it stands, what it becomes)
+DRY_STAND_INS = {
+    "rehearsal:plays-differently": ("project.godot", "2d/default_gravity=2100", "2d/default_gravity=1400"),
+    "rehearsal:runs-with-a-load-failure": (
+        "level/tileset.tres", '[ext_resource type="Texture2D" uid="uid://8bv0mysvxgle" path="res://level/tiles.webp" id="1"]',
+        '[ext_resource type="Texture2D" path="res://level/tiles.webp.missing" id="1"]'),
+    "rehearsal:cannot-start": ("project.godot", 'run/main_scene="res://game_singleplayer.tscn"',
+                               'run/main_scene="res://game_singleplayer.tscn.missing"'),
+}
+# A failed load in Godot's log. A game that still runs is judged as usual: a missing texture is the
+# very bug a resource-path mutant makes. These lines are recorded, and only a game that does not run,
+# or never loads a player, is a crash.
+LOAD_FAILURE = re.compile(r"Failed loading resource|Cannot open file|Failed to load|File not found")
 
 # Spec that would catch the operator when public checks miss it (finding publish target).
 CATCH_SPECS = {
@@ -112,6 +137,19 @@ def catch_spec_for(operator: str) -> dict:
 
 def pairs() -> list[tuple[str, str]]:
     return [(case, op) for case in sorted(dev_variants()) for op in OPERATORS]
+
+
+def excluded_pairs(prereg: dict) -> set[tuple[str, str]]:
+    return {(p["case"], p["operator"]) for p in (prereg.get("excludedBeforeDraw") or {}).get("pairs") or []}
+
+
+def study_pairs(prereg: dict) -> list[tuple[str, str]]:
+    """The pairs the study judges: every pair but those excluded before registration."""
+    excluded = excluded_pairs(prereg)
+    unknown = sorted(excluded - set(pairs()))
+    if unknown:
+        raise mutate_game.PreregistrationError(f"excludedBeforeDraw names pairs that do not exist: {unknown}")
+    return [p for p in pairs() if p not in excluded]
 
 
 def _diff_trees(before: Path, after: Path, rels: list[str]) -> str:
@@ -341,6 +379,8 @@ def run_case(case: str, operator: str, out: Path, *, prereg: dict | None = None,
     if operator not in OPERATORS:
         raise SystemExit(f"{operator}: unknown operator (want {', '.join(OPERATORS)})")
     prereg = prereg or mutate_game.load_preregistration()
+    if (case, operator) in excluded_pairs(prereg):
+        raise SystemExit(f"{case} {operator} was excluded before registration, so the study never judges it")
     work = out / f"{case.replace('/', '_')}+{operator}"
     work.mkdir(parents=True, exist_ok=True)
     t0, images = time.perf_counter(), sam_usage()
@@ -404,6 +444,7 @@ def run_mutant(mutant_id: str, tier: str, out: Path, *, prereg: dict | None = No
     t0, images = time.perf_counter(), sam_usage()
     row: dict = {"format": FORMAT, "kind": "mutant", "id": mutant_id, "class": mutant["class"], "file": mutant["file"],
                  "label": "bad", "tier": tier, "preregistrationSha256": prereg["sha256"],
+                 "rehearsal": prereg["sha256"] is None,
                  "commit": os.environ.get("GITHUB_SHA")}
     try:
         patch = work / "mutant.patch"
@@ -412,7 +453,8 @@ def run_mutant(mutant_id: str, tier: str, out: Path, *, prereg: dict | None = No
         empty.write_text("", encoding="utf-8")
         request = _request(f"rr-mutant-{_safe(mutant_id)}"[:80], load(REGRESSION_SPEC, "test-spec"), str(patch.resolve()))
         clean_trace, clean_frames = _render_replay(SMOKE_ROUTE, work / "clean", [])
-        trace, frames = _render_mutant(work, patch)
+        trace, frames, replay = _render_mutant(work, patch)
+        row["loadFailures"] = load_failures(work / "clean" / "godot.log", replay / "godot.log")
         if not any(r.get("player") for r in trace.get("rows") or []):
             raise CaseCrashed("the game ran but its scene never loaded a player")
         row["oracle"] = mutate_game.oracle(clean_trace, clean_frames, trace, frames, prereg["oracle"])
@@ -430,7 +472,7 @@ def run_mutant(mutant_id: str, tier: str, out: Path, *, prereg: dict | None = No
                             extra_catch=row["engineRecordCaught"])
             else:
                 _cheap_phase(cheap, row)
-        if row.get("outcome") == "survived":
+        if row.get("outcome") == "survived" and not row["rehearsal"]:
             _write_finding(work, row, None)
     except (Exception, SystemExit) as exc:  # noqa: BLE001
         _record_failure(row, work, exc)
@@ -438,11 +480,21 @@ def run_mutant(mutant_id: str, tier: str, out: Path, *, prereg: dict | None = No
     return row
 
 
-def _render_mutant(work: Path, patch: Path) -> tuple[dict, list[str]]:
+def load_failures(clean_log: Path, log: Path) -> int | None:
+    """How many load-failure lines this replay's log has that the clean game's does not; None when
+    either log is missing, since the clean game's own lines could not be told apart."""
+    def lines(path):
+        return {line.strip() for line in path.read_text(encoding="utf-8", errors="replace").splitlines()
+                if LOAD_FAILURE.search(line)}
+
+    return len(lines(log) - lines(clean_log)) if clean_log.is_file() and log.is_file() else None
+
+
+def _render_mutant(work: Path, patch: Path) -> tuple[dict, list[str], Path]:
     """The mutant's replay. Failing twice is the mutant's own crash; once is a flake, and is recorded."""
     for name in ("mutant", "mutant-retry"):
         try:
-            return _render_replay(SMOKE_ROUTE, work / name, [patch])
+            return (*_render_replay(SMOKE_ROUTE, work / name, [patch]), work / name)
         except (SystemExit, subprocess.CalledProcessError) as exc:
             if not _replay_failed(exc):
                 raise
@@ -463,10 +515,71 @@ def _cheap_phase(cheap: dict, row: dict) -> None:
         row["undecidedWhy"] = "the cheap tier could not decide"
 
 
+def dry_mutants() -> list[dict]:
+    """The stand-ins, as mutants. Each edits a file the generator never touches."""
+    found = []
+    for mutant_id, (rel, before, after) in DRY_STAND_INS.items():
+        lines = (GAME / rel).read_text(encoding="utf-8").splitlines()
+        found.append({"id": mutant_id, "class": "rehearsal", "file": rel, "line": lines.index(before) + 1,
+                      "before": before, "after": after})
+    return found
+
+
+def _rehearse_pair(out: Path, *, force_sam: bool, cheap_only: bool) -> dict:
+    case, fixture = DRY_RUN
+    work = out / "rehearsal-pair"
+    work.mkdir(parents=True, exist_ok=True)
+    t0, images = time.perf_counter(), sam_usage()
+    row: dict = {"format": FORMAT, "kind": "rehearsal", "rehearsal": True, "case": case, "operator": "rehearsal",
+                 "label": "bad", "preregistrationSha256": None, "commit": os.environ.get("GITHUB_SHA")}
+    try:
+        request = _request("rr-mutation-rehearsal", case_spec(case), str(dev_variants()[case].relative_to(REPO)))
+        judge_tiers(request, fixture, work, row, force_sam=force_sam, cheap_only=cheap_only)
+    except (Exception, SystemExit) as exc:  # noqa: BLE001
+        _record_failure(row, work, exc)
+    return _finish(row, work, t0, images)
+
+
+def rehearse(kind: str, out: Path) -> list[dict]:
+    """A rehearsal of one path, real Godot and all, on cases the study cannot draw. Its rows name no
+    registration and say they are rehearsals, so a summary can never mix them with a judged run."""
+    _public_only()
+    if kind == "pair":
+        return [_rehearse_pair(out, force_sam=False, cheap_only=True)]
+    if kind == "sam":
+        return [_rehearse_pair(out, force_sam=True, cheap_only=False)]
+    mutants = dry_mutants()
+    return [run_mutant(m["id"], "cheap", out, prereg=DRY_PREREG, manifest={"mutants": mutants}) for m in mutants]
+
+
+def rehearsal_passed(kind: str, rows: list[dict]) -> bool:
+    """Whether the path really ran. A rehearsal that never reached what it rehearses has failed,
+    whatever its outcome: a cheap catch says nothing about the SAM arm."""
+    if len(rows) != (3 if kind == "mutants" else 1) or any(r.get("outcome") == "error" for r in rows):
+        return False
+    if kind == "pair":
+        return rows[0].get("outcome") in ("caught-cheap", "awaiting-sam")
+    if kind == "sam":
+        row = rows[0]
+        return ("sam" in (row.get("arms") or {}) and not row.get("samPreflight") and not row.get("samArmFailed")
+                and row.get("outcome") != "crash")
+    by_id = {r.get("id"): r for r in rows}
+    if set(by_id) != set(DRY_STAND_INS):
+        return False
+    plays = by_id["rehearsal:plays-differently"]
+    loads = by_id["rehearsal:runs-with-a-load-failure"]
+    return (plays.get("category") == "visible" and plays.get("outcome") != "crash"
+            and loads.get("category") == "visible" and int(loads.get("loadFailures") or 0) > 0
+            and by_id["rehearsal:cannot-start"].get("outcome") == "crash")
+
+
 def plan_sam(root: Path, prereg: dict) -> dict:
     """Which mutants the SAM phase looks at, from the cheap phase's results: every one the cheap tier
     passed, and the pre-registered seeded sample of its rejections for the agreement table."""
     rows = _rows(root)
+    foreign = sum(r.get("preregistrationSha256") != prereg["sha256"] for r in rows)
+    if foreign:
+        raise SystemExit(f"{root}: {foreign} results are not from this registration")
     waiting = sorted(r["id"] for r in rows if r.get("outcome") == "awaiting-sam")
     caught = sorted(r["id"] for r in rows if r.get("outcome") == "caught-cheap")
     size = min(int(prereg["agreement"]["minimum"]), len(caught))
@@ -496,9 +609,10 @@ def _tally(rows: list[dict]) -> dict:
     cheap = sum(r.get("outcome") == "caught-cheap" for r in bad)
     survived = sum(r.get("outcome") == "survived" for r in bad)
     decided = caught + survived
+    scored = decided and not any(r.get("rehearsal") for r in rows)  # a rehearsal has no score, anywhere
     return {"cases": len(rows), **counts, "badCaught": caught, "badSurvived": survived,
-            "score": round(caught / decided, 4) if decided else None,
-            "cheapTierScore": round(cheap / decided, 4) if decided else None,
+            "score": round(caught / decided, 4) if scored else None,
+            "cheapTierScore": round(cheap / decided, 4) if scored else None,
             "samImages": sum(int(r.get("samImages") or 0) for r in rows),
             "samImagesTiered": sum(_sam_arm_images(r) for r in rows if not r.get("agreement")),
             "samImagesFullRun": sum(_sam_arm_images(r) for r in rows)}
@@ -515,6 +629,34 @@ def _by_check(rows: list[dict]) -> dict:
         for name in names:
             counts[name] = counts.get(name, 0) + 1
     return dict(sorted(counts.items()))
+
+
+def _sampling_view(manifest: dict, by_class: dict, rows: list[dict]) -> dict:
+    """How the sample stands to the game, so the score can be read. With counts set per class, the
+    pooled score depends on those counts, so a weighted score goes beside it. A class's score is over
+    its decided cases, so it weighs what it is estimated to hold of those: its size times the share of
+    its sample that was decided. Its plain size would count mutants nobody could ever catch."""
+    enumerated, drawn = manifest.get("enumeratedByClass") or {}, manifest.get("sampledByClass") or {}
+    dropped = {c: sum(r.get("outcome") == "equivalent" and r.get("class") == c for r in rows) for c in enumerated}
+    classes, weights, visible = {}, {}, {}
+    for cls, size in enumerated.items():
+        sampled, tally = drawn.get(cls, 0), by_class.get(cls) or {}
+        decided = tally.get("badCaught", 0) + tally.get("badSurvived", 0)
+        weights[cls] = size * decided / sampled if sampled else 0.0
+        visible[cls] = size * max(sampled - dropped[cls], 0) / sampled if sampled else 0.0
+        classes[cls] = {"enumerated": size, "sampled": sampled, "equivalent": dropped[cls], "decided": decided,
+                        "score": tally.get("score"), "estimatedVisible": round(visible[cls], 1),
+                        "estimatedDecided": round(weights[cls], 1)}
+    scored = {c: v["score"] for c, v in classes.items() if v["score"] is not None and weights[c] > 0}
+    weight, total = sum(weights[c] for c in scored), sum(visible.values())
+    return {"method": (manifest.get("sampling") or {}).get("method"), "shortByClass": manifest.get("shortByClass") or {},
+            "shortOfSample": manifest.get("shortOfSample") or 0, "classes": classes,
+            "weightedScore": round(sum(weights[c] * s for c, s in scored.items()) / weight, 4) if weight else None,
+            "weightedCovers": round(weight / total, 4) if total else None,
+            "classesWithNoScore": sorted(c for c, v in classes.items() if v["sampled"] and c not in scored),
+            # Unsampled, so nothing estimates them: the coverage above says nothing about these.
+            "classesNotSampled": sorted(c for c, v in classes.items() if v["enumerated"] and not v["sampled"]),
+            "classesNotInManifest": sorted({r["class"] for r in rows if r.get("class") and r["class"] not in enumerated})}
 
 
 def summarize(out: Path) -> dict:
@@ -538,14 +680,15 @@ def summarize(out: Path) -> dict:
     doc = {
         "format": FORMAT + "-summary",
         "preregistrationSha256": next(iter(registrations), None),
+        "rehearsal": any(r.get("rehearsal") for r in rows),
         **_tally(finals),
         "equivalentDropped": [{"id": r["id"], "reason": r.get("dropReason")}
                               for r in rows if r.get("outcome") == "equivalent"],
         "unlabelled": sum(r.get("label") not in ("bad", "good") for r in finals),
         "noopCandidates": sum(bool(r.get("noop")) for r in finals),
         "byOperator": by("operator"), "byCase": by("case"), "byClass": by("class"), "byCheck": _by_check(finals),
-        "visionOnlyWins": [_name(r) for r in bad if r.get("outcome") == "caught-sam"],
-        "blindSpots": [_name(r) for r in bad if r.get("outcome") == "survived"],
+        "visionOnlyWins": [_name(r) for r in bad if r.get("outcome") == "caught-sam" and not r.get("rehearsal")],
+        "blindSpots": [_name(r) for r in bad if r.get("outcome") == "survived" and not r.get("rehearsal")],
         "goodAccepted": sum(r.get("label") == "good" and r.get("outcome") == "survived" for r in finals),
         "falseRejects": [_name(r) for r in finals if r.get("label") == "good" and r.get("outcome") in CAUGHT],
         "agreement": {"checked": len(agreed), "agree": sum(r["agreement"] == "agree" for r in agreed),
@@ -559,37 +702,76 @@ def summarize(out: Path) -> dict:
                       "fullRun": tiered + agreement_only, "fullRunCases": len(with_sam), "ofCases": len(finals)},
         "rows": rows,
     }
-    if MANIFEST.is_file() and any(r.get("kind") == "mutant" for r in rows):
-        sampled = [m["id"] for m in json.loads(MANIFEST.read_text(encoding="utf-8"))["mutants"]]
+    doc["samplingUnknown"] = any(r.get("kind") == "mutant" for r in rows) and not doc["rehearsal"] and not MANIFEST.is_file()
+    if MANIFEST.is_file() and any(r.get("kind") == "mutant" for r in rows) and not doc["rehearsal"]:
+        manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+        sampled = [m["id"] for m in manifest.get("mutants") or []]
         doc["reconciliation"] = {"sampled": len(sampled), "judged": len(finals),
                                  "equivalent": len(doc["equivalentDropped"]),
-                                 "missing": sorted(set(sampled) - {r.get("id") for r in rows})}
+                                 "missing": sorted(set(sampled) - {r.get("id") for r in rows}),
+                                 "notInManifest": sorted({r["id"] for r in rows if r.get("id")} - set(sampled))}
+        doc["sampling"] = _sampling_view(manifest, doc["byClass"], rows)
     (Path(out) / "mutation-summary.json").write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
     return doc
 
 
 def markdown(doc: dict) -> str:
     score = "not yet" if doc["score"] is None else f"{doc['score']:.1%}"
-    lines = ["# Mutation bench", "",
-             "Public checks only. A survivor is a finding, not a CI failure. Only a check that ran and failed "
-             f"counts as a catch. Registration `{doc['preregistrationSha256']}`.", "",
-             f"Mutation score: **{score}** ({doc['badCaught']} of {doc['badCaught'] + doc['badSurvived']} decided "
-             f"bad cases caught). Good cases accepted: {doc['goodAccepted']}.", "",
-             "| Outcome | Cases |", "| --- | --- |"]
+    decided = doc["badCaught"] + doc["badSurvived"]
+    view = doc.get("sampling")
+    lines = ["# Mutation bench", ""]
+    if doc["rehearsal"]:
+        lines += ["**A rehearsal of the plumbing, never a result.** It has no score, and no case in it can be drawn by "
+                  "the study.", ""]
+    else:
+        lines += ["Public checks only. A survivor is a finding, not a CI failure. Only a check that ran and failed "
+                  f"counts as a catch. Registration `{doc['preregistrationSha256']}`.", ""]
+        if view and view["method"] == "stratified":
+            weighted = "not yet" if view["weightedScore"] is None else f"{view['weightedScore']:.1%}"
+            covers = "no" if view["weightedCovers"] is None else f"{view['weightedCovers']:.0%} of the"
+            no_score = ", ".join(view["classesWithNoScore"]) or "none"
+            unsampled = ", ".join(view["classesNotSampled"]) or "none"
+            lines += [f"Mutation score, weighted by each class's estimated decided mutants: **{weighted}**, covering "
+                      f"{covers} estimated visible mutants of the sampled classes (classes with no score: {no_score}; "
+                      f"classes never sampled: {unsampled}).", "",
+                      f"Over the sample as drawn: {score} ({doc['badCaught']} of {decided} decided bad cases caught). The "
+                      "sample's class counts were set by hand, so this figure depends on them and is not a score "
+                      "for the whole game.", ""]
+        elif doc.get("samplingUnknown") or (view and view["method"] != "uniform"):
+            lines += [f"Over the sample: {score} ({doc['badCaught']} of {decided} decided bad cases caught). **Nothing here "
+                      "says how this sample stands to the game, so this is not a score for the whole game.**", ""]
+        else:
+            lines += [f"Mutation score: **{score}** ({doc['badCaught']} of {decided} decided bad cases caught).", ""]
+        outside = doc["undecided"] + doc["crash"] + doc["error"] + doc["awaiting-sam"]
+        if outside:
+            lines += [f"Outside the score: {outside} of {doc['cases']} cases ({doc['undecided']} undecided, {doc['crash']} "
+                      f"crashed, {doc['error']} errors, {doc['awaiting-sam']} waiting for SAM).", ""]
+        if view and view["classesNotInManifest"]:
+            lines += [f"Classes the manifest does not know: {', '.join(view['classesNotInManifest'])}.", ""]
+        lines += [f"Good cases accepted: {doc['goodAccepted']}.", ""]
+    lines += ["| Outcome | Cases |", "| --- | --- |"]
     lines += [f"| {o} | {doc[o]} |" for o in OUTCOMES]
     lines += ["", f"Unlabelled, left out of the score: {doc['unlabelled']}. No-op candidates: {doc['noopCandidates']}. "
               f"Equivalent, dropped with a reason: {len(doc['equivalentDropped'])}.", ""]
     if doc.get("reconciliation"):
         r = doc["reconciliation"]
         lines += [f"Of {r['sampled']} sampled: {r['judged']} judged, {r['equivalent']} equivalent, "
-                  f"{len(r['missing'])} missing.", ""]
+                  f"{len(r['missing'])} missing, {len(r['notInManifest'])} not in the manifest.", ""]
+    if view:
+        lines += ["## How the sample stands to the game", "", f"Method: {view['method']}. Short of the plan by "
+                  f"{view['shortOfSample']}" + (f" ({view['shortByClass']})." if view["shortByClass"] else "."), "",
+                  "| Class | Mutants in the game | Sampled | Equivalent | Decided | Estimated decided | Score |",
+                  "| --- | --- | --- | --- | --- | --- | --- |"]
+        lines += [f"| {c} | {v['enumerated']} | {v['sampled']} | {v['equivalent']} | {v['decided']} | {v['estimatedDecided']} | "
+                  f"{'-' if v['score'] is None else format(v['score'], '.1%')} |" for c, v in view["classes"].items()] + [""]
     for title, key in (("Per operator", "byOperator"), ("Per class", "byClass"), ("Per case", "byCase")):
         if doc[key]:
             lines += [f"## {title}", "",
-                      "| | Caught, cheap | Caught, SAM only | Survived | Undecided | Crash | Error | "
+                      "| | Score | Caught, cheap | Caught, SAM only | Survived | Undecided | Crash | Error | "
                       "SAM images, tiered | SAM images, full run |",
-                      "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
-            lines += [f"| {k} | {t['caught-cheap']} | {t['caught-sam']} | {t['survived']} | {t['undecided']} | "
+                      "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
+            lines += [f"| {k} | {'-' if t['score'] is None else format(t['score'], '.1%')} | {t['caught-cheap']} | "
+                      f"{t['caught-sam']} | {t['survived']} | {t['undecided']} | "
                       f"{t['crash']} | {t['error']} | {t['samImagesTiered']} | {t['samImagesFullRun']} |"
                       for k, t in doc[key].items()]
             lines.append("")
@@ -623,8 +805,9 @@ def main(argv: list[str] | None = None) -> int:
     g.add_argument("--mutant", help="a mutant id from bench/mutation/generated/manifest.json")
     g.add_argument("--plan-sam", type=Path, help="the cheap phase's results: print what the SAM phase must judge")
     g.add_argument("--summarize", type=Path)
-    g.add_argument("--dry-run", action="store_true",
-                   help="one known pair, cheap tier only, to prove the plumbing; needs no pre-registration")
+    g.add_argument("--dry-run", nargs="?", const="pair", choices=("pair", "sam", "mutants"),
+                   help="a rehearsal that is never a result; needs no pre-registration: pair (the default), "
+                        "sam (spends SAM), or mutants")
     p.add_argument("--operator", choices=OPERATORS, help="with --case")
     p.add_argument("--tier", choices=("cheap", "sam"), default="cheap", help="with --mutant")
     p.add_argument("--force-sam", action="store_true", help="also ask SAM about a cheap rejection (agreement table)")
@@ -640,9 +823,12 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(plan_sam(args.plan_sam, mutate_game.load_preregistration()), indent=2))
         return 0
     if args.dry_run:
-        row = run_case(*DRY_RUN, args.out, prereg={"sha256": None, "wrongFix": {"commentOnlyLabel": None}}, cheap_only=True)
-        print(f"::notice title=Mutation dry run::{row['outcome']}; a test of the plumbing, never a result")
-        return 1 if row["outcome"] in ("error", "crash") else 0
+        rows = rehearse(args.dry_run, args.out)
+        for row in rows:
+            print(f"::notice title=Mutation dry run {args.dry_run}::{row.get('id') or row['case']}: {row['outcome']}; "
+                  f"category {row.get('category')}; load failures {row.get('loadFailures')}; agreement "
+                  f"{row.get('agreement')}; SAM images {row['samImages']}; a test of the plumbing, never a result")
+        return 0 if rehearsal_passed(args.dry_run, rows) else 1
     try:
         if args.mutant:
             row = run_mutant(args.mutant, args.tier, args.out, force_sam=args.force_sam)
