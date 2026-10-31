@@ -50,7 +50,7 @@ have as one more gate; it does not replace their CI, their tests or their QA.
 flowchart LR
   person["Person"] -->|"approves each check:<br/>one sentence, drafted by Muse Spark"| specs["Approved checks"]
   subgraph fixer["Fixer sandbox: all the agent can reach"]
-    work["Worktree: the bug report and screenshots;<br/>the evidence only after a rejection"] --> muse["Muse Code"]
+    work["Worktree: the bug report and screenshots;<br/>the evidence after a failed attempt"] --> muse["Muse Code"]
   end
   subgraph verifier["Verifier: out of the agent's reach"]
     heldout["Held-out bugs and routes"] --> harness["Godot harness:<br/>replays every route"]
@@ -72,11 +72,12 @@ flowchart LR
    not a model, decides pass or fail; a missing or uncertain observation is "needs review", never a
    pass.
 3. **Fix.** Muse Code first gets a plain bug report: the failing check's sentence, screenshots of
-   the failing run, the route and its log. Only if the verifier rejects that attempt does the next
-   one get Expectrail's evidence (the spec, the verdict, the first failing frame, and which public
-   checks failed), and never anything about the held-out routes. Muse fixes as well from the report
-   as from the evidence, and the verifier is what stops a fix that only looks right, so the
-   verifier runs on every attempt ([docs/report-first.md](docs/report-first.md)). Muse patches the
+   the failing run, the route and its log. If that attempt fails (the verifier rejects it, or it
+   produces no fix in time), the next one gets Expectrail's evidence (the spec, the verdict, the
+   first failing frame, and which public checks failed), and never anything about the held-out
+   routes. Muse fixes most bugs from the report alone, but on October 31 it timed out on both
+   sinking bugs until it had the evidence. The verifier is what stops a fix that only looks right,
+   so it runs on every attempt ([docs/report-first.md](docs/report-first.md)). Muse patches the
    game in its own worktree. In the live runs it works inside bubblewrap: only that worktree is mounted (its
    project config read-only, an empty home), so the verifier's code, the held-out cases and the
    signing key are not in its filesystem at all. It keeps network access, because it has to reach
@@ -127,7 +128,9 @@ four more reproduce bugs other people reported ([Bugs we did not write](#bugs-we
 | Bad fixes that only look right, accepted by the judge (7 cases, 2 runs) | Expectrail with SAM **0 of 7**; Expectrail without SAM 3 of 7; Muse from screenshots 2 of 7 | [judge](bench/judge/README.md) |
 | Good fixes accepted by the judge (8 cases, 2 runs) | Expectrail 8 of 8 both runs; Muse from screenshots 6 and 7 of 8 | [judge](bench/judge/README.md) |
 | Development bugs fixed by Muse Code | 8 of 8 with Expectrail's evidence; 8 of 8 from screenshots alone | [fix matrix](bench/fix-matrix/README.md) |
+| Development bugs fixed by Muse Code, October 31, all three briefings | Evidence first **8 of 8**; report first, evidence after a failed attempt 7 of 8; report only 6 of 8. Every miss was a sinking bug where the report-only attempts timed out | [41223754703](https://github.com/seanudeke/Expectrail/actions/runs/41223754703) |
 | Demo path, live, end to end, 10 independent runs | **10 of 10 accepted**, each on the first attempt; 12 to 22 minutes a run (median 14.5) and 1,164 SAM images ($2.91) a run; Muse Code's share is not reported per run | [40990485265](https://github.com/seanudeke/Expectrail/actions/runs/40990485265) |
+| Demo path, live, after the report-first change (Muse gets the plain report first), 3 runs | **3 of 3 accepted**, each on the first attempt from the report; each fix's review: repair demonstrated; 7 to 12 minutes and 157 SAM images ($0.39) a run, with the clean game's SAM answers shared | [41223748922](https://github.com/seanudeke/Expectrail/actions/runs/41223748922) |
 | Meta Model API spend, whole team, through October 29 | $204 (SAM images at list price are almost all of it) | [cost](bench/cost/README.md) |
 
 ### Who catches a fix that only looks right
@@ -160,8 +163,10 @@ What these numbers do and do not say:
   Muse from screenshots accepted 2 of 7 fixes that only look right (one lowers the floor, one sinks
   the robot) and turned down one or two good ones. Expectrail with SAM accepted none of the bad and
   all of the good, in both runs. So since October 30 the fixer gets a plain report first, every
-  attempt is verified, and Expectrail's evidence goes to the fixer only after a rejection
-  ([docs/report-first.md](docs/report-first.md) has the decision and its evidence).
+  attempt is verified, and Expectrail's evidence goes to the fixer after a failed attempt. The
+  evidence still matters for fixing on the subtle bugs: on October 31 it fixed both sinking bugs
+  on the first attempt, where the report alone timed out
+  ([docs/report-first.md](docs/report-first.md) has the decision, its evidence and that amendment).
 - **One held-out catch came after a miss.** The first held-out runs caught 7 of 8. The eighth
   (sinking/v4) draws the floor away from where it collides, and every check measured the robot
   against the collision. The ground check now also follows the floor as drawn. It was built after

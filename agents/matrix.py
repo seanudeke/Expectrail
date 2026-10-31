@@ -11,9 +11,9 @@ renders the bugged game, briefs Muse Code, and judges every candidate with the s
     verdict on the bugged run with its evidence and first failing frame, and the verifier's reasons
     after a rejected attempt. Expectrail only opens a repair when its own check caught the bug.
   - ``escalate``: what the overnight loop now does (agents/escalation.py, docs/report-first.md).
-    The first attempt gets the ``screenshots`` briefing; only after the verifier rejects an attempt
-    does the next get the ``expectrail`` briefing, with the verifier's reasons limited to the public
-    checks. Like ``expectrail``, it opens a repair only when Expectrail's own check caught the bug.
+    The first attempt gets the ``screenshots`` briefing; after any failed attempt (rejected, timed
+    out or empty) the next gets the ``expectrail`` briefing, with the verifier's reasons limited to
+    the public checks. Like ``expectrail``, it opens a repair only when Expectrail's own check caught the bug.
 
 "Existing checks" (the game's build) catches none of the seeded bugs; it needs no run.
 
@@ -249,8 +249,8 @@ def run_case(key: str, condition: str, out: Path, *, live: bool, use_sam: bool |
             offline_patch.write_text("", encoding="utf-8")
         for attempt in range(1, ATTEMPTS + 1):
             attempt_out = work / f"attempt-{attempt:02d}"
-            # An empty attempt is not a rejection: escalate only after the verifier rejected one.
-            escalated = condition == "escalate" and verifier_rejected
+            # Escalate after any failed attempt: rejected, or no fix at all (timed out or changed nothing).
+            escalated = condition == "escalate" and (verifier_rejected or prior is not None)
             if condition == "screenshots" or (condition == "escalate" and not escalated):
                 briefing = {"prompt": screenshots_prompt(detection["spec"], files, attempt, prior is not None),
                             "policy": "matrix-screenshots-v1" if condition == "screenshots" else "matrix-escalate-v1-report",

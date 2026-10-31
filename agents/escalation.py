@@ -7,11 +7,13 @@ and the verifier, not the briefing, is what stops a fix that only looks right. S
 - **Attempt 1, the report:** the failing check's one sentence in plain English, screenshots of the
   failing run spaced from its first frame to its last, the route and the run's log. No spec, no
   verdict, no evidence.
-- **After the verifier rejects an attempt, the evidence:** the repair request (the approved spec,
-  the evaluator's verdict on the failing run and its first failing frame) and the verifier's
-  reasons, limited to the public checks. A held-out route, a guard, or the reason one failed never
-  reaches the fixer, so it cannot be fixed to the test. An empty attempt is not a rejection: the
-  next attempt stays on the report.
+- **After an attempt fails, the evidence:** the repair request (the approved spec, the evaluator's
+  verdict on the failing run and its first failing frame) and, after a rejection, the verifier's
+  reasons limited to the public checks. A held-out route, a guard, or the reason one failed never
+  reaches the fixer, so it cannot be fixed to the test. An attempt fails when the verifier rejects
+  it or when it produces no fix (it timed out or changed nothing): on October 31, report-only
+  attempts on both sinking bugs timed out three times in a row while the evidence fixed each on
+  the first attempt (Fix matrix run 41223754703).
 - **Every candidate is verified,** whatever the fixer was told. The fixer never decides it is done.
 
 ``EXPECTRAIL_BRIEFING=evidence`` restores the previous behaviour (the evidence from attempt 1).
@@ -107,9 +109,9 @@ def public_feedback(verification: dict, attempt: int) -> dict:
 
 def briefing(request: dict, files: dict[str, Path] | None, attempt: int, rejected_before: bool,
              *, empty_before: bool = False) -> tuple[dict | None, str]:
-    """(briefing for run_fixer, stage). Stage ``report`` until the verifier has rejected an attempt,
-    then ``evidence``. ``None`` means the fixer's own evidence prompt (no screenshots to give)."""
-    if mode() == "evidence" or rejected_before or not files:
+    """(briefing for run_fixer, stage). Stage ``report`` until an attempt has failed (rejected, or no
+    fix at all), then ``evidence``. ``None`` means the fixer's own evidence prompt (no screenshots)."""
+    if mode() == "evidence" or rejected_before or empty_before or not files:
         if not files:
             return None, "evidence"
         return {"prompt": evidence_prompt(request, files, attempt), "policy": f"{POLICY}-evidence",
