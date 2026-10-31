@@ -110,6 +110,7 @@ four more reproduce bugs other people reported ([Bugs we did not write](#bugs-we
 | Held-out bugs caught with no vision model (engine and gameplay checks only) | 4 of 8 | the same two runs |
 | Development bugs caught: SAM on / Glimmer, no SAM / no vision | 8 of 8 / 8 of 8 / 3 of 8 | [40841977642](https://github.com/seanudeke/Expectrail/actions/runs/40841977642), [41001182605](https://github.com/seanudeke/Expectrail/actions/runs/41001182605) |
 | Publicly reported Godot bugs, reproduced (not written by us), caught: today's checks with SAM off / engine-record checks | 0 of 4 / **4 of 4**, no false alarm on the clean game; the engine-record checks were written after the bugs were reproduced | [41116202685](https://github.com/seanudeke/Expectrail/actions/runs/41116202685) |
+| Natural-catch trial: Muse Code given each reported bug in the reporter's words, 5 times each (20 cases) | 20 of 20 fixed on the first attempt; Expectrail accepted 20, the bug's own check passed 20, Muse from screenshots accepted 19; **0 natural catches** | [41129722699](https://github.com/seanudeke/Expectrail/actions/runs/41129722699) |
 | Bad fixes that only look right, accepted by the judge (7 cases, 2 runs) | Expectrail with SAM **0 of 7**; Expectrail without SAM 3 of 7; Muse from screenshots 2 of 7 | [judge](bench/judge/README.md) |
 | Good fixes accepted by the judge (8 cases, 2 runs) | Expectrail 8 of 8 both runs; Muse from screenshots 6 and 7 of 8 | [judge](bench/judge/README.md) |
 | Development bugs fixed by Muse Code | 8 of 8 with Expectrail's evidence; 8 of 8 from screenshots alone | [fix matrix](bench/fix-matrix/README.md) |
@@ -190,10 +191,17 @@ Each was rendered on five routes, and so was the clean game ([`bench/reported/`]
   tile. Each bug fails its own rule on its own route; nothing fails on the clean game.
 - **The rules were written after we reproduced the bugs,** so this shows the bugs are now visible
   to Expectrail, not that it would have found them blind, and the verifier does not run the rules
-  yet. The test that would count is a natural catch: rules and guards committed first, Muse Code
-  given the reporter's own words, and a fix that looks right but breaks something rejected
-  ([protocol](bugs/reported/README.md#running-a-natural-catch-trial)). The jump bug is the best
-  trap: the 2016 fix, "only jump on the floor", would also delete today's double jump.
+  yet.
+- **The natural-catch trial found nothing to catch.** The test that would count is a fix Muse Code
+  writes that looks right but is wrong, rejected by Expectrail. So we committed the rules, and a
+  digest of guards kept with the held-out set (the double jump still works, the gun still fires,
+  the enemies still patrol), before the run. Then we gave Muse Code each bug in the reporter's own
+  words, five times. It fixed all 20 cases on its first attempt, including the jump bug, where the
+  2016 fix ("only jump on the floor") would also have deleted today's double jump. Expectrail
+  accepted all 20, each bug's own check passed all 20, and no guard fired, so on these bugs the
+  extra checks changed nothing. The one disagreement: Muse from screenshots rejected one body-flip
+  fix that Expectrail accepted; we have not yet read that patch to say which judge was right
+  ([`bench/reported/trial.md`](bench/reported/trial.md)).
 - **Reproducing them turned up a live upstream regression.** A 2024 art remake of the demo partly
   undid an earlier fix to the platforms' drawing order (PR #927), so in the current demo the lower
   moving platform draws behind the ground's grass edge. It is a candidate report to the demo's
@@ -300,7 +308,9 @@ What this does and does not show:
 - **One game and one web page, mostly with bugs we seeded.** The game's held-out bugs were kept from
   the fixer, but a teammate wrote them, and the same team wrote the checks. The four reproduced
   public bug reports are caught only by engine-record checks written after we saw them, which the
-  verifier does not run yet. The checkout page has no held-out bugs yet.
+  verifier does not run yet, and in a 20-case trial Muse Code wrote no fix for them that only
+  looked right, so there is no blind catch on a real bug yet. The checkout page has no held-out
+  bugs yet.
 - **Mostly repairs.** The web judge includes three intended changes. We have not run the agent on
   features, refactors or dependency updates, or on software without a screen. The design is meant
   to carry over; [docs/future-work.md](docs/future-work.md) says which parts would and which would

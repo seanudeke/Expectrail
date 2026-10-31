@@ -113,7 +113,9 @@ How to read it:
   Muse from screenshots. The guards live in the held-out set; their digest was committed in
   `bugs/reported/guards.sha256` before any trial ran, and a trial refuses any other guard file
   (protocol in [bugs/reported/README.md](../bugs/reported/README.md#running-a-natural-catch-trial),
-  results in [`bench/reported/trial.md`](../bench/reported/trial.md)).
+  results in [`bench/reported/trial.md`](../bench/reported/trial.md)). The first run, on October 30,
+  found none: Muse Code fixed all 20 cases on its first attempt, every candidate passed every
+  check and guard, and Muse from screenshots rejected one that Expectrail accepted.
 
 ## Ground truth
 

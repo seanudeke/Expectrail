@@ -229,6 +229,9 @@ def trial_fetch(path):
                             "failing guard:air-jump-g1"},
                 {"title": "Reported trial reported/air-jump/r1 attempt 2",
                  "message": "expectrail accept; public check pass; muse screenshots accept; natural catch False; "
+                            "failing none"},
+                {"title": "Reported trial reported/air-jump/r1 attempt 2",  # listed twice by the API
+                 "message": "expectrail accept; public check pass; muse screenshots accept; natural catch False; "
                             "failing none"}]
     if job == 2:
         return [{"title": "Fix matrix reported/body-flip/r1 report",
