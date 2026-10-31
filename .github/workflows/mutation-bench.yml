@@ -120,6 +120,8 @@ jobs:
           MODEL_API_KEY: ${{ secrets.MODEL_API_KEY }}
           EXPECTRAIL_OBS_PROVIDER: sam
         run: python -m agents.sam_warm --scope public --cache runs/sam-warm/cache --out runs/sam-warm
+      - name: Export scan before upload (no keys, no signing key; the private set is never mounted here)
+        run: python -m agents.export_scan runs/sam-warm/cache runs/sam-warm/sam-warm.json
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: sam-cache
@@ -197,8 +199,14 @@ jobs:
             -not -path '*/clean/*' -print \
             | while read -r f; do mkdir -p "keep/$(dirname "$f")"; cp "$f" "keep/$f"; done
           exit "$code"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - name: Export scan before upload (no keys, no signing key; the private set is never mounted here)
+        id: export-scan
         if: always()
+        run: |
+          mkdir -p keep
+          python -m agents.export_scan keep
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always() && steps.export-scan.outcome == 'success'
         with:
           name: mutation-${{ strategy.job-index }}
           path: keep/
@@ -226,6 +234,7 @@ jobs:
           merge-multiple: true
       - name: Summarize
         run: |
+          set -o pipefail  # no results must fail this step, not pass through tee
           mkdir -p results "$DEST/findings"
           python -m agents.mutation_bench --summarize results | tee -a "$GITHUB_STEP_SUMMARY" > "$DEST/README.md"
           cp results/mutation-summary.json "$DEST/summary.json"
@@ -236,6 +245,8 @@ jobs:
             catch="$(dirname "$f")/catch-spec.json"
             if [ -f "$catch" ]; then cp "$catch" "$DEST/findings/$(dirname "$rel")/catch-spec.json"; fi
           done
+      - name: Export scan before upload (no keys, no signing key; the private set is never mounted here)
+        run: python -m agents.export_scan bench/mutation
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: mutation-summary

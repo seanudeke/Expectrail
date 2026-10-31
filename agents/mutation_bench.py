@@ -519,6 +519,8 @@ def _by_check(rows: list[dict]) -> dict:
 
 def summarize(out: Path) -> dict:
     rows = _rows(out)
+    if not rows:
+        raise SystemExit(f"{out}: no results, so there is nothing to summarize")
     registrations = {r.get("preregistrationSha256") for r in rows}
     if len(registrations) > 1:
         raise SystemExit(f"{out}: these results come from {len(registrations)} different registrations, so they "
