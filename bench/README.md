@@ -23,7 +23,7 @@ Every number the README or the video quotes comes from a file here and reruns wi
 | Demo path, live: the overnight loop end to end, N independent runs | `demo-loop/demo.json`, table in `demo-loop/README.md` | Actions, **Fix matrix** with bench `demo`, then `python3 -m agents.bench_collect --demo --run <id>` |
 | Demo path, live, after the report-first change (docs/report-first.md) | `demo-loop/report-first/demo.json`, table in `demo-loop/report-first/README.md` | the same, with `--out bench/demo-loop/report-first` |
 | SAM video against images, public runs (measured, not used) | `sam-video/run-*.json`, table in `sam-video/README.md` | Actions, **SAM probe**, mode `video-compare` |
-| Judge benchmark: who accepts a fix that only looks right (Expectrail with and without SAM, Muse from screenshots) | `judge/judge.json`, table in `judge/README.md` | Actions, **Fix matrix** with bench `judge` (live), then `python3 -m agents.bench_collect --judge --run <id> [--run <id>]` |
+| Judge benchmark: who accepts a fix that only looks right (Expectrail with and without SAM, Muse from screenshots; with `judge_glimmer`, also Expectrail with Glimmer checked against the engine) | `judge/judge.json`, table in `judge/README.md`; the run with Glimmer in `judge/glimmer/` | Actions, **Fix matrix** with bench `judge` (live), then `python3 -m agents.bench_collect --judge --run <id> [--run <id>] [--out <folder>]` |
 
 The detection files are written by `python3 -m agents.bench_collect --run <id> --set dev|held-out`
 from the run's own annotations, so they carry the run, commit and date they came from.

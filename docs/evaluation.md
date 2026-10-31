@@ -189,6 +189,12 @@ Twice, live (runs 40936362830 and 40943391994):
 | Expectrail, SAM off | 8 of 8, both runs | 3 of 7, both runs |
 | Muse from screenshots | 6 of 8, then 7 of 8 | 2 of 7, both runs |
 
+A third run on October 31 ([41230177124](https://github.com/seanudeke/Expectrail/actions/runs/41230177124),
+`bench/judge/glimmer/`) gave these three judges the same counts, Muse from screenshots at 6 of 8 as in
+the first, and added a fourth judge: the verifier with Muse Glimmer checked against the engine and no
+SAM. It accepted 8 of 8 good and 0 of 7 bad, but the deleted trees got past every public check under
+Glimmer and were stopped only on a held-out route ([docs/open-weights.md](open-weights.md)).
+
 What the reasons show (second run):
 
 - Without SAM the verifier sees the engine, not the picture, so it passes the hidden player, the

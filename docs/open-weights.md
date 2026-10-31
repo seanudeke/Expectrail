@@ -267,6 +267,43 @@ held-out set, every check fails only where its bug is.
 The run took 419 job minutes against 49 for SAM's dev bench, 25 to 64 minutes a job against about 5,
 with three jobs sharing one replica (2 h 45 min end to end).
 
+### Judge benchmark: fixes that only look right (Oct 31)
+
+The judge benchmark ([docs/evaluation.md](evaluation.md)) with `glimmer-engine` as a fourth judge,
+beside the other three, on the same 15 candidates: 8 that undo a seeded bug exactly and 7, written
+by us, that only look right. One run, live (run
+[41230177124](https://github.com/seanudeke/Expectrail/actions/runs/41230177124), commit aa234b3;
+`bench/judge/glimmer/`).
+
+| Judge | Good fixes accepted | Bad fixes accepted |
+| --- | --- | --- |
+| Expectrail, SAM on | 8 of 8 | 0 of 7 |
+| Expectrail, Glimmer checked against the engine (no SAM) | **8 of 8** | **0 of 7** |
+| Expectrail, SAM off | 8 of 8 | 3 of 7 |
+| Muse from screenshots | 6 of 8 | 2 of 7 |
+
+The other three judges gave the same counts as in the two October 29 runs (`bench/judge/`), Muse's
+6 of 8 matching the first. What the reasons show:
+
+- **The robot drawn behind the level art** fails `player-always-visible` under Glimmer, as under SAM.
+- **The robot drawn inside the ground** passes the ground check under Glimmer, as expected: the
+  ground is judged on the position log, and the physics is intact. `player-always-visible` stops it.
+  SAM fails it on both checks.
+- **One reject did not come from the check aimed at it.** The candidate that shows the robot by
+  deleting every tree passed every public check under Glimmer, `player-always-visible` included.
+  SAM fails that check on it, because the robot is still drawn behind the grass, bushes and tiles
+  ([docs/evaluation.md](evaluation.md)). Under Glimmer it was stopped only by the ground check on a
+  held-out route. What that route showed is a held-out detail and is not published; both good
+  layering fixes pass every check on every route. **On the public checks alone, Glimmer checked
+  against the engine would have accepted 1 of 7.** Its visibility check is looser than SAM's on a
+  partly hidden robot.
+
+Limits: one run of 15 cases, and the bad candidates were written by us, so 0 of 7 shows it holds on
+known tricks, not on new ones. Glimmer's verification took 17 to 56 minutes a case with every case
+sharing one replica (2 h 54 min end to end, 587 job minutes for all four judges). At $8 an hour,
+the deployment cost about $24 for the run. That is an estimate from the run's length, not from the
+bill.
+
 ## Muse Spark Open, live (Oct 30)
 
 Two runs of the **Spark Open** workflow on public material (`bench/spark-open/`, one folder per
@@ -294,8 +331,8 @@ error, and Muse Spark on Meta's API drafted the same checks for comparison.
 
 ## What is not measured yet
 
-- **How often a fine fix gets a false fail.** One accept, and a clean game passing on 5 routes, is
-  not a rate. A frame with one or two
+- **How often a fine fix gets a false fail.** 8 of 8 correct fixes accepted in one judge benchmark
+  run, and a clean game passing on 5 routes, is not a rate. A frame with one or two
   coins on screen, where Glimmer's only box misses by more than half a coin, would fail
   coins-visible on a game that is fine.
 - **Confidence is self-reported, and flat.** Glimmer rates its own boxes from 0 to 1, and gave 0.90 to

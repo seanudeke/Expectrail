@@ -132,8 +132,8 @@ What it showed:
   engine, the judge that decided. Without a fallback, it judges with SAM as before.
 - **It is slow.** About 37 minutes against 12 to 22 for a SAM run, with the deployment billed by
   the hour while it is up.
-- **It judged one correct fix.** Glimmer's rate on fixes that only look right is still unmeasured
-  (#129, item 4).
+- **It judged one correct fix.** The judge benchmark has since run Glimmer on fixes that only look
+  right (see "Why Glimmer is the second judge" below).
 
 ## What the judge ladder must never do
 
@@ -155,9 +155,18 @@ What it showed:
 Glimmer is the weaker judge for the bugs that matter most. Its boxes are 15 to 20 px taller than
 the robot, too loose for the 20 px ground check, so under Glimmer the ground is judged on the
 engine's position log. In the judge benchmark, the position-log ground check accepted the fix that
-draws the robot inside the ground. SAM's view caught it. The judge benchmark has not been run with
-Glimmer, so its rate on fixes that only look right is unmeasured. It is a fallback for an outage,
-labelled as such, and never a second opinion.
+draws the robot inside the ground. SAM's view caught it.
+
+The judge benchmark has now been run with Glimmer checked against the engine, once (Oct 31,
+`bench/judge/glimmer/`, [docs/open-weights.md](open-weights.md)). It accepted 8 of 8 correct fixes
+and 0 of 7 that only look right, the same counts as SAM. But it is not SAM's equal:
+
+- The fix that shows the robot by deleting every tree passed every public check under Glimmer,
+  `player-always-visible` included, and was stopped only on a held-out route. SAM stops it on the
+  public visibility check. On the public checks alone, Glimmer would have accepted 1 of 7.
+- The robot drawn inside the ground was stopped by the visibility check, not the ground check.
+
+It is a fallback for an outage, labelled as such, and never a second opinion.
 
 ## Where it applies
 
