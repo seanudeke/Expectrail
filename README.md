@@ -72,9 +72,10 @@ flowchart LR
 3. **Fix.** Muse Code first gets a plain bug report: the failing check's sentence, screenshots of
    the failing run, the route and its log. Only if the verifier rejects that attempt does the next
    one get Expectrail's evidence (the spec, the verdict, the first failing frame, and which public
-   checks failed), and never anything about the held-out routes. Muse fixes as well from the report
-   as from the evidence, and the verifier is what stops a fix that only looks right, so the
-   verifier runs on every attempt ([docs/report-first.md](docs/report-first.md)). Muse patches the
+   checks failed), and never anything about the held-out routes. On most bugs Muse fixes as well
+   from the report as from the evidence; on the sinking bugs it ran out of time on half of them
+   without the evidence and on none with it. The verifier is what stops a fix that only looks right,
+   so it runs on every attempt ([docs/report-first.md](docs/report-first.md)). Muse patches the
    game in its own worktree. In the live runs it works inside bubblewrap: only that worktree is mounted (its
    project config read-only, an empty home), so the verifier's code, the held-out cases and the
    signing key are not in its filesystem at all. It keeps network access, because it has to reach

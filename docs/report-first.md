@@ -4,6 +4,10 @@ Decided October 30, 2026, after the natural-catch trial. In one line: **let the 
 plain bug report, and make Expectrail the gate every fix has to pass.** Expectrail's detailed
 evidence goes to the fixer only after the gate has rejected an attempt.
 
+Updated October 31 with the first fix-matrix run on this policy. It found where the policy loses
+fixes: on the sinking bugs Muse Code times out from a plain report, and a timeout never brings the
+evidence. The record below has every run; the gate itself is unchanged.
+
 ## The decision
 
 1. **The first attempt gets the report.** Muse Code gets what a developer would get: the failing
@@ -15,7 +19,9 @@ evidence goes to the fixer only after the gate has rejected an attempt.
 3. **Only after the verifier rejects an attempt does the next one get the evidence:** the repair
    request (the approved spec, the evaluator's verdict on the failing run, its first failing frame)
    and the public checks that did not pass. An empty attempt is not a rejection; the next attempt
-   stays on the report.
+   stays on the report. A timeout is an empty attempt, and this is where the policy loses fixes: on
+   Oct 31 three timeouts on `sinking/v1` never brought the evidence, and the bug was not fixed
+   ([below](#what-the-evidence-does-for-the-fixer)).
 4. **The fixer never learns about the held-out routes or the guards.** Not their names, not that
    one failed, not why. When only a held-out check rejected a candidate, the fixer learns that the
    attempt was rejected and nothing else.
@@ -56,8 +62,8 @@ one ended in Muse Code timing out, not in a wrong fix accepted. Counting the sin
 across the four fix-matrix runs: 8 of 8 fixed with the evidence, 4 of 8 without. On every other bug
 family the briefing made no difference.
 
-So the evidence does help, on one family of bugs, by keeping Muse Code from running out of time. It
-is four runs and one family, and the misses are timeouts, so it is a signal, not a rate.
+So the evidence does help, on one family of bugs: without it, Muse Code ran out of time on half
+the sinking cases; with it, on none. It is four runs and one family, so it is a signal, not a rate.
 
 This policy did not recover `sinking/v1` on Oct 31: all three attempts timed out, and a timeout is
 an empty attempt, which stays on the report, so the evidence was never given. On `sinking/v2` the
@@ -75,7 +81,8 @@ another moves the floor's collision below its art, another hides the robot behin
 | Expectrail, position log only | 3 | 8 |
 | Muse Code from before-and-after screenshots | 2 | 6 and 7 |
 
-Fixing is the part Muse Code does well. Judging is where a fix that only looks right gets through,
+Fixing is mostly the part Muse Code does well; the sinking bugs above are the exception, where it
+runs out of time without the evidence. Judging is where a fix that only looks right gets through,
 and only Expectrail with SAM let none through.
 
 ### Why not "let Muse fix it, and run Expectrail only if Muse cannot"
@@ -91,16 +98,21 @@ stays on every candidate, and what moves is what the fixer is told.
 
 - **A product that does not care who writes the fix.** The first attempt's briefing is a plain
   report anyone could act on. Muse Code, another coding agent or a person can write the fix;
-  Expectrail decides whether it ships. That is also what the numbers above show, so the pitch and
-  the evidence say the same thing.
+  Expectrail decides whether it ships. On most bugs the numbers above agree. On the sinking bugs
+  they do not: a fixer working from the report alone timed out on half of them, so there Expectrail's
+  evidence helps the fixer as well as judging it.
 - **Harder to fix to the test.** A fixer that never sees the spec's assertion, its threshold or a
   verdict on the first attempt cannot aim at them. Most fixes are accepted on that first attempt.
   The held-out routes and the guards are never mentioned at all, so a fix cannot be tuned to them
   on any attempt.
-- **One fewer thing to defend.** We no longer claim that Expectrail's evidence makes Muse a better
-  fixer, which we could not show. We claim what we measured: Expectrail is a better judge.
-- **A cheap fallback, kept.** When the gate rejects an attempt, the fixer gets everything
-  Expectrail knows about the public checks. That costs nothing until a rejection happens.
+- **A narrower claim about the fixer.** We do not claim Expectrail's evidence makes Muse a better
+  fixer in general: on every family but one it made no difference. On the sinking bugs it did, 8 of
+  8 fixed with the evidence against 4 of 8 without. The claim we lead with is the one measured most:
+  Expectrail is a better judge.
+- **A cheap fallback, kept, with a gap.** When the gate rejects an attempt, the fixer gets
+  everything Expectrail knows about the public checks. That costs nothing until a rejection happens.
+  But rejections are rare (3 in the 87 fix-matrix attempts) and timeouts are not (17), and a
+  timeout does not bring the fallback.
 - **One setting to undo it.** `EXPECTRAIL_BRIEFING=evidence` restores the evidence from the first
   attempt.
 
@@ -110,8 +122,9 @@ stays on every candidate, and what moves is what the fixer is told.
   once, on `sinking/v2`, and that attempt was accepted. It never escalated on `sinking/v1`, because
   its attempts timed out and an empty attempt is not a rejection. Whether escalating after a timeout
   would have recovered it is unmeasured.
-- **Whether a report is enough for harder bugs.** Every bug so far is a small, local change. A bug
-  that spans several files, or whose obvious fix is wrong, may need the evidence earlier.
+- **Whether a report is enough.** It was not always, even for small, local changes: each sinking
+  bug is a one-line fix, and from a report Muse Code timed out on half of them. A bug that spans
+  several files, or whose obvious fix is wrong, may need the evidence more.
 - **Overnight, the "report" is still Expectrail's own check.** When no person reported the bug,
   Expectrail's check found it, and the report is that check's sentence. The fixer still does not
   see the spec, the verdict or the evidence until a rejection.
@@ -137,9 +150,9 @@ What we did not change:
 
 - **SAM still looks at the candidate's smoke replay before the engine verdict is known.** Reordering
   this would save about 150 SAM images, roughly $0.40, per rejected candidate (the held-out bench
-  used 746 images over five routes). With one rejection in 46 cases, that is not worth changing the
-  verifier's order days before the deadline. If harder bugs make rejections common, it is the next
-  change.
+  used 746 images over five routes). With 3 rejections in the 87 fix-matrix attempts, that
+  is not worth changing the verifier's order days before the deadline. If harder bugs make rejections
+  common, it is the next change.
 
 ## What changed in the code
 
