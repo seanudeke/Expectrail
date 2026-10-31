@@ -16,11 +16,13 @@ and turned down none of the 8 correct ones, in both runs ([Results](#results)).
 
 Every fix is also reviewed against its failing base: the same checks run on the game with the bug
 and on the game with the fix, so the report shows the requested behavior failing before and passing
-after, not only passing. In three live overnight runs each Muse Code fix was a demonstrated repair,
-and the fix that sinks the robot was rejected with its requested checks still failing
-([docs/review.md](docs/review.md)). Two reviews with their real frames before and after the fix:
-one of those live runs, [docs/review/live-demo-run-1](docs/review/live-demo-run-1/), and the rejected
-fix that sinks the robot, [docs/review/sinking-fix](docs/review/sinking-fix/).
+after, not only passing. In six live overnight runs, three on October 30 and three on October 31 on
+the loop as it ships (Muse Code fixing from a plain report), each Muse Code fix was a demonstrated
+repair, and the fix that sinks the robot was rejected with its requested checks still failing
+([docs/review.md](docs/review.md)). Reviews with their real frames before and after the fix: one
+run on the loop as it ships, [docs/review/report-first-run-1](docs/review/report-first-run-1/), one
+from October 30, [docs/review/live-demo-run-1](docs/review/live-demo-run-1/), and the rejected fix
+that sinks the robot, [docs/review/sinking-fix](docs/review/sinking-fix/).
 
 We built and measured it on a game first, because a game shows the gap plainly: a change can pass
 every test and still be visibly broken. Then, to see whether the engineering carries past one game,
