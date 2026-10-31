@@ -123,7 +123,8 @@ class SamError(RuntimeError):
 
 # Meta's out-of-credit reply has never been observed, so a body that says so counts as well as a 402:
 # the OpenAI-compatible convention is a 429 reading "insufficient_quota".
-_CREDIT_WORDS = re.compile(r"credit|quota|billing|balance|payment", re.I)
+# A plain "quota" is left out: a per-minute quota is a rate limit, and waiting does fix that.
+_CREDIT_WORDS = re.compile(r"credit|insufficient|billing|balance|payment", re.I)
 
 
 def http_error_kind(status: int, detail: str = "") -> str:

@@ -47,6 +47,7 @@ REPORTED_DIR = REPO / "bench" / "reported"
 REPORTED_FORMAT = "expectrail.reported-bench-results/v0"
 TRIAL_FORMAT = "expectrail.reported-trial-results/v0"
 DEMO_TITLE = re.compile(r"^Demo run (?P<run>\d+)$")
+DEMO_DRILL_TITLE = re.compile(r"^Demo run \d+ drill$")
 DEMO_MSG = re.compile(r"^decision (?P<decision>[a-z-]+); attempts (?P<tries>.*?); triage (?P<triage>\S+); "
                       r"fixer (?P<fixer>\S+); trust (?P<trust>\S+); verified on (?P<prov>\S+); signed (?P<signed>\S+); "
                       r"(?P<seconds>[\d.]+) s; SAM images (?P<sam>\d+)$")
@@ -355,6 +356,9 @@ def collect_demo(run_id: int, fetch=gh_json) -> dict:
     """A live demo-loop run -> each overnight run's outcome, and how many were accepted."""
     run, notes = run_annotations(run_id, fetch, prefix="demo-run")
     rows = []
+    drills = [n["title"] for n in notes if DEMO_DRILL_TITLE.match(n.get("title") or "")]
+    if drills:
+        raise SystemExit(f"run {run_id} is a judge drill, never a demo result ({len(drills)} drilled runs)")
     for note in notes:
         m = DEMO_TITLE.match(note.get("title") or "")
         if not m:

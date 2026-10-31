@@ -91,6 +91,8 @@ def annotation(row: dict) -> str:
         drill = f"drill {row['drill']}; " if row.get("drill") else ""
         line += (f"\n::notice title=Demo run {row['run']} judge::{drill}judged by {judge.get('judgedBy')}; "
                  f"stopped {judge.get('stopped')}; {' '.join(steps.split())[:700]}")
+    if row.get("drill"):  # its own line: agents.bench_collect refuses a run that carries one
+        line += f"\n::notice title=Demo run {row['run']} drill::{row['drill']}"
     if row.get("error"):
         line += f"\n::warning title=Demo run {row['run']} error::{' '.join(str(row['error']).split())[:300]}"
     return line

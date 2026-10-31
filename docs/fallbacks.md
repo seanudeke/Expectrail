@@ -46,7 +46,8 @@ the judge ladder's.
 
 The kinds are `auth`, `credit`, `rate-limit`, `server`, `network`, `request` and `unknown`
 (`agents.sam_observations.SamError`). Meta's out-of-credit reply has never been observed, so `credit`
-means a 402, or a 403 or 429 whose body speaks of credit, quota, billing, balance or payment.
+means a 402, or a 403 or 429 whose body speaks of credit, billing, balance, payment or an insufficient
+quota. A per-minute quota is a `rate-limit`.
 
 ## The judge ladder: the judge did not answer
 
@@ -104,7 +105,7 @@ one live overnight run, SAM made unavailable, Glimmer left as it was):
 The review against the failing base was INCONCLUSIVE, as it should be with no judge: it could not
 compare the two runs. The job is red, as every loop run that does not end in an accept is.
 
-**Second drill, October 31** ([run 41224918059](https://github.com/seanudeke/Expectrail/actions/runs/41224918059),
+**Second drill, October 31, also before the pre-run check existed; to repeat it now, use `sam-outage-mid-run`** ([run 41224918059](https://github.com/seanudeke/Expectrail/actions/runs/41224918059),
 one live overnight run, SAM made unavailable). Before it, Fireworks credit was added and the
 deployment's scaling restored (min 0, max 1, 15 minutes to scale to zero) by the Glimmer probe's
 restore step ([run 41224869758](https://github.com/seanudeke/Expectrail/actions/runs/41224869758),

@@ -46,7 +46,8 @@ class KindTest(unittest.TestCase):
     def test_each_http_status_has_its_kind(self):
         for status, body, kind in ((401, "", "auth"), (403, "forbidden", "auth"), (402, "", "credit"),
                                    (403, "credit balance is too low", "credit"), (429, "", "rate-limit"),
-                                   (429, '{"code": "insufficient_quota"}', "credit"), (500, "", "server"),
+                                   (429, '{"code": "insufficient_quota"}', "credit"),
+                                   (429, "per-minute quota exceeded, slow down", "rate-limit"), (500, "", "server"),
                                    (503, "", "server"), (400, "bad image", "request"), (404, "", "request")):
             with self.subTest(status=status, body=body):
                 self.assertEqual(http_error_kind(status, body), kind)
@@ -176,8 +177,32 @@ class DrillTest(unittest.TestCase):
         doc = yaml.safe_load((REPO / ".github" / "workflows" / "fix-matrix.yml").read_text(encoding="utf-8"))
         options = doc[True]["workflow_dispatch"]["inputs"]["judge_drill"]["options"]
         self.assertEqual(set(options), {"off", *DRILLS})
-        self.assertTrue(all(d in str(doc["jobs"]["sam-warm"]["if"]) or "== 'off'" in str(doc["jobs"]["sam-warm"]["if"])
-                            for d in DRILLS))
+        self.assertIn("inputs.judge_drill == 'off'", doc["jobs"]["sam-warm"]["if"])
+        steps = doc["jobs"]["demo-run"]["steps"]
+        restores = [s for s in steps if str(s.get("name", "")).startswith(("Fetch this run's shared", "Restore them"))]
+        self.assertEqual(len(restores), 2)
+        self.assertTrue(all("inputs.judge_drill == 'off'" in s["if"] for s in restores))
+        run = next(s for s in steps if s.get("name") == "One live overnight run")
+        self.assertEqual(run["env"]["EXPECTRAIL_JUDGE_DRILL"],
+                         "${{ inputs.judge_drill != 'off' && inputs.judge_drill || '' }}")
+
+    def test_a_drill_run_says_so_and_is_never_collected(self):
+        from agents.bench_collect import collect_demo
+        from agents.demo_loop import annotation
+
+        row = {"run": 2, "decision": "needs-review", "wallClockSeconds": 1, "samImages": 0, "drill": "sam-unavailable"}
+        self.assertIn("title=Demo run 2 drill", annotation(row))
+
+        def fetch(path):
+            if "annotations" in path:
+                return [{"title": "Demo run 2 drill", "message": "sam-unavailable"}]
+            if path.endswith("/jobs?per_page=100"):
+                return {"jobs": [{"id": 1, "name": "demo-run"}]}
+            return {"head_sha": "x"}
+
+        with self.assertRaises(SystemExit) as caught:
+            collect_demo(1, fetch)
+        self.assertIn("drill", str(caught.exception))
 
 
 class LadderKindTest(unittest.TestCase):
