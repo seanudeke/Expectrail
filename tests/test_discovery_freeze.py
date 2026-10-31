@@ -10,8 +10,10 @@ REPO = Path(__file__).resolve().parents[1]
 
 
 class FreezeHoldsOnMain(unittest.TestCase):
-    """Until the blind run is recorded (docs/discovery.md, The blind run), no file that decides a
-    finding may change. Remove this test, deliberately, once that run is in bench/discovery/."""
+    """While the fresh set is in use for blind runs (docs/discovery.md, The blind run), no file that
+    decides a finding may change. Run 1 (planner off) is recorded; the planner-on run uses the same
+    freeze. Remove this test, deliberately, when the team retires the set; a changed discoverer
+    needs a new freeze and a new fresh set."""
 
     def test_the_frozen_files_and_the_clean_game_are_unchanged(self):
         ok, problems, digest = freeze.verify(REPO)

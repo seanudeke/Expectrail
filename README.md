@@ -11,6 +11,15 @@ floor really are, and accepts the change only if every check passes: checks draf
 approved by a person, and kept where the agent cannot change them (it sees a failing check's spec
 only after a failed attempt, and never sees the held-out ones).
 
+Those checks are written by people, and they are the gate. Since October 31 Expectrail also looks
+for problems nobody wrote a check for: advisory discovery replays 22 generic probes and judges each
+replay against rules read from the game's own code, reporting only what fails three times out of
+three. It found all four reproduced public bug reports with no false alarm on the clean game, but its
+rules were written after we read those reports, so that is a development result. Blind, on ten fresh
+entries written after it was frozen, it flagged 4 of 8 defects and neither of the 2 intentional
+changes. Discovered checks advise; only the human-written ones can reject a change
+([Two kinds of checks](#two-kinds-of-checks)).
+
 It catches fixes that only look right. Given a "fix" that stops the robot falling through
 the floor by drawing it sunk into the ground, a position-only check passed it, and Muse Code, shown
 the before-and-after screenshots, said the fall was fixed. Expectrail saw the robot's feet below the
@@ -107,10 +116,21 @@ commands are logged, not checked). The morning report lists both under "Feedback
 or blocked".
 [docs/feedback-recording.md](docs/feedback-recording.md)
 
+### Two kinds of checks
+
+| | Written by people | Discovered by Expectrail |
+| --- | --- | --- |
+| What | Three approved specs (the robot stays above the ground, the robot is visible, the coins are visible), the gameplay check, and the held-out bugs and routes. Five engine-record checks for the reported bugs, run by their bench, not by the verifier | 22 generic probes (stand still, walk each way, reverse, jump once, twice or eight times from four spots, shoot at two rates each way, walk while firing), judged by contracts built from a profile of four claims read from the game's code: the double jump, the gun's cooldown, the sprite's facing, the enemies' patrol |
+| Who writes them | Muse Spark drafts a spec from one sentence, a person approves it; teammates write the held-out cases | Twelve templates, with no model. Muse Spark can propose more probes and contracts in a closed language (built, not yet run live); a proposal never approves itself |
+| Effect | The gate: any failure rejects the change | Advisory: reported beside the decision, never changing it |
+| Shown so far | 8 of 8 held-out bugs caught with SAM; 0 of 7 fixes that only look right accepted | Blind: 4 of 8 fresh defects flagged, 0 of 3 healthy builds. Development: the four reported bugs found, no false alarm (its profile was written after them); 2 of the 8 development bugs |
+| Next | More approved checks; the engine-record checks in the verifier | The planner live; then validation, a person's approval and paired verdicts before a discovered check can reject anything ([docs/discovery.md](docs/discovery.md#whats-next)) |
+
 Status, October 30: the whole loop runs live, end to end: Wonder triage, Muse Code in a sandbox,
 the Godot harness, the verifier with SAM 3.1 on the private held-out routes, the signed morning
 report and the trust check. See [docs/new-work.md](docs/new-work.md) and
-[agents/demo-path.md](agents/demo-path.md).
+[agents/demo-path.md](agents/demo-path.md). Since October 31, advisory discovery runs beside it in
+CI ([docs/discovery.md](docs/discovery.md)).
 
 ## Results
 
@@ -127,6 +147,8 @@ four more reproduce bugs other people reported ([Bugs we did not write](#bugs-we
 | Held-out bugs caught with no vision model (engine and gameplay checks only) | 4 of 8 | the same two runs |
 | Development bugs caught: SAM on / Glimmer, no SAM / no vision | 8 of 8 / 8 of 8 / 3 of 8 | [40841977642](https://github.com/seanudeke/Expectrail/actions/runs/40841977642), [41001182605](https://github.com/seanudeke/Expectrail/actions/runs/41001182605) |
 | Publicly reported Godot bugs, reproduced (not written by us), caught: today's checks with SAM off / engine-record checks | 0 of 4 / **4 of 4**, no false alarm on the clean game; the engine-record checks were written after the bugs were reproduced | [41116202685](https://github.com/seanudeke/Expectrail/actions/runs/41116202685) |
+| Advisory discovery (checks nobody wrote), one job per build, no reference build: the clean game, the four reported bugs, and the eight development bugs it was not written for | Reported bugs **4 of 4** found, each 3 times out of 3, no false alarm on the clean game; development bugs 2 of 8. Development reproduction: its rules were written after reading the four reports | [41238187197](https://github.com/seanudeke/Expectrail/actions/runs/41238187197) |
+| Advisory discovery, blind: the frozen discoverer on ten fresh entries written after the freeze (8 defects, 2 intentional changes) and the clean game, planner off | **4 of 8** defects flagged, each 3 times out of 3; **0 of 3** healthy builds flagged; no job incomplete | [41248745687](https://github.com/seanudeke/Expectrail/actions/runs/41248745687) |
 | Natural-catch trial: Muse Code given each reported bug in the reporter's words, 5 times each (20 cases) | 20 of 20 fixed on the first attempt; Expectrail accepted 20, the bug's own check passed 20, Muse from screenshots accepted 19; **0 natural catches** | [41129722699](https://github.com/seanudeke/Expectrail/actions/runs/41129722699) |
 | Bad fixes that only look right, accepted by the judge (7 cases, 2 runs) | Expectrail with SAM **0 of 7**; Expectrail without SAM 3 of 7; Muse from screenshots 2 of 7 | [judge](bench/judge/README.md) |
 | Good fixes accepted by the judge (8 cases, 2 runs) | Expectrail 8 of 8 both runs; Muse from screenshots 6 and 7 of 8 | [judge](bench/judge/README.md) |
@@ -215,6 +237,9 @@ Each was rendered on five routes, and so was the clean game ([`bench/reported/`]
 - **The rules were written after we reproduced the bugs,** so this shows the bugs are now visible
   to Expectrail, not that it would have found them blind, and the verifier does not run the rules
   yet.
+- **Advisory discovery later found all four without a rule per bug,** from generic probes and rules
+  read from the game's code ([below](#checks-nobody-wrote-advisory-discovery)). Its profile was
+  also written after reading the reports, so it is not a blind result either.
 - **The natural-catch trial found nothing to catch.** The test that would count is a fix Muse Code
   writes that looks right but is wrong, rejected by Expectrail. So we committed the rules, and a
   digest of guards kept with the held-out set (the double jump still works, the gun still fires,
@@ -229,6 +254,42 @@ Each was rendered on five routes, and so was the clean game ([`bench/reported/`]
   undid an earlier fix to the platforms' drawing order (PR #927), so in the current demo the lower
   moving platform draws behind the ground's grass edge. It is a candidate report to the demo's
   maintainers, not a benchmark case.
+
+### Checks nobody wrote: advisory discovery
+
+The checks above, approved or engine-record, were each written for a known problem.
+Advisory discovery writes none per bug: 22 generic probes replay on a build, and contracts that
+templates build from four claims read from the game's code (the double jump, the gun's cooldown,
+the sprite's facing, the enemies' patrol) judge every replay. A failure counts only if it repeats
+three times out of three from a fresh process. One job per build, no healthy reference build, the
+clean game as the false-alarm control ([`bench/discovery/`](bench/discovery/README.md), run
+[41238187197](https://github.com/seanudeke/Expectrail/actions/runs/41238187197)):
+
+| Build | Profile written for it? | Result |
+| --- | --- | --- |
+| Clean game | false-alarm control | no finding |
+| air-jump | yes | eight jump presses give 7 jumps in the air, two give 1 |
+| gun-cooldown | yes | bullets 12 ticks apart, the minimum is 30; faster tapping fires 12 bullets instead of 3 |
+| body-flip | yes | the robot walks left facing right, and a bullet flies against its facing |
+| enemy-ledge | yes | an enemy drops 256 px below where it settled |
+| Fall-through v1, v2 | no | flagged by a symptom: the double jump stops working, because the robot never stands |
+| Sinking, missing texture, layering (6 variants) | no | missed: visual, or about ground contact, which no claim covers |
+
+- **Development reproduction, not blind discovery.** We chose the four claims after reading the four
+  reports, and the rule that catches air-jump was written after the first jump rule missed it.
+  No report, patch, route or hand-written rule went into a run.
+- **It does not gate.** Every claim is inferred from code and unapproved, so findings are advisory.
+- **Blind, it flagged 4 of 8 fresh defects and no healthy build.** With the discoverer's files
+  frozen (`discovery/freeze.json`), a separate session wrote ten fresh entries in the private
+  held-out repository, drawn at random from a list it committed first, and their digest was
+  committed here ([`bugs/fresh/`](bugs/fresh/README.md)) before the run (run
+  [41248745687](https://github.com/seanudeke/Expectrail/actions/runs/41248745687)). Eight defects is
+  a small set; the writer was an AI agent following a prompt written by the session that built the
+  discoverer, which suggested the areas to draw from; and what each entry is stays private until
+  the event is over ([docs/discovery.md](docs/discovery.md#blind-run-1-october-31)).
+- **The Muse Spark planner has not run live;** every result here is with it off.
+- **Next:** the specification's promotion and enforcement stages, and what we would take from AI
+  code review that runs code (Greptile), are in [docs/discovery.md](docs/discovery.md#whats-next).
 
 **Open weights.** Muse Glimmer 30B, on a Fireworks deployment, can judge every vision check with no
 SAM key, checked against the game engine (`glimmer-engine`): 8 of 8 held-out and 8 of 8
@@ -324,16 +385,17 @@ What this does and does not show:
 
 ## What Expectrail cannot do yet
 
-- **It checks a change; it does not explore.** It replays fixed routes, so a bug where no route goes
-  is invisible to it. Today it is visual regression checking, not playtesting.
-- **It checks only what someone wrote a check for.** Three approved checks in the verifier today. Nothing
-  checks what nobody described: today's checks caught none of the four reported bugs. Advisory
-  discovery ([docs/discovery.md](docs/discovery.md)) is the first answer: 22 generic probes judged by
-  contracts read from the game's code found all four, each 3 times out of 3, with no false alarm on
-  the clean game, locally and in CI. It does not gate anything, and its profile was written after
-  reading those four reports (development reproduction, not blind discovery). On the eight
+- **It checks a change; it does not explore.** It replays fixed routes and 22 fixed discovery
+  probes, so a bug where none of them goes is invisible to it. Today it is visual regression
+  checking with a first step toward discovery, not playtesting.
+- **Only checks people wrote can reject a change.** Three approved checks guard the game, and they
+  caught none of the four reported bugs. Advisory discovery ([docs/discovery.md](docs/discovery.md))
+  found all four with no false alarm on the clean game, locally and in CI, but it does not gate, its
+  profile was written after reading those four reports (development reproduction, not blind
+  discovery), and it reaches only the four mechanics that profile describes: of the eight
   development bugs it was not written for, it flagged the two fall-through variants by a symptom and
-  missed the six that are visual or about ground contact.
+  missed the six that are visual or about ground contact. Blind, on eight fresh defects, it flagged
+  four.
 - **One game and one web page, mostly with bugs we seeded.** The game's held-out bugs were kept from
   the fixer, but a teammate wrote them, and the same team wrote the checks. The four reproduced
   public bug reports are caught only by engine-record checks written after we saw them, which the
@@ -396,6 +458,11 @@ python3 -m agents.loop --out runs/loop --mode offline --runs 10
 # → runs/loop/morning-report.md (rollup) + per-run before/after frames
 python3 -m agents.trust --out runs/trust                    # signing key stays off the fixer
 
+python3 -m expectrail.discovery.cli discover --profile discovery/platformer.profile.json \
+  --snapshot clean:reference --snapshot air-jump:base:bugs/reported/air-jump.patch \
+  --out runs/discovery                                      # advisory discovery, headless
+python3 -m expectrail.discovery.freeze verify               # discovery is frozen for the blind run
+
 # Local Meta keys: copy .env.example → .env (gitignored) and set META_API_KEY / MODEL_API_KEY
 python3 -m expectrail.spec_writer draft "The player never falls through the ground" --out /tmp/spec.json
 python3 -m expectrail.spec_writer approve /tmp/spec.json --by <you>   # Muse Spark drafts; a person approves
@@ -418,9 +485,9 @@ See [agents/README.md](agents/README.md) for Muse API / Muse Code setup (`.env`,
 | [`contracts/`](contracts) | Schemas and examples for everything passed between lanes ([docs](docs/contracts.md)) | everyone |
 | [`harness/`](harness) | Route player, Movie Maker capture under Xvfb, replay check ([docs](docs/harness.md)) | Timo |
 | [`expectrail/`](expectrail) | Contract helpers, the reference evaluator, and the Muse Spark spec writer | Zayyad, Sean |
-| [`expectrail/trace/`](expectrail/trace), [`expectrail/discovery/`](expectrail/discovery), [`discovery/`](discovery) | Advisory discovery: episodes, the trace-contract interpreter, generic probes, the mechanics profile, the Muse Spark planner ([docs](docs/discovery.md)) | Sean |
-| [`specs/`](specs) | Test specs for the bug families; a person approves each one | Sean |
-| [`bugs/`](bugs) | Seeded bugs, and reproductions of publicly reported Godot bugs ([`bugs/reported/`](bugs/reported/README.md)), as patches against the clean game ([evaluation plan](docs/evaluation.md)) | Sean, Timo |
+| [`expectrail/trace/`](expectrail/trace), [`expectrail/discovery/`](expectrail/discovery), [`discovery/`](discovery) | Advisory discovery, the checks nobody wrote: episodes, the trace-contract interpreter, generic probes, the mechanics profile and its freeze, the Muse Spark planner ([docs](docs/discovery.md)) | Sean |
+| [`specs/`](specs) | The human-written checks: test specs for the bug families, a person approves each one | Sean |
+| [`bugs/`](bugs) | Seeded bugs, and reproductions of publicly reported Godot bugs ([`bugs/reported/`](bugs/reported/README.md)), as patches against the clean game ([evaluation plan](docs/evaluation.md)); the digest of the private fresh set for the blind discovery run ([`bugs/fresh/`](bugs/fresh/README.md)) | Sean, Timo |
 | [`docs/demo/`](docs/demo/) | Interactive demo showcase and audit vault web app | Timo |
 | [`game/`](game) | Godot's 2D platformer demo, unmodified (MIT) | prior work |
 | [`agents/`](agents) | Repair requests, Muse Code fixer, verifier, Wonder triage, morning report | Taofeek |

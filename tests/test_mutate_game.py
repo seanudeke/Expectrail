@@ -16,7 +16,7 @@ import agents.mutate_game as mg
 from harness.run import REPO, tree_digest
 
 PARAMS = {"positionStep": 8, "offsetStep": 8, "scaleStep": 0.25, "zIndexStep": 1, "constantScale": 2,
-          "collisionBits": 3, "seed": 11, "sampleSize": 40}
+          "collisionBits": 3, "seed": 11, "sampleSize": 40, "sampling": {"method": "uniform"}, "samplingWhy": "a test"}
 
 
 def prereg() -> dict:
@@ -114,8 +114,141 @@ class SampleTest(unittest.TestCase):
         self.assertEqual(doc["sampled"], len(doc["mutants"]))
         self.assertEqual(sum(doc["enumeratedByClass"].values()), doc["enumerated"])
 
+    def test_the_cli_gives_counts_at_the_registered_steps_with_nothing_else_filled_in(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "p.json"
+            path.write_text(json.dumps({"generator": PARAMS}))
+            with mock.patch("sys.stdout.write") as out:
+                self.assertEqual(mg.main(["--mutants-by-class", "--prereg", str(path)]), 0)
+        printed = json.loads("".join(c.args[0] for c in out.call_args_list))
+        self.assertEqual(sum(printed.values()), len(mg.enumerate_mutants(PARAMS)))
+
+    def test_the_cli_names_the_steps_still_empty(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "p.json"
+            path.write_text(json.dumps({"generator": {**PARAMS, "scaleStep": None}}))
+            with mock.patch("sys.stderr.write") as err:
+                self.assertEqual(mg.main(["--mutants-by-class", "--prereg", str(path)]), 2)
+        self.assertIn("generator.scaleStep", "".join(c.args[0] for c in err.call_args_list))
+
     def test_nothing_private_can_be_mutated(self):
         self.assertFalse(any("held" in m["file"] for m in mg.enumerate_mutants(PARAMS)))
+
+
+class StratifiedTest(unittest.TestCase):
+    PER_CLASS = {"numeric": 10, "boolean": 1, "collision-bit": 5, "code": 8, "resource-path": 6}
+
+    def gen(self, **over):
+        return {**PARAMS, "sampleSize": 30, "sampling": {"method": "stratified", "perClass": dict(self.PER_CLASS)}, **over}
+
+    def counts(self, gen):
+        out = {}
+        for m in mg.draw(mg.enumerate_mutants(gen), gen):
+            out[m["class"]] = out.get(m["class"], 0) + 1
+        return out
+
+    def test_each_class_gets_exactly_its_count(self):
+        self.assertEqual(self.counts(self.gen()), self.PER_CLASS)
+
+    def test_the_draw_is_seeded_and_in_enumeration_order(self):
+        gen = self.gen()
+        every = mg.enumerate_mutants(gen)
+        first = mg.draw(every, gen)
+        self.assertEqual(first, mg.draw(every, gen))
+        self.assertEqual([m["id"] for m in first], [m["id"] for m in every if m in first])
+        self.assertNotEqual(first, mg.draw(every, self.gen(seed=12)))
+
+    def test_changing_any_class_leaves_every_others_draw_alone(self):
+        ids = lambda gen, cls: [m["id"] for m in mg.draw(mg.enumerate_mutants(gen), gen) if m["class"] == cls]  # noqa: E731
+        base = self.gen()
+        for changed in ("numeric", "collision-bit", "code", "resource-path"):
+            other = self.gen(sampleSize=32)
+            other["sampling"]["perClass"][changed] += 2
+            for cls in mg.OPERATOR_CLASSES:
+                if cls != changed:
+                    with self.subTest(changed=changed, cls=cls):
+                        self.assertEqual(ids(base, cls), ids(other, cls))
+
+    def test_the_manifest_carries_the_plan(self):
+        with mock.patch.object(mg, "_sha", return_value="x"):
+            doc = mg.build_manifest({"generator": self.gen()})
+        self.assertEqual(doc["sampling"]["method"], "stratified")
+        self.assertEqual(doc["sampled"], 30)
+
+    def test_a_uniform_plan_larger_than_the_game_says_how_short_it_fell(self):
+        gen = {**PARAMS, "sampleSize": 10 ** 6}
+        with mock.patch.object(mg, "_sha", return_value="x"):
+            doc = mg.build_manifest({"generator": gen})
+        self.assertEqual(doc["shortOfSample"], 10 ** 6 - doc["enumerated"])
+
+    def test_a_short_class_gives_all_it_has_and_the_manifest_says_so(self):
+        gen = self.gen(sampleSize=32)
+        gen["sampling"]["perClass"]["boolean"] = 3
+        with mock.patch.object(mg, "_sha", return_value="x"):
+            doc = mg.build_manifest({"generator": gen})
+        self.assertEqual(doc["sampledByClass"]["boolean"], 1)
+        self.assertEqual(doc["shortByClass"], {"boolean": 2})
+        self.assertEqual(doc["sampled"], 30)  # the shortfall never moves to another class
+
+    def test_a_uniform_draw_is_unchanged_by_this(self):
+        every = mg.enumerate_mutants(PARAMS)
+        self.assertEqual(mg.draw(every, PARAMS), mg.sample(every, 11, 40))
+
+    def test_bad_plans_are_named(self):
+        for gen, needle in ((self.gen(sampleSize=29), "adds up to 30"),
+                            ({**PARAMS, "sampling": {"method": "by-vibes"}}, "uniform or stratified"),
+                            ({**PARAMS, "sampling": {"method": "uniform", "perClass": {}}}, "takes no perClass"),
+                            (self.gen(sampling={"method": "stratified", "perClass": {"scenery": 30}}), "scenery"),
+                            (self.gen(sampling={"method": "stratified", "perClass": {"numeric": -1, "code": 31}}),
+                             "whole number"),
+                            (self.gen(sampling={"method": "stratified", "perClass": {"numeric": True, "code": 29}}),
+                             "whole number"),
+                            (self.gen(sampling={"method": "stratified"}), "no classes"),
+                            (self.gen(sampling={"method": "stratified", "perClass": ["numeric"]}), "no classes"),
+                            (self.gen(sampling="uniform"), "must be an object"),
+                            ({**PARAMS, "seed": "abc"}, "generator.seed"),
+                            ({**PARAMS, "seed": True}, "generator.seed"),
+                            ({**PARAMS, "sampleSize": "10"}, "generator.sampleSize"),
+                            ({**PARAMS, "sampleSize": 0}, "generator.sampleSize"),
+                            (self.gen(sampleSize=2.0), "generator.sampleSize")):
+            with self.subTest(needle=needle):
+                self.assertIn(needle, mg.sampling_problem(gen))
+
+    def test_good_plans_pass(self):
+        self.assertIsNone(mg.sampling_problem(self.gen()))
+        self.assertIsNone(mg.sampling_problem(PARAMS))
+
+
+class ExcludedMutantTest(unittest.TestCase):
+    IDS = ["code:player/player.gd:7:sign.WALK_SPEED", "resource-path:player/player.tscn:3:missing"]
+
+    def manifest(self, ids, sampling=None):
+        gen = {**PARAMS, "sampling": sampling or {"method": "uniform"}, "sampleSize": 3000}
+        with mock.patch.object(mg, "_sha", return_value="x"):
+            return mg.build_manifest({"generator": gen, "excludedBeforeDraw": {"mutants": ids}})
+
+    def test_the_rehearsed_mutants_can_never_be_drawn(self):
+        doc = self.manifest(self.IDS)
+        drawn = {m["id"] for m in doc["mutants"]}
+        self.assertFalse(drawn & set(self.IDS))
+        self.assertEqual(doc["excludedBeforeDraw"], sorted(self.IDS))
+
+    def test_they_exist_at_any_steps(self):
+        for step in (1, 8, 0.25):
+            every = {m["id"] for m in mg.enumerate_mutants({**PARAMS, "positionStep": step, "scaleStep": step})}
+            self.assertTrue(set(self.IDS) <= every)
+
+    def test_the_population_shrinks_by_exactly_them(self):
+        self.assertEqual(self.manifest([])["enumerated"] - self.manifest(self.IDS)["enumerated"], 2)
+
+    def test_a_mutant_that_does_not_exist_is_refused(self):
+        with self.assertRaises(mg.PreregistrationError):
+            self.manifest(["code:player/player.gd:7:sign.NOPE"])
+
+    def test_stratified_draws_exclude_them_too(self):
+        plan = {"method": "stratified", "perClass": {"code": 2000, "resource-path": 1000}}
+        drawn = {m["id"] for m in self.manifest(self.IDS, plan)["mutants"]}
+        self.assertFalse(drawn & set(self.IDS))
 
 
 class SiteCountTest(unittest.TestCase):
@@ -172,6 +305,28 @@ class PreregistrationTest(unittest.TestCase):
         doc = self.complete()
         self.assertEqual(doc["oracle"]["frameThreshold"], 0)
         self.assertTrue(self.load(doc)["sha256"])
+
+    def test_a_bad_sampling_plan_is_refused(self):
+        doc = self.complete()
+        doc["generator"]["sampling"] = {"method": "stratified", "perClass": {"numeric": 1}}
+        with self.assertRaises(mg.PreregistrationError) as caught:
+            self.load(doc)
+        self.assertIn("adds up to", str(caught.exception))
+
+    def test_a_sampling_decision_needs_its_reason(self):
+        for why in (None, "", "   "):
+            doc = self.complete()
+            doc["generator"]["samplingWhy"] = why
+            with self.subTest(why=why), self.assertRaises(mg.PreregistrationError) as caught:
+                self.load(doc)
+            self.assertIn("generator.samplingWhy", str(caught.exception))
+
+    def test_the_agreement_sample_is_at_least_what_127_asked_for(self):
+        doc = self.complete()
+        doc["agreement"]["minimum"] = 19
+        with self.assertRaises(mg.PreregistrationError) as caught:
+            self.load(doc)
+        self.assertIn("at least 20", str(caught.exception))
 
     def test_moved_material_is_refused(self):
         doc = self.complete()

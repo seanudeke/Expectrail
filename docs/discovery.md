@@ -4,10 +4,31 @@ Built October 31, 2026. In one line: **replay generic probes on a build, judge e
 contracts read from the game's own code, and report a finding only when it fails three times out of
 three.** Nothing here accepts or rejects a fix. The verifier and its checks are unchanged.
 
-Expectrail's verifier checks only what someone wrote a check for: three approved checks today, and
-they caught none of the four reported bugs ([`bench/reported/`](../bench/reported/README.md)). This is
-the first slice of the answer: the advisory part of the autonomous-discovery specification
-(its "restricted competition slice"), built on public material only.
+## Two kinds of checks
+
+Expectrail now runs two kinds of checks, and only one of them can reject a change:
+
+| | Written by people | Discovered by Expectrail |
+| --- | --- | --- |
+| What | Three approved specs (the robot stays above the ground, the robot is visible, the coins are visible), the gameplay check, and the held-out bugs and routes. Five engine-record checks for the reported bugs, written after they were reproduced and run by the reported-bug bench and trial, not by the verifier | 22 generic probes, judged by contracts that twelve templates build from a profile of four claims read from the game's code (the double jump, the gun's cooldown, the sprite's facing, the enemies' patrol). Optionally, Muse Spark proposes more probes and contracts in the same closed language |
+| Who writes them | Muse Spark drafts a spec from one sentence and a person approves it; teammates write the held-out cases | The templates, with no model; a planner's contracts carry `model_prior` authority and are never approved by being proposed |
+| Effect | Gate: any failure rejects the change | Advisory: findings are reported beside the decision and never change it |
+| Shown so far | 8 of 8 held-out bugs caught with SAM; 0 of 7 fixes that only look right accepted | 4 of 4 reported bugs found, no false alarm on the clean game (development reproduction); 2 of the 8 development bugs it was not written for |
+
+The approved checks caught none of the four reported bugs ([`bench/reported/`](../bench/reported/README.md)).
+This is the first slice of the answer: the advisory part of the team's autonomous-discovery
+specification (its "restricted competition slice"), built on public material only. What comes after
+it is in [What's next](#whats-next).
+
+## Status, October 31
+
+- **Built and measured:** everything on this page, locally and in CI (below).
+- **Tested blind once:** with the discoverer frozen, ten fresh entries written after the freeze
+  and their digest committed (pull request #150), the blind run flagged **4 of 8 defects** and
+  **none** of the 2 intentional changes or the clean game, every job complete
+  ([below](#blind-run-1-october-31)).
+- **Not run live:** the Muse Spark planner. It is built and tested against a fake transport; every
+  result on this page is with the planner off.
 
 ## What runs
 
@@ -82,9 +103,11 @@ replays), complete within budget.
 | body-flip | 22 | 84 | 7 | 64 | walking left while facing right (`facing-follows-motion`); a bullet flying right while the robot faces left (`facing-bullets-follow-facing`); the sprite turns 240 times walking left, never walking right (`facing-mirror`, twice) |
 | enemy-ledge | 22 | 90 | 1 | 64 | an enemy drops 256 px below where it settled, while the robot stands still (`enemy-max-drop`) |
 
-Each bug was found by at least one contract, none of them written for it, and the clean game failed
-none. The guards held where the feature still works: the double jump still exists on every build,
-a ready press still fires, the enemies are all still there and still patrol. "Not exercised" is
+Each bug was found by at least one contract, and the clean game failed none. No contract names a
+bug, replays a bug's route or takes a threshold from a bug report (see [What the development
+results do and do not say](#what-the-development-results-do-and-do-not-say) for how the profile
+was chosen). The guards held where the feature still works: the double jump still exists on every
+build, a ready press still fires, the enemies are all still there and still patrol. "Not exercised" is
 mostly a contract on a probe that cannot trigger it (a weapon rule on a jump probe). A second full
 run gave the same 110 episodes tick for tick. The record: [`bench/discovery/local-oct31/`](../bench/discovery/local-oct31/report.md).
 
@@ -132,7 +155,7 @@ The results above are development reproduction. The blind run is the test that i
    profile and templates, probes, route compiler, signals, interpreter, job, planner prompt and
    model, record schemas, recorder, replay harness) and of the clean game, plus the exact blind
    command, as of commit `0b6556c14a51`. `python -m expectrail.discovery.freeze verify` names
-   any file that changed, and a test keeps the freeze holding on main until the blind run is recorded.
+   any file that changed, and a test keeps the freeze holding on main while the fresh set is in use.
 2. **Fresh defects, written after the freeze.** Eight to ten defects and one or two intentional
    changes, in the private held-out repository under `fresh/`, each with a private route showing it.
    They are written without the discoverer's rules in front of the writer, and chosen by a random
@@ -147,11 +170,53 @@ The results above are development reproduction. The blind run is the test that i
 Scored: defects flagged out of defects, intentional changes and the clean game flagged (false
 alarms), and incomplete jobs. A miss is a result, not a reason to change the frozen system.
 
-## What these results do and do not say
+### Blind run 1, October 31
+
+Run [41248745687](https://github.com/seanudeke/Expectrail/actions/runs/41248745687), main at
+`81f692c`, planner off. Before replaying anything, every job verified the freeze (`6e9ca2bd…`) and
+the set's digest against [`bugs/fresh/fresh.sha256`](../bugs/fresh/fresh.sha256). Recorded from the
+jobs' counts-only notices in
+[`bench/discovery/blind-run-41248745687.json`](../bench/discovery/blind-run-41248745687.json).
+
+| Id | Kind | Flagged | Reproduced findings | Replays |
+| --- | --- | --- | ---: | ---: |
+| clean | control | no | 0 | 22 |
+| f01 | defect | **yes** | 1 | 24 |
+| f02 | defect | **yes** | 4 | 38 |
+| f03 | intentional | no | 0 | 22 |
+| f04 | defect | no | 0 | 22 |
+| f05 | defect | no | 0 | 22 |
+| f06 | defect | **yes** | 1 | 24 |
+| f07 | defect | no | 0 | 22 |
+| f08 | defect | no | 0 | 22 |
+| f09 | defect | **yes** | 4 | 38 |
+| f10 | intentional | no | 0 | 22 |
+
+**4 of 8 defects flagged, 0 false alarms on 3 healthy builds, 0 incomplete jobs.** Every flag
+reproduced three times out of three; no finding was flaky.
+
+What it does and does not show:
+
+- **It is the first discovery result on defects nobody tuned the discoverer to.** They were written
+  after the freeze, by a separate session that never saw the discoverer's rules, and chosen by a
+  seeded random draw from a list of sixteen candidate defects committed first.
+- **Eight defects is a small sample.** 4 of 8 says the slice reaches some unseen defects; it does
+  not estimate a rate.
+- **The writer was not fully independent of us.** The prompt it followed was written by the session
+  that built the discoverer, and it suggested the areas to draw from (walking, jumping, shooting,
+  enemies, coins, collision, the camera and more), which include the four mechanics the profile
+  covers. The writer was an AI agent, not a person.
+- **The set's descriptions reached the discoverer's author before the run.** The freeze, verified by
+  the run before it replayed anything, is what guarantees the discoverer did not change after that.
+- **Which rules fired, and what each entry is, stay private until the event is over,** like the
+  held-out bugs. The ids, kinds and flags above are what the run published.
+
+## What the development results do and do not say
 
 - **This is development reproduction, not discovery.** The profile's four claims (the double jump,
   the gun's cooldown, the sprite's facing, the enemies' patrol) and the probe families were written
-  by the same team, on the same day, after reading the four bug reports. No bug report, patch, route
+  by the same team, on the same day, after reading the four bug reports, and the contract that catches
+air-jump was added after the first jump contract missed it (next point). No bug report, patch, route
   or hand-written rule went into a run, and every threshold comes from the game's own code or from
   a twin probe, but the choice of what to profile was not blind. The record says so: its condition
   is `development-reproduction`, and it lists what was withheld.
@@ -159,10 +224,12 @@ alarms), and incomplete jobs. A miss is a result, not a reason to change the fro
   (fall-through, sinking) is not in the profile, and the two visual families (missing texture,
   layering) cannot show in a trace at all; the verifier's approved checks and SAM already cover them.
   Expect misses there: they show the slice reaching only what the profile claims.
-- **One contract we expected to catch air-jump did not.** The profile bounds the rise above the floor
-  at two full jumps (260 px). The game cuts a jump short when the button is released, so short taps
-  never come near it, with the bug or without. The catch came from the twin probes instead: the
-  number of upward kicks in one stretch of air, eight presses against two. The specification warns
+- **One contract we expected to catch air-jump did not, and its replacement was written after that
+  miss.** The profile bounds the rise above the floor at two full jumps (260 px). The game cuts a
+  jump short when the button is released, so short taps never come near it, with the bug or without.
+  After seeing that on the air-jump build, we added a signal for the number of upward kicks in one
+  stretch of air and switched the twin-probe relation to it (eight presses against two). That is
+  tuning against the case, so the air-jump catch is the weakest of the four. The specification warns
   against counting impulses from position alone; on the clean game the count was 0 for one press and
   1 for two or more on all twelve jump probes at four positions, and never above 1 on any of the 22
   probes, and the relation compares two probes from the same spot rather than asserting a number. A
@@ -171,10 +238,54 @@ alarms), and incomplete jobs. A miss is a result, not a reason to change the fro
   physics is identical (the traces match tick for tick; only the camera's view transform differs, and
   no contract reads it). A finding names its probes, so its replay can be rendered with frames.
 - **Nothing is approved.** Every claim is `inferred_code` with no approval, so every contract is
-  advisory. Promotion into the verifier (approval, mutation and causal-variant validation, paired
-  verdicts, signing) is the specification's next stage and is not built.
-- **No blind claim.** A blind-discovery claim needs fresh defects under a frozen protocol; the four
-  public reproductions cannot provide it.
+  advisory. Promotion into the verifier (approval, validation against causal variants and
+  feature-removal challenges, paired verdicts, signing) is the specification's next stage and is not
+  built.
+- **The four reported bugs are not the blind claim.** A blind-discovery claim needs fresh defects
+  under a frozen protocol; the four public reproductions cannot provide it. Blind run 1 above is
+  that test: 4 of 8, on a small set.
+
+## What's next
+
+In order, and none of it built yet unless it says so.
+
+1. **The blind run.** Done once, planner off (above). The same frozen set can measure the planner:
+   run it once more with the planner on, under the same freeze.
+2. **The Muse Spark planner, live.** One call per job; its proposals go through the same reference
+   check and reproduction. Measured against the planner-off run on the same builds.
+3. **The rest of the autonomous-discovery specification.** The team's specification has three
+   rollouts:
+   - *Advisory* (this page is its first slice). Still to come: visual discovery (Muse Spark proposes
+     the scene's entity classes, SAM 3.1 finds each, base and candidate compared on matched runs),
+     planner rounds between episodes rather than one call, and integrity signals (crashes, fatal
+     script errors, non-finite state, no progress) recorded apart from suspected gameplay defects.
+   - *Promotion.* Each contract moves through proposed, reproduced, validated, shadow and approved or
+     rejected, as append-only registry events. Validation needs at least ten clean runs across three
+     healthy configurations, at least two faulty variants from distinct causes and one
+     behaviour-preserving patch, guards that reject a fix which disables the feature, and
+     applicability tests. A person approves the profile and its templates; a model's proposal never
+     approves itself. Validated contracts then run in shadow beside the verifier.
+   - *Enforcement.* A project opts in to verification v1 with a pinned contract set: paired verdicts
+     against the failing base (repaired, preserved, regression, unresolved, inconclusive), repair
+     requests for faults found in the trace rather than on screen, and signing of the exact scope.
+     Only then can a discovered contract reject a change.
+4. **What we would take from AI code review that runs code.** Greptile's TREX runs the code a pull
+   request changes in a sandbox and attaches logs, screenshots and video to its review. Our Greptile
+   strategy-adoption specification maps seven of its ideas onto Expectrail; their status:
+
+   | Package | Status | What is left |
+   | --- | --- | --- |
+   | G01 Map a change to the behaviours it can affect | Not built | A small index of scenes, scripts and resources, linked to profile claims and probes, used to pick probes for a diff; compared with a planner that sees only the diff |
+   | G02 One question per investigation | Partly: one planner call proposes probes and contracts | Typed hypotheses with stop conditions, and a ledger that reuses episodes |
+   | G03 Confirm findings automatically | Mostly built: identities, not-exercised outcomes, 3-of-3 reproduction, reference falsification, the clean control, guards | Causal variants, feature-removal challenges and healthy variations per contract (the promotion validation above) |
+   | G04 Evidence in the pull request | Partly: review pages with paired before-and-after verdicts ([review.md](review.md)), the morning report, CI summaries | A pull request comment with finding ids that stay stable across pushes, posted from a separate trusted step |
+   | G05 Allocate models, replays and budget | Largely built: report-first escalation, the judge fallback ladder ([fallbacks.md](fallbacks.md)), job budgets, headless trace-only replays | One budget across planning, replays and judging |
+   | G06 Scoped memory of team feedback | Not built | Typed feedback, with approved expectations kept apart from preferences |
+   | G07 Import Greptile's findings | Not built | Read-only import of its review comments as hypotheses (GitHub comments, its MCP read tools, or its CLI's JSON output); kept only if it adds confirmed findings |
+
+   G01 and G02 change the frozen planner, so they wait for the blind run. Every value claim in that
+   specification (context improves detection, routing saves money, and so on) needs a measured
+   comparison before we make it.
 
 ## Run it
 
