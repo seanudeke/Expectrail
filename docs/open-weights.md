@@ -117,8 +117,9 @@ below the ground", only "where is it".
 
 Why open weights matter here beyond the prize: an unreleased game build is confidential, and a
 studio wants its quality gate on infrastructure it controls. With `glimmer-engine`, every vision
-check runs on Glimmer, which a studio can serve on its own hardware, and nothing leaves for a
-hosted vision API.
+check runs on Glimmer (the ground check on the engine's position log, as above), which a studio
+could serve on its own hardware, and nothing leaves for a hosted vision API. We have run Glimmer only
+on a Fireworks deployment; self-hosting is documented from its model card, not tested.
 
 ## How to verify it
 

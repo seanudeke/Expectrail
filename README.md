@@ -8,7 +8,8 @@ Expectrail verifies AI-agent changes by observation, not by trust. It replays th
 Meta's vision models (SAM 3.1, or the open-weight Muse Glimmer) find what a plain-English check names
 in the frames, measures that against the engine's own record of where the robot, the coins and the
 floor really are, and accepts the change only if every check passes: checks drafted by Muse Spark,
-approved by a person, and kept where the agent can neither see nor touch them.
+approved by a person, and kept where the agent cannot change them (it sees a failing check's spec
+only after a failed attempt, and never sees the held-out ones).
 
 It catches fixes that only look right. Given a "fix" that stops the robot falling through
 the floor by drawing it sunk into the ground, a position-only check passed it, and Muse Code, shown
@@ -127,7 +128,7 @@ four more reproduce bugs other people reported ([Bugs we did not write](#bugs-we
 | Natural-catch trial: Muse Code given each reported bug in the reporter's words, 5 times each (20 cases) | 20 of 20 fixed on the first attempt; Expectrail accepted 20, the bug's own check passed 20, Muse from screenshots accepted 19; **0 natural catches** | [41129722699](https://github.com/seanudeke/Expectrail/actions/runs/41129722699) |
 | Bad fixes that only look right, accepted by the judge (7 cases, 2 runs) | Expectrail with SAM **0 of 7**; Expectrail without SAM 3 of 7; Muse from screenshots 2 of 7 | [judge](bench/judge/README.md) |
 | Good fixes accepted by the judge (8 cases, 2 runs) | Expectrail 8 of 8 both runs; Muse from screenshots 6 and 7 of 8 | [judge](bench/judge/README.md) |
-| Development bugs fixed by Muse Code | 8 of 8 with Expectrail's evidence; 8 of 8 from screenshots alone | [fix matrix](bench/fix-matrix/README.md) |
+| Development bugs fixed by Muse Code, October 30 | 8 of 8 with Expectrail's evidence; 8 of 8 from screenshots alone | [fix matrix](bench/fix-matrix/README.md) |
 | Development bugs fixed by Muse Code, October 31, all three briefings | Evidence first **8 of 8**; report first, evidence after a failed attempt 7 of 8; report only 6 of 8. Every miss was a sinking bug where the report-only attempts timed out | [41223754703](https://github.com/seanudeke/Expectrail/actions/runs/41223754703) |
 | Demo path, live, end to end, 10 independent runs | **10 of 10 accepted**, each on the first attempt; 12 to 22 minutes a run (median 14.5) and 1,164 SAM images ($2.91) a run; Muse Code's share is not reported per run | [40990485265](https://github.com/seanudeke/Expectrail/actions/runs/40990485265) |
 | Demo path, live, after the report-first change (Muse gets the plain report first), 3 runs | **3 of 3 accepted**, each on the first attempt from the report; each fix's review: repair demonstrated; 7 to 12 minutes and 157 SAM images ($0.39) a run, with the clean game's SAM answers shared | [41223748922](https://github.com/seanudeke/Expectrail/actions/runs/41223748922) |
@@ -158,8 +159,8 @@ another in one.
 
 What these numbers do and do not say:
 
-- **The verifier is where Expectrail wins, not the fixer.** Muse Code fixes all 8 development bugs
-  from screenshots alone, as well as with our evidence. What screenshots alone cannot do is judge:
+- **The verifier is where Expectrail wins, not the fixer.** On October 30 Muse Code fixed all 8
+  development bugs from screenshots alone, as well as with our evidence. What screenshots alone cannot do is judge:
   Muse from screenshots accepted 2 of 7 fixes that only look right (one lowers the floor, one sinks
   the robot) and turned down one or two good ones. Expectrail with SAM accepted none of the bad and
   all of the good, in both runs. So since October 30 the fixer gets a plain report first, every
@@ -298,7 +299,7 @@ What this does and does not show:
   - The tolerance is now 18 px, halfway to the 36 px the sinking bugs move the button, chosen from
     the public sessions.
 - **The repair matrix shows the loop working, not a better fixer.** Muse Code fixed all 8 bugs from
-  screenshots alone, just as it did with our evidence, as in the game.
+  screenshots alone, just as it did with our evidence, as it did in the game's October 30 run.
   - Every fix it wrote is a real fix: it removes the bad rule, corrects the logo path, or moves the
     bar clear of the button.
   - The verifier accepted all 16, on the public and private sessions. Two of those cases are the
