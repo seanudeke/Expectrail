@@ -144,6 +144,10 @@ jobs:
       - run: python -m pip install -r requirements-dev.txt -r requirements-web.txt
       - name: Install Chromium for Playwright
         run: python -m playwright install --with-deps chromium
+      - name: Open every page of the site in Chromium (script errors, missing files, broken links)
+        run: |
+          python -m unittest tests.test_check_pages -v
+          python -m agents.check_pages docs
       - name: Web adapter tests, including two byte-identical replays
         run: python -m unittest tests.test_web -v
       - name: Every variant on both routes, layout and behaviour only
