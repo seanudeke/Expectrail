@@ -88,6 +88,7 @@ diagnostics with a stable code; the status, label and reasons; and the command t
 | The fix that draws the robot inside the ground, SAM on, private routes | `REJECTED`: the fall stops (motion FAIL to PASS) but the requested ground check and visibility stay FAIL to FAIL | [41101881327](https://github.com/seanudeke/Expectrail/actions/runs/41101881327), and again in [41123758768](https://github.com/seanudeke/Expectrail/actions/runs/41123758768), whose review is kept with its frames: [sinking-fix](review/sinking-fix/) |
 | Every pull request, real replays, SAM off, no private routes | The correct fix shows FAIL to PASS and is `INCONCLUSIVE` (no repair claimed without the private routes); the fix that moves the floor's collision below its art is `REJECTED` | `agents-harness-verify` in [ci.yml](../.github/workflows/ci.yml) |
 | Main, real replays, SAM off, private routes | The correct fix is `REPAIR DEMONSTRATED` on `FRESH LIVE` evidence, and the record names no private route | `agents-harness-private` in [ci.yml](../.github/workflows/ci.yml) |
+| A fallback night, live (the fourth drill, after #146): SAM made unavailable once the pre-run check had passed, so Glimmer checked against the engine decided | Accepted on the first attempt; review `REPAIR DEMONSTRATED` on `FRESH LIVE` evidence, both arms judged by Glimmer (the second drill, before #146, was `INCONCLUSIVE`) | [41244537695](https://github.com/seanudeke/Expectrail/actions/runs/41244537695), [docs/fallbacks.md](fallbacks.md) |
 
 ## Limits
 
@@ -95,6 +96,9 @@ diagnostics with a stable code; the status, label and reasons; and the command t
   happened on that route, not elsewhere in the game.
 - A review inherits the verifier's sight. With SAM off the verifier accepts the fix that draws the
   robot inside the ground ([bench/judge](../bench/judge/README.md)); with SAM on it rejects it.
+  After a judge ladder fallback, both arms are judged by the judge that decided, Glimmer checked
+  against the engine, so the review has Glimmer's sight: the ground is judged on the engine's
+  position log ([docs/fallbacks.md](fallbacks.md)).
 - The base arm costs one more replay and, with SAM on, SAM's look at its frames; the shared SAM cache
   holds only the clean game's answers.
 - Observation models are not guaranteed deterministic: a review run again may differ, and a recorded
