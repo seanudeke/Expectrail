@@ -62,5 +62,26 @@ class FreshSet(unittest.TestCase):
             self.assertNotIn(leak, line)
 
 
+class Collect(unittest.TestCase):
+    def test_scores_defects_and_false_alarms(self):
+        rows = [{"id": "clean", "kind": "clean", "flagged": False, "completion": "complete"},
+                {"id": "f01", "kind": "defect", "flagged": True, "completion": "complete"},
+                {"id": "f02", "kind": "defect", "flagged": False, "completion": "complete"},
+                {"id": "f03", "kind": "intentional", "flagged": True, "completion": "partial"}]
+        notes = [{"title": f"Blind {r['id']}", "message": json.dumps(r)} for r in rows]
+        notes.append({"title": "Blind time f01", "message": "12 s"})
+
+        def fetch(path):
+            if path.endswith("annotations?per_page=100"):
+                return notes
+            if "/jobs" in path:
+                return {"jobs": [{"name": "blind (f01)", "id": 1}]}
+            return {"html_url": "u", "head_sha": "s", "created_at": "t"}
+
+        doc = fresh.collect(9, Path(tempfile.mkdtemp()), fetch=fetch)
+        self.assertEqual(doc["score"], {"defectsFlagged": 1, "defects": 2, "healthyFlagged": 1, "healthy": 2,
+                                        "incomplete": 1})
+
+
 if __name__ == "__main__":
     unittest.main()

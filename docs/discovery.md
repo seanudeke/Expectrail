@@ -138,8 +138,10 @@ The results above are development reproduction. The blind run is the test that i
    They are written without the discoverer's rules in front of the writer, and chosen by a random
    draw from a longer written list, so nobody picks them for being easy or hard to catch.
 3. **Commit the set's digest** here (`bugs/fresh/fresh.sha256`) before any run.
-4. **Run once** from the tagged commit, after verifying the freeze and the digest, with the clean
-   game as a control and no reference build. The public log carries counts only: per opaque id,
+4. **Run once** with the Discovery blind run workflow
+   ([`.github/workflows/discovery-blind.yml`](../.github/workflows/discovery-blind.yml)). It verifies
+   the freeze and the digest before replaying anything, runs the clean game as a control, and uses
+   no reference build. The public log carries counts only: per opaque id,
    defect or intentional, flagged or not. Which rules fired stays private until the event is over.
 
 Scored: defects flagged out of defects, intentional changes and the clean game flagged (false

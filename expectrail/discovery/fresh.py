@@ -148,7 +148,9 @@ def collect(run_id: int, out_dir: Path, fetch=None) -> dict:
     from agents.bench_collect import gh_json, run_annotations
 
     run, notes = run_annotations(run_id, fetch or gh_json, prefix="blind")
-    rows = [json.loads(n["message"]) for n in notes if (n.get("title") or "").startswith("Blind ")]
+    rows = [json.loads(n["message"]) for n in notes
+            if (n.get("title") or "").startswith("Blind ") and not n["title"].startswith(("Blind time ", "Blind error"))
+            and " error" not in n["title"]]
     if not rows:
         raise SystemExit(f"run {run_id}: no blind notices")
     rows.sort(key=lambda r: r["id"])
