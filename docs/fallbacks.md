@@ -127,7 +127,9 @@ What it showed:
 - **The review against the failing base does not use the ladder.** It reported INCONCLUSIVE
   ("player-stays-above-ground cannot be compared: before needs-review, after pass"): it judged the
   bugged base with SAM, which the drill had made unavailable, and did not fall back. The accept
-  stands, but the before-and-after evidence is missing on a fallback night (#129).
+  stands, but the before-and-after evidence is missing on a fallback night (#129). Since #146, after a
+  fallback accept the review judges the base and the candidate with Glimmer checked against the
+  engine, the judge that decided. Without a fallback, it judges with SAM as before.
 - **It is slow.** About 37 minutes against 12 to 22 for a SAM run, with the deployment billed by
   the hour while it is up.
 - **It judged one correct fix.** Glimmer's rate on fixes that only look right is still unmeasured
@@ -187,4 +189,6 @@ labelled as such, and never a second opinion.
 - a "needs review" for any other reason is not an outage;
 - the Glimmer key never reaches the fixer;
 - in the loop, an outage stops the run after one fix with no second fix written, and a fallback
-  accept carries its note into the morning report.
+  accept carries its note into the morning report;
+- after a fallback accept, the review judges with the same judge, and the setting does not outlive
+  the review.
