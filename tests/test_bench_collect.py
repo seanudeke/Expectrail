@@ -209,6 +209,9 @@ class JudgeCollectTest(unittest.TestCase):
         notes = [{"title": f"Judge {c}", "message": m}, {"title": "", "message": "runner image notice"}]
         if why:
             notes.append({"title": f"Judge reasons {c}", "message": why})
+        glimmer = getattr(self, "GLIMMER", {}).get(job // 100, {}).get(c)
+        if glimmer:
+            notes.append({"title": f"Judge Glimmer {c}", "message": glimmer})
         return notes
 
     def test_one_run_to_per_judge_counts(self):
@@ -241,6 +244,29 @@ class JudgeCollectTest(unittest.TestCase):
         self.RUNS = {11: [("bad/x", msg, None)]}
         run = bc.collect_judge([11], fetch=self.fetch)["runs"][0]
         self.assertEqual(run["spend"], {"samImages": 1200, "samUsd": 3.0, "museCalls": 1, "jobMinutes": 10.0})
+
+    def test_a_run_with_glimmer_gets_a_fourth_judge_and_older_runs_do_not(self):
+        live = "; 500.0 s; live=True"
+        self.RUNS = dict(type(self).RUNS)  # keep run 9, an older run without Glimmer
+        self.RUNS[12] = [("good/sinking/v1", "label good; SAM on accept; SAM off accept; Muse screenshots accept" + live, None),
+                          ("bad/fall-through-sink-player",
+                           "label bad; SAM on reject; SAM off accept; Muse screenshots accept" + live, None),
+                          ("bad/fall-through-freeze", "label bad; SAM on reject; SAM off reject; Muse screenshots reject" + live,
+                           None)]
+        self.GLIMMER = {12: {"good/sinking/v1": "label good; Glimmer+engine accept; 1500.2 s",
+                             "bad/fall-through-sink-player": "label bad; Glimmer+engine accept; 900.0 s",
+                             "bad/fall-through-freeze": "label bad; Glimmer+engine None; 30.0 s"}}
+        run = bc.collect_judge([12], fetch=self.fetch)["runs"][0]
+        self.assertEqual(run["judges"]["expectrailGlimmer"], {"goodAccepted": 1, "good": 1, "badAccepted": 1,
+                                                              "bad": 2, "undecided": 1})
+        sink = next(r for r in run["rows"] if r["case"] == "bad/fall-through-sink-player")
+        self.assertEqual((sink["decisions"]["expectrailGlimmer"], sink["glimmerSeconds"]), ("accept", 900.0))
+        md = bc.judge_markdown({"runs": [run], "changedBetweenRuns": {}})
+        self.assertIn("| Expectrail, Glimmer+engine | 12 | 1 of 1 | 1 of 2 | 1 |", md)
+        self.assertIn("| bad/fall-through-sink-player | reject | reject | accept | accept | accept |", md)
+        old = bc.collect_judge([9], fetch=self.fetch)["runs"][0]
+        self.assertNotIn("expectrailGlimmer", old["judges"])
+        self.assertNotIn("Glimmer", bc.judge_markdown({"runs": [old], "changedBetweenRuns": {}}))
 
     def test_offline_judge_runs_are_refused(self):
         self.RUNS = {9: [("good/sinking/v1",
