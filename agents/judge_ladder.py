@@ -8,7 +8,8 @@ There are two ladders, and they never mix (docs/fallbacks.md):
   verifier could only say needs-review): this ladder. It judges the *same* candidate again and
   never costs the fixer an attempt:
 
-  1. the same judge again, after a short wait, in case the failure was passing;
+  1. the same judge again, after a short wait, in case the failure was passing. Skipped when the
+     error says the key was refused or the credit is gone: waiting does not fix those;
   2. Muse Glimmer checked against the engine (``glimmer-engine``, never Glimmer alone), when a
      Glimmer deployment is configured and wakes in time. Its boxes are too loose for the ground
      check, so the ground is judged on the engine's position log, and the report says so;
@@ -25,6 +26,7 @@ judge's answers in one table.
 from __future__ import annotations
 
 import os
+import re
 import time
 from contextlib import contextmanager
 from pathlib import Path
@@ -34,6 +36,9 @@ from agents.sam_observations import BACKEND_ENV, SamError, vision_backend
 from agents.verifier import sam_on, verify
 
 UNAVAILABLE = "sam observations unavailable"  # agents/observations.py, on any vision client error
+# Only what an error says outright: an unknown error keeps the retry (agents.sam_observations.SamError).
+NO_RETRY_KINDS = ("auth", "credit")
+_KIND = re.compile(r"\(kind=([a-z-]+)\)")
 FALLBACK = "glimmer-engine"
 RETRY_WAIT_ENV = "EXPECTRAIL_JUDGE_RETRY_WAIT"
 WARM_TIMEOUT_ENV = "EXPECTRAIL_GLIMMER_WARM_TIMEOUT"
@@ -51,6 +56,18 @@ def outage_error(verify_dir: Path) -> str | None:
         if UNAVAILABLE in text:
             return " ".join(text.split())[:200]
     return None
+
+
+def outage_kind(verify_dir: Path) -> str | None:
+    """The kind of outage under ``verify_dir``: auth or credit when any observer error says so (one
+    dead key fails every request, and a passing error may sit beside it), else the first kind found."""
+    kinds = []
+    for path in sorted(verify_dir.rglob("observations*-error.txt")):
+        try:
+            kinds += _KIND.findall(path.read_text(encoding="utf-8", errors="replace"))
+        except OSError:
+            continue
+    return next((k for k in NO_RETRY_KINDS if k in kinds), kinds[0] if kinds else None)
 
 
 def judge_unavailable(verification: dict, verify_dir: Path) -> bool:
@@ -140,20 +157,25 @@ def judge(request: dict, candidate: Path, verify_dir: Path, *, verify_fn: Callab
     if not down:
         return verification, verify_dir, {"judgedBy": first, "steps": steps, "stopped": False}
 
-    # 1. The same judge again, after a short wait.
-    sleep(_seconds(RETRY_WAIT_ENV, DEFAULT_RETRY_WAIT_S))
-    retry_dir = verify_dir.with_name(verify_dir.name + "-retry")
-    verification = verify_fn(request, candidate, retry_dir, **verify_kwargs)
-    down = judge_unavailable(verification, retry_dir)
-    steps.append({"judge": first, "retry": True, "decision": verification["decision"], "unavailable": down})
-    if down:
-        steps[-1]["error"] = outage_error(retry_dir)
-    if not down:
-        return verification, retry_dir, {"judgedBy": f"{first} (retried)", "steps": steps, "stopped": False}
+    # 1. The same judge again, after a short wait, unless the error says waiting cannot help.
+    last_dir = verify_dir
+    kind = outage_kind(verify_dir)
+    if kind in NO_RETRY_KINDS:
+        steps.append({"judge": first, "retry": True, "skipped": f"{kind} error: waiting does not fix it"})
+    else:
+        sleep(_seconds(RETRY_WAIT_ENV, DEFAULT_RETRY_WAIT_S))
+        retry_dir = verify_dir.with_name(verify_dir.name + "-retry")
+        verification = verify_fn(request, candidate, retry_dir, **verify_kwargs)
+        down = judge_unavailable(verification, retry_dir)
+        steps.append({"judge": first, "retry": True, "decision": verification["decision"], "unavailable": down})
+        if down:
+            steps[-1]["error"] = outage_error(retry_dir)
+        if not down:
+            return verification, retry_dir, {"judgedBy": f"{first} (retried)", "steps": steps, "stopped": False}
+        last_dir = retry_dir
 
     # 2. Glimmer checked against the engine, never Glimmer alone, and only if it is not the judge
     #    that just failed to answer.
-    last_dir = retry_dir
     if first != FALLBACK:
         problem = glimmer_problem()
         if problem is None:

@@ -15,6 +15,9 @@ report (the failing check's sentence, screenshots of the failing run, the route 
 after the verifier rejects an attempt does the next one get the evidence (the repair request and the
 public checks that failed). Every candidate is verified either way.
 
+A live run with SAM on first sends SAM one image (agents/sam_health.py). If SAM does not answer, the
+run stops there, before triage or Muse Code spends anything, and the morning report says why.
+
 When the judge itself cannot answer (SAM down or out of credit, so the verifier can only say
 needs-review), agents/judge_ladder.py judges the same candidate again instead of spending a fix
 attempt: the same judge once more, then Muse Glimmer checked against the engine, then stop for a
@@ -32,10 +35,10 @@ import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 
-from agents import escalation, judge_ladder
+from agents import escalation, judge_ladder, sam_health
 from agents.fixer import run_fixer
 from agents.keys import resolve_mode, seal_mode_flags
-from agents.report import build_report, gameplay_film_stub, write_loop_rollup
+from agents.report import build_report, gameplay_film_stub, write_loop_rollup, write_preflight_stop
 from agents.signing import generate_run_keys
 from agents.triage import WONDER_MODEL, triage
 from agents.trust import run_trust_check
@@ -162,6 +165,19 @@ def one_run(
         return payload
 
     try:
+        problem = sam_health.check() if use_muse or not offline_triage else None
+        if problem is not None:
+            reason = sam_health.reason(problem)
+            write_preflight_stop(out / "morning", reason)
+            return _with_timing({
+                "decision": "needs-review",
+                "error": reason,
+                "preflight": problem,
+                "trust": None,
+                "morning": None,
+                "gameplay": None,
+                "verificationProvenance": "harness" if not skip_harness else "fixture",
+            })
         request = triage(
             spec=load(REPO / "agents" / "specs" / "player-stays-above-ground.json", "test-spec"),
             verdict=load(REPO / "contracts" / "examples" / "verdict.json", "verdict"),

@@ -109,7 +109,32 @@ Transport = Callable[[dict], "tuple[bytes, str]"]
 
 
 class SamError(RuntimeError):
-    """SAM could not produce observations. Callers must treat the check as needs-review."""
+    """SAM could not produce observations. Callers must treat the check as needs-review.
+
+    ``kind`` says what went wrong, so a caller can tell a passing outage from one that waiting will
+    not fix (agents/judge_ladder.py): auth, credit, rate-limit, server, network, request or unknown.
+    ``status`` is the HTTP status when there was one.
+    """
+
+    def __init__(self, message: str, *, kind: str = "unknown", status: int | None = None):
+        super().__init__(message)
+        self.kind, self.status = kind, status
+
+
+# Meta's out-of-credit reply has never been observed, so a body that says so counts as well as a 402:
+# the OpenAI-compatible convention is a 429 reading "insufficient_quota".
+_CREDIT_WORDS = re.compile(r"credit|quota|billing|balance|payment", re.I)
+
+
+def http_error_kind(status: int, detail: str = "") -> str:
+    """What an HTTP error from the model API means. Anything not explicit stays a passing outage."""
+    if status == 402 or (status in (403, 429) and _CREDIT_WORDS.search(detail)):
+        return "credit"
+    if status in (401, 403):
+        return "auth"
+    if status == 429:
+        return "rate-limit"
+    return "server" if status >= 500 else "request"
 
 
 # ---------------------------------------------------------------------------------------------
@@ -290,7 +315,7 @@ class MetaSamClient:
         key = os.environ.get(KEY_ENV, "").strip()
         if not key:
             raise SamError(f"set {KEY_ENV} to a Meta Model API key in your shell or the gitignored .env "
-                           "(never commit it, never paste it into chat)")
+                           "(never commit it, never paste it into chat)", kind="auth")
         if key == os.environ.get("META_API_KEY", "").strip() and not _warned_shared_key.is_set():
             _warned_shared_key.set()
             print(f"warning: {KEY_ENV} is the same key as META_API_KEY, which Muse Code (the fixer) "
@@ -328,12 +353,13 @@ class MetaSamClient:
                 except (OSError, http.client.HTTPException):
                     detail = ""
                 if err.code not in RETRY_STATUS or attempt == self.retries:
-                    raise SamError(f"sam-3.1 HTTP {err.code}: {detail}") from err
+                    raise SamError(f"sam-3.1 HTTP {err.code}: {detail}", kind=http_error_kind(err.code, detail),
+                                   status=err.code) from err
             except (OSError, http.client.HTTPException) as err:
                 # URLError, timeouts, resets and truncated reads (IncompleteRead) all land here.
                 if attempt == self.retries:
                     raise SamError(f"sam-3.1 unreachable after {attempt + 1} tries: "
-                                   f"{type(err).__name__}: {err}") from err
+                                   f"{type(err).__name__}: {err}", kind="network") from err
             finally:
                 with self._lock:
                     self.seconds += time.monotonic() - started

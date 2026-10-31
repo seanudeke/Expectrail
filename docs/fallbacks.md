@@ -33,6 +33,21 @@ flowchart TD
 3. After the third attempt, the loop stops. There is no release candidate, and the morning report
    lists the case under "Unresolved for a human" with the verifier's reasons.
 
+## Before anything is spent: the pre-run check
+
+[`agents/sam_health.py`](../agents/sam_health.py). The likeliest real failure is SAM running out of
+credit, and no retry fixes an empty balance. So a live run with SAM on sends SAM one image first, the
+committed frame `agents/fixtures/frames/after-fixed.png`, past the answer cache, since a cached answer
+says nothing about SAM today. If SAM does not answer, the run stops before Wonder or Muse Code spends
+anything, and the morning report says "SAM did not answer before the run" and why. Nothing is signed,
+because nothing was verified. A run with SAM off, on Glimmer checked against the engine, or on
+fixtures alone sends nothing. The check does not reach Glimmer: an outage that starts after it is
+the judge ladder's.
+
+The kinds are `auth`, `credit`, `rate-limit`, `server`, `network`, `request` and `unknown`
+(`agents.sam_observations.SamError`). Meta's out-of-credit reply has never been observed, so `credit`
+means a 402, or a 403 or 429 whose body speaks of credit, quota, billing, balance or payment.
+
 ## The judge ladder: the judge did not answer
 
 [`agents/judge_ladder.py`](../agents/judge_ladder.py). It climbs only when the verifier failed no
@@ -40,7 +55,8 @@ check and an observer error says a vision model did not answer ("sam observation
 Every step judges the same candidate again; the fixer is not asked for anything.
 
 1. **The same judge again**, after a short wait (`EXPECTRAIL_JUDGE_RETRY_WAIT`, 30 s), for an
-   outage that has passed by then, such as a rate limit.
+   outage that has passed by then, such as a rate limit. This step is skipped when the error says
+   `auth` or `credit`, which waiting does not fix. An unknown error keeps the retry.
 2. **Muse Glimmer checked against the engine** (`glimmer-engine`), when a Glimmer deployment is
    configured (`EXPECTRAIL_GLIMMER_API_KEY` or `FIREWORKS_API_KEY`, and `EXPECTRAIL_GLIMMER_MODEL`)
    and it wakes within `EXPECTRAIL_GLIMMER_WARM_TIMEOUT` (600 s). It is never Glimmer alone.
@@ -62,13 +78,19 @@ on SAM's view of the robot. A robot drawn inside the ground is what to look for 
 
 ## Drills
 
-A fallback that has never run is a guess. `EXPECTRAIL_JUDGE_DRILL=sam-unavailable` makes every SAM
-request fail the way an outage does, before any cache. Glimmer answers, or fails to, for real. The
-Fix matrix's demo runs take it as the input `judge_drill`. A drill skips the job that shares the clean game's SAM answers, so every SAM request goes out and fails. Each run
+A fallback that has never run is a guess. `EXPECTRAIL_JUDGE_DRILL` makes SAM requests fail the way an
+outage does, before any cache:
+
+- `sam-unavailable`: SAM is down from the start, so the pre-run check stops the run before Muse Code.
+- `sam-outage-mid-run`: the pre-run check passes for real (one image), then every later SAM request
+  fails, so the run reaches the judge ladder. This is the drill for the Glimmer step.
+
+Glimmer answers, or fails to, for real. The
+Fix matrix's demo runs take it as the input `judge_drill`. A drill skips the job that shares the clean game's SAM answers, so every SAM request it covers goes out and fails. Each run
 reports, on its own annotation lines, what the fixer was told on each attempt and every step the
 judge ladder took. A drill run is labelled as a drill and is never collected as a demo result.
 
-**First drill, October 30** ([run 41157496280](https://github.com/seanudeke/Expectrail/actions/runs/41157496280),
+**First drill, October 30, before the pre-run check existed** ([run 41157496280](https://github.com/seanudeke/Expectrail/actions/runs/41157496280),
 one live overnight run, SAM made unavailable, Glimmer left as it was):
 
 | Step | What happened |

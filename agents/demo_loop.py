@@ -52,6 +52,8 @@ def one(run: int, out: Path, loop_main=None) -> dict:
         row["briefings"] = [a.get("briefing") for a in result.get("attempts") or []]
         if result.get("judge"):
             row["judge"] = result["judge"]
+        if result.get("preflight"):
+            row["preflight"] = result["preflight"]
         from agents.observations import DRILL_ENV
 
         if os.environ.get(DRILL_ENV):
