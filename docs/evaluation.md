@@ -117,6 +117,27 @@ How to read it:
   found none: Muse Code fixed all 20 cases on its first attempt, every candidate passed every
   check and guard, and Muse from screenshots rejected one that Expectrail accepted.
 
+## Discovery: checks nobody wrote (added Oct 31)
+
+Everything above judges with checks people wrote. Advisory discovery ([discovery.md](discovery.md))
+is measured separately, because it answers a different question: does Expectrail find a defect
+nobody wrote a check for? It never decides a fix, so it has no place in the fix matrix or the judge
+benchmark.
+
+- **Development reproduction** (recorded): one CI job per build, no healthy reference build, the
+  clean game as the false-alarm control. The four reported bugs were found and the clean game
+  raised nothing (run 41238187197, `bench/discovery/`). The profile was written after reading those
+  four reports, so this counts as development evidence only. The eight seeded development variants
+  are the builds it was not written for: two flagged, six missed.
+- **Blind run** (frozen, not yet run): the discoverer's files are frozen (`discovery/freeze.json`),
+  a fresh set of ten entries (defects and intentional changes) was written after the freeze in the
+  private repository, and its digest is committed in `bugs/fresh/fresh.sha256` before any run. It
+  runs once, from a checkout that passes the freeze check, and publishes counts only.
+- **What we report for discovery:** defects flagged out of defects; intentional changes and the
+  clean game flagged (false alarms); findings that did not reproduce three times out of three;
+  incomplete jobs. Development and blind results are reported apart, and a miss is never answered
+  by changing the frozen system.
+
 ## Ground truth
 
 The harness records the player's true position every tick (`trace.json`), so for the physics and
@@ -218,8 +239,9 @@ For each condition, across all variants and clean runs:
 - wall-clock time, model calls, and total cost (API spend and compute).
 
 Rules: report frames analyzed, not frames captured; repeated runs of the same variant are not
-separate bugs; held-out results are reported separately from development results, and reported
-bugs separately from seeded ones; every number on
+separate bugs; held-out results are reported separately from development results, reported
+bugs separately from seeded ones, and discovery's advisory findings separately from the verifier's
+decisions; every number on
 screen comes from `bench/` and reruns with one command.
 
 ## Budget

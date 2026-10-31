@@ -25,3 +25,7 @@ Every variant here must change what the player sees: `python3 -m harness.check_s
 
 Held-out variants do not live in this repository until the event ends; keep them where the fixer
 cannot read them (see docs/contracts.md).
+
+[`fresh/`](fresh/README.md) holds only a digest: the fresh defect set for the blind discovery run
+lives in the private repository, written after discovery was frozen, and the digest was committed
+here before any run.

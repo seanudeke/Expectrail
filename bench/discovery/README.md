@@ -9,6 +9,11 @@ What [docs/discovery.md](../../docs/discovery.md) reports, as the runs wrote it.
 - `run-<id>.json`: a Discovery workflow run, one job per build, written by
   `python -m expectrail.discovery.cli collect --run <id>` from the jobs' own notices. Do not edit by
   hand.
+- `blind-run-<id>.json`: the blind run on the private fresh set, written by
+  `python -m expectrail.discovery.fresh collect --run <id>` from the jobs' counts-only notices. Not
+  run yet.
 
-Every record is labelled `development-reproduction`: the profile and probes were written after the
-four reported bugs were known. None of this gates a fix.
+Every record so far is labelled `development-reproduction`: the profile and probes were written after
+the four reported bugs were known. The blind run will be the first record that is not. None of this
+gates a fix: these are the checks nobody wrote, beside the checks people wrote that the verifier
+runs.
