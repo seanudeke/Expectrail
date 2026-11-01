@@ -226,9 +226,8 @@ touch the coins.
 
 The bench before it (main at 9e9dba4; runs 40986446779 for sinking/v3 and v4, 40986680262 for the
 rest, Oct 30) had the same verdict on every route of the other seven and the clean game, and missed
-sinking/v4, as SAM did: its floor is drawn away from where it collides, and every check measured
-the robot against the collision. The ground line now also follows the floor as the harness renders
-it (docs/sam.md, "The drawn floor"; `bench/drawn-floor/`). That check is the engine's render, not a
+sinking/v4, as SAM did. A check added afterwards catches it (docs/sam.md, "The drawn floor";
+`bench/drawn-floor/`). That check is the engine's render, not a
 model, and it was built after the miss, from the public game, without reading sinking/v4's patch,
 so this is a check made for the class that was missed, not a blind catch.
 

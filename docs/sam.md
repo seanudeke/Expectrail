@@ -60,7 +60,8 @@ captured-frame pixels so `tolerancePx` means the same for each:
 ### The drawn floor (October 30)
 
 Both judges measured the robot against the floor's collision, so a floor drawn somewhere its
-collision is not was invisible to every check: the first held-out run missed sinking/v4 that way.
+collision is not would be invisible to every check. This check was added on October 30, after the
+first held-out run's one miss.
 The harness now also renders the level's tile layers alone, once per run, in a second viewport that
 shares the game's 2D world but draws only canvas items on a visibility layer no game node uses (the
 tile layers and the nodes above them are given it at run time; the main view draws every layer, so
@@ -155,8 +156,7 @@ routes per variant, every pass confirmed on every frame:
 | sinking/v4 | 5 pass | 5 pass | 5 pass | 5 pass | 5 pass | **no** | no |
 
 With SAM on, 7 of 8 held-out variants were caught; without it, 3 of 8. No false alarm on the clean
-routes either way. The miss, sinking/v4: every check measured the robot against the level's
-collision, so a bug that moves only the floor's art was invisible to all of them.
+routes either way. The miss was sinking/v4.
 
 **Re-run with the drawn floor, October 30** (run 41003749744, commit 92508d9, recorded in
 `bench/detection/held-out.json`): every count above is unchanged except sinking/v4, which now fails

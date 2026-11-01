@@ -21,9 +21,10 @@
 Expectrail verifies AI-agent changes by observation, not by trust. It replays the changed game, has
 Meta's vision models (SAM 3.1, or the open-weight Muse Glimmer) find what a plain-English check names
 in the frames, measures that against the engine's own record of where the robot, the coins and the
-floor really are, and accepts the change only if every check passes: checks drafted by Muse Spark,
-approved by a person, and kept where the agent cannot change them (it sees a failing check's spec
-only after a failed attempt, and never sees the held-out ones).
+floor really are, and accepts the change only if every check passes: checks a person approves (Muse
+Spark can draft one from a sentence; the ground check started from its draft, tightened by hand), kept
+where the agent cannot change them (it sees a failing check's spec only after a failed attempt, and
+never sees the held-out ones).
 
 Those checks are written by people, and they are the gate. Since October 31 Expectrail also looks
 for problems nobody wrote a check for: advisory discovery replays 22 generic probes and judges each
@@ -37,8 +38,8 @@ intentional changes. Discovered checks advise; only the human-written ones can r
 It catches fixes that only look right. Given a "fix" that stops the robot falling through
 the floor by drawing it sunk into the ground, a position-only check passed it, and Muse Code, shown
 the before-and-after screenshots, said the fall was fixed. Expectrail saw the robot's feet below the
-floor and rejected it. In our judge benchmark it accepted none of the 7 fixes that only look right
-and turned down none of the 8 correct ones, in all three runs ([Results](#results)).
+floor and rejected it. In our judge benchmark, with SAM, it accepted none of the 7 fixes that only
+look right and turned down none of the 8 correct ones, in all three runs ([Results](#results)).
 
 Every fix is also reviewed against its failing base: the same checks run on the game with the bug
 and on the game with the fix, so the report shows the requested behavior failing before and passing
@@ -104,8 +105,9 @@ flowchart LR
    so it runs on every attempt ([docs/report-first.md](docs/report-first.md)). Muse patches the
    game in its own worktree. In the live runs it works inside bubblewrap: only that worktree is mounted (its
    project config read-only, an empty home), so the verifier's code, the held-out cases and the
-   signing key are not in its filesystem at all. It keeps network access, because it has to reach
-   Meta's API, and bubblewrap is a namespace sandbox on the host's kernel, not a VM. Where
+   signing key are not in its filesystem at all. Since October 30 it has no network of its own: its
+   only way out is the key gateway, which reaches Meta's API (`*.meta.ai`) and holds the key
+   ([docs/obaaf.md](docs/obaaf.md)). Bubblewrap is a namespace sandbox on the host's kernel, not a VM. Where
    bubblewrap is not available, the fixer falls back to a worktree that does not contain those files.
 4. **Verify.** A separate verifier rebuilds, replays, and runs the regression, gameplay, held-out
    and clean checks. It accepts a candidate only if every check passes, and it rejects a fix that
@@ -132,18 +134,18 @@ or blocked".
 
 ### Meta models
 
-Seven Meta models look, write and fix. None of them decides whether a change passes: plain code does,
-from what they observe.
+Seven Meta models look, write and fix; six have run live. None of them decides whether a change
+passes: plain code does, from what they observe.
 
 | Model | Its job | Shown by |
 | --- | --- | --- |
-| SAM 3.1 | Finds what a check names in every frame of a replay: the robot, the coins, a checkout button | With SAM, 0 of 7 fake fixes accepted, against 3 of 7 without it; 24 of the 31 machine-made wrong fixes caught were caught only with SAM ([Results](#results)) |
-| Muse Code | The fixer, in a sandbox where it can neither see nor change the checks | Fixed the bug from a plain report on the first attempt in 3 of 3 live runs ([41223748922](https://github.com/seanudeke/Expectrail/actions/runs/41223748922)) |
-| Muse Wonder | Triage: turns failure evidence into a bug report and a repair request | Every live run |
-| Muse Spark | Drafts a check from one sentence for a person to approve; sorts playtest remarks; proposes discovery probes | [docs/feedback-recording.md](docs/feedback-recording.md), [docs/discovery.md](docs/discovery.md) |
-| Muse Glimmer 30B, open weights | Judges the vision checks with no SAM key, checked against the engine; the fallback when SAM does not answer | 8 of 8 held-out bugs caught with no SAM ([docs/open-weights.md](docs/open-weights.md)) |
+| SAM 3.1 | Finds what a check names in each frame it judges: the robot, the coins, a checkout button | With SAM, 0 of 7 fake fixes accepted, against 3 of 7 without it; 24 of the 31 machine-made wrong fixes caught were caught only with SAM ([Results](#results)) |
+| Muse Code | The fixer, in a sandbox where it cannot change the checks and never sees the hidden ones | Fixed the bug from a plain report on the first attempt in 3 of 3 live runs ([41223748922](https://github.com/seanudeke/Expectrail/actions/runs/41223748922)) |
+| Muse Wonder | Triage: turns failure evidence into a bug report and a repair request | Every overnight-loop run ([bench/demo-loop](bench/demo-loop/README.md)) |
+| Muse Spark | Drafts a check from one sentence for a person to tighten and approve; sorts playtest remarks; proposes discovery probes | The ground check started from its draft ([bench/spec-writer-live](bench/spec-writer-live)); blind, the discovery planner added one defect to the templates' three on a set of eight |
+| Muse Glimmer 30B, open weights | Judges the vision checks with no SAM key, checked against the engine; the fallback when SAM does not answer | 8 of 8 held-out bugs caught with Glimmer in place of SAM; the four that need vision were caught by its checks ([docs/open-weights.md](docs/open-weights.md)) |
 | Muse Spark Open, open weights | Drafts checks and sorts playtest remarks, served on Baseten | [bench/spark-open](bench/spark-open) |
-| Muse Voice Transcribe | Turns a recorded playtest into who said what | [docs/feedback-recording.md](docs/feedback-recording.md) |
+| Muse Voice Transcribe | Turns a recorded playtest into who said what | Built, not yet run live: CI uses a recorded transcript ([docs/feedback-recording.md](docs/feedback-recording.md)) |
 
 ### Two kinds of checks
 
@@ -164,7 +166,7 @@ CI ([docs/discovery.md](docs/discovery.md)).
 ## Results
 
 Every number here comes from a file in [`bench/`](bench), written from a CI run's own output, with
-the command that reruns it. Four bug families (physics fall-through, missing texture, layering,
+the command that reruns it; the one exception, Meta API spend, comes from the team's usage export. Four bug families (physics fall-through, missing texture, layering,
 sinking), with two public development variants and two private held-out variants of each; the
 detection benches replay every variant, and the clean game, on five routes. We wrote those bugs;
 four more reproduce bugs other people reported ([Bugs we did not write](#bugs-we-did-not-write)).
@@ -186,7 +188,7 @@ four more reproduce bugs other people reported ([Bugs we did not write](#bugs-we
 | Mutation bench, wrong fixes: 47 candidates made by six operators the team wrote, registered before judging, public checks only | Tiered judge **31 of 39** bad fixes caught (79.5%), 24 of them only with SAM; 8 good cases accepted. The 8 misses are one operator that changed nothing in the running game | [41268021760](https://github.com/seanudeke/Expectrail/actions/runs/41268021760), [record](bench/mutation/README.md#results) |
 | Mutation bench, bugs nobody wrote: 150 sampled single edits to the game, 77 of them visibly different from the clean game, registered before judging, public checks only | Weighted score **0.9%**, set by the numeric class, 0 of 45 caught: 44 edits to scenery no check covers, and one that draws the player's sprite 26 px off its body. Over the sample as drawn, a figure about the sample: 10 of 77 caught (13.0%), 5 only with SAM | [41268023631](https://github.com/seanudeke/Expectrail/actions/runs/41268023631), [41323827584](https://github.com/seanudeke/Expectrail/actions/runs/41323827584), [41323829361](https://github.com/seanudeke/Expectrail/actions/runs/41323829361), [record](bench/mutation/README.md#results) |
 | Mutation bench, AI-written fixes: Muse Code on the 10 generated bugs the checks caught, from a report built mechanically from the failing check, with the route and screenshots | 10 of 10 fixed on the first attempt; Expectrail accepted 10, all 10 correct on 6 routes the judge does not use; Muse from screenshots rejected 5 of the same 10; **0 natural catches** | [41330361829](https://github.com/seanudeke/Expectrail/actions/runs/41330361829), [record](bench/mutation/README.md#results) |
-| Development bugs fixed by Muse Code, October 30 | 8 of 8 with Expectrail's evidence; 8 of 8 from screenshots alone | [fix matrix](bench/fix-matrix/README.md) |
+| Development bugs fixed by Muse Code, October 29 | 8 of 8 with Expectrail's evidence; 8 of 8 from screenshots alone | [fix matrix](bench/fix-matrix/README.md) |
 | Development bugs fixed by Muse Code, October 31, all three briefings | Evidence first **8 of 8**; report first, evidence after a failed attempt 7 of 8; report only 6 of 8. Every miss was a sinking bug where the report-only attempts timed out | [41223754703](https://github.com/seanudeke/Expectrail/actions/runs/41223754703) |
 | Demo path, live, end to end, 10 independent runs | **10 of 10 accepted**, each on the first attempt; 12 to 22 minutes a run (median 14.5) and 1,164 SAM images ($2.91) a run; Muse Code's share is not reported per run | [40990485265](https://github.com/seanudeke/Expectrail/actions/runs/40990485265) |
 | Demo path, live, after the report-first change (Muse gets the plain report first), 3 runs | **3 of 3 accepted**, each on the first attempt from the report; each fix's review: repair demonstrated; 7 to 12 minutes and 157 SAM images ($0.39) a run, with the clean game's SAM answers shared | [41223748922](https://github.com/seanudeke/Expectrail/actions/runs/41223748922) |
@@ -225,7 +227,7 @@ public visibility check. So Glimmer is the fallback for when SAM does not answer
 On November 1 we gave the same 15 fixes to the strongest models two other vendors sell, Claude
 Fable 5.1 and GPT-6 Astra, with the same five before and five after frames and the same prompt as
 Muse, three times each ([`bench/judge/outside-models/`](bench/judge/outside-models/README.md)). In a
-simple game, the strongest models judging from screenshots caught these fake fixes too, but wrongly
+simple game, the strongest models judging from screenshots accepted none of these fake fixes either, but wrongly
 rejected correct ones: Claude 5 times in 24, GPT once in 24. Both read a correct sinking fix as the
 robot floating above the ground; the fix is an exact undo, so what they saw is how the clean game plays. Expectrail with SAM made no mistakes on either, in three runs.
 On a game this small that gap is a handful of judgments; we expect it to matter more in a bigger
@@ -233,10 +235,10 @@ game, and that is the next thing to test, not a result.
 
 What these numbers do and do not say:
 
-- **The verifier is where Expectrail wins, not the fixer.** On October 30 Muse Code fixed all 8
+- **The verifier is where Expectrail wins, not the fixer.** On October 29 Muse Code fixed all 8
   development bugs from screenshots alone, as well as with our evidence. What screenshots alone cannot do is judge:
   Muse from screenshots accepted 2 of 7 fixes that only look right (one lowers the floor, one sinks
-  the robot) and turned down one or two good ones, and the strongest outside models, which caught
+  the robot) and turned down one or two good ones, and the strongest outside models, which accepted
   every bad fix, still turned down correct ones (Claude 5 times in 24, GPT once). Expectrail with SAM
   accepted none of the bad and all of the good, in all three runs. So since October 30 the fixer gets a plain report first, every
   attempt is verified, and Expectrail's evidence goes to the fixer after a failed attempt. The
@@ -244,10 +246,8 @@ What these numbers do and do not say:
   on the first attempt, where the report alone timed out
   ([docs/report-first.md](docs/report-first.md) has the decision, its evidence and that amendment).
 - **One held-out catch came after a miss.** The first held-out runs caught 7 of 8. The eighth
-  (sinking/v4) draws the floor away from where it collides, and every check measured the robot
-  against the collision. The ground check now also follows the floor as drawn. It was built after
-  the miss, from the public game, without reading that variant's patch, so it is a check made for
-  the class that was missed, not a blind catch ([docs/sam.md](docs/sam.md),
+  (sinking/v4) was caught only after we added a check, built from the public game without reading
+  that variant's patch, so it is not a blind catch ([docs/sam.md](docs/sam.md),
   [`bench/drawn-floor/`](bench/drawn-floor)).
 - **Two families need vision.** Missing texture and layering pass every engine and gameplay check;
   only the vision checks catch them, on every route.
@@ -419,13 +419,13 @@ What this does and does not show:
 - **Running it live found a second fault.** The first full repair run rejected Muse's correct fix
   for fall-through v1 on the private sessions alone.
   - With SAM, the clean page itself failed "the button stays inside the form" there. The button
-    is flush with the form's edges, and SAM's box ran past the 4 px tolerance at that screen size.
+    is flush with the form's edges, and SAM's box ran past the 4 px tolerance there.
   - The preflight that clears the private sessions before a run had used no model, so it missed
     this. It now runs SAM.
   - The tolerance is now 18 px, halfway to the 36 px the sinking bugs move the button, chosen from
     the public sessions.
 - **The repair matrix shows the loop working, not a better fixer.** Muse Code fixed all 8 bugs from
-  screenshots alone, just as it did with our evidence, as it did in the game's October 30 run.
+  screenshots alone, just as it did with our evidence, as it did in the game's October 29 run.
   - Every fix it wrote is a real fix: it removes the bad rule, corrects the logo path, or moves the
     bar clear of the button.
   - The verifier accepted all 16, on the public and private sessions. Two of those cases are the
@@ -440,8 +440,7 @@ What this does and does not show:
   - SAM caught all four; without SAM, two.
   - But that agent is the same model family as the one that tuned the checks, not a person, and
     four is a small set.
-  - The two private web sessions are only replays of the same page, written by Sean. Their screen
-    sizes came from a list we suggested.
+  - The two private web sessions are only replays of the same page, written by Sean.
 - **One static page, three checks, written by the team that built the verifier.** It shows that
   the harness can be replaced while the rest stays fixed. It does not show that Expectrail works on
   any web app.
@@ -474,8 +473,8 @@ What this does and does not show:
   features, refactors or dependency updates, or on software without a screen. The design is meant
   to carry over; [docs/future-work.md](docs/future-work.md) says which parts would and which would
   not.
-- **The fixer's sandbox is not a hard boundary.** It has network access and shares the host's
-  kernel, and without bubblewrap it is only a worktree without the verifier's files.
+- **The fixer's sandbox is not a hard boundary.** It reaches Meta's API through the gateway and
+  shares the host's kernel, and without bubblewrap it is only a worktree without the verifier's files.
 - **No measured comparison with doing it by hand,** and one held-out catch (sinking/v4) came from a
   check built after that bug was first missed.
 
