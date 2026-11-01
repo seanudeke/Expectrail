@@ -65,6 +65,13 @@ takes the sentence of the check that caught the mutant, so no report is written 
     python3 -m agents.mutation_fix --estimate                  # post this in #156 first
     python3 -m agents.mutation_fix --record --run <id>
 
+Each candidate is labelled by the registered oracle, positions and frames both, on routes the judge does
+not use: bad if any route's engine record or frames differ from the clean game's by more than the
+registered thresholds, or the game will not run there twice. A fix that puts every position back but
+still draws the game wrong is bad, so a catch only vision can make is not scored as a false reject. A
+route whose clean game does not match itself, in positions or frames, is not used, and a candidate
+that only such routes could decide is unknown.
+
 The workflow's `rehearsal` mode runs the path on a stand-in, with no Muse, no SAM and no key.
 
 ## What the operators can reach
