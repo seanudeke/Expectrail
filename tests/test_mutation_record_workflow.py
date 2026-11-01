@@ -56,6 +56,12 @@ class MutationRecordWorkflowTest(unittest.TestCase):
         self.assertIn('branch="bench/record-${ACTION#record-}-${GITHUB_RUN_ID}"', record)
         self.assertIn('git add -A -- "$dir"', record)
 
+    def test_a_recorder_failure_is_surfaced_as_annotations(self):
+        record = self.step("record")
+        self.assertIn('::error title=Recorder (exit ${code})::', record)
+        self.assertIn("recorder python -m agents.mutation_collect", record)
+        self.assertIn("recorder python -m agents.mutation_fix --record", record)
+
     def test_the_shell_steps_parse(self):
         for job in ("plan", "record"):
             with self.subTest(job=job):
