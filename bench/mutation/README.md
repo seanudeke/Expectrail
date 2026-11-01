@@ -56,6 +56,11 @@ work. Commit both files in one pull request, and say it is the registration.
 It reads the runs' own artifacts, counts a mutant judged in both phases once, reports any case missing,
 and refuses a rehearsal, another registration or the wrong part. The tools are not pinned.
 
+Without a machine that can download run artifacts, the **Mutation record** workflow runs the same
+commands inside Actions, from `main`. `plan-sam` prints the plan as notices and in the run's summary.
+`record-generated` and `record-ai-fixes` push what the recorder wrote to a new `bench/record-*` branch.
+Open a pull request from that branch for review; the workflow never writes to `main`.
+
 ## Part 3
 
 `agents/mutation_fix.py` and the **Mutation fix** workflow. `reportTemplate` must hold `{sentence}`, which

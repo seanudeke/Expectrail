@@ -1,0 +1,87 @@
+# Mutation bench: plan Part 2's SAM phase and record results inside Actions, where a run's artifacts can
+# be downloaded, with the repo's own recorders (agents/mutation_collect.py, agents/mutation_fix.py).
+# Nothing is chosen or edited here. Public checks only: nothing here checks out or holds the private
+# held-out set. A record goes to a new bench/record-* branch for a reviewed pull request, never to main.
+name: Mutation record
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "plan-sam: what Part 2's SAM phase must judge, from the cheap run, printed and never committed. record-generated: Part 2, from its runs. record-ai-fixes: Part 3, from its runs. A record goes to a new branch, never to main."
+        type: choice
+        options: [plan-sam, record-generated, record-ai-fixes]
+      runs:
+        description: comma-separated run ids (plan-sam takes the cheap run alone)
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    if: ${{ inputs.action == 'plan-sam' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Plan the SAM phase (printed as notices and in the summary)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUNS: ${{ inputs.runs }}
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REF" == refs/heads/main ]] || { echo "::error::plan from main, where the registration is"; exit 1; }
+          [[ "$RUNS" =~ ^[0-9]+$ ]] || { echo "::error::plan-sam takes the cheap run's one id"; exit 1; }
+          python -m agents.mutation_collect --plan-sam --run "$RUNS" | tee plan.txt
+          { echo '```'; cat plan.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          while IFS= read -r line; do echo "::notice title=SAM plan::${line}"; done < plan.txt
+
+  record:
+    if: ${{ inputs.action == 'record-generated' || inputs.action == 'record-ai-fixes' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write  # to push the new bench/record-* branch; main is never written
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Record with the repo's own recorder and push a new branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUNS: ${{ inputs.runs }}
+          ACTION: ${{ inputs.action }}
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REF" == refs/heads/main ]] || { echo "::error::record from main, where the registration is"; exit 1; }
+          [[ "$RUNS" =~ ^[0-9]+(,[0-9]+)*$ ]] || { echo "::error::runs must be comma-separated run ids"; exit 1; }
+          args=()
+          IFS=, read -ra ids <<< "$RUNS"
+          for id in "${ids[@]}"; do args+=(--run "$id"); done
+          case "$ACTION" in
+            record-generated) python -m agents.mutation_collect --part generated "${args[@]}"; dir=bench/mutation/generated ;;
+            record-ai-fixes) python -m agents.mutation_fix --record "${args[@]}"; dir=bench/mutation/ai-fixes ;;
+            *) echo "::error::unknown action"; exit 1 ;;
+          esac
+          git add -A -- "$dir"
+          if git diff --cached --quiet; then echo "::error::nothing was recorded"; exit 1; fi
+          branch="bench/record-${ACTION#record-}-${GITHUB_RUN_ID}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -q -m "Record mutation bench ${ACTION#record-} from runs ${RUNS}" \
+            -m "Written by the Mutation record workflow (run ${GITHUB_RUN_ID}) with the repo's own recorder. Nothing was edited by hand."
+          git push origin "HEAD:refs/heads/${branch}"
+          echo "::notice title=Recorded::${dir} from runs ${RUNS} is on branch ${branch}. Open a pull request for review."
