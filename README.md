@@ -470,25 +470,33 @@ Known limits in more detail, and what we would build next: [docs/future-work.md]
 
 ## Interactive Hosted Demo
 
-Explore the complete Gate 2 audit vault and interactive defect-fix explorer without spending Meta API credits:
+The case explorer and audit vault, at [expectrail.com/demo/](https://expectrail.com/demo/) (source:
+[`docs/demo/index.html`](docs/demo/index.html)). Viewing it calls no API.
 
-The replay in this page is an animated illustration of each case, not frames captured from the
-game. The measured results are under [Results](#results) and in [`bench/`](bench), and the captured
-frames are in each run's artifacts.
+Every clip in it is a capture made for the page with the harness, `python3 -m harness.demo_clips`:
+the clean game with a public bug patch, Muse Code's recorded fix or a rejected fixture applied,
+replayed on the smoke route through Godot Movie Maker at 60 fps. [The manifest](docs/demo/assets/manifest.json)
+records each clip's patches, route, commit, engine and render device, and digests of its frames,
+trace and video. Recording again gave the same bytes, and the physics v1 capture's frame 5 is byte
+for byte the frame CI captured for [the rejected-fix review](docs/review/sinking-fix/) (run
+41123758768). The clean
+floor line and the readout over each clip are drawn per frame from the engine's trace in that
+manifest, not placed by hand. The case texts are written for the page from the recorded results;
+only physics-fall-through / v1 shows Muse Code's recorded fix and reasoning. The measured results are
+under [Results](#results) and in [`bench/`](bench).
 
-- **Local Preview:**
-  ```sh
-  python3 -m http.server 8000 --directory docs/demo
-  # Open http://localhost:8000 in your browser
-  ```
-- **Live / Static:** Open [`docs/demo/index.html`](docs/demo/index.html) directly in any modern browser.
-- **Features:**
-  - **Case Explorer:** Switch across all 8 development defect variants (physics fall-through, missing textures, layering, sinking) and 4 rejected anti-cheat exploits (freezing player, hiding player, sinking player, lowering the floor).
-  - **Visual & HUD Simulation:** An illustrated replay with coordinate traces, floor boundaries and SAM 3.1 boxes drawn over it.
-  - **Audit Breakdown:** Complete 4-suite verifier checks (`regression`, `gameplay`, `clean`, `held-out`).
-  - **Benchmark Matrix:** development set: 8 of 8 bugs caught with SAM, 3 of 8 without; 8 of 8 fixed both from screenshots and with Expectrail (see [`bench/`](bench)).
-  - **Security & Trust:** Visualizes "Deny-by-absence" isolation and canary probe denials.
-  - **Morning Report & Release Candidate:** 7:30 AM rollup and Ed25519 signature audit.
+- **Run it locally:** `python3 -m http.server 8000 --directory docs`, then open
+  http://localhost:8000/demo/. It needs a server: the page reads its clip manifest, which browsers
+  do not let a page read from `file://`.
+- **Case Explorer:** the 8 development bugs (physics fall-through, missing textures, layering,
+  sinking) and the 4 rejected fixes that only look right (freezing the robot, drawing it behind the
+  level, drawing it 26 px low, lowering the floor's collision), each with its clip, its checks (the
+  exploits' from judge benchmark run 40943391994), and the patch lines a correct fix undoes or the
+  fixture changes, copied from the patch (`tests/test_demo_page.py` checks them).
+- **Benchmark Matrix:** the October 30 development fix matrix, and later results with their runs.
+- **Security & Trust:** deny-by-absence and the canary probe, including the reads it does not deny
+  without an OS sandbox.
+- **Morning Report:** the offline Gate 1 report and its signed release candidate.
 
 ## Try it
 
@@ -543,7 +551,7 @@ See [agents/README.md](agents/README.md) for Muse API / Muse Code setup (`.env`,
 | [`expectrail/trace/`](expectrail/trace), [`expectrail/discovery/`](expectrail/discovery), [`discovery/`](discovery) | Advisory discovery, the checks nobody wrote: episodes, the trace-contract interpreter, generic probes, the mechanics profile and its freeze, the Muse Spark planner ([docs](docs/discovery.md)) | Sean |
 | [`specs/`](specs) | The human-written checks: test specs for the bug families, a person approves each one | Sean |
 | [`bugs/`](bugs) | Seeded bugs, and reproductions of publicly reported Godot bugs ([`bugs/reported/`](bugs/reported/README.md)), as patches against the clean game ([evaluation plan](docs/evaluation.md)); the digest of the private fresh set for the blind discovery run ([`bugs/fresh/`](bugs/fresh/README.md)) | Sean, Timo |
-| [`docs/demo/`](docs/demo/) | Interactive demo showcase and audit vault web app | Timo |
+| [`docs/demo/`](docs/demo/) | Interactive demo showcase and audit vault web app; its clips come from [`harness/demo_clips.py`](harness/demo_clips.py) | Timo |
 | [`game/`](game) | Godot's 2D platformer demo, unmodified (MIT) | prior work |
 | [`agents/`](agents) | Repair requests, Muse Code fixer, verifier, Wonder triage, morning report, the mutation bench's generator and judge | Taofeek |
 | [`apps/checkout/`](apps/checkout/README.md) | The second domain: Bootstrap's checkout example (unmodified, MIT), its seeded bugs and checks, judged through a Chromium harness ([`harness/web/`](harness/web)) | Sean |
