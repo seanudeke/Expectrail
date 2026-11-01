@@ -647,9 +647,11 @@ jobs:
           if [[ "$LIVE" == "true" ]]; then args+=(--live); else args+=(--no-sam); fi
           if [[ "$GLIMMER" == "on" ]]; then args+=(--glimmer); fi
           # Outside judges: SAM's decisions are already recorded (bench/judge), so it is skipped.
-          if [[ "$OUTSIDE" == "on" ]]; then args+=(--no-sam --outside claude,gpt --passes 3); fi
+          # They run through agents.outside_judge: judge_bench.py is pinned by the mutation bench's registration.
+          module=agents.judge_bench
+          if [[ "$OUTSIDE" == "on" ]]; then module=agents.outside_judge; args+=(--no-sam --outside claude,gpt --passes 3); fi
           set +e
-          python -m agents.judge_bench "${args[@]}" > judge.log 2>&1
+          python -m "$module" "${args[@]}" > judge.log 2>&1
           code=$?
           set -e
           tail -n 1 judge.log
