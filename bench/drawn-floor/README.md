@@ -1,8 +1,8 @@
 # Drawn-floor ground check, public routes
 
 The ground check measured the robot against the floor's collision only, so a floor whose art is
-drawn away from its collision was invisible to every check (held-out sinking/v4, missed until
-Oct 30). The harness now renders the tile layers alone once per run and logs where they are drawn
+drawn away from its collision would be invisible to every check. This check was added on Oct 30,
+after the first held-out run's one miss. The harness now renders the tile layers alone once per run and logs where they are drawn
 (`levelArt` in trace.json), and the ground line is the higher of the clean level's collision and the
 floor as drawn (`agents.observations.drawn_surface_under`; docs/sam.md, "The drawn floor").
 

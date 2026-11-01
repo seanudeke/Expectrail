@@ -294,7 +294,7 @@ footer a { color:var(--on-ink); }
             <li>The bug report: the failing check's sentence, screenshots, the route and its log</li>
             <li>After a failed attempt, Expectrail's evidence: the failing check's approved spec (read-only), the verdict and the first failing frame</li>
           </ul>
-          <p class="note">In the live runs Muse Code works inside bubblewrap with only its worktree mounted; without bubblewrap it falls back to a plain worktree. It keeps network access to reach Meta's API and shares the host's kernel, so this is a boundary by absence, not a VM.</p>
+          <p class="note">In the live runs Muse Code works inside bubblewrap with only its worktree mounted; without bubblewrap it falls back to a plain worktree. Since Oct 30 its only network is a key gateway to Meta's API, which holds the key; it shares the host's kernel, so this is a boundary by absence, not a VM.</p>
         </div>
         <div class="zone verifier">
           <h3>Kept out of its reach</h3>
@@ -329,7 +329,7 @@ footer a { color:var(--on-ink); }
         <div class="row ours"><span class="who">Expectrail with Muse Glimmer, no SAM</span><span class="units" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="n">0 <small>of 7</small></span><span class="run">One run. One of the seven passed every public check and was stopped only on a private route, where SAM stops it on a public check. <a href="https://github.com/seanudeke/Expectrail/blob/main/bench/judge/glimmer/README.md">Run 41230177124</a></span></div>
         <div class="row"><span class="who">Expectrail, position log only</span><span class="units" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i></span><span class="n">3 <small>of 7</small></span><span class="run">The same verifier with its vision checks off.</span></div>
         <div class="row"><span class="who">Muse Code from screenshots</span><span class="units" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i></span><span class="n">2 <small>of 7</small></span><span class="run">It also turned down one or two of the correct fixes.</span></div>
-        <p class="src">Claude Fable 5.1 and GPT-6 Astra, shown the same screenshots, also rejected all seven, but turned down correct fixes: 5 and 1 times in 24. <a href="https://github.com/seanudeke/Expectrail/blob/main/bench/judge/outside-models/README.md">Outside models</a></p>
+        <p class="src">Claude Fable 5.1 and GPT-6 Astra, shown the same screenshots, also accepted none of the seven, but turned down correct fixes: 5 and 1 times in 24. <a href="https://github.com/seanudeke/Expectrail/blob/main/bench/judge/outside-models/README.md">Outside models</a></p>
       </div>
 
       <div class="group">
@@ -377,11 +377,11 @@ footer a { color:var(--on-ink); }
       <ul class="models">
         <li><b>SAM 3.1</b><span class="job">Finds what a check names in the frames of a replay: the robot, the coins, the checkout button.</span></li>
         <li><b>Muse Glimmer 30B <span class="ow">open weights</span></b><span class="job">Judges the vision checks with no SAM key, its boxes checked against the engine. Its boxes are too loose for the ground check, which then uses the engine's log. Also the fallback when SAM doesn't answer.</span></li>
-        <li><b>Muse Spark</b><span class="job">Turns a one-sentence check into a test spec that a person approves once, and sorts playtest remarks into draft checks. For discovery it proposes probes and rules in a closed language, each tested against the clean game first; blind, it added one defect to the templates' three on a set of eight.</span></li>
+        <li><b>Muse Spark</b><span class="job">Drafts a test spec from a one-sentence check, for a person to tighten and approve, and sorts playtest remarks into draft checks. For discovery it proposes probes and rules in a closed language, each tested against the clean game first; blind, it added one defect to the templates' three on a set of eight.</span></li>
         <li><b>Muse Spark Open <span class="ow">open weights</span></b><span class="job">The same two jobs on open weights, served on Baseten.</span></li>
         <li><b>Muse Code</b><span class="job">The fixer. It patches the game in a sandbox, and can neither change the checks nor see the held-out ones.</span></li>
         <li><b>Muse Wonder</b><span class="job">Triage: turns failure evidence into a bug report and a repair request.</span></li>
-        <li><b>Muse Voice Transcribe</b><span class="job">Turns a recorded playtest into who said what. Raw speech never becomes a check, and a request to switch one off is refused and queued for a person.</span></li>
+        <li><b>Muse Voice Transcribe</b><span class="job">Turns a recorded playtest into who said what. Raw speech never becomes a check, and a request to switch one off is refused and queued for a person. Built; not yet run live.</span></li>
       </ul>
       <p class="src">Why open weights matter here: an unreleased game build is confidential. With Glimmer, the vision checks could run on a studio's own hardware; so far we have run it only on a Fireworks deployment. <a href="https://github.com/seanudeke/Expectrail/blob/main/docs/open-weights.md">How we use them</a></p>
     </div>
@@ -394,7 +394,7 @@ footer a { color:var(--on-ink); }
         <li><b>It checks a change; it doesn't explore.</b> It replays fixed routes and 22 fixed discovery probes, so a bug where none of them goes is invisible to it. Of 77 generated edits that differ from the clean game, its checks caught 10, and none that move scenery.</li>
         <li><b>Only checks people wrote can reject a change.</b> Three approved checks guard the game. Discovered checks only report, reach just the four mechanics their profile describes, and flagged 7 of 16 fresh defects blind.</li>
         <li><b>One game and one web page.</b> Mostly with bugs we seeded. A teammate wrote the game's held-out bugs; the page's private bugs came from an AI agent of the same model family that tuned its checks.</li>
-        <li><b>The sandbox isn't a hard boundary.</b> The fixer has network access and shares the host's kernel.</li>
+        <li><b>The sandbox isn't a hard boundary.</b> The fixer reaches Meta's API through the key gateway and shares the host's kernel.</li>
       </ul>
       <p class="src"><a href="https://github.com/seanudeke/Expectrail/blob/main/docs/future-work.md">Known limits in detail, and what we would build next</a></p>
     </div>
