@@ -1,0 +1,11 @@
+--- a/enemy/enemy.gd
++++ b/enemy/enemy.gd
+@@ -6,7 +6,7 @@
+ 	DEAD,
+ }
+ 
+-const WALK_SPEED = 22.0
++const WALK_SPEED = 0.0
+ 
+ var _state := State.WALKING
+ 

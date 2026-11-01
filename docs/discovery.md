@@ -312,7 +312,32 @@ jobs' counts-only notices in [`bench/discovery/blind-run-41319184209.json`](../b
 
 The frozen templates alone, on the two independent sets: **7 of 16 defects, no false alarm on the 4
 intentional changes or the clean game.** That is still a small sample, from two sets written by AI
-sessions, not a rate for defects in general.
+sessions, not a rate for defects in general. Two entries, one in each set, turned out to share a
+mechanism (their writers never saw each other's sets), and one flagged entry overlaps part of a
+reported bug's mechanism, which the profile was written after. Counting each mechanism once and
+leaving that entry out, the templates flagged **5 of 14**. The entries themselves are published
+after the event.
+
+### Shortcut fixes and healthy retunes, November 1
+
+A guard is a contract that the feature still works. The test of a guard is a "fix" that makes a
+symptom go away by disabling the feature, which it should flag, and a deliberate retune, which
+nothing should flag. Six such builds ([`bugs/challenges/`](../bugs/challenges/README.md)) ran beside
+the thirteen public builds in run [41326269491](https://github.com/seanudeke/Expectrail/actions/runs/41326269491),
+planner off ([`bench/discovery/run-41326269491.json`](../bench/discovery/run-41326269491.json)):
+
+| Build | What it does | Result |
+| --- | --- | --- |
+| shortcut-no-double-jump | removes the air jump (a "fix" for unlimited air jumps) | flagged: the double-jump guard, at all four positions |
+| shortcut-gun-never-fires | the gun never fires (a "fix" for the cooldown bug) | flagged: the ready-press guard |
+| shortcut-no-turning | the sprite never turns (a "fix" for the body flip) | flagged: the robot walks left facing right |
+| shortcut-enemies-stand-still | enemies stand still (a "fix" for walking off ledges) | flagged: the patrol guard |
+| healthy-faster-walk | the robot walks 10% faster | no finding |
+| healthy-faster-enemies | enemies patrol a little faster | no finding |
+
+**4 of 4 feature-disabling fixes flagged, 0 of 2 retunes.** We wrote these knowing the guards, so
+they show the guards do their job, not a blind result. The thirteen public builds in the same run
+gave exactly the counts of run 41238187197.
 
 ## What the development results do and do not say
 

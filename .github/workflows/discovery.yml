@@ -58,6 +58,14 @@ jobs:
           - {build: missing-texture-v2, patch: bugs/missing-texture/v2.patch}
           - {build: layering-v1, patch: bugs/layering/v1.patch}
           - {build: layering-v2, patch: bugs/layering/v2.patch}
+          # Shortcut fixes that make a symptom go away by disabling the feature, and healthy retunes
+          # (bugs/challenges/): the guards should flag the first kind and nothing on the second.
+          - {build: shortcut-no-double-jump, patch: bugs/challenges/shortcut-no-double-jump.patch}
+          - {build: shortcut-gun-never-fires, patch: bugs/challenges/shortcut-gun-never-fires.patch}
+          - {build: shortcut-no-turning, patch: bugs/challenges/shortcut-no-turning.patch}
+          - {build: shortcut-enemies-stand-still, patch: bugs/challenges/shortcut-enemies-stand-still.patch}
+          - {build: healthy-faster-walk, patch: bugs/challenges/healthy-faster-walk.patch}
+          - {build: healthy-faster-enemies, patch: bugs/challenges/healthy-faster-enemies.patch}
     env:
       PLANNER: ${{ inputs.planner || 'off' }}
       KEY_SET: ${{ secrets.MODEL_API_KEY != '' || secrets.META_API_KEY != '' }}

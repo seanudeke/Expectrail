@@ -19,6 +19,9 @@ What [docs/discovery.md](../../docs/discovery.md) reports, as the runs wrote it.
 - [`blind-run-41319184209.json`](blind-run-41319184209.json) and
   [`blind-run-41319197682.json`](blind-run-41319197682.json): blind runs 3 and 4, fresh set 2 under
   freeze 2, planner off then on: 3 of 8 and 4 of 8 defects, 0 of 3 healthy builds each.
+- [`run-41326269491.json`](run-41326269491.json): the thirteen public builds again, plus four
+  shortcut fixes that disable a feature and two healthy retunes (`bugs/challenges/`), planner off:
+  4 of 4 shortcuts flagged by their guards, neither retune flagged.
 - [`run-41251642563.json`](run-41251642563.json) and [`run-41252054622.json`](run-41252054622.json):
   the planner's first live answers, on the public builds, on branch `discovery/planner-fix` before
   it merged: without a reference, then with the clean game as each job's reference.

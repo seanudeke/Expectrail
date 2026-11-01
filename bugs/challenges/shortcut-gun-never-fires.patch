@@ -1,0 +1,11 @@
+--- a/player/gun.gd
++++ b/player/gun.gd
+@@ -12,7 +12,7 @@
+ 
+ # This method is only called by Player.gd.
+ func shoot(direction: float = 1.0) -> bool:
+-	if not timer.is_stopped():
++	if timer.is_stopped():
+ 		return false
+ 	var bullet := BULLET_SCENE.instantiate() as Bullet
+ 	bullet.global_position = global_position
