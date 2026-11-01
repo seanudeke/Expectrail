@@ -36,7 +36,25 @@ until the pins are set again, which is a change to the registration and has to b
 | `reportTemplate` | Taofeek | The one-line symptom for Part 3. |
 | `pins` | Taofeek, last | `python3 -m agents.mutate_game --pins`, once everything else is final. |
 
-Then write the manifest and commit both: `python3 -m agents.mutate_game --manifest bench/mutation/generated/manifest.json`.
+To register, put your decisions in a file by their dotted names (the list is at the top of
+`agents/mutation_register.py`) and run:
+
+    python3 -m agents.mutation_register --values decisions.json          # checks, and writes nothing
+    python3 -m agents.mutation_register --values decisions.json --write
+
+It writes your decisions and Sean's two, then the pins last, then the manifest, and reads both back
+through the gates a judged run uses. It never overwrites a registration, and never pins uncommitted
+work. Commit both files in one pull request, and say it is the registration.
+
+## Recording a run
+
+    python3 -m agents.mutation_collect --part wrong-fix --run <id>                 # Part 1
+    python3 -m agents.mutation_collect --part generated --run <cheap>              # Part 2, the cheap tier
+    python3 -m agents.mutation_collect --plan-sam --run <cheap>                    # what the SAM phase needs
+    python3 -m agents.mutation_collect --part generated --run <cheap> --run <sam>  # Part 2, both phases
+
+It reads the runs' own artifacts, counts a mutant judged in both phases once, reports any case missing,
+and refuses a rehearsal, another registration or the wrong part. The tools are not pinned.
 
 ## What the operators can reach
 
