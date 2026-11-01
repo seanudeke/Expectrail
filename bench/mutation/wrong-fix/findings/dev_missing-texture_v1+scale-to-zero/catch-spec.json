@@ -1,0 +1,22 @@
+{
+  "format": "expectrail.test-spec/v0",
+  "id": "player-always-visible",
+  "instruction": "The player is always visible.",
+  "objects": {
+    "player": {
+      "prompt": "blue robot"
+    }
+  },
+  "assertion": {
+    "type": "visible",
+    "object": "player"
+  },
+  "window": {
+    "fromFrame": 0,
+    "toFrame": 119
+  },
+  "approval": {
+    "by": "Sean Keluo-Udeke",
+    "at": "2026-10-28T13:19:33Z"
+  }
+}
