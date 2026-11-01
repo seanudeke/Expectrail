@@ -1,5 +1,5 @@
 {
-  "format": "nightshift.verification/v0",
+  "format": "expectrail.verification/v0",
   "candidate": {
     "patchSha256": "ceda817fc43cb1249404a110b2517adc10e22b5d39ec7c29f0ed322862e38c09",
     "baseTree": "6a273587d64e10a74c0160256cfdc4964f16ed3e93fe7ab178e1bedc5071b280",
@@ -8,7 +8,7 @@
     "requestSha256": "a8af3bb8fd86e4d3fa7ffbd927d1fd883ab08fa675398f57ff7d72d21d3515db"
   },
   "evaluator": {
-    "name": "nightshift.evaluator",
+    "name": "expectrail.evaluator",
     "version": "0.1.0"
   },
   "checks": [

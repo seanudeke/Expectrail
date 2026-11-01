@@ -915,7 +915,6 @@ class TriageReportTrustLoopTest(unittest.TestCase):
             FIXER_FORBIDDEN_BASENAMES,
             frozenset({
                 ".expectrail-signing-key",
-                ".nightshift-signing-key",  # the key's name before the October 30 rename
                 "obs-clean.json",
                 "obs-held-out.json",
                 "player-stays-above-ground.json",

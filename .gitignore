@@ -13,3 +13,6 @@ __pycache__/
 .env
 *.key
 *.pem
+
+# The planning tool's per-machine render cache (keyed by the local checkout folder)
+_bmad/render/

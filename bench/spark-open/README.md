@@ -45,3 +45,8 @@ honest answer was "unsupported". Neither check goes anywhere without a person's 
 **Cost.** Spark Open used 3,963 tokens in and 7,424 out in the first run, and 4,246 and 6,335 in the
 second. That is about 3 to 4 cents a run at $1.25 and $4.25 per million tokens (a third-party price
 list, read October 30; Baseten's own page was not checked).
+
+## Names updated on Nov 1
+
+The project's earlier name was replaced with Expectrail in the format IDs in both `results.json` files. Nothing else
+changed. The run wrote the earlier names; the files as recorded are at commit `85a5e253f635`.

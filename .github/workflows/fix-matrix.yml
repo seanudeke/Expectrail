@@ -113,7 +113,7 @@ jobs:
         if: inputs.sam_cache == 'shared'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: seanudeke/Nightshift-heldout
+          repository: seanudeke/Expectrail-heldout
           token: ${{ secrets.HELDOUT_TOKEN }}
           path: heldout-set
           persist-credentials: false
@@ -230,7 +230,7 @@ jobs:
         if: inputs.set == 'held-out'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: seanudeke/Nightshift-heldout
+          repository: seanudeke/Expectrail-heldout
           token: ${{ secrets.HELDOUT_TOKEN }}
           path: heldout-set
           persist-credentials: false
@@ -250,10 +250,9 @@ jobs:
           every = (sorted(dev_variants()) if which == "dev" else case_ids() if which == "reported"
                    else sorted(heldout_cases()))
           cases = [c.strip() for c in os.environ["CASES"].split(",") if c.strip()] or every
-          from expectrail.legacy import current_name
           allowed = [REPORTED_CONDITION] if which == "reported" else list(CONDITIONS)
           conds = ([REPORTED_CONDITION] if which == "reported" else
-                   [current_name(c.strip()) for c in os.environ["CONDITIONS"].split(",") if c.strip()] or list(CONDITIONS))
+                   [c.strip() for c in os.environ["CONDITIONS"].split(",") if c.strip()] or list(CONDITIONS))
           bad = sorted(set(cases) - set(every)) + sorted(set(conds) - set(allowed))
           if bad:
               raise SystemExit(f"unknown case or condition: {bad}")
@@ -313,7 +312,7 @@ jobs:
       - name: Fetch the private held-out set (verifier side only)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: seanudeke/Nightshift-heldout
+          repository: seanudeke/Expectrail-heldout
           token: ${{ secrets.HELDOUT_TOKEN }}
           path: heldout-set
           persist-credentials: false
@@ -573,7 +572,7 @@ jobs:
       - name: Fetch the private held-out set (verifier side only)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: seanudeke/Nightshift-heldout
+          repository: seanudeke/Expectrail-heldout
           token: ${{ secrets.HELDOUT_TOKEN }}
           path: heldout-set
           persist-credentials: false
@@ -795,7 +794,7 @@ jobs:
       - name: Fetch the private held-out set (verifier side only)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: seanudeke/Nightshift-heldout
+          repository: seanudeke/Expectrail-heldout
           token: ${{ secrets.HELDOUT_TOKEN }}
           path: heldout-set
           persist-credentials: false

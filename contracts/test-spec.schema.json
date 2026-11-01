@@ -14,7 +14,7 @@
   "additionalProperties": false,
   "properties": {
     "format": {
-      "enum": ["expectrail.test-spec/v0", "nightshift.test-spec/v0"]
+      "enum": ["expectrail.test-spec/v0"]
     },
     "id": {
       "type": "string",

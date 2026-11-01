@@ -9,7 +9,7 @@
     "object": "player",
     "type": "never-crosses"
   },
-  "format": "nightshift.test-spec/v0",
+  "format": "expectrail.test-spec/v0",
   "id": "player-stays-above-ground-live",
   "instruction": "The player never falls through the ground",
   "objects": {

@@ -27,3 +27,8 @@ the active one.
 
 Possible next step: send Muse Spark one key frame with the sentence so it can name the objects it
 sees, and measure how often its drafts are approvable without edits.
+
+## Names updated on Nov 1
+
+The project's earlier name was replaced with Expectrail in the format IDs in `spec-live.json`. Nothing else
+changed. The run wrote the earlier names; the files as recorded are at commit `85a5e253f635`.

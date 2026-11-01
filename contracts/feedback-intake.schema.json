@@ -17,7 +17,7 @@
   ],
   "properties": {
     "format": {
-      "enum": ["expectrail.feedback-intake/v0", "nightshift.feedback-intake/v0"]
+      "enum": ["expectrail.feedback-intake/v0"]
     },
     "id": {
       "type": "string",

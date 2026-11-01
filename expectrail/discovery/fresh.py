@@ -10,10 +10,10 @@ counts only: per opaque id, whether it was a defect or an intentional change, an
 reported a reproduced finding. Which contracts fired would hint at the mechanism, so it stays out of
 the public logs until the event is over.
 
-    python -m expectrail.discovery.fresh digest ../Nightshift-heldout/fresh-2
-    python -m expectrail.discovery.fresh check ../Nightshift-heldout --dir fresh-2   # manifest, patches, routes
-    python -m expectrail.discovery.fresh list ../Nightshift-heldout --dir fresh-2    # ids, for the CI matrix
-    python -m expectrail.discovery.fresh notice RUN.json --id g03 --set ../Nightshift-heldout --dir fresh-2
+    python -m expectrail.discovery.fresh digest ../Expectrail-heldout/fresh-2
+    python -m expectrail.discovery.fresh check ../Expectrail-heldout --dir fresh-2   # manifest, patches, routes
+    python -m expectrail.discovery.fresh list ../Expectrail-heldout --dir fresh-2    # ids, for the CI matrix
+    python -m expectrail.discovery.fresh notice RUN.json --id g03 --set ../Expectrail-heldout --dir fresh-2
     python -m expectrail.discovery.fresh collect --run <workflow run id>
 
 ``--dir`` defaults to ``fresh`` (set 1). Manifest (``<dir>/manifest.json``; paths start with ``<dir>/``)::

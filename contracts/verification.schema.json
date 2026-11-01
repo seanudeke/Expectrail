@@ -14,7 +14,7 @@
   ],
   "properties": {
     "format": {
-      "enum": ["expectrail.verification/v0", "nightshift.verification/v0"]
+      "enum": ["expectrail.verification/v0"]
     },
     "candidate": {
       "type": "object",
