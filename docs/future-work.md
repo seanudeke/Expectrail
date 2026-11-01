@@ -115,9 +115,9 @@ introduced the bug.
 
 **The fixer starts from a plain report, and the evidence helps it on the subtle bugs.** Since
 October 30, Muse Code gets Expectrail's evidence after a failed attempt
-([report-first.md](report-first.md)). Report-only first attempts fixed 43 of 47 live cases, and
-evidence-first attempts fixed 25 of 26. All four report-only misses were the sinking bugs, which
-the evidence fixed on the first attempt. Since October 31, a timeout escalates to the evidence
+([report-first.md](report-first.md)). Across every live run, both held-out runs included,
+report-only first attempts fixed 57 of 63 cases (90%) and evidence-first ones 39 of 42 (93%).
+Every first-attempt miss under either briefing was a sinking bug. Since October 31, a timeout escalates to the evidence
 too; that rule has not run live yet.
 
 Next: run the Fix matrix's `escalate` condition on harder bugs, ones that span several files or
@@ -126,10 +126,20 @@ whose obvious fix is wrong, where a first attempt fails often enough to measure 
 **"Accepted" means it passed our suite, not that the game is correct.** The held-out variants are
 bugs we seeded ourselves.
 
+The mutation bench measured how weak, on single edits nobody wrote: weighted by how common each
+kind of edit is, the checks caught 0.9% of those that differ from the clean game, and none of the 45
+in the sample that move, resize or re-layer something (10 of 77 over the sample as drawn;
+[bench/mutation](../bench/mutation/README.md#results)).
+
 Next:
 - Reproduce real, historical bugs from open-source Godot games and compare Expectrail's fix with
-  the one the maintainers shipped.
-- Mutation-test the suite: if a deliberately broken fix passes, the suite is too weak.
+  the one the maintainers shipped. A log of 200 candidate records, with the selection rules committed and
+  27 first-pass survivors showing strong evidence of AI involvement, is waiting for a person to select from
+  ([bugs/reported/candidates.md](../bugs/reported/candidates.md)).
+- Publish each of the mutation bench's 67 survivors with the check that would have caught it, as
+  #127 asks: they have findings but no catch-specs yet. Start with the code and missing-file
+  survivors and the sprite drawn 26 px off the player's body; decide whether scenery should have a
+  check at all.
 - Longer gameplay routes, with a person keeping the final say.
 
 ## Running it for real
