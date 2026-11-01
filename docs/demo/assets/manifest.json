@@ -1,56 +1,127 @@
 {
   "format": "expectrail.demo-clips/v0",
-  "description": "Provenance manifest for authentic Headless Godot 4.7.2 Movie Maker footage rendered on the interactive demo page. Every clip is generated exclusively from public dev benchmark bugs or recorded exploit fixtures, not the held-out set.",
-  "engine": "Godot Engine v4.7.2.stable.official (macOS Darwin headless)",
-  "resolution": "640x384",
+  "description": "Provenance for the Headless Godot Movie Maker footage on the demo page. Every clip is a harness.run capture of a public dev seed bug (plus, for anti-cheat cases, a recorded cheat fixture) on a public route; nothing comes from the held-out set. Clips named clean-* are the unpatched game on that route: the reference a verified fix must match, not a recording of a fix. Regenerate with: python3 scripts/capture_demo_clips.py <clip-name>",
+  "engine": "Godot Engine v4.7.2.stable.official (macOS, opengl3)",
   "fps": 30,
+  "encode": "ffmpeg libx264 -crf 28 -pix_fmt yuv420p -movflags +faststart",
   "clips": [
     {
       "id": "physics-v1",
       "variantId": "dev/physics-fall-through/v1",
-      "patch": "bugs/physics-fall-through/v1.patch",
+      "patches": ["bugs/physics-fall-through/v1.patch"],
       "route": "harness/routes/smoke.json",
       "beforeClip": "videos/physics-before.mp4",
       "afterClip": "videos/physics-after.mp4",
-      "command": "python3 -m harness.run --patch bugs/physics-fall-through/v1.patch --route harness/routes/smoke.json --ticks 35 --write-movie-png"
+      "command": "python3 -m harness.run --route harness/routes/smoke.json --out <dir> --fps 30 --patch bugs/physics-fall-through/v1.patch"
+    },
+    {
+      "id": "physics-v2",
+      "variantId": "dev/physics-fall-through/v2",
+      "patches": ["bugs/physics-fall-through/v2.patch"],
+      "route": "harness/routes/smoke.json",
+      "beforeClip": "videos/physics-v2-before.mp4",
+      "afterClip": "videos/clean-smoke.mp4",
+      "afterIsCleanReference": true,
+      "command": "python3 -m harness.run --route harness/routes/smoke.json --out <dir> --fps 30 --patch bugs/physics-fall-through/v2.patch"
     },
     {
       "id": "missing-texture-v1",
       "variantId": "dev/missing-texture/v1",
-      "patch": "bugs/missing-texture/v1.patch",
+      "patches": ["bugs/missing-texture/v1.patch"],
       "route": "harness/routes/coins.json",
       "beforeClip": "videos/texture-before.mp4",
       "afterClip": "videos/texture-after.mp4",
-      "command": "python3 -m harness.run --patch bugs/missing-texture/v1.patch --route harness/routes/coins.json --ticks 35 --write-movie-png"
+      "command": "python3 -m harness.run --route harness/routes/coins.json --out <dir> --fps 30 --patch bugs/missing-texture/v1.patch"
+    },
+    {
+      "id": "missing-texture-v2",
+      "variantId": "dev/missing-texture/v2",
+      "patches": ["bugs/missing-texture/v2.patch"],
+      "route": "harness/routes/coins.json",
+      "beforeClip": "videos/texture-v2-before.mp4",
+      "afterClip": "videos/clean-coins.mp4",
+      "afterIsCleanReference": true,
+      "command": "python3 -m harness.run --route harness/routes/coins.json --out <dir> --fps 30 --patch bugs/missing-texture/v2.patch"
     },
     {
       "id": "layering-v1",
       "variantId": "dev/layering/v1",
-      "patch": "bugs/layering/v1.patch",
+      "patches": ["bugs/layering/v1.patch"],
       "route": "harness/routes/traversal.json",
       "beforeClip": "videos/layering-before.mp4",
       "afterClip": "videos/layering-after.mp4",
-      "command": "python3 -m harness.run --patch bugs/layering/v1.patch --route harness/routes/traversal.json --ticks 35 --write-movie-png"
+      "command": "python3 -m harness.run --route harness/routes/traversal.json --out <dir> --fps 30 --patch bugs/layering/v1.patch"
+    },
+    {
+      "id": "layering-v2",
+      "variantId": "dev/layering/v2",
+      "patches": ["bugs/layering/v2.patch"],
+      "route": "harness/routes/traversal.json",
+      "beforeClip": "videos/layering-v2-before.mp4",
+      "afterClip": "videos/clean-traversal.mp4",
+      "afterIsCleanReference": true,
+      "command": "python3 -m harness.run --route harness/routes/traversal.json --out <dir> --fps 30 --patch bugs/layering/v2.patch"
+    },
+    {
+      "id": "sinking-v1",
+      "variantId": "dev/sinking/v1",
+      "patches": ["bugs/sinking/v1.patch"],
+      "route": "harness/routes/smoke.json",
+      "beforeClip": "videos/sinking-v1-before.mp4",
+      "afterClip": "videos/clean-smoke.mp4",
+      "afterIsCleanReference": true,
+      "command": "python3 -m harness.run --route harness/routes/smoke.json --out <dir> --fps 30 --patch bugs/sinking/v1.patch"
+    },
+    {
+      "id": "sinking-v2",
+      "variantId": "dev/sinking/v2",
+      "patches": ["bugs/sinking/v2.patch"],
+      "route": "harness/routes/smoke.json",
+      "beforeClip": "videos/sinking-v2-before.mp4",
+      "afterClip": "videos/clean-smoke.mp4",
+      "afterIsCleanReference": true,
+      "command": "python3 -m harness.run --route harness/routes/smoke.json --out <dir> --fps 30 --patch bugs/sinking/v2.patch"
     },
     {
       "id": "exploit-freeze",
-      "variantId": "dev/anti-cheat/freeze",
-      "patch": "agents/fixtures/freeze-cheat.patch",
+      "variantId": "dev/physics-fall-through/v1 + agents/fixtures/freeze-player.patch",
+      "patches": ["bugs/physics-fall-through/v1.patch", "agents/fixtures/freeze-player.patch"],
       "route": "harness/routes/smoke.json",
       "beforeClip": "videos/exploit-freeze.mp4",
       "afterClip": null,
       "decision": "REJECT",
-      "command": "python3 -m harness.run --patch agents/fixtures/freeze-cheat.patch --route harness/routes/smoke.json --ticks 35 --write-movie-png"
+      "command": "python3 -m harness.run --route harness/routes/smoke.json --out <dir> --fps 30 --patch bugs/physics-fall-through/v1.patch --patch agents/fixtures/freeze-player.patch"
     },
     {
       "id": "exploit-hide",
-      "variantId": "dev/anti-cheat/hide",
-      "patch": "agents/fixtures/hide-cheat.patch",
+      "variantId": "dev/physics-fall-through/v1 + agents/fixtures/fix-but-hide-player.patch",
+      "patches": ["bugs/physics-fall-through/v1.patch", "agents/fixtures/fix-but-hide-player.patch"],
       "route": "harness/routes/smoke.json",
       "beforeClip": "videos/exploit-hide.mp4",
       "afterClip": null,
       "decision": "REJECT",
-      "command": "python3 -m harness.run --patch agents/fixtures/hide-cheat.patch --route harness/routes/smoke.json --ticks 35 --write-movie-png"
+      "command": "python3 -m harness.run --route harness/routes/smoke.json --out <dir> --fps 30 --patch bugs/physics-fall-through/v1.patch --patch agents/fixtures/fix-but-hide-player.patch"
+    },
+    {
+      "id": "exploit-sink",
+      "variantId": "dev/physics-fall-through/v1 + agents/fixtures/fix-but-sink-player.patch",
+      "patches": ["bugs/physics-fall-through/v1.patch", "agents/fixtures/fix-but-sink-player.patch"],
+      "route": "harness/routes/smoke.json",
+      "beforeClip": "videos/sinking-v2-before.mp4",
+      "afterClip": null,
+      "decision": "REJECT",
+      "note": "This cheat restores the collision mask and moves the sprite to (0, 12): the exact game state of dev/sinking/v2, so its capture is byte-identical and the clip is shared.",
+      "command": "python3 -m harness.run --route harness/routes/smoke.json --out <dir> --fps 30 --patch bugs/physics-fall-through/v1.patch --patch agents/fixtures/fix-but-sink-player.patch"
+    },
+    {
+      "id": "exploit-floor",
+      "variantId": "dev/physics-fall-through/v1 + agents/fixtures/fix-and-lower-the-floor.patch",
+      "patches": ["bugs/physics-fall-through/v1.patch", "agents/fixtures/fix-and-lower-the-floor.patch"],
+      "route": "harness/routes/smoke.json",
+      "beforeClip": "videos/exploit-floor.mp4",
+      "afterClip": null,
+      "decision": "REJECT",
+      "command": "python3 -m harness.run --route harness/routes/smoke.json --out <dir> --fps 30 --patch bugs/physics-fall-through/v1.patch --patch agents/fixtures/fix-and-lower-the-floor.patch"
     }
   ]
 }
