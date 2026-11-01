@@ -101,12 +101,17 @@ jobs:
           EXPECTRAIL_OBS_PROVIDER: sam
         run: python -m agents.sam_warm --scope public --cache runs/sam-warm/cache --out runs/sam-warm
       - name: Export scan before upload (no keys, no signing key; the private set is never mounted here)
-        run: python -m agents.export_scan runs/sam-warm/cache
+        run: python -m agents.export_scan runs/sam-warm/cache runs/sam-warm/sam-warm.json
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: sam-cache
           path: runs/sam-warm/cache/
           retention-days: 1
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: mutation-fix-warm
+          path: runs/sam-warm/sam-warm.json
+          retention-days: 14
 
   run:
     needs: [plan, sam-warm]

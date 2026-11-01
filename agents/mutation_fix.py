@@ -69,6 +69,7 @@ SPEC_FILES = ("agents/specs/player-stays-above-ground.json", "specs/player-alway
               "specs/coins-visible.json")
 # Upper bounds, for the estimate #156 asks to post first.
 SAM_IMAGES_PER_ATTEMPT = mc.MAX_IMAGES_PER_CASE
+SAM_WARM_IMAGES = 240  # the clean game's smoke route, once per run (runs 41244619862, 41248139018)
 
 
 def _sentences() -> dict[str, str]:
@@ -105,8 +106,8 @@ def pick(summary: dict, seed: int, prereg: dict) -> dict:
     """The seeded sample of caught mutants. Refuses a Part 2 that is not finished or not this study."""
     if summary.get("preregistrationSha256") != prereg["sha256"]:
         raise SystemExit("this summary is not from this registration")
-    if summary.get("missingCases") or summary.get("awaiting-sam"):
-        raise SystemExit("Part 2 is not finished: its cases are missing, or still waiting for SAM")
+    if summary.get("missingCases") or summary.get("unexpectedCases") or summary.get("awaiting-sam") or summary.get("error"):
+        raise SystemExit("Part 2 is not finished: it has cases missing or unexpected, waiting for SAM, or tool errors")
     caught = sorted((r for r in summary["rows"] if r.get("label") == "bad" and r.get("outcome") in mb.CAUGHT),
                     key=lambda r: r["id"])
     chosen = random.Random(seed).sample(caught, min(CASE_COUNT, len(caught)))
@@ -129,42 +130,56 @@ def load_cases(prereg: dict, path: Path | None = None) -> dict:
 
 def estimate(cases: int) -> dict:
     attempts = cases * ATTEMPTS
-    images = attempts * SAM_IMAGES_PER_ATTEMPT
+    images = attempts * SAM_IMAGES_PER_ATTEMPT + SAM_WARM_IMAGES
     return {"cases": cases, "maxAttempts": attempts, "maxSamImages": images, "maxSamUsd": round(images * SAM_USD_PER_IMAGE, 2)}
 
 
 def public_result(check: str, row: dict) -> str | None:
-    """The bug's own check, alone, on a candidate: fail, pass, or None when it has no answer here."""
+    """The bug's own check, alone, on a candidate, over every arm that judged it: fail if any arm
+    failed it, pass only if an arm passed it and none did less, and None when it has no firm answer.
+    An arm whose clean control is not to be trusted says nothing."""
     kind, _, name = check.partition("/")
-    arms = row.get("arms") or {}
     if kind == "engine-record":
-        return (row.get("engineRecord") or {}).get(name)
-    arm = arms.get("sam") if name in _sam_specs() else arms.get("cheap")
-    if arm is None:
-        return None
-    if check in (arm.get("failedChecks") or []):
+        result = (row.get("engineRecord") or {}).get(name)
+        return result if result in ("pass", "fail") else None
+    arms = [a for a in (row.get("arms") or {}).values() if a.get("cleanSource") == "harness"]
+    results = [a["checkResults"][check] for a in arms if check in (a.get("checkResults") or {})]
+    if "fail" in results:
         return "fail"
-    return "pass" if arm.get("verifierDecision") in ("accept", "reject", "needs-review") and arm.get("cleanSource") == "harness" else None
+    return "pass" if results and all(r == "pass" for r in results) else None
 
 
-def _sam_specs() -> set[str]:
-    return {"player-always-visible", "coins-visible"}
+def route_controls(out: Path, routes: list[Path] | None = None) -> dict[str, dict | None]:
+    """The clean game on each label route, twice. Replays match bit for bit on one setup, but no
+    candidate's label can rest on a route that does not match itself: such a route gives None."""
+    controls: dict[str, dict | None] = {}
+    for route in routes or LABEL_ROUTES:
+        first = rt._replay(route, out / f"{route.stem}-clean", [])
+        second = rt._replay(route, out / f"{route.stem}-clean-again", [])
+        controls[route.stem] = first if first and second and mg.trace_distance(first, second) == 0 else None
+    return controls
 
 
-def label_candidate(mutant: Path, candidate: Path, out: Path, threshold: float, routes: list[Path] | None = None) -> dict:
-    """The oracle on routes the judge does not use. A replay that did not finish is unknown."""
+def label_candidate(mutant: Path, candidate: Path, out: Path, threshold: float, controls: dict[str, dict | None],
+                    routes: list[Path] | None = None) -> dict:
+    """The oracle on routes the judge does not use. A candidate whose game will not run on a route, twice,
+    does not match the clean game there, so it is bad. A route that does not match itself leaves it unknown."""
     distances: dict[str, float | None] = {}
     for route in routes or LABEL_ROUTES:
-        clean = rt._replay(route, out / f"{route.stem}-clean", [])
-        trace = rt._replay(route, out / f"{route.stem}-fixed", [mutant, candidate])
-        if clean is None or trace is None:
+        clean = controls.get(route.stem)
+        if clean is None:
             distances[route.stem] = None
             continue
-        distances[route.stem] = mg.trace_distance(clean, trace)
-    if any(d is None for d in distances.values()):
+        trace = (rt._replay(route, out / f"{route.stem}-fixed", [mutant, candidate])
+                 or rt._replay(route, out / f"{route.stem}-fixed-again", [mutant, candidate]))
+        distances[route.stem] = float("inf") if trace is None else mg.trace_distance(clean, trace)
+    known = [d for d in distances.values() if d is not None]
+    if known and max(known) > float(threshold):
+        label = "bad"  # a route that disagrees decides it, whatever an unusable route would have said
+    elif len(known) != len(distances):
         label = "unknown"
     else:
-        label = "good" if all(d <= float(threshold) for d in distances.values()) else "bad"
+        label = "good"
     # json has no infinity: a run that differs in kind is simply over any threshold.
     return {"label": label, "distances": {k: (None if d is None or d == float("inf") else round(d, 3))
                                           for k, d in distances.items()}}
@@ -179,12 +194,15 @@ def counts(attempt: dict) -> dict:
             "falseAccept": accepted and bad, "falseReject": rejected and good}
 
 
+def _replay_dir(work: Path) -> Path | None:
+    """The cheap arm's replay: its retry when it had one, since the first try did not finish."""
+    return next((work / n / "replay" for n in ("sam-off-retry", "sam-off") if (work / n / "replay" / "trace.json").is_file()),
+                None)
+
+
 def _trace_of(work: Path) -> dict | None:
-    for name in ("sam-off-retry", "sam-off"):
-        path = work / name / "replay" / "trace.json"
-        if path.is_file():
-            return json.loads(path.read_text(encoding="utf-8"))
-    return None
+    replay = _replay_dir(work)
+    return json.loads((replay / "trace.json").read_text(encoding="utf-8")) if replay else None
 
 
 def judge_candidate(request: dict, candidate: Path, work: Path, *, sam: bool) -> dict:
@@ -233,6 +251,7 @@ def run_case(mutant: dict, report: str, check: str, out: Path, *, prereg: dict, 
             offline = work / "empty.patch"
             offline.write_text("", encoding="utf-8")
         before = rt.spaced_frames(work / "bugged" / "frames")
+        controls = route_controls(work / "control", routes)
         for attempt in range(1, ATTEMPTS + 1):
             attempt_out = work / f"attempt-{attempt:02d}"
             meta = run_fixer(request, attempt_out, candidate_patch=None if live else offline, attempt=attempt,
@@ -254,7 +273,7 @@ def run_case(mutant: dict, report: str, check: str, out: Path, *, prereg: dict, 
             except mb.CaseCrashed as exc:  # the candidate's game would not run: one attempt, not the whole case
                 judged = {"outcome": "crash", "detail": str(exc)[:300]}
             label = label_candidate(patch, candidate, work / "label" / f"attempt-{attempt:02d}",
-                                    prereg["oracle"]["traceThresholdPx"], routes)
+                                    prereg["oracle"]["traceThresholdPx"], controls, routes)
             film.update(outcome=judged.get("outcome"), decision=DECISIONS.get(judged.get("outcome"), "needs-review"),
                         agreement=judged.get("agreement"), publicCheck=public_result(check, judged),
                         label=label["label"], distances=label["distances"], museScreenshots=None,
@@ -263,7 +282,8 @@ def run_case(mutant: dict, report: str, check: str, out: Path, *, prereg: dict, 
                 run_judge = judge
                 if run_judge is None:
                     from agents.muse_judge import run_muse_judge as run_judge
-                after = rt.spaced_frames(work / "judge" / f"attempt-{attempt:02d}" / "sam-off" / "replay" / "frames")
+                replay = _replay_dir(work / "judge" / f"attempt-{attempt:02d}")
+                after = rt.spaced_frames(replay / "frames") if replay else []
                 film["museScreenshots"] = run_judge(attempt_out / "muse-judge", before=before, after=after, sandboxed=True,
                                                     instruction=f"A player reported: \"{report}\" A developer changed the game "
                                                     "to fix it. The before frames show the reported game and the after "
@@ -320,20 +340,22 @@ def summarize(rows: list[dict]) -> dict:
             "naturalCatches": sum(bool(a.get("naturalCatch")) for a in judged),
             "falseAccepts": sum(bool(a.get("falseAccept")) for a in judged),
             "falseRejects": sum(bool(a.get("falseReject")) for a in judged),
+            "acceptedAndGood": sum(any(a.get("decision") == "accept" and a.get("label") == "good" for a in r.get("attempts") or [])
+                                   for r in rows),
             "samImages": sum(int(r.get("samImages") or 0) for r in rows), "rows": rows}
 
 
 def markdown(doc: dict, runs: list[int]) -> str:
     lines = ["# Mutation bench, Part 3: AI-written fixes on generated bugs", "",
-             f"Recorded from run{'s' if len(runs) > 1 else ''} {', '.join(map(str, runs))}. Muse Code fixed {doc['fixed']} of "
-             f"{doc['cases']} generated bugs ({doc['notFixed']} not fixed, {doc['needsReview']} needing review, {doc['errors']} "
-             "errors).", "",
+             f"Recorded from run{'s' if len(runs) > 1 else ''} {', '.join(map(str, runs))}. Expectrail accepted a candidate on "
+             f"{doc['fixed']} of {doc['cases']} generated bugs, {doc['acceptedAndGood']} of them labelled good by the oracle "
+             f"({doc['notFixed']} with none accepted, {doc['needsReview']} needing review, {doc['errors']} errors).", "",
              f"Of {doc['candidates']} candidates, the oracle labelled {doc['good']} good, {doc['bad']} bad and {doc['unknown']} "
              "unknown, on routes the judge does not use.", "",
              "| Count | Candidates |", "| --- | --- |", f"| Natural catches | {doc['naturalCatches']} |",
              f"| False accepts | {doc['falseAccepts']} |", f"| False rejects | {doc['falseRejects']} |", "",
-             f"SAM images: {doc['samImages']:,} (${doc['samImages'] * SAM_USD_PER_IMAGE:.2f}). Muse Code does not report its "
-             "use per run.", "",
+             f"SAM images: {doc['samImages']:,} (${doc['samImages'] * SAM_USD_PER_IMAGE:.2f}), including {doc.get('warmImages', 0)} "
+             "judging the clean game once. Muse Code does not report its use per run.", "",
              "| Case | Attempt | Source | Decision | Label | Public check | Muse from screenshots |",
              "| --- | --- | --- | --- | --- | --- | --- |"]
     for r in doc["rows"]:
@@ -361,6 +383,9 @@ def record(runs: list[int], out: Path, *, prereg: dict | None = None, fetch=mc.d
         if len(set(names)) != len(names):
             raise SystemExit("a case appears twice, which would count it twice")
         doc = summarize(rows)
+        doc["warmImages"] = sum(int(json.loads(p.read_text(encoding="utf-8")).get("samImages") or 0)
+                                for p in root.rglob("sam-warm.json"))
+        doc["samImages"] += doc["warmImages"]
         doc["runs"] = runs
         doc["missingCases"] = sorted({c["id"] for c in cases["cases"]} - set(names))
         doc["unexpectedCases"] = sorted(set(names) - {c["id"] for c in cases["cases"]})
@@ -419,12 +444,13 @@ def main(argv: list[str] | None = None) -> int:
             CASES.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
             print(f"{doc['sampled']} of {doc['caught']} caught mutants: {CASES}. Commit it before anything runs.")
             return 0
-        cases = load_cases(prereg)
         if args.estimate:
-            e = estimate(len(cases["cases"]))
+            e = estimate(len(load_cases(prereg)["cases"]) if CASES.exists() else CASE_COUNT)
             print(f"At most {e['maxAttempts']} Muse Code attempts on {e['cases']} cases, and {e['maxSamImages']:,} SAM images "
-                  f"(${e['maxSamUsd']:.2f}). Post this in #156: over $20 needs Sean's go-ahead.")
+                  f"(${e['maxSamUsd']:.2f}). Muse Code's own cost is not in that figure. Post this in #156: over $20 needs "
+                  "Sean's go-ahead.")
             return 0
+        cases = load_cases(prereg)
         if args.record:
             if not args.run:
                 p.error("--record needs --run")

@@ -48,8 +48,19 @@ class PickTest(unittest.TestCase):
         rows = [caught(1), caught(2, outcome="survived"), caught(3, outcome="undecided"), caught(4, label="good")]
         self.assertEqual([c["id"] for c in mf.pick(summary(rows=rows), 5, PREREG)["cases"]], ["m1"])
 
+    def test_it_reads_the_summary_the_bench_really_writes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for i in range(3):
+                d = root / f"c{i}"
+                d.mkdir()
+                (d / "result.json").write_text(json.dumps({"format": mb.FORMAT, "preregistrationSha256": SHA, **caught(i)}))
+            doc = mf.pick(json.loads(json.dumps(mb.summarize(root))), 5, PREREG)
+        self.assertEqual(doc["sampled"], 3)
+
     def test_an_unfinished_part_2_is_refused(self):
-        for fields in ({"missingCases": ["x"]}, {"awaiting-sam": 2}, {"preregistrationSha256": "cd" * 32}):
+        for fields in ({"missingCases": ["x"]}, {"unexpectedCases": ["x"]}, {"error": 1}, {"awaiting-sam": 2},
+                       {"preregistrationSha256": "cd" * 32}):
             with self.subTest(fields=fields), self.assertRaises(SystemExit):
                 mf.pick(summary(**fields), 5, PREREG)
 
@@ -85,18 +96,45 @@ class CheckTest(unittest.TestCase):
         self.assertEqual(mf.failing_check({"arms": {"sam": {"failedChecks": ["regression/x"]}}}), "regression/x")
         self.assertIsNone(mf.failing_check({}))
 
+    GROUND = "regression/player-stays-above-ground"
+
+    @staticmethod
+    def arm(results, clean="harness"):
+        return {"checkResults": results, "cleanSource": clean}
+
     def test_the_public_check_alone(self):
-        arm = {"failedChecks": ["gameplay/m"], "verifierDecision": "reject", "cleanSource": "harness"}
-        self.assertEqual(mf.public_result("gameplay/m", {"arms": {"cheap": arm}}), "fail")
-        self.assertEqual(mf.public_result("regression/ground", {"arms": {"cheap": arm}}), "pass")
+        arms = {"cheap": self.arm({"gameplay/m": "fail", self.GROUND: "pass"})}
+        self.assertEqual(mf.public_result("gameplay/m", {"arms": arms}), "fail")
+        self.assertEqual(mf.public_result(self.GROUND, {"arms": arms}), "pass")
         self.assertEqual(mf.public_result("engine-record/fire-rate", {"engineRecord": {"fire-rate": "pass"}}), "pass")
 
+    def test_a_ground_failure_only_sam_saw_is_a_failure(self):
+        """The cheap arm's pass must not hide it: that would be a natural catch that never happened."""
+        arms = {"cheap": self.arm({self.GROUND: "pass"}), "sam": self.arm({self.GROUND: "fail"})}
+        self.assertEqual(mf.public_result(self.GROUND, {"arms": arms}), "fail")
+
+    def test_needs_review_is_no_answer_never_a_pass(self):
+        arms = {"cheap": self.arm({self.GROUND: "pass"}), "sam": self.arm({self.GROUND: "needs-review"})}
+        self.assertIsNone(mf.public_result(self.GROUND, {"arms": arms}))
+        sam_only = {"sam": self.arm({"regression/coins-visible": "needs-review"})}
+        self.assertIsNone(mf.public_result("regression/coins-visible", {"arms": sam_only}))
+        self.assertIsNone(mf.public_result("engine-record/x", {"engineRecord": {"x": "needs-review"}}))
+
     def test_a_sam_check_needs_the_sam_arm(self):
-        self.assertIsNone(mf.public_result("regression/coins-visible", {"arms": {"cheap": {"cleanSource": "harness"}}}))
+        self.assertIsNone(mf.public_result("regression/coins-visible", {"arms": {"cheap": self.arm({})}}))
 
     def test_a_control_nobody_trusts_is_no_answer(self):
-        arm = {"failedChecks": [], "verifierDecision": "accept", "cleanSource": "fixture-fallback"}
-        self.assertIsNone(mf.public_result("regression/ground", {"arms": {"cheap": arm}}))
+        arms = {"cheap": self.arm({self.GROUND: "fail"}, clean="fixture-fallback")}
+        self.assertIsNone(mf.public_result(self.GROUND, {"arms": arms}))
+
+    def test_the_bench_records_every_public_checks_result(self):
+        doc = {"suite": {"clean": {"source": "harness"}}, "decision": "accept", "reasons": [],
+               "checks": [{"kind": "regression", "spec": "a", "route": "s", "result": "pass"},
+                          {"kind": "held-out", "spec": "b", "route": "s", "result": "fail"},
+                          {"kind": "clean", "spec": "c", "route": "s", "result": "pass"}]}
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(mb, "verify", return_value=doc):
+            arm = mb._arm({}, Path("c"), Path(tmp), "sam-off", "trace")
+        self.assertEqual(arm["checkResults"], {"regression/a": "pass"})
 
 
 class CountTest(unittest.TestCase):
@@ -120,34 +158,57 @@ class CountTest(unittest.TestCase):
 
 
 class LabelTest(unittest.TestCase):
-    def label(self, traces, threshold=1.0):
+    ROUTES = [Path("a.json"), Path("b.json")]
+
+    def label(self, traces, controls=None, threshold=1.0):
+        controls = controls if controls is not None else {"a": CLEAN, "b": CLEAN}
         with tempfile.TemporaryDirectory() as tmp, mock.patch.object(mf.rt, "_replay", side_effect=traces):
-            return mf.label_candidate(Path("m"), Path("c"), Path(tmp), threshold, routes=[Path("a.json"), Path("b.json")])
+            return mf.label_candidate(Path("m"), Path("c"), Path(tmp), threshold, controls, routes=self.ROUTES)
 
     def test_good_only_when_every_route_matches(self):
-        self.assertEqual(self.label([CLEAN, CLEAN, CLEAN, CLEAN])["label"], "good")
-        self.assertEqual(self.label([CLEAN, CLEAN, CLEAN, MOVED])["label"], "bad")
+        self.assertEqual(self.label([CLEAN, CLEAN])["label"], "good")
+        self.assertEqual(self.label([CLEAN, MOVED])["label"], "bad")
 
     def test_the_threshold_is_inclusive_of_a_match(self):
-        self.assertEqual(self.label([CLEAN, MOVED, CLEAN, MOVED], threshold=5.0)["label"], "good")
+        self.assertEqual(self.label([MOVED, MOVED], threshold=5.0)["label"], "good")
 
-    def test_a_replay_that_did_not_finish_is_unknown(self):
-        self.assertEqual(self.label([CLEAN, None, CLEAN, CLEAN])["label"], "unknown")
-        self.assertEqual(self.label([None, CLEAN, CLEAN, MOVED])["label"], "unknown")
+    def test_a_candidate_that_will_not_run_is_tried_again_then_bad(self):
+        self.assertEqual(self.label([None, None, CLEAN])["label"], "bad")
+        self.assertEqual(self.label([None, CLEAN, CLEAN])["label"], "good")  # a flake, on the second try
+
+    def test_a_route_that_does_not_match_itself_leaves_it_unknown(self):
+        self.assertEqual(self.label([CLEAN], controls={"a": None, "b": CLEAN})["label"], "unknown")
+
+    def test_but_a_route_that_disagrees_still_decides_it(self):
+        self.assertEqual(self.label([MOVED], controls={"a": None, "b": CLEAN})["label"], "bad")
 
     def test_the_seed_and_the_candidate_are_both_replayed(self):
         with tempfile.TemporaryDirectory() as tmp, mock.patch.object(mf.rt, "_replay", return_value=CLEAN) as replay:
-            mf.label_candidate(Path("m"), Path("c"), Path(tmp), 1.0, routes=[Path("a.json")])
-        self.assertEqual([c.args[2] for c in replay.call_args_list], [[], [Path("m"), Path("c")]])
+            mf.label_candidate(Path("m"), Path("c"), Path(tmp), 1.0, {"a": CLEAN}, routes=[Path("a.json")])
+        self.assertEqual([c.args[2] for c in replay.call_args_list], [[Path("m"), Path("c")]])
 
     def test_the_label_routes_are_not_only_the_judges(self):
         self.assertIn(mf.SMOKE, mf.LABEL_ROUTES)
         self.assertGreater(len(mf.LABEL_ROUTES), 1)
 
     def test_a_trace_that_differs_in_kind_stays_json_safe(self):
-        out = self.label([CLEAN, CLEAN, CLEAN, {"rows": []}])
+        out = self.label([CLEAN, {"rows": []}])
         self.assertEqual(out["label"], "bad")
         json.dumps(out)
+
+
+class ControlTest(unittest.TestCase):
+    def controls(self, traces):
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(mf.rt, "_replay", side_effect=traces):
+            return mf.route_controls(Path(tmp), routes=[Path("a.json")])
+
+    def test_a_route_that_matches_itself_is_usable(self):
+        self.assertEqual(self.controls([CLEAN, CLEAN]), {"a": CLEAN})
+
+    def test_jitter_or_a_failed_replay_makes_a_route_unusable(self):
+        for traces in ([CLEAN, MOVED], [None, CLEAN], [CLEAN, None]):
+            with self.subTest(traces=traces):
+                self.assertEqual(self.controls(traces), {"a": None})
 
 
 class RunCaseTest(unittest.TestCase):
@@ -160,6 +221,7 @@ class RunCaseTest(unittest.TestCase):
         self.out = Path(self.tmp.name)
         patches = [mock.patch.object(mf.rt, "_replay", return_value=CLEAN),
                    mock.patch.object(mf.rt, "spaced_frames", return_value=[]),
+                   mock.patch.object(mf, "route_controls", return_value={"smoke": CLEAN}),
                    mock.patch.object(mf, "label_candidate", return_value={"label": "bad", "distances": {}})]
         for p in patches:
             p.start()
@@ -237,6 +299,16 @@ class RunCaseTest(unittest.TestCase):
         self.assertFalse(row_seen["cheap_only"])
 
 
+class ReplayWrapperTest(unittest.TestCase):
+    def test_a_dead_game_is_no_trace_not_the_end_of_the_case(self):
+        """SystemExit is how the harness reports a dead game, so the real label path must survive it."""
+        with tempfile.TemporaryDirectory() as tmp, \
+                mock.patch.object(mf.rt, "harness_run", side_effect=SystemExit("godot failed")):
+            self.assertIsNone(mf.rt._replay(Path("r.json"), Path(tmp) / "x", []))
+            label = mf.label_candidate(Path("m"), Path("c"), Path(tmp), 1.0, {"a": CLEAN}, routes=[Path("a.json")])
+        self.assertEqual(label["label"], "bad")
+
+
 class RehearsalTest(unittest.TestCase):
     def test_it_uses_a_stand_in_and_its_exact_undo(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -300,6 +372,25 @@ class RecordTest(unittest.TestCase):
 
         return mf.record([7], self.out, prereg=PREREG, fetch=fetch, cases=self.CASES)
 
+    def test_accepted_is_not_called_fixed_and_says_how_many_were_good(self):
+        rows = [self.row("a", attempts=[{"attempt": 1, "decision": "accept", "label": "bad"}]),
+                self.row("b", attempts=[{"attempt": 1, "decision": "accept", "label": "good"}])]
+        doc = self.record(*rows)
+        self.assertEqual((doc["fixed"], doc["acceptedAndGood"]), (2, 1))
+        text = (self.out / "README.md").read_text()
+        self.assertIn("accepted a candidate on 2 of 2 generated bugs, 1 of them labelled good", text)
+        self.assertNotIn("Muse Code fixed", text)
+
+    def test_the_warm_job_is_in_the_spend(self):
+        def fetch(run, dest):
+            d = dest / "c"
+            d.mkdir(parents=True)
+            (d / "result.json").write_text(json.dumps(self.row("a")))
+            (dest / "sam-warm.json").write_text(json.dumps({"samImages": 240}))
+
+        doc = mf.record([7], self.out, prereg=PREREG, fetch=fetch, cases=self.CASES)
+        self.assertEqual((doc["samImages"], doc["warmImages"]), (640, 240))
+
     def test_it_counts_and_reports_what_is_missing(self):
         doc = self.record(self.row("a"))
         self.assertEqual((doc["naturalCatches"], doc["missingCases"], doc["samImages"]), (1, ["b"], 400))
@@ -315,7 +406,12 @@ class RecordTest(unittest.TestCase):
 
 class EstimateTest(unittest.TestCase):
     def test_the_upper_bound(self):
-        self.assertEqual(mf.estimate(10), {"cases": 10, "maxAttempts": 30, "maxSamImages": 14400, "maxSamUsd": 36.0})
+        self.assertEqual(mf.estimate(10), {"cases": 10, "maxAttempts": 30, "maxSamImages": 14640, "maxSamUsd": 36.6})
+
+    def test_it_works_before_the_case_list_exists(self):
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(mg, "load_preregistration", return_value=PREREG), \
+                mock.patch.object(mf, "CASES", Path(tmp) / "gone.json"):
+            self.assertEqual(mf.main(["--estimate"]), 0)
 
 
 class WorkflowTest(unittest.TestCase):

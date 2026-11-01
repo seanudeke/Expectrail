@@ -215,7 +215,7 @@ def _replay(route: Path, out: Path, patches: list[Path]) -> dict | None:
     try:
         harness_run(route, out, patches=patches)
         return json.loads((out / "trace.json").read_text(encoding="utf-8"))
-    except Exception:  # noqa: BLE001 - a replay that did not finish is needs-review, never a pass
+    except (Exception, SystemExit):  # noqa: BLE001 - a replay that did not finish is needs-review, never a pass
         (out.parent / f"{out.name}-error.txt").write_text(traceback.format_exc(), encoding="utf-8")
         return None
 
