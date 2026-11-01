@@ -11,7 +11,9 @@ counts their mistakes:
     and five of the candidate's, on the same route, and a one-line bug report in plain English;
   - with ``--glimmer``, the verifier judged by Muse Glimmer checked against the engine, exactly as the
     judge ladder's fallback judges a candidate when SAM does not answer (agents.judge_ladder). A
-    Glimmer outage leaves that judge undecided; it is never counted as a rejection.
+    Glimmer outage leaves that judge undecided; it is never counted as a rejection;
+  - with ``--outside claude,gpt``, models from two other vendors judging the same screenshots with the
+    same prompt as Muse, ``--passes`` times each (agents.outside_judge). They need ``--live``.
 
 Good candidates undo a seeded bug exactly (the bugged tree diffed back to the clean game), so the
 game they produce is the clean game. Bad candidates are fixtures that stop the reported symptom
@@ -22,6 +24,7 @@ Expectrail's blind spots too, not only its strengths.
     python3 -m agents.judge_bench --list
     python3 -m agents.judge_bench --case bad/fall-through-hide-player --out runs/judge --live
     python3 -m agents.judge_bench --case bad/fall-through-sink-player --out runs/judge --live --glimmer
+    python3 -m agents.judge_bench --case bad/fall-through-sink-player --out runs/judge --live --no-sam --outside claude,gpt
     python3 -m agents.judge_bench --summarize runs/judge
 
 Offline (no ``--live``) the screenshot judge is skipped and only the verifiers run.
@@ -168,7 +171,8 @@ def _glimmer_verify(request: dict, candidate: Path, out: Path) -> tuple[str | No
     return v["decision"], list(dict.fromkeys(r.split(" on ")[0] for r in (v.get("reasons") or [])))[:6]
 
 
-def run_case(key: str, out: Path, *, live: bool, sam: bool = True, glimmer: bool = False) -> dict:
+def run_case(key: str, out: Path, *, live: bool, sam: bool = True, glimmer: bool = False,
+             outside: tuple[str, ...] = (), passes: int = 3) -> dict:
     """One candidate in front of every judge; a crash is recorded, never counted as a verdict."""
     spec = cases().get(key)
     if spec is None:
@@ -217,6 +221,10 @@ def run_case(key: str, out: Path, *, live: bool, sam: bool = True, glimmer: bool
                                    sandboxed=True)
             row["decisions"]["museScreenshots"] = judge.get("decision")
             row["reasons"]["museScreenshots"] = [muse_reason(judge)]
+            if outside:  # the same frames and prompt, other vendors' models; kept apart from the decisions above
+                from agents.outside_judge import judge_frames
+                row["outside"] = judge_frames(work / "outside", before=before, after=after, instruction=instruction,
+                                              names=list(outside), passes=passes)
         row["correct"] = {k: _correct(spec["label"], d) for k, d in row["decisions"].items()}
     except (Exception, SystemExit) as exc:  # noqa: BLE001
         (work / "judge-error.txt").write_text(traceback.format_exc(), encoding="utf-8")
@@ -275,6 +283,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--no-sam", action="store_true", help="skip the SAM-on verifier (offline smoke runs)")
     p.add_argument("--glimmer", action="store_true",
                    help="also judge with Glimmer checked against the engine, as the judge ladder's fallback does")
+    p.add_argument("--outside", default="",
+                   help="comma-separated outside screenshot judges (claude, gpt): agents.outside_judge; needs --live")
+    p.add_argument("--passes", type=int, default=3, help="independent requests per outside judge and case")
     args = p.parse_args(argv)
     if args.list:
         print(json.dumps(sorted(cases())))
@@ -282,7 +293,16 @@ def main(argv: list[str] | None = None) -> int:
     if args.summarize:
         print(markdown(summarize(args.summarize)))
         return 0
-    row = run_case(args.case, args.out, live=args.live, sam=not args.no_sam, glimmer=args.glimmer)
+    outside = tuple(n.strip() for n in args.outside.split(",") if n.strip())
+    if outside:
+        from agents.outside_judge import JUDGES as OUTSIDE
+        unknown = sorted(set(outside) - set(OUTSIDE))
+        if unknown:
+            p.error(f"unknown outside judge: {unknown}")
+        if not args.live:
+            p.error("--outside needs --live: the outside judges see the screenshots Muse sees")
+    row = run_case(args.case, args.out, live=args.live, sam=not args.no_sam, glimmer=args.glimmer,
+                   outside=outside, passes=args.passes)
     print(json.dumps({k: row.get(k) for k in ("case", "label", "decisions", "error", "wallClockSeconds")}))
     return 1 if row.get("error") else 0
 

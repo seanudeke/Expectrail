@@ -71,6 +71,11 @@ on:
         type: choice
         options: ['off', 'on']
         default: 'off'
+      judge_outside:
+        description: "judge only: on adds two outside screenshot judges, Claude and GPT (agents/outside_judge.py), shown the same frames and prompt as Muse, 3 passes each, and skips the SAM-on verifier, whose decisions bench/judge already records. Needs live, ANTHROPIC_API_KEY and OPENAI_API_KEY."
+        type: choice
+        options: ['off', 'on']
+        default: 'off'
       sam_cache:
         description: "shared: judge the clean game once (smoke and private routes) and share SAM's answers, encrypted, with this run's jobs; public: the smoke route only; off: every job judges every frame itself"
         type: choice
@@ -84,7 +89,7 @@ jobs:
   # Judge the clean game once for the whole run (see sam_cache above). Runs beside the plan job; the
   # jobs that verify wait for it, and run without it if it fails or is skipped.
   sam-warm:
-    if: ${{ inputs.sam_cache != 'off' && inputs.set != 'reported' && inputs.judge_drill == 'off' && (inputs.live || inputs.bench == 'demo') }}
+    if: ${{ inputs.sam_cache != 'off' && inputs.set != 'reported' && inputs.judge_drill == 'off' && inputs.judge_outside != 'on' && (inputs.live || inputs.bench == 'demo') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     env:
@@ -505,7 +510,8 @@ jobs:
     timeout-minutes: ${{ inputs.judge_glimmer == 'on' && 330 || 90 }}
     strategy:
       fail-fast: false
-      max-parallel: 4
+      # Outside judges: no SAM or Glimmer to share, so more cases at once (Muse runs through the gateway).
+      max-parallel: ${{ inputs.judge_outside == 'on' && 8 || 4 }}
       matrix:
         case: ${{ fromJSON(needs.judge-plan.outputs.cases) }}
     env:
@@ -515,7 +521,13 @@ jobs:
       GLIMMER: ${{ inputs.judge_glimmer }}
       FIREWORKS_KEY_SET: ${{ secrets.FIREWORKS_API_KEY != '' }}
       GLIMMER_MODEL: ${{ vars.GLIMMER_MODEL }}
+      OUTSIDE: ${{ inputs.judge_outside }}
     steps:
+      - name: The outside judges need a live run (judge_outside on)
+        if: env.OUTSIDE == 'on' && env.LIVE != 'true'
+        run: |
+          echo "::error::judge_outside needs live on: the outside judges see the screenshots Muse sees."
+          exit 1
       - name: Require both keys
         if: env.KEYS_OK != 'true'
         run: |
@@ -538,6 +550,14 @@ jobs:
         with:
           python-version: '3.13'
       - run: python -m pip install -r requirements-dev.txt
+      - name: Outside judges - each key set, each model there and answering (one short text request each)
+        if: env.OUTSIDE == 'on'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          EXPECTRAIL_OUTSIDE_CLAUDE_MODEL: ${{ vars.OUTSIDE_CLAUDE_MODEL }}
+          EXPECTRAIL_OUTSIDE_GPT_MODEL: ${{ vars.OUTSIDE_GPT_MODEL }}
+        run: python -m agents.outside_judge --smoke
       - name: Install bubblewrap, xvfb, software OpenGL
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends bubblewrap xvfb libgl1-mesa-dri libglx-mesa0 patch
       - name: Allow unprivileged user namespaces for bubblewrap
@@ -615,12 +635,19 @@ jobs:
           META_API_KEY: ${{ inputs.live && secrets.META_API_KEY || '' }}
           MODEL_API_KEY: ${{ secrets.MODEL_API_KEY }}
           EXPECTRAIL_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
+          # The outside judges' keys reach the benchmark only; Muse Code's environment is an allowlist.
+          ANTHROPIC_API_KEY: ${{ inputs.judge_outside == 'on' && secrets.ANTHROPIC_API_KEY || '' }}
+          OPENAI_API_KEY: ${{ inputs.judge_outside == 'on' && secrets.OPENAI_API_KEY || '' }}
+          EXPECTRAIL_OUTSIDE_CLAUDE_MODEL: ${{ vars.OUTSIDE_CLAUDE_MODEL }}
+          EXPECTRAIL_OUTSIDE_GPT_MODEL: ${{ vars.OUTSIDE_GPT_MODEL }}
           CASE: ${{ matrix.case }}
         run: |
           args=(--case "$CASE" --out runs/judge)
           # Live: all three judges. Offline: the SAM-off verifier only, a free plumbing check.
           if [[ "$LIVE" == "true" ]]; then args+=(--live); else args+=(--no-sam); fi
           if [[ "$GLIMMER" == "on" ]]; then args+=(--glimmer); fi
+          # Outside judges: SAM's decisions are already recorded (bench/judge), so it is skipped.
+          if [[ "$OUTSIDE" == "on" ]]; then args+=(--no-sam --outside claude,gpt --passes 3); fi
           set +e
           python -m agents.judge_bench "${args[@]}" > judge.log 2>&1
           code=$?
@@ -637,6 +664,13 @@ jobs:
           if "expectrailGlimmer" in d:
               print(f"::notice title=Judge Glimmer {r['case']}::label {r['label']}; "
                     f"Glimmer+engine {d.get('expectrailGlimmer')}; {r.get('glimmerSeconds')} s")
+          if r.get("outside"):
+              from agents.outside_judge import annotation
+              print("\n".join(annotation(r["case"], r["label"], r["outside"])))
+              for n, o in r["outside"].items():
+                  for i, detail in enumerate(o["details"], 1):
+                      if o["decisions"][i - 1] is None:
+                          print(f"::warning title=Judge outside {n} {r['case']} pass {i}::{' '.join(detail.split())[:300]}")
           # Every judge case is built from public development variants, so its reasons can be shown.
           names = {"expectrailSam": "SAM on", "expectrailNoSam": "SAM off", "expectrailGlimmer": "Glimmer+engine",
                    "museScreenshots": "Muse screenshots"}
@@ -656,7 +690,8 @@ jobs:
         run: |
           mkdir -p keep
           find runs/judge -path '*held-out*' -prune -o -type f \( -name result.json -o -name candidate.patch \
-            -o -name muse-prompt.txt -o -name muse.log -o -name judge.json \) -print \
+            -o -name muse-prompt.txt -o -name muse.log -o -name judge.json -o -name outside.json \
+            -o -name prompt.txt -o -name 'claude-pass-*.json' -o -name 'gpt-pass-*.json' \) -print \
             | while read -r f; do mkdir -p "keep/$(dirname "$f")"; cp "$f" "keep/$f"; done
       - name: Export scan before upload (nothing private, no keys, no signing key)
         id: export-scan
