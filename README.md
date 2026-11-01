@@ -307,6 +307,13 @@ clean game as the false-alarm control ([`bench/discovery/`](bench/discovery/READ
   prompt written by the session that built the discoverer, which suggested the areas to draw from;
   and what each entry is stays private until the event is over
   ([docs/discovery.md](docs/discovery.md#all-blind-runs)).
+- **Counted once per mechanism, it is 5 of 14.** Two entries, one per set, turned out to share a
+  mechanism, and one flagged entry overlaps part of a reported bug the profile was written after.
+- **Its guards flag a fix that disables the feature.** Four "fixes" that make a symptom go away by
+  switching the feature off (no air jump, a gun that never fires, a sprite that never turns, enemies
+  that stand still) were all flagged; two deliberate retunes were not
+  ([run 41326269491](https://github.com/seanudeke/Expectrail/actions/runs/41326269491)). We wrote
+  these knowing the guards, so they are not blind.
 - **The Muse Spark planner, blind once: one more defect, no false alarm.** Its first live calls
   (set 1) returned no content, because its reasoning used up the token limit we set. Fixed under a
   new freeze, with the clean game replayed in each job as the reference its contracts must pass,

@@ -16,4 +16,5 @@ clean game, run as its own build in the **Discovery** workflow.
 | `healthy-faster-enemies.patch` | healthy | Enemies patrol a little faster (22 to 26 px/s) | no finding |
 
 We wrote these knowing the guards, so they show the guards do what they are for; they are not a
-blind test. Results: [`bench/discovery/`](../../bench/discovery/README.md).
+blind test. Result, run 41326269491: all four shortcuts flagged by the guard named above, neither
+retune flagged ([docs/discovery.md](../../docs/discovery.md#shortcut-fixes-and-healthy-retunes-november-1)).
