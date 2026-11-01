@@ -201,10 +201,11 @@ game, and that is the next thing to test, not a result.
 What these numbers do and do not say:
 
 - **The verifier is where Expectrail wins, not the fixer.** On October 30 Muse Code fixed all 8
-  development bugs from screenshots alone, as well as with our evidence. What Muse could not do from
-  screenshots was judge: it accepted 2 of 7 fixes that only look right (one lowers the floor, one sinks
-  the robot) and turned down one or two good ones. Expectrail with SAM accepted none of the bad and
-  all of the good, in all three runs. So since October 30 the fixer gets a plain report first, every
+  development bugs from screenshots alone, as well as with our evidence. What screenshots alone cannot do is judge:
+  Muse from screenshots accepted 2 of 7 fixes that only look right (one lowers the floor, one sinks
+  the robot) and turned down one or two good ones, and the strongest outside models, which caught
+  every bad fix, still turned down correct ones (Claude 5 times in 24, GPT once). Expectrail with SAM
+  accepted none of the bad and all of the good, in all three runs. So since October 30 the fixer gets a plain report first, every
   attempt is verified, and Expectrail's evidence goes to the fixer after a failed attempt. The
   evidence still matters for fixing on the subtle bugs: on October 31 it fixed both sinking bugs
   on the first attempt, where the report alone timed out
