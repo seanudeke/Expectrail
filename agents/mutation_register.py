@@ -113,7 +113,7 @@ def main(argv: list[str] | None = None) -> int:
     args = p.parse_args(argv)
     try:
         manifest = register(json.loads(args.values.read_text(encoding="utf-8")), write=args.write)
-    except (mg.PreregistrationError, OSError, ValueError) as exc:
+    except (mg.PreregistrationError, OSError, ValueError, TypeError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     print(report(manifest))

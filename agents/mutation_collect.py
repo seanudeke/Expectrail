@@ -48,6 +48,7 @@ def gather(runs: list[int], root: Path, fetch: Callable[[int, Path], None] = dow
 
 
 def check_rows(rows: list[dict], part: str, prereg: dict) -> None:
+    """Every result in the runs, before any is set aside as an earlier phase of a later one."""
     if not rows:
         raise SystemExit("these runs have no results")
     if any(r.get("rehearsal") for r in rows):
@@ -58,6 +59,14 @@ def check_rows(rows: list[dict], part: str, prereg: dict) -> None:
     kinds = {r.get("kind") for r in rows}
     if kinds != {PARTS[part]}:
         raise SystemExit(f"--part {part} records {PARTS[part]} rows, and these are {sorted(map(str, kinds))}")
+
+
+def check_once(rows: list[dict]) -> None:
+    """A case judged twice in one phase means the runs overlap, and which to keep would be a choice."""
+    names = [mb._name(r) for r in rows]
+    repeated = sorted({n for n in names if names.count(n) > 1})
+    if repeated:
+        raise SystemExit(f"{len(repeated)} cases appear twice, which would count them twice: {repeated[:5]}")
 
 
 def expected(part: str, prereg: dict) -> set[str]:
@@ -77,32 +86,42 @@ def record(runs: list[int], part: str, out: Path, *, prereg: dict | None = None,
     """Write ``out``/README.md, summary.json and findings/ from the runs' artifacts."""
     prereg = prereg or mg.load_preregistration()
     with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
+        root = Path(tmp) / "runs"
         gather(runs, root, fetch)
+        check_rows(mb.all_rows(root), part, prereg)
         rows = mb._rows(root)
-        check_rows(rows, part, prereg)
+        check_once(rows)
         doc = mb.summarize(root)
         names = {mb._name(r) for r in rows}
+        want = expected(part, prereg)
         doc["runs"] = runs
         doc["spend"] = spend(doc)
-        doc["missingCases"] = sorted(expected(part, prereg) - names)
-        doc["unexpectedCases"] = sorted(names - expected(part, prereg))
-        out.mkdir(parents=True, exist_ok=True)
+        doc["missingCases"] = sorted(want - names)
+        doc["unexpectedCases"] = sorted(names - want)
+        staged = Path(tmp) / "staged"  # written and scanned here first, so a refused record never lands
+        staged.mkdir()
         head = [f"Recorded from run{'s' if len(runs) > 1 else ''} {', '.join(str(r) for r in runs)} by "
                 f"`python3 -m agents.mutation_collect`. Actual SAM spend: {doc['spend']['samImages']:,} images, "
                 f"${doc['spend']['samUsd']:.2f} at list price.", ""]
         if doc["missingCases"] or doc["unexpectedCases"]:
             head += [f"**Not complete: {len(doc['missingCases'])} cases missing, {len(doc['unexpectedCases'])} unexpected.** "
                      "They are listed in summary.json.", ""]
-        (out / "README.md").write_text("\n".join(head) + "\n" + mb.markdown(doc), encoding="utf-8")
-        (out / "summary.json").write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+        (staged / "README.md").write_text("\n".join(head) + "\n" + mb.markdown(doc), encoding="utf-8")
+        (staged / "summary.json").write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
         for name in ("finding.json", "catch-spec.json"):
             for path in root.rglob(name):
-                dest = out / "findings" / path.parent.name / name
+                if "findings" in path.parts:  # the summary artifact's own copy
+                    continue
+                dest = staged / "findings" / path.parent.name / name
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(path, dest)
-    if export_scan([str(out)]) != 0:
-        raise SystemExit(f"the export scan refused {out}: do not commit it")
+        if export_scan([str(staged)]) != 0:
+            raise SystemExit(f"the export scan refused this record, so nothing was written to {out}")
+        out.mkdir(parents=True, exist_ok=True)
+        # Only what this writes: bench/mutation/generated/ also holds the registered manifest.
+        shutil.rmtree(out / "findings", ignore_errors=True)
+        for path in staged.iterdir():
+            (shutil.copytree if path.is_dir() else shutil.copyfile)(path, out / path.name)
     return doc
 
 
@@ -112,8 +131,15 @@ def plan(cheap_run: int, *, prereg: dict | None = None, fetch: Callable[[int, Pa
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         gather([cheap_run], root, fetch)
-        rows = mb._rows(root)
+        rows = mb.all_rows(root)
         check_rows(rows, "generated", prereg)
+        check_once(rows)
+        if any(r.get("tier") != "cheap" for r in rows):
+            raise SystemExit("--plan-sam takes the cheap phase's run, and this one holds SAM results")
+        settled = [r["id"] for r in rows if r.get("outcome") == "error"]
+        left = expected("generated", prereg) - {r["id"] for r in rows}
+        if settled or left:  # the agreement sample is drawn from the catches, so they must be final first
+            raise SystemExit(f"finish the cheap phase first: {len(left)} cases missing, {len(settled)} tool errors")
         chosen = mb.plan_sam(root, prereg)
     cases = len(chosen["survivors"]) + len(chosen["agreement"])
     return {**chosen, "maxImages": cases * MAX_IMAGES_PER_CASE,
@@ -149,11 +175,12 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         out = args.out or mg.PREREGISTRATION.parent / args.part
         doc = record(args.run, args.part, out)
-    except mg.PreregistrationError as exc:
-        print(f"error: {exc}", file=sys.stderr)
+    except (mg.PreregistrationError, subprocess.CalledProcessError) as exc:
+        print(f"error: {getattr(exc, 'stderr', None) or exc}", file=sys.stderr)
         return 2
-    print(f"{out}: {doc['cases']} cases, {len(doc['missingCases'])} missing; ${doc['spend']['samUsd']:.2f}")
-    return 1 if doc["missingCases"] else 0
+    print(f"{out}: {doc['cases']} cases, {len(doc['missingCases'])} missing, {doc['error']} tool errors, "
+          f"{doc['awaiting-sam']} waiting for SAM; ${doc['spend']['samUsd']:.2f}")
+    return 1 if doc["missingCases"] or doc["unexpectedCases"] or doc["error"] else 0
 
 
 if __name__ == "__main__":

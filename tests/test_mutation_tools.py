@@ -22,15 +22,25 @@ VALUES = {"generator.seed": 11, "generator.sampleSize": 40, "generator.sampling"
           "agreement.seed": 2, "agreement.minimum": 20, "reportTemplate": "x"}
 
 
+def draft_of(doc: dict) -> dict:
+    """The committed file as a draft, whether or not the study has been registered since."""
+    doc = copy.deepcopy(doc)
+    for field in mg.HUMAN_FIELDS:
+        *parents, leaf = field.split(".")
+        holder = doc
+        for part in parents:
+            holder = holder[part]
+        holder[leaf] = None
+    return doc
+
+
 class RegisterBase(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         root = Path(self.tmp.name)
         self.prereg, self.manifest = root / "preregistration.json", root / "generated" / "manifest.json"
-        draft = json.loads(mg.PREREGISTRATION.read_text())
-        draft["wrongFix"].update(commentOnlyLabel=None, publicSamRuleApprovedBy=None)
-        self.prereg.write_text(json.dumps(draft))
+        self.prereg.write_text(json.dumps(draft_of(json.loads(mg.PREREGISTRATION.read_text()))))
         patcher = mock.patch.object(reg, "dirty_pins", return_value=[])
         patcher.start()
         self.addCleanup(patcher.stop)
@@ -75,6 +85,25 @@ class RegisterTest(RegisterBase):
         with self.assertRaises(mg.PreregistrationError) as caught:
             self.register(values)
         self.assertIn("stopRule", str(caught.exception))
+
+    def test_a_number_that_cannot_do_its_job_is_refused_and_writes_nothing(self):
+        for field, value, needle in (("oracle.traceThresholdPx", "abc", "traceThresholdPx"),
+                                     ("oracle.traceThresholdPx", -1, "traceThresholdPx"),
+                                     ("oracle.frameThreshold", 0.5, "frameThreshold"),
+                                     ("generator.positionStep", 0, "positionStep"),
+                                     ("generator.scaleStep", True, "scaleStep"),
+                                     ("generator.zIndexStep", 0, "zIndexStep"),
+                                     ("generator.zIndexStep", 1.5, "zIndexStep"),
+                                     ("generator.collisionBits", 0, "collisionBits"),
+                                     ("generator.constantScale", 1, "constantScale"),
+                                     ("agreement.seed", "x", "agreement.seed")):
+            with self.subTest(field=field, value=value), self.assertRaises(mg.PreregistrationError) as caught:
+                self.register({**VALUES, field: value}, write=True)
+            self.assertIn(needle, str(caught.exception))
+        self.assertFalse(self.manifest.exists())
+
+    def test_zero_thresholds_are_decisions(self):
+        self.assertTrue(self.register({**VALUES, "oracle.traceThresholdPx": 0, "oracle.frameThreshold": 0}))
 
     def test_it_will_not_take_a_field_that_is_not_the_persons(self):
         for key in ("pins", "wrongFix.commentOnlyLabel", "excludedBeforeDraw", "generator.bogus"):
@@ -208,6 +237,73 @@ class RecordTest(CollectBase):
                              outcome="caught-cheap")
         self.assertEqual(self.record({7: rows})["unexpectedCases"], ["dev/physics-fall-through/v1 freeze"])
 
+    def test_a_cheap_phase_is_not_a_score(self):
+        """It cannot produce a survivor, so it would always read as near 100%."""
+        cheap = {"m1": self.row("m", kind="mutant", id="m1", tier="cheap", outcome="awaiting-sam"),
+                 "m2": self.row("m", kind="mutant", id="m2", tier="cheap", outcome="caught-cheap")}
+        with mock.patch.object(mg, "load_manifest", return_value={"mutants": [{"id": "m1"}, {"id": "m2"}]}):
+            doc = self.record({7: cheap}, part="generated")
+        self.assertIsNone(doc["score"])
+        text = (self.out / "README.md").read_text()
+        self.assertIn("Not a score yet", text)
+        self.assertNotIn("100.0%", text)
+
+    def test_a_rehearsal_cheap_row_cannot_hide_behind_a_sam_row(self):
+        cheap = {"m": self.row("m", kind="mutant", id="m", tier="cheap", outcome="awaiting-sam", rehearsal=True)}
+        sam = {"m": self.row("m", kind="mutant", id="m", tier="sam", outcome="caught-sam")}
+        with self.assertRaises(SystemExit) as caught:
+            self.record({7: cheap, 8: sam}, part="generated")
+        self.assertIn("rehearsal", str(caught.exception))
+
+    def test_a_foreign_cheap_row_cannot_hide_behind_a_sam_row(self):
+        cheap = {"m": self.row("m", kind="mutant", id="m", tier="cheap", outcome="awaiting-sam",
+                               preregistrationSha256="cd" * 32)}
+        sam = {"m": self.row("m", kind="mutant", id="m", tier="sam", outcome="caught-sam")}
+        with self.assertRaises(SystemExit) as caught:
+            self.record({7: cheap, 8: sam}, part="generated")
+        self.assertIn("not from this registration", str(caught.exception))
+
+    def test_two_overlapping_runs_are_refused_not_counted_twice(self):
+        with self.assertRaises(SystemExit) as caught:
+            self.record({7: self.pairs(), 8: self.pairs()})
+        self.assertIn("appear twice", str(caught.exception))
+
+    def test_a_repeated_sam_phase_is_refused(self):
+        sam = {"m": self.row("m", kind="mutant", id="m", tier="sam", outcome="caught-sam")}
+        with self.assertRaises(SystemExit):
+            self.record({7: sam, 8: sam}, part="generated")
+
+    def test_recording_again_leaves_no_stale_finding_and_keeps_the_manifest(self):
+        self.out.mkdir()
+        (self.out / "manifest.json").write_text("{}")
+        (self.out / "findings" / "old").mkdir(parents=True)
+        (self.out / "findings" / "old" / "finding.json").write_text("{}")
+        self.record({7: self.pairs()})
+        self.assertFalse((self.out / "findings").exists())
+        self.assertTrue((self.out / "manifest.json").is_file())
+
+    def test_a_refused_record_leaves_nothing_on_disk(self):
+        rows = self.pairs()
+        next(iter(rows.values()))["error"] = "sk-abcdefghijklmnopqrstuvwxyz123456"
+        with self.assertRaises(SystemExit):
+            self.record({7: rows})
+        self.assertFalse(self.out.exists())
+
+    def test_the_exit_code_says_when_a_record_is_not_clean(self):
+        base = {"cases": 1, "missingCases": [], "unexpectedCases": [], "error": 0, "awaiting-sam": 0,
+                "spend": {"samUsd": 0.0}}
+        for change, code in (({}, 0), ({"missingCases": ["a"]}, 1), ({"unexpectedCases": ["a"]}, 1), ({"error": 1}, 1),
+                             ({"awaiting-sam": 3}, 0)):
+            with self.subTest(change=change), mock.patch.object(mc, "record", return_value={**base, **change}):
+                self.assertEqual(mc.main(["--part", "wrong-fix", "--run", "1", "--out", str(self.out)]), code)
+
+    def test_a_failed_download_is_an_error_not_a_traceback(self):
+        import subprocess
+
+        with mock.patch.object(mc, "record", side_effect=subprocess.CalledProcessError(1, ["gh"], stderr="no such run")), \
+                mock.patch("sys.stderr.write"):
+            self.assertEqual(mc.main(["--part", "wrong-fix", "--run", "1", "--out", str(self.out)]), 2)
+
     def test_a_rehearsal_is_refused(self):
         rows = {"a": self.row("a", kind="wrong-fix", rehearsal=True, case="c", operator="o", outcome="caught-cheap")}
         with self.assertRaises(SystemExit) as caught:
@@ -273,8 +369,31 @@ class PlanTest(CollectBase):
         out["s"] = self.row("s", kind="mutant", id="left", tier="cheap", outcome="awaiting-sam")
         return out
 
-    def plan(self):
-        return mc.plan(7, prereg=self.PREREG, fetch=self.fetch_of({7: self.rows()}))
+    def plan(self, rows=None):
+        ids = [r["id"] for r in (rows or self.rows()).values()]
+        with mock.patch.object(mg, "load_manifest", return_value={"mutants": [{"id": i} for i in ids]}):
+            return mc.plan(7, prereg=self.PREREG, fetch=self.fetch_of({7: rows or self.rows()}))
+
+    def test_a_tool_error_stops_the_plan_since_the_sample_depends_on_the_catches(self):
+        rows = self.rows()
+        rows["c0"]["outcome"] = "error"
+        with self.assertRaises(SystemExit) as caught:
+            self.plan(rows)
+        self.assertIn("1 tool errors", str(caught.exception))
+
+    def test_a_missing_case_stops_the_plan(self):
+        rows = self.rows()
+        with mock.patch.object(mg, "load_manifest", return_value={"mutants": [{"id": "gone"}]}), \
+                self.assertRaises(SystemExit) as caught:
+            mc.plan(7, prereg=self.PREREG, fetch=self.fetch_of({7: rows}))
+        self.assertIn("1 cases missing", str(caught.exception))
+
+    def test_a_sam_run_is_not_a_cheap_run(self):
+        rows = self.rows()
+        rows["s"]["tier"] = "sam"
+        with self.assertRaises(SystemExit) as caught:
+            self.plan(rows)
+        self.assertIn("cheap phase's run", str(caught.exception))
 
     def test_it_takes_every_survivor_and_the_seeded_sample(self):
         chosen = self.plan()

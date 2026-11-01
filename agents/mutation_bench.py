@@ -586,10 +586,15 @@ def plan_sam(root: Path, prereg: dict) -> dict:
     return {"survivors": waiting, "agreement": sorted(random.Random(prereg["agreement"]["seed"]).sample(caught, size))}
 
 
+def all_rows(out: Path) -> list[dict]:
+    """Every result under ``out``, before a mutant judged in both phases is counted once."""
+    rows = [json.loads(p.read_text(encoding="utf-8")) for p in sorted(Path(out).rglob("result.json"))]
+    return [r for r in rows if r.get("format") == FORMAT]
+
+
 def _rows(out: Path) -> list[dict]:
     """Every result under ``out``. A mutant judged in both phases counts once, as its SAM phase."""
-    rows = [json.loads(p.read_text(encoding="utf-8")) for p in sorted(Path(out).rglob("result.json"))]
-    rows = [r for r in rows if r.get("format") == FORMAT]
+    rows = all_rows(out)
     second = {r["id"] for r in rows if r.get("kind") == "mutant" and r.get("tier") == "sam"}
     return [r for r in rows if not (r.get("id") in second and r.get("tier") == "cheap")]
 
@@ -609,7 +614,9 @@ def _tally(rows: list[dict]) -> dict:
     cheap = sum(r.get("outcome") == "caught-cheap" for r in bad)
     survived = sum(r.get("outcome") == "survived" for r in bad)
     decided = caught + survived
-    scored = decided and not any(r.get("rehearsal") for r in rows)  # a rehearsal has no score, anywhere
+    # A rehearsal has no score, anywhere. Nor has a cheap phase with cases still waiting for SAM: it
+    # cannot produce a survivor, so anything it printed would read as near 100%.
+    scored = decided and not any(r.get("rehearsal") or r.get("outcome") == "awaiting-sam" for r in rows)
     return {"cases": len(rows), **counts, "badCaught": caught, "badSurvived": survived,
             "score": round(caught / decided, 4) if scored else None,
             "cheapTierScore": round(cheap / decided, 4) if scored else None,
@@ -663,7 +670,7 @@ def summarize(out: Path) -> dict:
     rows = _rows(out)
     if not rows:
         raise SystemExit(f"{out}: no results, so there is nothing to summarize")
-    registrations = {r.get("preregistrationSha256") for r in rows}
+    registrations = {r.get("preregistrationSha256") for r in all_rows(out)}  # a dropped row still counts here
     if len(registrations) > 1:
         raise SystemExit(f"{out}: these results come from {len(registrations)} different registrations, so they "
                          "cannot be reported as one result")
@@ -742,6 +749,9 @@ def markdown(doc: dict) -> str:
                       "says how this sample stands to the game, so this is not a score for the whole game.**", ""]
         else:
             lines += [f"Mutation score: **{score}** ({doc['badCaught']} of {decided} decided bad cases caught).", ""]
+        if doc["awaiting-sam"]:
+            lines += [f"**Not a score yet.** {doc['awaiting-sam']} cases passed the cheap tier and still wait for SAM, so "
+                      f"nothing can have survived. The cheap tier caught {doc['caught-cheap']}.", ""]
         outside = doc["undecided"] + doc["crash"] + doc["error"] + doc["awaiting-sam"]
         if outside:
             lines += [f"Outside the score: {outside} of {doc['cases']} cases ({doc['undecided']} undecided, {doc['crash']} "

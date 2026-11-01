@@ -95,6 +95,9 @@ def load_preregistration(path: Path | None = None) -> dict:
     problem = sampling_problem(doc["generator"])
     if problem:
         raise PreregistrationError(f"{path}: {problem}")
+    problem = values_problem(doc)
+    if problem:
+        raise PreregistrationError(f"{path}: {problem}")
     if not _whole(doc["agreement"]["minimum"]) or doc["agreement"]["minimum"] < MIN_AGREEMENT:
         raise PreregistrationError(f"{path}: agreement.minimum must be at least {MIN_AGREEMENT} (#127)")
     moved = sorted(k for k, v in current_pins().items() if doc["pins"].get(k) != v)
@@ -202,6 +205,28 @@ def sample(mutants: list[dict], seed: int, size: int) -> list[dict]:
     """A seeded sample, in enumeration order. A generator with fewer mutants gives all of them."""
     chosen = random.Random(seed).sample(range(len(mutants)), min(size, len(mutants)))
     return [mutants[i] for i in sorted(chosen)]
+
+
+def values_problem(doc: dict) -> str | None:
+    """A number that cannot do its job. A step of 0 makes mutants that change nothing, and a threshold
+    that is not a number only fails once judging has started."""
+    gen, oracle = doc["generator"], doc["oracle"]
+    number = lambda v: isinstance(v, (int, float)) and not isinstance(v, bool)  # noqa: E731
+    for name in ("positionStep", "offsetStep", "scaleStep"):
+        if not number(gen[name]) or gen[name] <= 0:
+            return f"generator.{name} must be a number above 0"
+    for name in ("zIndexStep", "collisionBits"):
+        if not _whole(gen[name]) or gen[name] < 1:
+            return f"generator.{name} must be a whole number, 1 or more"
+    if not number(gen["constantScale"]) or gen["constantScale"] <= 0 or gen["constantScale"] == 1:
+        return "generator.constantScale must be a number above 0, and not 1"
+    if not number(oracle["traceThresholdPx"]) or oracle["traceThresholdPx"] < 0:
+        return "oracle.traceThresholdPx must be a number, 0 or more"
+    if not _whole(oracle["frameThreshold"]) or oracle["frameThreshold"] < 0:
+        return "oracle.frameThreshold must be a whole number, 0 or more"
+    if not _whole(doc["agreement"]["seed"]):
+        return "agreement.seed must be a whole number"
+    return None
 
 
 def sampling_problem(gen: dict) -> str | None:
