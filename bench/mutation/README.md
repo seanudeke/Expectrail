@@ -3,7 +3,7 @@
 How much does Expectrail's tiered checker catch, which checks catch what, what does it miss, and what
 did the judging cost? Issue #127 sets the rules. Nobody on the team writes a bug or picks a case.
 
-**Status: draft pre-registration. No case has been judged.** `agents/mutation_bench.py` and the
+**Status: registered. No case in the study has been judged.** `agents/mutation_bench.py` and the
 **Mutation bench** workflow refuse to run until [`preregistration.json`](preregistration.json) has no
 empty field left, the code it pins has not moved, and the committed manifest is exactly what the
 generator writes. A judged run starts only from `main`, so nothing is judged before the file is merged.

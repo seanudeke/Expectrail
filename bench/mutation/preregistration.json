@@ -1,44 +1,90 @@
 {
   "format": "expectrail.mutation-preregistration/v0",
-  "status": "draft: every null below is a person's decision (#127), and nothing is judged until none is left",
+  "status": "registered: every decision below was made before any case in the study was judged (#127, #145)",
+  "decisionProvenance": "Taofeek's generator, oracle, stop-rule, agreement and report-template decisions were drafted by this agent from facts in the repository, at his request, because most have no default, and he adopted them on Oct 31, 2026 before any case in the study was judged. #127 reserves these for a person, so Sean reviews them in the registration pull request, and can reject them before anything is judged. Sean's own decisions are his.",
   "wrongFix": {
-    "commentOnlyLabel": null,
+    "commentOnlyLabel": "good",
     "commentOnlyNote": "comment-only stacked on the correct undo leaves the game correct, so #127's 'bad by construction' does not hold for these 8 pairs. Sean labels them good or bad before any result exists.",
     "publicSamRule": "With no private set, the verifier's held-out arm is left out of the bench's decision: it is a constant fixture with SAM off and a forced needs-review with SAM on. Only a check that ran and failed is a catch.",
-    "publicSamRuleApprovedBy": null
+    "publicSamRuleApprovedBy": "Sean, Oct 31, 2026"
   },
   "generator": {
-    "seed": null,
-    "sampleSize": null,
-    "sampling": null,
-    "samplingWhy": null,
-    "positionStep": null,
-    "offsetStep": null,
-    "scaleStep": null,
-    "zIndexStep": null,
-    "constantScale": null,
-    "collisionBits": null
+    "seed": 20261031,
+    "sampleSize": 150,
+    "sampling": {
+      "method": "stratified",
+      "perClass": {
+        "numeric": 70,
+        "boolean": 1,
+        "collision-bit": 30,
+        "code": 19,
+        "resource-path": 30
+      }
+    },
+    "samplingWhy": "An unstratified draw is about 93% numeric scenery edits, so the score would mostly measure those. Every code and boolean mutant is taken because those classes are small, and the rest are split so no class is lost; the report leads with the weighted score because these counts were set by hand.",
+    "positionStep": 26,
+    "offsetStep": 26,
+    "scaleStep": 0.5,
+    "zIndexStep": 1,
+    "constantScale": 2,
+    "collisionBits": 5
   },
   "oracle": {
     "route": "harness/routes/smoke.json",
-    "traceThresholdPx": null,
-    "frameThreshold": null,
+    "traceThresholdPx": 0,
+    "frameThreshold": 0,
     "definition": "visible when the engine record (player position, facing, enemies, shots) differs from the clean game's by more than traceThresholdPx, or more than frameThreshold frames differ. Both strictly over."
   },
-  "stopRule": null,
+  "stopRule": "No resampling. If few mutants are visible, the study reports the smaller number, with every dropped mutant listed and its reason.",
   "agreement": {
-    "seed": null,
-    "minimum": null,
+    "seed": 20261101,
+    "minimum": 20,
     "definition": "SAM's own checks (player-always-visible, coins-visible) on a cheap rejection. Agree: one fails. Disagree: all pass, so SAM saw nothing wrong and could never have overturned the rejection. Undecided: otherwise. Gameplay, the controls and the ground check are left out: both arms share the first two, and the ground line comes from the engine."
   },
   "crashDefinition": "A crash is a game that does not run or never loads a player. A game that runs with a failed load is judged as usual, with loadFailures recorded on its row: a missing texture is the bug a resource-path mutant makes. This decides whether the resource-path class is in the study, and it was settled after a resource-path mutant had been seen caught in a rehearsal (run 41244617649). Sean accepted it on Oct 31, 2026.",
   "excludedBeforeDraw": {
     "decidedBy": "Sean, Oct 31, 2026: every case judged before registration leaves the study before the draw. This does not depend on their outcomes, and the code changed after those outcomes were seen.",
-    "pairs": [{"case": "dev/physics-fall-through/v1", "operator": "freeze"}],
-    "mutants": ["code:player/player.gd:7:sign.WALK_SPEED", "resource-path:player/player.tscn:3:missing"]
+    "pairs": [
+      {
+        "case": "dev/physics-fall-through/v1",
+        "operator": "freeze"
+      }
+    ],
+    "mutants": [
+      "code:player/player.gd:7:sign.WALK_SPEED",
+      "resource-path:player/player.tscn:3:missing"
+    ]
   },
   "rehearsedBeforeRegistration": "Disclosed, since these outcomes were seen before registration. Mutation bench runs 41234250269 and 41239537985 judged the pair dev/physics-fall-through/v1 + freeze (one of the 48): caught-cheap. Runs 41244619862 and 41246831297 judged it again through forced SAM: caught-cheap, SAM's own checks disagree, as a frozen robot is still visible. Run 41246829062 judged it once more without SAM: caught-cheap. The last two used the judge benchmark's freeze fixture, whose game is identical to this pair. Run 41244617649 judged two members of the mutant population: code:player/player.gd:7:sign.WALK_SPEED (visible, passed the cheap tier) and resource-path:player/player.tscn:3:missing (visible, caught-cheap). All three cases are excluded before the draw (excludedBeforeDraw). Rehearsals since then use cases the study cannot draw.",
   "retryRule": "A replay that fails is tried once more, and the retry is recorded. Failing twice is a crash of the case. Nothing is rerun because of how Expectrail did on it.",
-  "reportTemplate": null,
-  "pins": null
+  "reportTemplate": "A player says this no longer holds: {sentence}",
+  "pins": {
+    "gameTree": "6a273587d64e10a74c0160256cfdc4964f16ed3e93fe7ab178e1bedc5071b280",
+    "agents/mutate_game.py": "9d3877a88bbed73702a6c1a93a6b93749a1a9651277a66ec3dceabcbc84b604c",
+    "agents/mutation_bench.py": "71c0bc752e6b0e23fd6471162475134ba764d604f92a6a51c2b94bb7e2faac83",
+    "agents/verifier.py": "fb11847add4ac6d740d9e905d05b1fee6d5481222fec4dbc8798a54306659494",
+    "agents/observations.py": "73a9c52a52cab4b6301f68eac33b2522e32dae9ed3888900b12683611424f892",
+    "agents/sam_observations.py": "e620fe70d684214e02ddc87cf2ead08acb61ac6de1a51785cfbae1e02ae898e4",
+    "agents/sam_health.py": "30afe83f9215b386c5f45e2d21cc1007364cbdd83fb7f4797c57bcb727c6a143",
+    "agents/sam_warm.py": "b3edd25c3b7be00f70f542ec862c24cd4213d7ffed0cdc52462b8f2fa64ca67b",
+    "agents/gameplay.py": "76b0cfb386b803e00977d5bd3da64e4c77d620f92da0ec2b6535a50ee91fd72b",
+    "agents/trace_checks.py": "daa3dde6d07257892efcccfea0cb641241a7cc5421aea199387d570644a073be",
+    "agents/matrix.py": "286a51f0094019ab371bbf0f691880a182aa6240259e3ab024be42a689f62018",
+    "agents/judge_bench.py": "22fb7016fd871dfcf77a33fc5ae84736c4ad119cf8a5a40bc168bb8fae29a455",
+    "agents/orchestrator.py": "5378715577411b28380d75073ed7d65149ed0c66b49a0805ea7488049adfb356",
+    "expectrail/evaluator.py": "c981123452da366117d2816fd686220d14e1b49e885d6dd4a02a330c33f611ff",
+    "harness/run.py": "39149973a905a81e8e06a4886ee34171d80903c73e07d202316cc595ddc3e155",
+    "harness/godot/expectrail_harness.gd": "55bfce6fa9bc296c744c8b4f3bfe292ef1bcfec8b31e9d97c2e8804686a9217d",
+    "harness/get_godot.sh": "aa96c2ca04cc6bcb8e22662913649a76b0577b15af2bff9f2e8906275c6f8ea9",
+    "harness/routes/smoke.json": "0db750ef7ab79124ccd80c63c03f117d84c579281f7ca487f0877f829660f02d",
+    "agents/specs/player-stays-above-ground.json": "697e386214c8771819de1f1fb19a36c73209da84dd483b362406cc754416c417",
+    "specs/player-always-visible.json": "11cadabc942ded6c5f89cf9fa2d7588268781fbb99b545ee88ac2e392275bfdf",
+    "specs/coins-visible.json": "7af8741e806a5352d314e4e27a2b0fe7bfe935c3107c48d6247991fb7024ce36",
+    ".github/workflows/mutation-bench.yml": "25bd02ef74915f7509b4aff843f1e3071d9ec7ad60281764c185ed72b2a9b1a1",
+    "agents/fixtures/operators": "75bb41a6a2f8ea6b601011eb2817da0f1365d8685bf8a1cff6b9041a3ec22d7e",
+    "bugs/physics-fall-through": "0b22753dcc871708dc812a48f79d76ea4df9d66fa59680cf4e74eaacd28d879e",
+    "bugs/sinking": "b3b8a9228170e6f3d9205e1ecd5f8019ca2f14113a4153e5c10dba896a8ed9bf",
+    "bugs/missing-texture": "b7564c0f576e1ac7c36edacc28c2fc039f5d9d3b52c0532a5ffe9f6219a9d6ef",
+    "bugs/layering": "5cdef6d778c31d6de05294745a4e622386ef1a948ab6817c051849a15d199ebf"
+  }
 }
