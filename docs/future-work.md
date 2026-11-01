@@ -58,9 +58,11 @@ Next, for the checks people write:
   motion jitter, which the evaluation plan already defers.
 
 Next, for discovery (detail in [discovery.md](discovery.md#whats-next)):
-- Measure the Muse Spark planner blind on fresh set 2, against set 2's planner-off result. On public
-  builds, once its token limit was removed and the clean game made each job's reference, it added
-  second reasons but no new detection.
+- Measure the Muse Spark planner on more than one blind run. On fresh set 2 it took the templates
+  from 3 of 8 to 4 of 8 with no false alarm, once; on public builds it added second reasons but no
+  new detection.
+- Make a finding name its cause, not only the rule that tripped: several catches came through a rule
+  written for something else.
 - A larger blind set, written by people outside the team, before any rate is claimed.
 - The rest of the team's autonomous-discovery specification: visual discovery on matched base and
   candidate runs; integrity signals (crashes, script errors, no progress) kept apart from gameplay

@@ -23,17 +23,14 @@ it is in [What's next](#whats-next).
 ## Status, October 31
 
 - **Built and measured:** everything on this page, locally and in CI (below).
-- **Tested blind:** with the discoverer frozen, ten fresh entries written after the freeze and their
-  digest committed (pull request #150), the blind run flagged **4 of 8 defects** and **none** of the
-  2 intentional changes or the clean game, every job complete ([below](#blind-run-1-october-31)). A
-  second run meant to add the planner gave the same result because the planner never answered
-  ([run 2](#blind-run-2-planner-on-the-planner-never-answered)).
-- **The planner, live on public builds only:** after a fix (its token limit), Muse Spark proposes
-  probes and contracts on every build; with the clean game as each job's reference, none of its
-  contracts raised a finding on a healthy or visual-only build, and it added no detection the
-  templates had not already made ([below](#the-planner-live-on-public-builds)).
-- **Set 2 is next:** fresh set 1 is retired after two runs; set 2 is to be written against freeze 2,
-  which differs from freeze 1 only in the planner's request ([below](#freeze-2-and-fresh-set-2)).
+- **Tested blind on two fresh sets:** each written after a freeze, by a session that never saw the
+  discoverer's rules, with its digest committed before any run. With the planner off, the frozen
+  templates flagged **7 of 16 defects** (4 of 8, then 3 of 8) and **none** of the 4 intentional
+  changes or the clean game ([blind runs](#all-blind-runs)).
+- **The planner, measured blind once:** on set 2, with the clean game as each job's reference, Muse
+  Spark's extra probes and contracts took it from 3 of 8 to **4 of 8**, still with no false alarm
+  ([set 2](#set-2-blind-runs-3-and-4-november-1)). One more defect on one run of eight is a hint, not
+  a measured gain. Its first attempt, on set 1, never answered (run 2).
 
 ## What runs
 
@@ -269,6 +266,54 @@ So on public builds the planner adds second reasons, not new detections, and wit
 reference its contracts are false alarms waiting to happen. Records: `bench/discovery/run-41251642563.json`,
 `bench/discovery/run-41252054622.json`.
 
+### Set 2: blind runs 3 and 4, November 1
+
+Fresh set 2 was written after freeze 2 was merged (pull request #159, 14:13 UTC): its candidate list
+was committed to the private repository at 14:19, the set at 14:42, and its digest here in pull
+request #166 at 14:42. Both runs were dispatched on #166's head (`a5ae587`), and every job verified
+freeze 2 (`9af1f621…`) and the digest (`3306391f…`) before replaying anything. Recorded from the
+jobs' counts-only notices in [`bench/discovery/blind-run-41319184209.json`](../bench/discovery/blind-run-41319184209.json)
+(planner off) and [`bench/discovery/blind-run-41319197682.json`](../bench/discovery/blind-run-41319197682.json)
+(planner on).
+
+| Id | Kind | Run 3, planner off | Run 4, planner on |
+| --- | --- | --- | --- |
+| clean | control | no | no |
+| g01 | intentional | no | no |
+| g02 | defect | no | no |
+| g03 | defect | **yes** | **yes** |
+| g04 | defect | **yes** | **yes** |
+| g05 | defect | no | no |
+| g06 | defect | no | **yes** |
+| g07 | defect | no | no |
+| g08 | defect | **yes** | **yes** |
+| g09 | intentional | no | no |
+| g10 | defect | no | no |
+
+- **Planner off: 3 of 8 defects, 0 of 3 healthy builds,** every finding 3 of 3, no job incomplete.
+- **Planner on: 4 of 8, 0 of 3.** Muse Spark answered in every job. Each job replayed the clean
+  game as its reference, so any of its contracts that failed there was rejected before it could
+  count; none of its contracts raised a finding on either intentional change or the clean game.
+  The extra defect is g06. The planner-on jobs replayed 52 to 76 episodes each, against 22 to 38
+  with it off, and took about two to three times as long.
+- **What it does not show.** One planner run on one set of eight: a single extra catch could be
+  luck, and Spark's proposals vary from run to run. Which rules fired and what each entry is stay
+  private until the event is over. The writer was again an AI session following a prompt written by
+  the discoverer's author; it never saw set 1, the discovery code or its docs.
+
+### All blind runs
+
+| Run | Set | Freeze | Planner | Defects flagged | Healthy builds flagged | Incomplete |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1, [41248745687](https://github.com/seanudeke/Expectrail/actions/runs/41248745687) | 1 | 1 | off | 4 of 8 | 0 of 3 | 0 |
+| 2, [41250932288](https://github.com/seanudeke/Expectrail/actions/runs/41250932288) | 1 | 1 | on, but it never answered | 4 of 8 | 0 of 3 | 0 |
+| 3, [41319184209](https://github.com/seanudeke/Expectrail/actions/runs/41319184209) | 2 | 2 | off | 3 of 8 | 0 of 3 | 0 |
+| 4, [41319197682](https://github.com/seanudeke/Expectrail/actions/runs/41319197682) | 2 | 2 | on, the clean game as reference | 4 of 8 | 0 of 3 | 0 |
+
+The frozen templates alone, on the two independent sets: **7 of 16 defects, no false alarm on the 4
+intentional changes or the clean game.** That is still a small sample, from two sets written by AI
+sessions, not a rate for defects in general.
+
 ## What the development results do and do not say
 
 - **This is development reproduction, not discovery.** The profile's four claims (the double jump,
@@ -307,10 +352,12 @@ air-jump was added after the first jump contract missed it (next point). No bug 
 
 In order, and none of it built yet unless it says so.
 
-1. **Fresh set 2.** Written against freeze 2, then run once with the planner off and once with it
-   on (above).
-2. **The Muse Spark planner, measured blind.** On public builds it answers and adds no detection;
-   set 2's planner-on run is its blind test.
+1. **More blind evidence, from people.** Two sets of eight defects, both written by AI sessions,
+   give 7 of 16 for the templates and one planner run. A larger set written by people outside the
+   team, and the planner run several times on it, are what a rate or a planner claim would need.
+2. **A finding should name its cause.** Development catches came through rules written for
+   something else (a fall-through flagged as "no air jump"). A reviewer can replay the
+   probe, but the report should say what changed, not only which rule tripped.
 3. **The rest of the autonomous-discovery specification.** The team's specification has three
    rollouts:
    - *Advisory* (this page is its first slice). Still to come: visual discovery (Muse Spark proposes

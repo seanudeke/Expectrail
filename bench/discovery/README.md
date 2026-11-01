@@ -16,11 +16,14 @@ What [docs/discovery.md](../../docs/discovery.md) reports, as the runs wrote it.
 - [`blind-run-41250932288.json`](blind-run-41250932288.json): blind run 2, the same set dispatched
   with the planner on. Every job recorded the planner as unavailable (Muse Spark returned no
   content), so it is a second planner-off result: the same 4 of 8 and 0 of 3.
+- [`blind-run-41319184209.json`](blind-run-41319184209.json) and
+  [`blind-run-41319197682.json`](blind-run-41319197682.json): blind runs 3 and 4, fresh set 2 under
+  freeze 2, planner off then on: 3 of 8 and 4 of 8 defects, 0 of 3 healthy builds each.
 - [`run-41251642563.json`](run-41251642563.json) and [`run-41252054622.json`](run-41252054622.json):
   the planner's first live answers, on the public builds, on branch `discovery/planner-fix` before
   it merged: without a reference, then with the clean game as each job's reference.
 
 The local and `run-<id>` records are labelled `development-reproduction`: the profile and probes were
-written after the four reported bugs were known. The blind run is the first record that is not. None of this
+written after the four reported bugs were known. The `blind-run-<id>` records are not. None of this
 gates a fix: these are the checks nobody wrote, beside the checks people wrote that the verifier
 runs.
