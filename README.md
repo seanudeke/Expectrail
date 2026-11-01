@@ -152,6 +152,7 @@ four more reproduce bugs other people reported ([Bugs we did not write](#bugs-we
 | Natural-catch trial: Muse Code given each reported bug in the reporter's words, 5 times each (20 cases) | 20 of 20 fixed on the first attempt; Expectrail accepted 20, the bug's own check passed 20, Muse from screenshots accepted 19; **0 natural catches** | [41129722699](https://github.com/seanudeke/Expectrail/actions/runs/41129722699) |
 | Bad fixes that only look right, accepted by the judge (7 cases, 3 runs) | Expectrail with SAM **0 of 7**; Expectrail without SAM 3 of 7; Muse from screenshots 2 of 7; Expectrail with Muse Glimmer checked against the engine, no SAM (1 run) 0 of 7, one of them stopped only on a held-out route | [judge](bench/judge/README.md), [with Glimmer](bench/judge/glimmer/README.md) |
 | Good fixes accepted by the judge (8 cases, 3 runs) | Expectrail 8 of 8 every run, with Glimmer too; Muse from screenshots 6, 7 and 6 of 8 | [judge](bench/judge/README.md), [with Glimmer](bench/judge/glimmer/README.md) |
+| The same 15 fixes judged from screenshots by the strongest outside models, Claude Fable 5.1 and GPT-6 Astra (1 run, 3 passes each, the same frames and prompt as Muse) | Bad fixes accepted: **0 of 7** in every pass, both. Good fixes accepted: Claude 6, 6 and 7 of 8; GPT 8, 7 and 8 of 8 | [outside models](bench/judge/outside-models/README.md) |
 | Development bugs fixed by Muse Code, October 30 | 8 of 8 with Expectrail's evidence; 8 of 8 from screenshots alone | [fix matrix](bench/fix-matrix/README.md) |
 | Development bugs fixed by Muse Code, October 31, all three briefings | Evidence first **8 of 8**; report first, evidence after a failed attempt 7 of 8; report only 6 of 8. Every miss was a sinking bug where the report-only attempts timed out | [41223754703](https://github.com/seanudeke/Expectrail/actions/runs/41223754703) |
 | Demo path, live, end to end, 10 independent runs | **10 of 10 accepted**, each on the first attempt; 12 to 22 minutes a run (median 14.5) and 1,164 SAM images ($2.91) a run; Muse Code's share is not reported per run | [40990485265](https://github.com/seanudeke/Expectrail/actions/runs/40990485265) |
@@ -176,8 +177,8 @@ all three runs except one of Muse Code's, on a correct fix.
 | Changes only a comment; the robot still falls | reject | reject | reject |
 | Stops the sinking but leaves the robot floating | reject | reject | reject |
 
-The first row is the one to remember: a model looking at the same pictures said the fall was fixed,
-and only the measured check against the clean game said no. On the 8 correct fixes, Expectrail with
+The first row is the one to remember: Muse Code, looking at the same pictures, said the fall was
+fixed, and of these three judges only the measured check against the clean game said no. On the 8 correct fixes, Expectrail with
 SAM accepted all 8 in all three runs, and it accepted all 10 live runs of the demo path: 34 judgments of a
 correct fix, none rejected. Muse Code from screenshots turned down one correct fix in every run and
 another in two of the three.
@@ -188,11 +189,20 @@ every public check under Glimmer and was stopped only on a held-out route; SAM s
 public visibility check. So Glimmer is the fallback for when SAM does not answer, not its equal
 ([docs/open-weights.md](docs/open-weights.md)).
 
+On November 1 we gave the same 15 fixes to the strongest models two other vendors sell, Claude
+Fable 5.1 and GPT-6 Astra, with the same five before and five after frames and the same prompt as
+Muse, three times each ([`bench/judge/outside-models/`](bench/judge/outside-models/README.md)). In a
+simple game, the strongest models judging from screenshots caught these fake fixes too, but wrongly
+rejected correct ones: Claude 5 times in 24, GPT once in 24. Both read a correct sinking fix as the
+robot floating above the ground; the fix is an exact undo, so what they saw is how the clean game plays. Expectrail with SAM made no mistakes on either, in three runs.
+On a game this small that gap is a handful of judgments; we expect it to matter more in a bigger
+game, and that is the next thing to test, not a result.
+
 What these numbers do and do not say:
 
 - **The verifier is where Expectrail wins, not the fixer.** On October 30 Muse Code fixed all 8
-  development bugs from screenshots alone, as well as with our evidence. What screenshots alone cannot do is judge:
-  Muse from screenshots accepted 2 of 7 fixes that only look right (one lowers the floor, one sinks
+  development bugs from screenshots alone, as well as with our evidence. What Muse could not do from
+  screenshots was judge: it accepted 2 of 7 fixes that only look right (one lowers the floor, one sinks
   the robot) and turned down one or two good ones. Expectrail with SAM accepted none of the bad and
   all of the good, in all three runs. So since October 30 the fixer gets a plain report first, every
   attempt is verified, and Expectrail's evidence goes to the fixer after a failed attempt. The

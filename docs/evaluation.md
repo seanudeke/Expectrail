@@ -223,13 +223,36 @@ the first, and added a fourth judge: the verifier with Muse Glimmer checked agai
 SAM. It accepted 8 of 8 good and 0 of 7 bad, but the deleted trees got past every public check under
 Glimmer and were stopped only on a held-out route ([docs/open-weights.md](open-weights.md)).
 
+On November 1 the same 15 candidates went to the strongest models two other vendors sell, as
+screenshot judges beside Muse in one run ([41320444374](https://github.com/seanudeke/Expectrail/actions/runs/41320444374),
+`bench/judge/outside-models/`, `agents/outside_judge.py`). Each got the screenshot judge's prompt
+byte for byte, the same ten frames under the same file names, and the same decision line, three
+times, each pass its own request. The models, prompt, passes and scoring were fixed before the run,
+and it was not run again. The SAM-on verifier was skipped; its decisions are the three runs above.
+
+| Judge, from screenshots | Good fixes accepted, per pass | Bad fixes accepted, per pass |
+| --- | --- | --- |
+| Claude Fable 5.1 (`claude-fable-5-1`) | 6, 6 and 7 of 8 | 0, 0 and 0 of 7 |
+| GPT-6 Astra (`gpt-6-astra`, reasoning effort high) | 8, 7 and 8 of 8 | 0, 0 and 0 of 7 |
+| Muse Code, the same frames, the same run | 7 of 8 | 2 of 7 |
+
+- Both caught the two fixes Muse accepted. They saw the robot's feet below the grass line, and the
+  enemies sunk into the floor when the floor's collision was lowered: the five frames do show it.
+- Their mistakes were on correct fixes. Claude rejected sinking/v1 in all three passes and
+  sinking/v2 in two, GPT sinking/v2 once, each reading the robot as floating above the ground, as
+  Muse does. Those fixes are exact undos, so what they saw is how the clean game plays.
+  Claude's third pass on the hidden player was needs-review, not an accept.
+- Expectrail with SAM made no mistakes on either, in three runs. On 15 cases the difference from
+  GPT is one judgment; it says screenshot judging errs even in a simple game, not how often it would
+  in a bigger one. About $21 at list prices for the 90 outside-model requests.
+
 What the reasons show (second run):
 
 - Without SAM the verifier sees the engine, not the picture, so it passes the hidden player, the
   sunk player and the hidden trees. SAM's checks reject all three.
-- Muse accepts the lowered floor and the sunk player ("player stays in view, on ground"): five
-  frames carry no reference for where the ground should be. It rejects real sinking fixes because
-  it reads a normal jump as the robot floating.
+- Muse accepts the lowered floor and the sunk player ("player stays in view, on ground"). The five
+  frames do show the feet below the grass line: Claude and GPT, given the same frames, saw it (see
+  above). It rejects real sinking fixes because it reads a normal jump as the robot floating.
 - The floating robot fails `player-stays-above-ground` in both modes: the spec holds the feet within
   20 px of the ground, so floating fails as well as sinking.
 - Expectrail does not notice the missing trees. It rejects that candidate because the player is
