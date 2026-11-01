@@ -1,0 +1,505 @@
+{
+  "format": "expectrail.mutation-fix/v0-summary",
+  "cases": 10,
+  "fixed": 10,
+  "notFixed": 0,
+  "needsReview": 0,
+  "errors": 0,
+  "candidates": 10,
+  "good": 10,
+  "bad": 0,
+  "unknown": 0,
+  "naturalCatches": 0,
+  "falseAccepts": 0,
+  "falseRejects": 0,
+  "acceptedAndGood": 10,
+  "samImages": 250,
+  "rows": [
+    {
+      "format": "expectrail.mutation-fix/v0",
+      "case": "code:player/player.gd:11:sign.TERMINAL_VELOCITY",
+      "check": "gameplay/player-motion-on-smoke",
+      "report": "A player says this no longer holds: The player keeps moving along the route, never sinks below the ground, and ends on the floor.",
+      "live": true,
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "rehearsal": false,
+      "attempts": [
+        {
+          "attempt": 1,
+          "source": "muse",
+          "empty": false,
+          "timedOut": false,
+          "patchSha256": "703cf5f5bed7cb8dd7750792e2995ea255fa3e4918e3ffedb3b2ce86371c9002",
+          "outcome": "survived",
+          "decision": "accept",
+          "agreement": null,
+          "publicCheck": "pass",
+          "label": "good",
+          "distances": {
+            "climb-gap": 0.0,
+            "tap-shoot": 0.0,
+            "turn-and-shoot": 0.0,
+            "wait-for-patrol": 0.0,
+            "walk-left": 0.0,
+            "smoke": 0.0
+          },
+          "framesDiffering": {
+            "climb-gap": 0,
+            "tap-shoot": 0,
+            "turn-and-shoot": 0,
+            "wait-for-patrol": 0,
+            "walk-left": 0,
+            "smoke": 0
+          },
+          "notRun": [],
+          "museScreenshots": "reject",
+          "failing": [],
+          "naturalCatch": false,
+          "falseAccept": false,
+          "falseReject": false
+        }
+      ],
+      "outcome": "fixed",
+      "samImages": 1,
+      "wallClockSeconds": 1152.8
+    },
+    {
+      "format": "expectrail.mutation-fix/v0",
+      "case": "code:player/player.gd:43:compare.0",
+      "check": "engine-record/facing-follows-motion",
+      "report": "A player says this no longer holds: While the robot walks left or right, it faces the way it walks.",
+      "live": true,
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "rehearsal": false,
+      "attempts": [
+        {
+          "attempt": 1,
+          "source": "muse",
+          "empty": false,
+          "timedOut": false,
+          "patchSha256": "3670f957c824a20bfa439f6fda2fbf984adee0a055e52f6de195b41ba3d898d9",
+          "outcome": "survived",
+          "decision": "accept",
+          "agreement": null,
+          "publicCheck": "pass",
+          "label": "good",
+          "distances": {
+            "climb-gap": 0.0,
+            "tap-shoot": 0.0,
+            "turn-and-shoot": 0.0,
+            "wait-for-patrol": 0.0,
+            "walk-left": 0.0,
+            "smoke": 0.0
+          },
+          "framesDiffering": {
+            "climb-gap": 0,
+            "tap-shoot": 0,
+            "turn-and-shoot": 0,
+            "wait-for-patrol": 0,
+            "walk-left": 0,
+            "smoke": 0
+          },
+          "notRun": [],
+          "museScreenshots": "accept",
+          "failing": [],
+          "naturalCatch": false,
+          "falseAccept": false,
+          "falseReject": false
+        }
+      ],
+      "outcome": "fixed",
+      "samImages": 1,
+      "wallClockSeconds": 1438.2
+    },
+    {
+      "format": "expectrail.mutation-fix/v0",
+      "case": "code:player/player.gd:56:compare.0",
+      "check": "regression/player-always-visible",
+      "report": "A player says this no longer holds: The player is always visible.",
+      "live": true,
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "rehearsal": false,
+      "attempts": [
+        {
+          "attempt": 1,
+          "source": "muse",
+          "empty": false,
+          "timedOut": false,
+          "patchSha256": "050917b193cda42f7c489e036ea11269aed463e268fc0e31db5d2c059025c334",
+          "outcome": "survived",
+          "decision": "accept",
+          "agreement": null,
+          "publicCheck": "pass",
+          "label": "good",
+          "distances": {
+            "climb-gap": 0.0,
+            "tap-shoot": 0.0,
+            "turn-and-shoot": 0.0,
+            "wait-for-patrol": 0.0,
+            "walk-left": 0.0,
+            "smoke": 0.0
+          },
+          "framesDiffering": {
+            "climb-gap": 0,
+            "tap-shoot": 0,
+            "turn-and-shoot": 0,
+            "wait-for-patrol": 0,
+            "walk-left": 0,
+            "smoke": 0
+          },
+          "notRun": [],
+          "museScreenshots": "accept",
+          "failing": [],
+          "naturalCatch": false,
+          "falseAccept": false,
+          "falseReject": false
+        }
+      ],
+      "outcome": "fixed",
+      "samImages": 1,
+      "wallClockSeconds": 1615.3
+    },
+    {
+      "format": "expectrail.mutation-fix/v0",
+      "case": "code:player/player.gd:9:scale.JUMP_VELOCITY",
+      "check": "gameplay/player-motion-on-smoke",
+      "report": "A player says this no longer holds: The player keeps moving along the route, never sinks below the ground, and ends on the floor.",
+      "live": true,
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "rehearsal": false,
+      "attempts": [
+        {
+          "attempt": 1,
+          "source": "muse",
+          "empty": false,
+          "timedOut": false,
+          "patchSha256": "ceb811632aa0fc626ccd0ae5311af72f868ca9bcd55c94fc0c0bc64c18231b82",
+          "outcome": "survived",
+          "decision": "accept",
+          "agreement": null,
+          "publicCheck": "pass",
+          "label": "good",
+          "distances": {
+            "climb-gap": 0.0,
+            "tap-shoot": 0.0,
+            "turn-and-shoot": 0.0,
+            "wait-for-patrol": 0.0,
+            "walk-left": 0.0,
+            "smoke": 0.0
+          },
+          "framesDiffering": {
+            "climb-gap": 0,
+            "tap-shoot": 0,
+            "turn-and-shoot": 0,
+            "wait-for-patrol": 0,
+            "walk-left": 0,
+            "smoke": 0
+          },
+          "notRun": [],
+          "museScreenshots": "reject",
+          "failing": [],
+          "naturalCatch": false,
+          "falseAccept": false,
+          "falseReject": false
+        }
+      ],
+      "outcome": "fixed",
+      "samImages": 1,
+      "wallClockSeconds": 1272.8
+    },
+    {
+      "format": "expectrail.mutation-fix/v0",
+      "case": "code:player/player.gd:9:sign.JUMP_VELOCITY",
+      "check": "gameplay/player-motion-on-smoke",
+      "report": "A player says this no longer holds: The player keeps moving along the route, never sinks below the ground, and ends on the floor.",
+      "live": true,
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "rehearsal": false,
+      "attempts": [
+        {
+          "attempt": 1,
+          "source": "muse",
+          "empty": false,
+          "timedOut": false,
+          "patchSha256": "09cc7dce980b7171955962d5795cd3860fb537a14064bc91addf8acc4a6ca3e5",
+          "outcome": "survived",
+          "decision": "accept",
+          "agreement": null,
+          "publicCheck": "pass",
+          "label": "good",
+          "distances": {
+            "climb-gap": 0.0,
+            "tap-shoot": 0.0,
+            "turn-and-shoot": 0.0,
+            "wait-for-patrol": 0.0,
+            "walk-left": 0.0,
+            "smoke": 0.0
+          },
+          "framesDiffering": {
+            "climb-gap": 0,
+            "tap-shoot": 0,
+            "turn-and-shoot": 0,
+            "wait-for-patrol": 0,
+            "walk-left": 0,
+            "smoke": 0
+          },
+          "notRun": [],
+          "museScreenshots": "reject",
+          "failing": [],
+          "naturalCatch": false,
+          "falseAccept": false,
+          "falseReject": false
+        }
+      ],
+      "outcome": "fixed",
+      "samImages": 1,
+      "wallClockSeconds": 1352.7
+    },
+    {
+      "format": "expectrail.mutation-fix/v0",
+      "case": "collision-bit:enemy/enemy.tscn:252:collision_layer.1",
+      "check": "regression/player-always-visible",
+      "report": "A player says this no longer holds: The player is always visible.",
+      "live": true,
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "rehearsal": false,
+      "attempts": [
+        {
+          "attempt": 1,
+          "source": "muse",
+          "empty": false,
+          "timedOut": false,
+          "patchSha256": "a75235c848ee7f32a20d2c89e331c1b7071954b025ba55e0cf394f70ec96ecab",
+          "outcome": "survived",
+          "decision": "accept",
+          "agreement": null,
+          "publicCheck": "pass",
+          "label": "good",
+          "distances": {
+            "climb-gap": 0.0,
+            "tap-shoot": 0.0,
+            "turn-and-shoot": 0.0,
+            "wait-for-patrol": 0.0,
+            "walk-left": 0.0,
+            "smoke": 0.0
+          },
+          "framesDiffering": {
+            "climb-gap": 0,
+            "tap-shoot": 0,
+            "turn-and-shoot": 0,
+            "wait-for-patrol": 0,
+            "walk-left": 0,
+            "smoke": 0
+          },
+          "notRun": [],
+          "museScreenshots": "reject",
+          "failing": [],
+          "naturalCatch": false,
+          "falseAccept": false,
+          "falseReject": false
+        }
+      ],
+      "outcome": "fixed",
+      "samImages": 1,
+      "wallClockSeconds": 1181.8
+    },
+    {
+      "format": "expectrail.mutation-fix/v0",
+      "case": "collision-bit:enemy/enemy.tscn:253:collision_mask.4",
+      "check": "engine-record/enemies-stay-up",
+      "report": "A player says this no longer holds: No enemy falls more than one tile (64 px) below where it settled.",
+      "live": true,
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "rehearsal": false,
+      "attempts": [
+        {
+          "attempt": 1,
+          "source": "muse",
+          "empty": false,
+          "timedOut": false,
+          "patchSha256": "39f96bf7025cd065adb900fe99ed0ea6baee293d105b9042a0c60f8ecb412509",
+          "outcome": "survived",
+          "decision": "accept",
+          "agreement": null,
+          "publicCheck": "pass",
+          "label": "good",
+          "distances": {
+            "climb-gap": 0.0,
+            "tap-shoot": 0.0,
+            "turn-and-shoot": 0.0,
+            "wait-for-patrol": 0.0,
+            "walk-left": 0.0,
+            "smoke": 0.0
+          },
+          "framesDiffering": {
+            "climb-gap": 0,
+            "tap-shoot": 0,
+            "turn-and-shoot": 0,
+            "wait-for-patrol": 0,
+            "walk-left": 0,
+            "smoke": 0
+          },
+          "notRun": [],
+          "museScreenshots": "accept",
+          "failing": [],
+          "naturalCatch": false,
+          "falseAccept": false,
+          "falseReject": false
+        }
+      ],
+      "outcome": "fixed",
+      "samImages": 1,
+      "wallClockSeconds": 1243.4
+    },
+    {
+      "format": "expectrail.mutation-fix/v0",
+      "case": "resource-path:gui/pause_menu.tscn:4:missing",
+      "check": "regression/player-always-visible",
+      "report": "A player says this no longer holds: The player is always visible.",
+      "live": true,
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "rehearsal": false,
+      "attempts": [
+        {
+          "attempt": 1,
+          "source": "muse",
+          "empty": false,
+          "timedOut": false,
+          "patchSha256": "9d7285a670fd561087eb76a1462e144b26248f968dea08768eda063a95c7ee9b",
+          "outcome": "survived",
+          "decision": "accept",
+          "agreement": null,
+          "publicCheck": "pass",
+          "label": "good",
+          "distances": {
+            "climb-gap": 0.0,
+            "tap-shoot": 0.0,
+            "turn-and-shoot": 0.0,
+            "wait-for-patrol": 0.0,
+            "walk-left": 0.0,
+            "smoke": 0.0
+          },
+          "framesDiffering": {
+            "climb-gap": 0,
+            "tap-shoot": 0,
+            "turn-and-shoot": 0,
+            "wait-for-patrol": 0,
+            "walk-left": 0,
+            "smoke": 0
+          },
+          "notRun": [],
+          "museScreenshots": "reject",
+          "failing": [],
+          "naturalCatch": false,
+          "falseAccept": false,
+          "falseReject": false
+        }
+      ],
+      "outcome": "fixed",
+      "samImages": 1,
+      "wallClockSeconds": 836.5
+    },
+    {
+      "format": "expectrail.mutation-fix/v0",
+      "case": "resource-path:level/coin.tscn:3:missing",
+      "check": "regression/coins-visible",
+      "report": "A player says this no longer holds: The coins are visible.",
+      "live": true,
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "rehearsal": false,
+      "attempts": [
+        {
+          "attempt": 1,
+          "source": "muse",
+          "empty": false,
+          "timedOut": false,
+          "patchSha256": "e53209f39f7efdf510489792fe429cfc1f30797d3dbfa464900c7b5b84157d2b",
+          "outcome": "survived",
+          "decision": "accept",
+          "agreement": null,
+          "publicCheck": "pass",
+          "label": "good",
+          "distances": {
+            "climb-gap": 0.0,
+            "tap-shoot": 0.0,
+            "turn-and-shoot": 0.0,
+            "wait-for-patrol": 0.0,
+            "walk-left": 0.0,
+            "smoke": 0.0
+          },
+          "framesDiffering": {
+            "climb-gap": 0,
+            "tap-shoot": 0,
+            "turn-and-shoot": 0,
+            "wait-for-patrol": 0,
+            "walk-left": 0,
+            "smoke": 0
+          },
+          "notRun": [],
+          "museScreenshots": "accept",
+          "failing": [],
+          "naturalCatch": false,
+          "falseAccept": false,
+          "falseReject": false
+        }
+      ],
+      "outcome": "fixed",
+      "samImages": 1,
+      "wallClockSeconds": 901.1
+    },
+    {
+      "format": "expectrail.mutation-fix/v0",
+      "case": "resource-path:level/coin.tscn:5:missing",
+      "check": "regression/coins-visible",
+      "report": "A player says this no longer holds: The coins are visible.",
+      "live": true,
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "rehearsal": false,
+      "attempts": [
+        {
+          "attempt": 1,
+          "source": "muse",
+          "empty": false,
+          "timedOut": false,
+          "patchSha256": "414f334a787ea3d82b5e92e6f55146ad76a95156baa59fb8fe69451daf1c5a8d",
+          "outcome": "survived",
+          "decision": "accept",
+          "agreement": null,
+          "publicCheck": "pass",
+          "label": "good",
+          "distances": {
+            "climb-gap": 0.0,
+            "tap-shoot": 0.0,
+            "turn-and-shoot": 0.0,
+            "wait-for-patrol": 0.0,
+            "walk-left": 0.0,
+            "smoke": 0.0
+          },
+          "framesDiffering": {
+            "climb-gap": 0,
+            "tap-shoot": 0,
+            "turn-and-shoot": 0,
+            "wait-for-patrol": 0,
+            "walk-left": 0,
+            "smoke": 0
+          },
+          "notRun": [],
+          "museScreenshots": "accept",
+          "failing": [],
+          "naturalCatch": false,
+          "falseAccept": false,
+          "falseReject": false
+        }
+      ],
+      "outcome": "fixed",
+      "samImages": 1,
+      "wallClockSeconds": 1208.0
+    }
+  ],
+  "warmImages": 240,
+  "runs": [
+    41330361829
+  ],
+  "missingCases": [],
+  "unexpectedCases": []
+}
