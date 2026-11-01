@@ -1,0 +1,69 @@
+{
+  "format": "expectrail.mutation-fix-cases/v0",
+  "seed": 29,
+  "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+  "sampled": 10,
+  "caught": 10,
+  "cases": [
+    {
+      "id": "code:player/player.gd:11:sign.TERMINAL_VELOCITY",
+      "class": "code",
+      "check": "gameplay/player-motion-on-smoke",
+      "report": "A player says this no longer holds: The player keeps moving along the route, never sinks below the ground, and ends on the floor."
+    },
+    {
+      "id": "code:player/player.gd:43:compare.0",
+      "class": "code",
+      "check": "engine-record/facing-follows-motion",
+      "report": "A player says this no longer holds: While the robot walks left or right, it faces the way it walks."
+    },
+    {
+      "id": "code:player/player.gd:56:compare.0",
+      "class": "code",
+      "check": "regression/player-always-visible",
+      "report": "A player says this no longer holds: The player is always visible."
+    },
+    {
+      "id": "code:player/player.gd:9:scale.JUMP_VELOCITY",
+      "class": "code",
+      "check": "gameplay/player-motion-on-smoke",
+      "report": "A player says this no longer holds: The player keeps moving along the route, never sinks below the ground, and ends on the floor."
+    },
+    {
+      "id": "code:player/player.gd:9:sign.JUMP_VELOCITY",
+      "class": "code",
+      "check": "gameplay/player-motion-on-smoke",
+      "report": "A player says this no longer holds: The player keeps moving along the route, never sinks below the ground, and ends on the floor."
+    },
+    {
+      "id": "collision-bit:enemy/enemy.tscn:252:collision_layer.1",
+      "class": "collision-bit",
+      "check": "regression/player-always-visible",
+      "report": "A player says this no longer holds: The player is always visible."
+    },
+    {
+      "id": "collision-bit:enemy/enemy.tscn:253:collision_mask.4",
+      "class": "collision-bit",
+      "check": "engine-record/enemies-stay-up",
+      "report": "A player says this no longer holds: No enemy falls more than one tile (64 px) below where it settled."
+    },
+    {
+      "id": "resource-path:gui/pause_menu.tscn:4:missing",
+      "class": "resource-path",
+      "check": "regression/player-always-visible",
+      "report": "A player says this no longer holds: The player is always visible."
+    },
+    {
+      "id": "resource-path:level/coin.tscn:3:missing",
+      "class": "resource-path",
+      "check": "regression/coins-visible",
+      "report": "A player says this no longer holds: The coins are visible."
+    },
+    {
+      "id": "resource-path:level/coin.tscn:5:missing",
+      "class": "resource-path",
+      "check": "regression/coins-visible",
+      "report": "A player says this no longer holds: The coins are visible."
+    }
+  ]
+}
