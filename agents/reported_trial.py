@@ -159,7 +159,8 @@ def combine(verification: dict, extra: list[dict]) -> str:
     return "needs-review"
 
 
-def briefing(variant: dict, route_path: Path, bugged: Path, attempt: int, prior: bool) -> dict:
+def briefing(variant: dict, route_path: Path, bugged: Path, attempt: int, prior: bool,
+             editable: list[str] | None = None) -> dict:
     files: dict[str, Path] = {}
     shots = spaced_frames(bugged / "frames")
     for i, frame in enumerate(shots):
@@ -179,7 +180,7 @@ Screenshots of the game on that route, in order from its first frame to its last
 Open and look at each one. The game's log from that run is {BRIEFING_DIR}/godot.log.{again}
 
 ## Rules
-- Only edit files matching these globs (relative to the workspace root): {", ".join(EDITABLE)}
+- Only edit files matching these globs (relative to the workspace root): {", ".join(editable or EDITABLE)}
 - Do not edit anything under {BRIEFING_DIR}/, and do not create files outside those globs.
 - Fix the reported problem without removing anything the game is meant to do. Produce the
   smallest correct fix. When done, leave the game files edited; do not commit.

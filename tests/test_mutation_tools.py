@@ -19,7 +19,7 @@ VALUES = {"generator.seed": 11, "generator.sampleSize": 40, "generator.sampling"
           "generator.samplingWhy": "a test", "generator.positionStep": 8, "generator.offsetStep": 8,
           "generator.scaleStep": 0.25, "generator.zIndexStep": 1, "generator.constantScale": 2,
           "generator.collisionBits": 3, "oracle.traceThresholdPx": 1, "oracle.frameThreshold": 0, "stopRule": "x",
-          "agreement.seed": 2, "agreement.minimum": 20, "reportTemplate": "x"}
+          "agreement.seed": 2, "agreement.minimum": 20, "reportTemplate": "Report: {sentence}"}
 
 
 def draft_of(doc: dict) -> dict:
@@ -100,6 +100,12 @@ class RegisterTest(RegisterBase):
             with self.subTest(field=field, value=value), self.assertRaises(mg.PreregistrationError) as caught:
                 self.register({**VALUES, field: value}, write=True)
             self.assertIn(needle, str(caught.exception))
+        self.assertFalse(self.manifest.exists())
+
+    def test_a_report_template_needs_its_slot(self):
+        with self.assertRaises(mg.PreregistrationError) as caught:
+            self.register({**VALUES, "reportTemplate": "A bug."}, write=True)
+        self.assertIn("{sentence}", str(caught.exception))
         self.assertFalse(self.manifest.exists())
 
     def test_zero_thresholds_are_decisions(self):

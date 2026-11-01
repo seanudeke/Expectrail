@@ -82,6 +82,8 @@ def register(values: dict, *, write: bool, prereg_path: Path | None = None, mani
     if dirty:
         raise mg.PreregistrationError(f"commit or drop these first, a pin must name what is in git: {dirty}")
     doc = apply_decisions(draft, values)
+    if "{sentence}" not in str(doc["reportTemplate"]):  # Part 3 fills it in, so no report is written by hand
+        raise mg.PreregistrationError("reportTemplate needs {sentence}, the failing check's sentence")
     doc["pins"] = mg.current_pins()  # last: nothing may move after this
     with tempfile.TemporaryDirectory() as tmp:
         trial, trial_manifest = Path(tmp) / "preregistration.json", Path(tmp) / "manifest.json"
