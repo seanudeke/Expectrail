@@ -17,7 +17,7 @@
   ],
   "properties": {
     "format": {
-      "enum": ["expectrail.overnight-summary/v0", "nightshift.overnight-summary/v0"]
+      "enum": ["expectrail.overnight-summary/v0"]
     },
     "mode": {
       "type": "object",

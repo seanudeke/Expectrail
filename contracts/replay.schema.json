@@ -13,7 +13,7 @@
   ],
   "properties": {
     "format": {
-      "enum": ["expectrail.replay/v0", "nightshift.replay/v0"]
+      "enum": ["expectrail.replay/v0"]
     },
     "route": {
       "type": "object",

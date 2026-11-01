@@ -17,7 +17,7 @@
   ],
   "properties": {
     "format": {
-      "enum": ["expectrail.gameplay-verdict/v0", "nightshift.gameplay-verdict/v0"]
+      "enum": ["expectrail.gameplay-verdict/v0"]
     },
     "spec": {
       "type": "string",

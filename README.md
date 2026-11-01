@@ -74,8 +74,6 @@ writes a change never certifies it. Three rules carry that:
    held-out ones.
 
 Built for the Meta Global AI Developer Hackathon (Indie track), October 26 to November 4, 2026.
-Expectrail was called Nightshift until October 30; the old names still work wherever a file or
-setting from before then turns up ([`expectrail/legacy.py`](expectrail/legacy.py)).
 
 ## What it shows
 

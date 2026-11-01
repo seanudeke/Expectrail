@@ -488,7 +488,7 @@ class WorkflowTest(unittest.TestCase):
         self.doc = yaml.safe_load(self.text)
 
     def test_the_private_set_is_never_touched(self):
-        self.assertNotIn("Nightshift-heldout", self.text)
+        self.assertNotIn("Expectrail-heldout", self.text)
         self.assertNotIn("HELDOUT_TOKEN", self.text)
 
     def test_the_rehearsal_job_holds_no_key(self):

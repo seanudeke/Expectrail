@@ -34,7 +34,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-from expectrail.legacy import current_name
 from harness.run import REPO
 
 FORMAT = "expectrail.detection-bench/v0"
@@ -58,8 +57,7 @@ JUDGE_GLIMMER_MSG = re.compile(r"^label (?P<label>good|bad); Glimmer\+engine (?P
 JUDGE_MSG = re.compile(r"^label (?P<label>good|bad); SAM on (?P<sam>\S+); SAM off (?P<nosam>\S+); "
                        r"Muse screenshots (?P<muse>\S+); (?P<seconds>[\d.]+) s; live=(?P<live>True|False)"
                        r"(?:; SAM images (?P<samImages>\d+))?$")
-# Runs before the October 30 rename called the second condition "nightshift" (expectrail/legacy.py).
-MATRIX_TITLE = re.compile(r"^Fix matrix (?P<case>\S+/\S+) (?P<condition>screenshots|expectrail|escalate|nightshift)$")
+MATRIX_TITLE = re.compile(r"^Fix matrix (?P<case>\S+/\S+) (?P<condition>screenshots|expectrail|escalate)$")
 MATRIX_MSG = re.compile(r"^detected (?P<detected>[a-z-]+); outcome (?P<outcome>[a-z-]+); attempts (?P<n>\d+) "
                         r"\((?P<tries>[^)]*)\); (?P<seconds>[\d.]+) s; live=(?P<live>True|False)"
                         r"(?:; SAM images (?P<sam>\d+))?$")
@@ -222,7 +220,7 @@ def collect_matrix(run_ids: list[int], which: str, fetch=gh_json) -> dict:
             m = MATRIX_TITLE.match(note.get("title") or "")
             if not m:
                 continue
-            key = (m["case"], current_name(m["condition"]))
+            key = (m["case"], m["condition"])
             row = {"case": key[0], "condition": key[1], "run": run_id, **parse_matrix_message(note["message"])}
             everything.append(row)
             earlier = rows.get(key)

@@ -1035,7 +1035,7 @@ class WorkflowTest(unittest.TestCase):
 
     def test_the_private_set_is_never_checked_out(self):
         text = str(self.doc)
-        self.assertNotIn("Nightshift-heldout", text)
+        self.assertNotIn("Expectrail-heldout", text)
         self.assertNotIn("HELDOUT_TOKEN", text)
 
     def test_the_plan_refuses_an_incomplete_pre_registration_and_any_branch(self):

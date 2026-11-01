@@ -22,7 +22,7 @@ Only the variant id, counts and verdicts are printed. The manifest's description
 frames and traces stay in the output directory, which callers must not publish. Exit is 1 when the
 run decided nothing, so a green job always means the checks ran.
 
-    EXPECTRAIL_HELDOUT_DIR=../Nightshift-heldout python3 -m agents.heldout_bench --list
+    EXPECTRAIL_HELDOUT_DIR=../Expectrail-heldout python3 -m agents.heldout_bench --list
     EXPECTRAIL_HELDOUT_DIR=... python3 -m agents.heldout_bench --list --set dev
     EXPECTRAIL_HELDOUT_DIR=... EXPECTRAIL_OBS_PROVIDER=sam MODEL_API_KEY=... \\
         python3 -m agents.heldout_bench --variant physics-fall-through/v5 --out runs/bench

@@ -50,7 +50,6 @@ jobs:
         run: |
           python - <<'PY'
           import json, os
-          from expectrail.legacy import current_name
           wanted = [c.strip() for c in os.environ["CASES"].split(",") if c.strip()]
           pairs = []
           if os.environ["BENCH"] == "fix":
@@ -59,7 +58,7 @@ jobs:
               bad = sorted(set(cases) - set(dev_variants()))
               if bad:
                   raise SystemExit(f"unknown fix cases: {bad}")
-              conds = [current_name(c.strip()) for c in os.environ["CONDITIONS"].split(",") if c.strip()] or list(CONDITIONS)
+              conds = [c.strip() for c in os.environ["CONDITIONS"].split(",") if c.strip()] or list(CONDITIONS)
               for case in cases:
                   for cond in conds:
                       pairs.append({"bench": "fix", "case": case, "condition": cond})

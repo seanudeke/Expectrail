@@ -17,7 +17,7 @@
   ],
   "properties": {
     "format": {
-      "enum": ["expectrail.release-candidate/v0", "nightshift.release-candidate/v0"]
+      "enum": ["expectrail.release-candidate/v0"]
     },
     "verificationSha256": {
       "type": "string",

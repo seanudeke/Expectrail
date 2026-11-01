@@ -1,8 +1,8 @@
 [
   {
-    "label": "fixer-root/.nightshift-signing-key",
-    "path": "runs/prove/trust/fixer-workspace/.nightshift-signing-key",
-    "resolved": "<checkout>/runs/prove/trust/fixer-workspace/.nightshift-signing-key",
+    "label": "fixer-root/.expectrail-signing-key",
+    "path": "runs/prove/trust/fixer-workspace/.expectrail-signing-key",
+    "resolved": "<checkout>/runs/prove/trust/fixer-workspace/.expectrail-signing-key",
     "exists": false,
     "read": false,
     "leakedKeyBytes": false,
@@ -10,9 +10,9 @@
     "mountLocal": true
   },
   {
-    "label": "fixer/player/.nightshift-signing-key",
-    "path": "runs/prove/trust/fixer-workspace/player/.nightshift-signing-key",
-    "resolved": "<checkout>/runs/prove/trust/fixer-workspace/player/.nightshift-signing-key",
+    "label": "fixer/player/.expectrail-signing-key",
+    "path": "runs/prove/trust/fixer-workspace/player/.expectrail-signing-key",
+    "resolved": "<checkout>/runs/prove/trust/fixer-workspace/player/.expectrail-signing-key",
     "exists": false,
     "read": false,
     "leakedKeyBytes": false,
@@ -20,9 +20,9 @@
     "mountLocal": true
   },
   {
-    "label": "absolute-root/.nightshift-signing-key",
-    "path": "/.nightshift-signing-key",
-    "resolved": "/.nightshift-signing-key",
+    "label": "absolute-root/.expectrail-signing-key",
+    "path": "/.expectrail-signing-key",
+    "resolved": "/.expectrail-signing-key",
     "exists": false,
     "read": false,
     "leakedKeyBytes": false,
@@ -30,9 +30,9 @@
     "mountLocal": false
   },
   {
-    "label": "relative-escape/../verifier-host/.nightshift-signing-key",
-    "path": "runs/prove/trust/fixer-workspace/../verifier-host/.nightshift-signing-key",
-    "resolved": "<checkout>/runs/prove/trust/verifier-host/.nightshift-signing-key",
+    "label": "relative-escape/../verifier-host/.expectrail-signing-key",
+    "path": "runs/prove/trust/fixer-workspace/../verifier-host/.expectrail-signing-key",
+    "resolved": "<checkout>/runs/prove/trust/verifier-host/.expectrail-signing-key",
     "exists": true,
     "read": true,
     "leakedKeyBytes": true,
@@ -40,9 +40,9 @@
     "mountLocal": false
   },
   {
-    "label": "relative-escape/../../verifier-host/.nightshift-signing-key",
-    "path": "runs/prove/trust/fixer-workspace/../../verifier-host/.nightshift-signing-key",
-    "resolved": "<checkout>/runs/prove/verifier-host/.nightshift-signing-key",
+    "label": "relative-escape/../../verifier-host/.expectrail-signing-key",
+    "path": "runs/prove/trust/fixer-workspace/../../verifier-host/.expectrail-signing-key",
+    "resolved": "<checkout>/runs/prove/verifier-host/.expectrail-signing-key",
     "exists": false,
     "read": false,
     "leakedKeyBytes": false,
@@ -51,8 +51,8 @@
   },
   {
     "label": "absolute-verifier-host-key",
-    "path": "<checkout>/runs/prove/trust/verifier-host/.nightshift-signing-key",
-    "resolved": "<checkout>/runs/prove/trust/verifier-host/.nightshift-signing-key",
+    "path": "<checkout>/runs/prove/trust/verifier-host/.expectrail-signing-key",
+    "resolved": "<checkout>/runs/prove/trust/verifier-host/.expectrail-signing-key",
     "exists": true,
     "read": true,
     "leakedKeyBytes": true,

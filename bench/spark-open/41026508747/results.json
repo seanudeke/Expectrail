@@ -1,5 +1,5 @@
 {
-  "format": "nightshift.spark-open-run/v0",
+  "format": "expectrail.spark-open-run/v0",
   "at": "2026-10-30T08:29:41Z",
   "endpoint": "inference.baseten.co",
   "model": "meta-models/muse-spark-open",
@@ -84,7 +84,7 @@
       "valid": true,
       "problems": [],
       "draft": {
-        "format": "nightshift.test-spec/v0",
+        "format": "expectrail.test-spec/v0",
         "id": "coins-visible",
         "instruction": "The coins are visible.",
         "objects": {
@@ -134,7 +134,7 @@
       "valid": true,
       "problems": [],
       "draft": {
-        "format": "nightshift.test-spec/v0",
+        "format": "expectrail.test-spec/v0",
         "id": "player-always-visible",
         "instruction": "The player is always visible.",
         "objects": {
@@ -184,7 +184,7 @@
       "valid": true,
       "problems": [],
       "draft": {
-        "format": "nightshift.test-spec/v0",
+        "format": "expectrail.test-spec/v0",
         "id": "player-stays-above-ground",
         "instruction": "The player never falls through the ground.",
         "objects": {
@@ -256,7 +256,7 @@
           "object": "coins",
           "type": "visible"
         },
-        "format": "nightshift.test-spec/v0",
+        "format": "expectrail.test-spec/v0",
         "id": "coins-visible",
         "instruction": "The coins are visible.",
         "objects": {
@@ -306,7 +306,7 @@
           "object": "player",
           "type": "visible"
         },
-        "format": "nightshift.test-spec/v0",
+        "format": "expectrail.test-spec/v0",
         "id": "player-always-visible",
         "instruction": "The player is always visible.",
         "objects": {
@@ -361,7 +361,7 @@
           "object": "player",
           "type": "never-crosses"
         },
-        "format": "nightshift.test-spec/v0",
+        "format": "expectrail.test-spec/v0",
         "id": "player-stays-above-ground",
         "instruction": "The player never falls through the ground.",
         "objects": {

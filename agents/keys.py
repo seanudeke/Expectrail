@@ -10,7 +10,6 @@ import shutil
 from pathlib import Path
 from typing import Mapping, TypedDict
 
-from expectrail.legacy import ENV_PREFIX, LEGACY_ENV_PREFIX
 from harness.run import REPO
 
 # Keys we will adopt from a local `.env` (setdefault only).
@@ -82,7 +81,7 @@ def load_dotenv(path: Path | None = None) -> dict[str, str]:
     - Missing file: no-op.
     - Never overrides keys already present in the process environment (including empty
       string — CI/tests that clear or set META_API_KEY win).
-    - Only adopts keys in DOTENV_KEYS; a NIGHTSHIFT_X key from before the rename is read as EXPECTRAIL_X.
+    - Only adopts keys in DOTENV_KEYS.
     - Supports optional `export ` prefix, optional quotes, spaces around `=`.
     Returns the key→value pairs that were newly set (for tests).
     """
@@ -104,8 +103,6 @@ def load_dotenv(path: Path | None = None) -> dict[str, str]:
         value = value.strip()
         if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
             value = value[1:-1]
-        if key.startswith(LEGACY_ENV_PREFIX):
-            key = ENV_PREFIX + key[len(LEGACY_ENV_PREFIX):]  # a .env written before the rename
         if key not in DOTENV_KEYS:
             continue
         if value == "":

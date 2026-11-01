@@ -24,7 +24,7 @@
   "signingKey": "demo-fake-key",
   "signature": "d29c64eba2c6aed626aa02c70eb6f6d416b46f8c70a768734b0472a7750aa21d",
   "gameplay": {
-    "format": "nightshift.gameplay-verdict/v0",
+    "format": "expectrail.gameplay-verdict/v0",
     "spec": "player-motion-on-smoke",
     "result": "pass",
     "reason": "player moved 290.0px (min 200.0), ended on floor, no sustained below-ground",

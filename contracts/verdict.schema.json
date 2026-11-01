@@ -13,7 +13,7 @@
   ],
   "properties": {
     "format": {
-      "enum": ["expectrail.verdict/v0", "nightshift.verdict/v0"]
+      "enum": ["expectrail.verdict/v0"]
     },
     "spec": {
       "type": "object",

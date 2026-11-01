@@ -1,5 +1,5 @@
 {
-  "format": "nightshift.release-candidate/v0",
+  "format": "expectrail.release-candidate/v0",
   "verificationSha256": "235a53261677713abbaec30924c30a2e2a027fb8cd0287258ada106baed3d84e",
   "decision": "accept",
   "signature": "d29c64eba2c6aed626aa02c70eb6f6d416b46f8c70a768734b0472a7750aa21d",

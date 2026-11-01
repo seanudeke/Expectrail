@@ -25,7 +25,7 @@ class MutationRecordWorkflowTest(unittest.TestCase):
         self.assertEqual(set(self.doc[True]), {"workflow_dispatch"})
 
     def test_the_private_set_and_secrets_are_never_touched(self):
-        self.assertNotIn("Nightshift-heldout", self.text)
+        self.assertNotIn("Expectrail-heldout", self.text)
         self.assertNotIn("HELDOUT", self.text)
         self.assertNotIn("secrets.", self.text)
 

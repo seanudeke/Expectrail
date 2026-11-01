@@ -520,7 +520,7 @@ jobs:
         if: env.HELDOUT_TOKEN_SET == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: seanudeke/Nightshift-heldout
+          repository: seanudeke/Expectrail-heldout
           token: ${{ secrets.HELDOUT_TOKEN }}
           path: heldout-set
           persist-credentials: false
@@ -792,7 +792,7 @@ jobs:
       - name: Fetch the private held-out set (verifier side only)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: seanudeke/Nightshift-heldout
+          repository: seanudeke/Expectrail-heldout
           token: ${{ secrets.HELDOUT_TOKEN }}
           path: heldout-set
           persist-credentials: false
@@ -839,8 +839,7 @@ jobs:
           assert rc.get("algorithm") == "ed25519" and rc.get("publicKey"), rc
           trust = json.loads(Path("runs/oct29-film/trust/trust.json").read_text())
           assert trust["ok"], trust
-          privates = [p for name in (".expectrail-signing-key", ".nightshift-signing-key")
-                      for p in Path("runs/oct29-film").rglob(name)]
+          privates = list(Path("runs/oct29-film").rglob(".expectrail-signing-key"))
           assert privates == [], privates
           PY
       - name: Muse key gateway evidence
@@ -857,7 +856,6 @@ jobs:
           path: |
             runs/oct29-film/
             !runs/oct29-film/**/.expectrail-signing-key
-            !runs/oct29-film/**/.nightshift-signing-key
           retention-days: 30
 
   # Playbook item 1 (lighter film): live Muse Code → verifier accept. Manual only.
