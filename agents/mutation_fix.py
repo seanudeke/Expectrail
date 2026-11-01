@@ -13,9 +13,12 @@ Expectrail catch it? Nobody picks a case or labels a fix:
   editable globs are the same for every case, so they say nothing about where the bug is.
 - **Judge:** every candidate goes through the tiered checker, with SAM on a cheap rejection too, so the
   public check always has an answer, and through Muse from screenshots when live.
-- **Label:** the registered oracle, on routes the judge does not use (bugs/reported/routes/ plus
-  smoke). Good: its engine record matches the clean game's within the threshold on every route. Bad:
-  it does not. Unknown: a replay did not finish; never counted either way.
+- **Label:** the registered oracle, positions and frames both, on routes the judge does not use
+  (bugs/reported/routes/ plus smoke). Good: on every route its engine record is within the trace
+  threshold of the clean game's and no more frames differ than the frame threshold allows. Bad: some
+  route is over either one, or the game will not run there, twice. A fix that puts every position back
+  but still draws the game wrong is bad, so a vision catch is never scored as a false reject. Unknown:
+  a route whose clean game does not match itself, in positions or frames; never counted either way.
 
 A **natural catch** is a bad fix Muse Code wrote that Expectrail rejects and the bug's own public
 check, or Muse from screenshots, accepts. A **false accept** is a bad fix Expectrail accepts, and a
@@ -64,7 +67,9 @@ LABEL_ROUTES = sorted((REPO / "bugs" / "reported" / "routes").glob("*.json")) + 
 # The same for every case, so the globs say nothing about where the bug is.
 EDITABLE = ["player/**", "level/**", "enemy/**", "gui/**", "game_singleplayer.tscn", "game_splitscreen.tscn",
             "music.tscn"]
-GAMEPLAY_SENTENCE = "The player keeps moving along the route and ends on the floor."
+# The gameplay check has no instruction of its own. Its three conditions (a minimum distance, end on
+# the floor, never stay below the ground), in wording Sean approved on Nov 1, 2026.
+GAMEPLAY_SENTENCE = "The player keeps moving along the route, never sinks below the ground, and ends on the floor."
 SPEC_FILES = ("agents/specs/player-stays-above-ground.json", "specs/player-always-visible.json",
               "specs/coins-visible.json")
 # Upper bounds, for the estimate #156 asks to post first.
@@ -149,40 +154,65 @@ def public_result(check: str, row: dict) -> str | None:
     return "pass" if results and all(r == "pass" for r in results) else None
 
 
+def _replay_with_frames(route: Path, out: Path, patches: list[Path]) -> dict | None:
+    """One replay's engine record and frame hashes, which is what the registered oracle compares;
+    None when it did not finish or wrote no frame hashes."""
+    trace = rt._replay(route, out, patches)
+    if trace is None:
+        return None
+    try:
+        frames = json.loads((out / "replay.json").read_text(encoding="utf-8"))["frameSha256"]
+        if not isinstance(frames, list):
+            raise TypeError("frameSha256 is not a list")
+    except (OSError, ValueError, KeyError, TypeError):
+        (out.parent / f"{out.name}-error.txt").write_text(traceback.format_exc(), encoding="utf-8")
+        return None
+    return {"trace": trace, "frames": [str(f) for f in frames]}
+
+
 def route_controls(out: Path, routes: list[Path] | None = None) -> dict[str, dict | None]:
     """The clean game on each label route, twice. Replays match bit for bit on one setup, but no
-    candidate's label can rest on a route that does not match itself: such a route gives None."""
+    candidate's label can rest on a route that does not match itself, in positions or in frames, or
+    that rendered no frames to compare: such a route gives None."""
     controls: dict[str, dict | None] = {}
     for route in routes or LABEL_ROUTES:
-        first = rt._replay(route, out / f"{route.stem}-clean", [])
-        second = rt._replay(route, out / f"{route.stem}-clean-again", [])
-        controls[route.stem] = first if first and second and mg.trace_distance(first, second) == 0 else None
+        first = _replay_with_frames(route, out / f"{route.stem}-clean", [])
+        second = _replay_with_frames(route, out / f"{route.stem}-clean-again", [])
+        steady = (first is not None and second is not None and bool(first["frames"])
+                  and mg.trace_distance(first["trace"], second["trace"]) == 0
+                  and mg.frames_differing(first["frames"], second["frames"]) == 0)
+        controls[route.stem] = first if steady else None
     return controls
 
 
-def label_candidate(mutant: Path, candidate: Path, out: Path, threshold: float, controls: dict[str, dict | None],
+def label_candidate(mutant: Path, candidate: Path, out: Path, thresholds: dict, controls: dict[str, dict | None],
                     routes: list[Path] | None = None) -> dict:
-    """The oracle on routes the judge does not use. A candidate whose game will not run on a route, twice,
-    does not match the clean game there, so it is bad. A route that does not match itself leaves it unknown."""
-    distances: dict[str, float | None] = {}
+    """The registered oracle (``preregistration.json``'s ``oracle``) on routes the judge does not use.
+    A candidate whose game will not run on a route, twice, does not match the clean game there, so it
+    is bad. A route that does not match itself leaves it unknown."""
+    results: dict[str, dict | None] = {}
     for route in routes or LABEL_ROUTES:
         clean = controls.get(route.stem)
         if clean is None:
-            distances[route.stem] = None
+            results[route.stem] = None
             continue
-        trace = (rt._replay(route, out / f"{route.stem}-fixed", [mutant, candidate])
-                 or rt._replay(route, out / f"{route.stem}-fixed-again", [mutant, candidate]))
-        distances[route.stem] = float("inf") if trace is None else mg.trace_distance(clean, trace)
-    known = [d for d in distances.values() if d is not None]
-    if known and max(known) > float(threshold):
+        run = (_replay_with_frames(route, out / f"{route.stem}-fixed", [mutant, candidate])
+               or _replay_with_frames(route, out / f"{route.stem}-fixed-again", [mutant, candidate]))
+        results[route.stem] = ({"category": "visible", "ran": False} if run is None
+                               else {**mg.oracle(clean["trace"], clean["frames"], run["trace"], run["frames"], thresholds),
+                                     "ran": True})
+    known = [r for r in results.values() if r is not None]
+    if any(r["category"] == "visible" for r in known):
         label = "bad"  # a route that disagrees decides it, whatever an unusable route would have said
-    elif len(known) != len(distances):
+    elif len(known) != len(results):
         label = "unknown"
     else:
         label = "good"
-    # json has no infinity: a run that differs in kind is simply over any threshold.
-    return {"label": label, "distances": {k: (None if d is None or d == float("inf") else round(d, 3))
-                                          for k, d in distances.items()}}
+    # json has no infinity: a run that differs in kind, or did not run, is simply over any threshold.
+    return {"label": label,
+            "distances": {k: (r or {}).get("traceMaxPx") for k, r in results.items()},
+            "framesDiffering": {k: (r or {}).get("framesDiffering") for k, r in results.items()},
+            "notRun": sorted(k for k, r in results.items() if r is not None and not r["ran"])}
 
 
 def counts(attempt: dict) -> dict:
@@ -273,10 +303,11 @@ def run_case(mutant: dict, report: str, check: str, out: Path, *, prereg: dict, 
             except mb.CaseCrashed as exc:  # the candidate's game would not run: one attempt, not the whole case
                 judged = {"outcome": "crash", "detail": str(exc)[:300]}
             label = label_candidate(patch, candidate, work / "label" / f"attempt-{attempt:02d}",
-                                    prereg["oracle"]["traceThresholdPx"], controls, routes)
+                                    prereg["oracle"], controls, routes)
             film.update(outcome=judged.get("outcome"), decision=DECISIONS.get(judged.get("outcome"), "needs-review"),
                         agreement=judged.get("agreement"), publicCheck=public_result(check, judged),
-                        label=label["label"], distances=label["distances"], museScreenshots=None,
+                        label=label["label"], distances=label["distances"],
+                        framesDiffering=label["framesDiffering"], notRun=label["notRun"], museScreenshots=None,
                         failing=(judged.get("arms", {}).get("cheap") or {}).get("failedChecks"))
             if live or judge is not None:
                 run_judge = judge
@@ -317,14 +348,15 @@ def _mutated(mutant: dict, out: Path) -> Path:
 
 def rehearse(out: Path) -> dict:
     """The whole path on real Godot with a stand-in the study cannot draw and its exact undo as the
-    'fix': no Muse, no SAM, no registration. It should end accepted and labelled good."""
+    'fix': no Muse, no SAM, no registration. It should end accepted and labelled good, on every label
+    route, so it also shows before any spend that each route's clean game matches itself in frames."""
     mutant = next(m for m in mb.dry_mutants() if "load-failure" in m["id"])
     out.mkdir(parents=True, exist_ok=True)
     undo = out / "rehearsal-undo.patch"
     undo.write_text(mg.patch_text({**mutant, "before": mutant["after"], "after": mutant["before"]}, game=_mutated(mutant, out)),
                     encoding="utf-8")
     return run_case(mutant, "A rehearsal: the level's art is missing.", "regression/none", out, prereg=mb.DRY_PREREG, live=False,
-                    fixture=undo, sam=False, routes=[SMOKE])
+                    fixture=undo, sam=False)
 
 
 def summarize(rows: list[dict]) -> dict:
@@ -430,7 +462,9 @@ def main(argv: list[str] | None = None) -> int:
             row = rehearse(args.out)
             attempt = (row.get("attempts") or [{}])[-1]
             print(f"::notice title=Mutation fix rehearsal::{row['outcome']}; {row.get('detail')}; decision {attempt.get('decision')}; "
-                  f"label {attempt.get('label')}; a test of the plumbing, never a result")
+                  f"label {attempt.get('label')}; trace px by route {attempt.get('distances')}; frames differing by "
+                  f"route {attempt.get('framesDiffering')} (None: the route's clean game did not match itself, or "
+                  f"the candidate did not run: {attempt.get('notRun')}); a test of the plumbing, never a result")
             return 0 if attempt.get("decision") == "accept" and attempt.get("label") == "good" else 1
         prereg = mg.load_preregistration()
         if args.pick:
