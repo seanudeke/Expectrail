@@ -228,5 +228,82 @@ class SmokeTest(unittest.TestCase):
         self.assertEqual(sum(c["type"] == "input_image" for c in gpt["input"][0]["content"]), 1)
 
 
+class RunCaseTest(unittest.TestCase):
+    """--case: judge_bench's run_case unchanged, then the outside judges on what Muse was given."""
+
+    def run_it(self, *, muse_raises=False, outside_raises=False):
+        import agents.judge_bench as jb
+
+        def fake_harness(route, out, patches):
+            (out / "frames").mkdir(parents=True, exist_ok=True)
+            for n in range(120):
+                (out / "frames" / f"f{n:08d}.png").write_bytes(f"png{n}".encode())
+
+        def verify_with_frames(request, candidate, o, **kw):
+            fake_harness(None, o / "replay", None)
+            return {"decision": "accept", "reasons": []}
+
+        seen = {}
+
+        def fake_muse(o, *, before, after, instruction, sandboxed):
+            if muse_raises:
+                raise RuntimeError("muse down")
+            seen["muse"] = (before, after, instruction)
+            return {"decision": "accept", "detail": "screenshot judge accept"}
+
+        def fake_outside(o, *, before, after, instruction, names, passes):
+            if outside_raises:
+                raise RuntimeError("vendor down")
+            seen["outside"] = (before, after, instruction, names, passes)
+            return {"claude": {"model": "m", "decisions": ["reject"] * passes, "details": [], "reasons": [],
+                               "usage": [], "usd": 0.0}}
+
+        with tempfile.TemporaryDirectory() as tmp, \
+                mock.patch.object(jb, "verify", side_effect=verify_with_frames), \
+                mock.patch.object(jb, "harness_run", side_effect=fake_harness), \
+                mock.patch.object(jb, "run_muse_judge", side_effect=fake_muse), \
+                mock.patch.object(oj, "judge_frames", side_effect=fake_outside):
+            row = oj.run_case("bad/fall-through-sink-player", Path(tmp), names=["claude"], passes=3)
+            on_disk = json.loads((Path(tmp) / "bad_fall-through-sink-player" / "result.json").read_text())
+            restored = jb.run_muse_judge
+        return row, seen, on_disk, restored, fake_muse
+
+    def test_outside_judges_see_the_frames_and_instruction_muse_sees(self):
+        row, seen, on_disk, _, _ = self.run_it()
+        self.assertEqual(seen["outside"][:3], seen["muse"])  # identical frames and instruction
+        self.assertEqual(seen["outside"][3:], (["claude"], 3))
+        self.assertEqual(row["outside"]["claude"]["decisions"], ["reject"] * 3)
+        self.assertEqual(on_disk["outside"], row["outside"])
+        self.assertNotIn("expectrailSam", row["decisions"])  # SAM skipped
+        self.assertNotIn("claude", row["decisions"])  # kept apart from the recorded judges
+
+    def test_judge_bench_is_left_as_it_was(self):
+        _, _, _, restored, fake_muse = self.run_it()
+        self.assertIs(restored.side_effect, fake_muse)  # the capture is undone
+
+    def test_no_muse_verdict_means_no_outside_judging(self):
+        row, seen, _, _, _ = self.run_it(muse_raises=True)
+        self.assertNotIn("outside", seen)
+        self.assertIn("error", row)
+
+    def test_an_outside_failure_is_the_rows_error_not_a_verdict(self):
+        row, _, on_disk, _, _ = self.run_it(outside_raises=True)
+        self.assertNotIn("outside", row)
+        self.assertIn("vendor down", row["error"])
+        self.assertEqual(on_disk["error"], row["error"])
+
+    def test_a_case_needs_a_live_run_and_a_known_name(self):
+        with self.assertRaises(SystemExit):
+            oj.main(["--case", "bad/fall-through-freeze", "--out", "x", "--outside", "claude"])
+        with self.assertRaises(SystemExit):
+            oj.main(["--case", "bad/fall-through-freeze", "--out", "x", "--live", "--outside", "gemini"])
+
+    def test_the_fix_matrix_runs_outside_judges_through_this_module(self):
+        from harness.run import REPO
+        text = (REPO / ".github" / "workflows" / "fix-matrix.yml").read_text(encoding="utf-8")
+        self.assertIn("module=agents.outside_judge", text)
+        self.assertNotIn("agents.judge_bench --outside", text)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -16,7 +16,14 @@ calls made by the benchmark, outside the fixer's sandbox; the keys are never in 
 environment (agents.keys.muse_subprocess_env is an allowlist).
 
     python3 -m agents.outside_judge --smoke                     # one tiny text call each, no frames
+    python3 -m agents.outside_judge --case bad/fall-through-sink-player --out runs/judge --live --no-sam \
+        --outside claude,gpt --passes 3                           # one judge-bench case, then these judges
     python3 -m agents.outside_judge --collect --run <id> --out bench/judge/outside-models
+
+``--case`` runs agents.judge_bench's own ``run_case``, unchanged, then these judges on the very frames
+and instruction it gave Muse. It lives here, not in judge_bench.py, because judge_bench.py is pinned
+by the mutation bench's registration (bench/mutation/preregistration.json): changing it blocks every
+mutation bench run and record.
 """
 from __future__ import annotations
 
@@ -27,6 +34,7 @@ import os
 import socket
 import sys
 import time
+import traceback
 import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
@@ -207,6 +215,38 @@ def judge_frames(out: Path, *, before: list[Path], after: list[Path], instructio
     return results
 
 
+def run_case(key: str, out: Path, *, names: list[str], passes: int = 3, live: bool = True, sam: bool = False,
+             glimmer: bool = False) -> dict:
+    """agents.judge_bench's ``run_case``, unchanged, then the outside judges on the exact frames and
+    instruction it handed Muse, caught on their way in so they cannot drift from what Muse saw. Kept
+    apart from the recorded judges, in ``row["outside"]``. A failure is the row's error, never a verdict."""
+    from agents import judge_bench as jb
+
+    seen: dict = {}
+    muse = jb.run_muse_judge
+
+    def capture(o, *, before, after, instruction, sandboxed):
+        seen.update(before=before, after=after, instruction=instruction)
+        return muse(o, before=before, after=after, instruction=instruction, sandboxed=sandboxed)
+
+    jb.run_muse_judge = capture
+    try:
+        row = jb.run_case(key, out, live=live, sam=sam, glimmer=glimmer)
+    finally:
+        jb.run_muse_judge = muse
+    if not seen or row.get("error"):
+        return row
+    work = out / key.replace("/", "_")
+    try:
+        row["outside"] = judge_frames(work / "outside", before=seen["before"], after=seen["after"],
+                                      instruction=seen["instruction"], names=list(names), passes=passes)
+    except Exception as exc:  # noqa: BLE001 - recorded, never counted as a verdict
+        (work / "outside-error.txt").write_text(traceback.format_exc(), encoding="utf-8")
+        row["error"] = f"{type(exc).__name__}: {exc}"[:300]
+    (work / "result.json").write_text(json.dumps(row, indent=2) + "\n", encoding="utf-8")
+    return row
+
+
 def reason(reply: str, limit: int = 400) -> str:
     """The model's own words just before its decision line, like agents.judge_bench.muse_reason."""
     text = " ".join(reply.split())
@@ -384,11 +424,30 @@ def main(argv: list[str] | None = None) -> int:
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument("--smoke", action="store_true")
     g.add_argument("--collect", action="store_true")
+    g.add_argument("--case", help="one judge-bench case (agents.judge_bench --list), then these judges; needs --live")
     p.add_argument("--run", type=int)
     p.add_argument("--out", type=Path)
+    p.add_argument("--live", action="store_true")
+    p.add_argument("--no-sam", action="store_true", help="skip judge_bench's SAM-on verifier")
+    p.add_argument("--glimmer", action="store_true", help="also run judge_bench's Glimmer judge")
+    p.add_argument("--outside", default="claude,gpt", help="comma-separated: " + ", ".join(JUDGES))
+    p.add_argument("--passes", type=int, default=3, help="independent requests per outside judge and case")
     args = p.parse_args(argv)
     if args.smoke:
         return smoke()
+    if args.case:
+        names = [n.strip() for n in args.outside.split(",") if n.strip()]
+        unknown = sorted(set(names) - set(JUDGES))
+        if unknown or not names:
+            p.error(f"unknown outside judge: {unknown}")
+        if not args.live:
+            p.error("--case needs --live: the outside judges see the screenshots Muse sees")
+        if not args.out:
+            p.error("--case needs --out")
+        row = run_case(args.case, args.out, names=names, passes=args.passes, live=True, sam=not args.no_sam,
+                       glimmer=args.glimmer)
+        print(json.dumps({k: row.get(k) for k in ("case", "label", "decisions", "error", "wallClockSeconds")}))
+        return 1 if row.get("error") else 0
     if not (args.run and args.out):
         p.error("--collect needs --run and --out")
     doc = collect(args.run)

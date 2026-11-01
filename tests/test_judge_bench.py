@@ -76,47 +76,6 @@ class JudgeBenchTest(unittest.TestCase):
             self.assertEqual(doc["judges"]["museScreenshots"]["badAccepted"], 1)
             self.assertIn("| Muse from screenshots | 0 of 0 | 1 of 1 | 0 |", jb.markdown(doc))
 
-    def test_outside_judges_see_the_frames_and_instruction_muse_sees(self):
-        def fake_harness(route, out, patches):
-            (out / "frames").mkdir(parents=True, exist_ok=True)
-            for n in range(120):
-                (out / "frames" / f"f{n:08d}.png").write_bytes(f"png{n}".encode())
-
-        def verify_with_frames(request, candidate, o, **kw):
-            fake_harness(None, o / "replay", None)
-            return {"decision": "accept", "reasons": []}
-
-        seen = {}
-
-        def fake_muse(o, *, before, after, instruction, sandboxed):
-            seen["muse"] = (before, after, instruction)
-            return {"decision": "accept", "detail": "screenshot judge accept"}
-
-        def fake_outside(o, *, before, after, instruction, names, passes):
-            seen["outside"] = (before, after, instruction, names, passes)
-            return {"claude": {"model": "m", "decisions": ["reject"] * passes, "details": [], "reasons": [],
-                               "usage": [], "usd": 0.0}}
-
-        import agents.outside_judge as oj
-        with tempfile.TemporaryDirectory() as tmp, \
-                mock.patch.object(jb, "verify", side_effect=verify_with_frames), \
-                mock.patch.object(jb, "harness_run", side_effect=fake_harness), \
-                mock.patch.object(jb, "run_muse_judge", side_effect=fake_muse), \
-                mock.patch.object(oj, "judge_frames", side_effect=fake_outside):
-            row = jb.run_case("bad/fall-through-sink-player", Path(tmp), live=True, sam=False,
-                              outside=("claude",), passes=3)
-        self.assertEqual(seen["outside"][:3], seen["muse"])  # identical frames and instruction
-        self.assertEqual(seen["outside"][3:], (["claude"], 3))
-        self.assertEqual(row["outside"]["claude"]["decisions"], ["reject"] * 3)
-        self.assertNotIn("expectrailSam", row["decisions"])  # SAM skipped
-        self.assertNotIn("claude", row["decisions"])  # kept apart from the recorded judges
-
-    def test_outside_judges_need_a_live_run_and_a_known_name(self):
-        with self.assertRaises(SystemExit):
-            jb.main(["--case", "bad/fall-through-freeze", "--outside", "claude"])
-        with self.assertRaises(SystemExit):
-            jb.main(["--case", "bad/fall-through-freeze", "--live", "--outside", "gemini"])
-
     def _glimmer_case(self, case, *, glimmer_decision="reject", down=False, problem=None):
         """run_case with the fourth judge; verify answers by provider and, under Glimmer, by backend."""
         import os
