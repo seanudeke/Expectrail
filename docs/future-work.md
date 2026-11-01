@@ -126,10 +126,19 @@ whose obvious fix is wrong, where a first attempt fails often enough to measure 
 **"Accepted" means it passed our suite, not that the game is correct.** The held-out variants are
 bugs we seeded ourselves.
 
+The mutation bench measured how weak, on single edits nobody wrote: the checks caught 10 of 77
+that visibly change the game, and none of the 45 that move, resize or re-layer something
+([bench/mutation](../bench/mutation/README.md#results)).
+
 Next:
 - Reproduce real, historical bugs from open-source Godot games and compare Expectrail's fix with
-  the one the maintainers shipped.
-- Mutation-test the suite: if a deliberately broken fix passes, the suite is too weak.
+  the one the maintainers shipped. A candidate log of 200 publicly reported bugs, with the selection
+  rules committed and 27 survivors showing an AI-written fix, is waiting for a person to select from
+  ([bugs/reported/candidates.md](../bugs/reported/candidates.md)).
+- Publish each of the mutation bench's 67 survivors with the check that would have caught it, as
+  #127 asks: they have findings but no catch-specs yet. Start with the code and missing-file
+  survivors and the sprite drawn 26 px off the player's body; decide whether scenery should have a
+  check at all.
 - Longer gameplay routes, with a person keeping the final say.
 
 ## Running it for real

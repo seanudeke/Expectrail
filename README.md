@@ -26,6 +26,15 @@ the before-and-after screenshots, said the fall was fixed. Expectrail saw the ro
 floor and rejected it. In our judge benchmark it accepted none of the 7 fixes that only look right
 and turned down none of the 8 correct ones, in all three runs ([Results](#results)).
 
+We also tried to break it at scale, with a mutation bench registered before any case was judged
+([`bench/mutation/`](bench/mutation/README.md#results)). Of 47 candidate fixes made by six operators,
+it caught 31 of the 39 that are wrong and accepted all 8 that are right; the 8 misses are one
+operator that changed nothing in the running game. On bugs nobody
+wrote it is weak: of 77 random single edits that visibly change the game it caught 10, and none of
+the 45 that move, resize or re-layer something, 44 of them scenery that no check covers (weighted by
+how common each kind of edit is, 0.9%). Given the 10 it caught, Muse Code fixed every one correctly
+on its first attempt, so there was no wrong fix left to catch.
+
 Every fix is also reviewed against its failing base: the same checks run on the game with the bug
 and on the game with the fix, so the report shows the requested behavior failing before and passing
 after, not only passing. In six live overnight runs, three on October 30 and three on October 31 on
@@ -138,7 +147,8 @@ Every number here comes from a file in [`bench/`](bench), written from a CI run'
 the command that reruns it. Four bug families (physics fall-through, missing texture, layering,
 sinking), with two public development variants and two private held-out variants of each; the
 detection benches replay every variant, and the clean game, on five routes. We wrote those bugs;
-four more reproduce bugs other people reported ([Bugs we did not write](#bugs-we-did-not-write)).
+four more reproduce bugs other people reported ([Bugs we did not write](#bugs-we-did-not-write)),
+and the mutation bench generates its own ([`bench/mutation/`](bench/mutation/README.md)).
 
 | What we measured | Result | Run |
 | --- | --- | --- |
@@ -276,6 +286,11 @@ Each was rendered on five routes, and so was the clean game ([`bench/reported/`]
   undid an earlier fix to the platforms' drawing order (PR #927), so in the current demo the lower
   moving platform draws behind the ground's grass edge. It is a candidate report to the demo's
   maintainers, not a benchmark case.
+- **A larger set is logged, not judged.** For a stress test on more bugs like these, ideally with
+  fixes an AI wrote, a machine search logged 200 publicly reported bugs, with the selection rules
+  committed before any judging: 43 survive a first word-matching screen, 27 of them with strong
+  evidence of an AI-written fix. None was selected, ported or judged before the November 1 freeze,
+  so no number comes from it ([`bugs/reported/candidates.md`](bugs/reported/candidates.md)).
 
 ### Checks nobody wrote: advisory discovery
 
@@ -529,7 +544,9 @@ See [agents/README.md](agents/README.md) for Muse API / Muse Code setup (`.env`,
 | [`bugs/`](bugs) | Seeded bugs, and reproductions of publicly reported Godot bugs ([`bugs/reported/`](bugs/reported/README.md)), as patches against the clean game ([evaluation plan](docs/evaluation.md)); the digest of the private fresh set for the blind discovery run ([`bugs/fresh/`](bugs/fresh/README.md)) | Sean, Timo |
 | [`docs/demo/`](docs/demo/) | Interactive demo showcase and audit vault web app | Timo |
 | [`game/`](game) | Godot's 2D platformer demo, unmodified (MIT) | prior work |
-| [`agents/`](agents) | Repair requests, Muse Code fixer, verifier, Wonder triage, morning report | Taofeek |
+| [`agents/`](agents) | Repair requests, Muse Code fixer, verifier, Wonder triage, morning report, the mutation bench's generator and judge | Taofeek |
+| [`apps/checkout/`](apps/checkout/README.md) | The second domain: Bootstrap's checkout example (unmodified, MIT), its seeded bugs and checks, judged through a Chromium harness ([`harness/web/`](harness/web)) | Sean |
+| [`bench/`](bench/README.md) | Every recorded result, written from a CI run's own output with the command that reruns it; the mutation bench's registration and records ([`bench/mutation/`](bench/mutation/README.md)) | everyone; the mutation bench, Taofeek |
 
 ## Gates
 
