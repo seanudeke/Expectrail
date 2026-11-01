@@ -67,7 +67,9 @@ LABEL_ROUTES = sorted((REPO / "bugs" / "reported" / "routes").glob("*.json")) + 
 # The same for every case, so the globs say nothing about where the bug is.
 EDITABLE = ["player/**", "level/**", "enemy/**", "gui/**", "game_singleplayer.tscn", "game_splitscreen.tscn",
             "music.tscn"]
-GAMEPLAY_SENTENCE = "The player keeps moving along the route and ends on the floor."
+# The gameplay check has no instruction of its own. Its three conditions (a minimum distance, end on
+# the floor, never stay below the ground), in wording Sean approved on Nov 1, 2026.
+GAMEPLAY_SENTENCE = "The player keeps moving along the route, never sinks below the ground, and ends on the floor."
 SPEC_FILES = ("agents/specs/player-stays-above-ground.json", "specs/player-always-visible.json",
               "specs/coins-visible.json")
 # Upper bounds, for the estimate #156 asks to post first.
