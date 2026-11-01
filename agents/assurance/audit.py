@@ -52,6 +52,7 @@ PERCEPTION = frozenset({
     # Mutation bench: SAM on public checks only; never Muse Code, never the private set.
     ".github/workflows/mutation-bench.yml#run",
     ".github/workflows/mutation-bench.yml#sam-warm",  # the clean game's smoke frames, once per run
+    ".github/workflows/mutation-fix.yml#sam-warm",  # the same, for Part 3's jobs
     # Reported-bug bench: SAM on frames of public bugs, and only when dispatched with sam on.
     ".github/workflows/reported-bench.yml#reported-bench",
 })

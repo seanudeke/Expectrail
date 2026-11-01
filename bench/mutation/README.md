@@ -56,6 +56,17 @@ work. Commit both files in one pull request, and say it is the registration.
 It reads the runs' own artifacts, counts a mutant judged in both phases once, reports any case missing,
 and refuses a rehearsal, another registration or the wrong part. The tools are not pinned.
 
+## Part 3
+
+`agents/mutation_fix.py` and the **Mutation fix** workflow. `reportTemplate` must hold `{sentence}`, which
+takes the sentence of the check that caught the mutant, so no report is written by hand.
+
+    python3 -m agents.mutation_fix --pick --seed <your seed>   # after Part 2 is recorded; commit cases.json
+    python3 -m agents.mutation_fix --estimate                  # post this in #156 first
+    python3 -m agents.mutation_fix --record --run <id>
+
+The workflow's `rehearsal` mode runs the path on a stand-in, with no Muse, no SAM and no key.
+
 ## What the operators can reach
 
 From `python3 -m agents.mutate_game --sites`, one mutant per axis and direction with one collision

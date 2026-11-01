@@ -279,6 +279,8 @@ def _arm(request: dict, candidate: Path, out: Path, name: str, prov: str) -> dic
                                    if "held-out" not in r))[:6],
         ownResults=own_results(verification),
         failedChecks=failed_checks(verification),
+        checkResults={f"{c['kind']}/{c['spec']}": c["result"] for c in verification.get("checks") or []
+                      if c.get("kind") not in ("held-out", "clean")},
         cleanSource=((verification.get("suite") or {}).get("clean") or {}).get("source"),
         samImages=sam_images_since(before),
     )
