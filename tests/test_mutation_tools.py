@@ -154,7 +154,8 @@ class RegisterTest(RegisterBase):
     def test_the_cli_says_nothing_was_written_and_refuses_cleanly(self):
         path = Path(self.tmp.name) / "values.json"
         path.write_text(json.dumps({"generator.seed": 1}))
-        with mock.patch("sys.stderr.write") as err:
+        with mock.patch.object(mg, "PREREGISTRATION", self.prereg), mock.patch.object(reg, "MANIFEST", self.manifest), \
+                mock.patch("sys.stderr.write") as err:
             self.assertEqual(reg.main(["--values", str(path)]), 2)
         self.assertIn("missing", "".join(c.args[0] for c in err.call_args_list))
 
