@@ -392,6 +392,7 @@ class RehearsalTest(unittest.TestCase):
             self.assertIs(seen["sam"], False)
             self.assertIs(seen["live"], False)
             self.assertIsNone(seen["prereg"]["sha256"])
+            self.assertIsNone(seen.get("routes"))  # every label route, so each one's frames are tried before any spend
             text = seen["fixture"].read_text()
             self.assertIn('+[ext_resource type="Texture2D" uid="uid://8bv0mysvxgle"', text)
 

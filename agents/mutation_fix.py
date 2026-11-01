@@ -346,14 +346,15 @@ def _mutated(mutant: dict, out: Path) -> Path:
 
 def rehearse(out: Path) -> dict:
     """The whole path on real Godot with a stand-in the study cannot draw and its exact undo as the
-    'fix': no Muse, no SAM, no registration. It should end accepted and labelled good."""
+    'fix': no Muse, no SAM, no registration. It should end accepted and labelled good, on every label
+    route, so it also shows before any spend that each route's clean game matches itself in frames."""
     mutant = next(m for m in mb.dry_mutants() if "load-failure" in m["id"])
     out.mkdir(parents=True, exist_ok=True)
     undo = out / "rehearsal-undo.patch"
     undo.write_text(mg.patch_text({**mutant, "before": mutant["after"], "after": mutant["before"]}, game=_mutated(mutant, out)),
                     encoding="utf-8")
     return run_case(mutant, "A rehearsal: the level's art is missing.", "regression/none", out, prereg=mb.DRY_PREREG, live=False,
-                    fixture=undo, sam=False, routes=[SMOKE])
+                    fixture=undo, sam=False)
 
 
 def summarize(rows: list[dict]) -> dict:
@@ -459,7 +460,9 @@ def main(argv: list[str] | None = None) -> int:
             row = rehearse(args.out)
             attempt = (row.get("attempts") or [{}])[-1]
             print(f"::notice title=Mutation fix rehearsal::{row['outcome']}; {row.get('detail')}; decision {attempt.get('decision')}; "
-                  f"label {attempt.get('label')}; a test of the plumbing, never a result")
+                  f"label {attempt.get('label')}; trace px by route {attempt.get('distances')}; frames differing by "
+                  f"route {attempt.get('framesDiffering')} (None: the route's clean game did not match itself, or "
+                  f"the candidate did not run: {attempt.get('notRun')}); a test of the plumbing, never a result")
             return 0 if attempt.get("decision") == "accept" and attempt.get("label") == "good" else 1
         prereg = mg.load_preregistration()
         if args.pick:
