@@ -13,6 +13,12 @@ What [docs/discovery.md](../../docs/discovery.md) reports, as the runs wrote it.
   planner off: 4 of 8 defects flagged, 0 of 3 healthy builds, no incomplete job. Written by
   `python -m expectrail.discovery.fresh collect --run <id>` from the jobs' counts-only notices; do
   not edit by hand.
+- [`blind-run-41250932288.json`](blind-run-41250932288.json): blind run 2, the same set dispatched
+  with the planner on. Every job recorded the planner as unavailable (Muse Spark returned no
+  content), so it is a second planner-off result: the same 4 of 8 and 0 of 3.
+- [`run-41251642563.json`](run-41251642563.json) and [`run-41252054622.json`](run-41252054622.json):
+  the planner's first live answers, on the public builds, on branch `discovery/planner-fix` before
+  it merged: without a reference, then with the clean game as each job's reference.
 
 The local and `run-<id>` records are labelled `development-reproduction`: the profile and probes were
 written after the four reported bugs were known. The blind run is the first record that is not. None of this

@@ -10,15 +10,26 @@ REPO = Path(__file__).resolve().parents[1]
 
 
 class FreezeHoldsOnMain(unittest.TestCase):
-    """While the fresh set is in use for blind runs (docs/discovery.md, The blind run), no file that
-    decides a finding may change. Run 1 (planner off) is recorded; the planner-on run uses the same
-    freeze. Remove this test, deliberately, when the team retires the set; a changed discoverer
-    needs a new freeze and a new fresh set."""
+    """While fresh set 2 is in use for blind runs (docs/discovery.md, The blind run), no file that
+    decides a finding may change: this is freeze 2, the one set 2 is written against. Remove or
+    re-pin this test, deliberately, only when the team retires set 2; a changed discoverer needs a
+    new freeze and a new fresh set."""
 
     def test_the_frozen_files_and_the_clean_game_are_unchanged(self):
         ok, problems, digest = freeze.verify(REPO)
         self.assertTrue(ok, f"discovery is frozen for the blind run: {problems}")
-        self.assertEqual(digest, "6e9ca2bda1c0cf3d0d491ae411bbeb54e18c6701ebd1ed6274c742c02a644824")
+        self.assertEqual(digest, "9af1f621c33ce4668eb8ad356a3220ea352d106595b0bc1b4cf877eead5e3053")
+
+
+class FreezeOne(unittest.TestCase):
+    def test_freeze_one_is_kept_and_differs_only_in_the_planner_request(self):
+        import json
+        one = json.loads((REPO / "discovery" / "freeze-1.json").read_text())
+        two = json.loads((REPO / "discovery" / "freeze.json").read_text())
+        self.assertEqual(one["sha256"], "6e9ca2bda1c0cf3d0d491ae411bbeb54e18c6701ebd1ed6274c742c02a644824")
+        changed = sorted(f for f in one["files"] if one["files"][f] != two["files"].get(f))
+        self.assertEqual(changed, ["expectrail/discovery/planner.py"])
+        self.assertEqual(one["gameTree"], two["gameTree"])
 
 
 class Freeze(unittest.TestCase):

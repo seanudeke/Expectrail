@@ -8,9 +8,14 @@ records the sha256 of every file that decides a finding (the probes, the route c
 and its templates, the signals and the interpreter, the job, the planner's prompt and model, the
 record schemas, the recorder and the replay harness, and the clean game's whole tree) and the exact
 command a blind job runs. Its own digest is what the fresh defect set's manifest names, and the
-blind run verifies it on the commit it checks out before it replays anything. Until the blind run is
-recorded, tests/test_discovery_freeze.py keeps the freeze holding on main, so a frozen file cannot
+blind run verifies it on the commit it checks out before it replays anything. While a fresh set is
+in use, tests/test_discovery_freeze.py keeps the freeze holding on main, so a frozen file cannot
 change without a test failing.
+
+Freeze 1 (``discovery/freeze-1.json``, commit 0b6556c) is the one fresh set 1 was written against;
+freeze 2 (``discovery/freeze.json``) differs from it only in the planner's request (no token limit,
+and an empty answer named as such) and in the blind command (the clean game as reference with the
+planner on). Fresh set 2 is written against freeze 2.
 
 The report and collection code (cli.py's report, annotate and collect) is left out on purpose: it
 formats findings and decides none.
@@ -50,7 +55,8 @@ FROZEN = (
 )
 GAME = "game/platformer"
 COMMAND = ("python -m expectrail.discovery.cli discover --profile discovery/platformer.profile.json "
-           "--snapshot <id>:base:<patch> --out <dir> --planner <off|spark> --label 'FRESH LIVE' --max-seconds 1800")
+           "--snapshot <id>:base:<patch> [--snapshot reference:reference with the planner on] --out <dir> "
+           "--planner <off|spark> --label 'FRESH LIVE' --max-seconds 1800")
 
 
 def _sha(path: Path) -> str:

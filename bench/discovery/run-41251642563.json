@@ -1,0 +1,1580 @@
+{
+ "run": 41251642563,
+ "url": "https://github.com/seanudeke/Expectrail/actions/runs/41251642563",
+ "headSha": "34742b38224430321552fb51737c545a512b7388",
+ "createdAt": "2026-10-31T23:13:54Z",
+ "condition": "development-reproduction",
+ "jobs": [
+  {
+   "runId": "ci-41251642563-enemy-ledge",
+   "snapshots": [
+    [
+     "enemy-ledge",
+     "base"
+    ]
+   ],
+   "completion": "complete",
+   "stopReason": null,
+   "episodes": 34,
+   "wallSeconds": 131.9,
+   "coverage": {
+    "enemy-ledge": {
+     "pass": 102,
+     "fail": 3,
+     "not_exercised": 74,
+     "insufficient_observation": 0,
+     "execution_error": 0
+    }
+   },
+   "findings": [
+    [
+     "enemy-ledge",
+     "enemy-max-drop",
+     "reproduced",
+     3,
+     3,
+     [
+      "wait-long"
+     ]
+    ],
+    [
+     "enemy-ledge",
+     "model-rel-rapid-more-than-slow",
+     "reproduced",
+     3,
+     3,
+     [
+      "shoot-right-every48",
+      "shoot-right-every12"
+     ]
+    ],
+    [
+     "enemy-ledge",
+     "model-enemies-stay-on-platform",
+     "reproduced",
+     3,
+     3,
+     [
+      "wait-long"
+     ]
+    ]
+   ],
+   "rejected": [],
+   "modelCandidates": [
+    [
+     "model-rel-hold-higher-than-tap",
+     "proposed"
+    ],
+    [
+     "model-rel-rapid-more-than-slow",
+     "proposed"
+    ],
+    [
+     "model-enemies-stay-on-platform",
+     "proposed"
+    ],
+    [
+     "model-rel-extra-jumps-no-higher",
+     "proposed"
+    ]
+   ],
+   "plannerProbes": [
+    "plan-hold-jump-long",
+    "plan-shoot-gap40",
+    "plan-face-right-shoot",
+    "plan-face-left-shoot"
+   ],
+   "planner": [
+    "complete",
+    "4 probes and 4 contracts proposed; {'model': 'muse-spark-1.3', 'promptTokens': 4789, 'completionTokens': 10225}"
+   ],
+   "diagnostics": 4
+  },
+  {
+   "runId": "ci-41251642563-clean",
+   "snapshots": [
+    [
+     "clean",
+     "base"
+    ]
+   ],
+   "completion": "complete",
+   "stopReason": null,
+   "episodes": 32,
+   "wallSeconds": 119.0,
+   "coverage": {
+    "clean": {
+     "pass": 130,
+     "fail": 2,
+     "not_exercised": 75,
+     "insufficient_observation": 0,
+     "execution_error": 0
+    }
+   },
+   "findings": [
+    [
+     "clean",
+     "model-recharge",
+     "reproduced",
+     3,
+     3,
+     [
+      "jump-w0-x2",
+      "plan-jump-double-recharge"
+     ]
+    ],
+    [
+     "clean",
+     "model-enemies-stay",
+     "reproduced",
+     3,
+     3,
+     [
+      "wait-long"
+     ]
+    ]
+   ],
+   "rejected": [],
+   "modelCandidates": [
+    [
+     "model-double-higher",
+     "proposed"
+    ],
+    [
+     "model-extra-jumps-nothing",
+     "proposed"
+    ],
+    [
+     "model-hold-higher-than-tap",
+     "proposed"
+    ],
+    [
+     "model-recharge",
+     "proposed"
+    ],
+    [
+     "model-cooldown-rate",
+     "proposed"
+    ],
+    [
+     "model-left-right-symmetric",
+     "proposed"
+    ],
+    [
+     "model-enemies-stay",
+     "proposed"
+    ]
+   ],
+   "plannerProbes": [
+    "plan-hold-jump-full",
+    "plan-jump-double-recharge",
+    "plan-shoot-right-every40",
+    "plan-shoot-left-every40"
+   ],
+   "planner": [
+    "complete",
+    "4 probes and 7 contracts proposed; {'model': 'muse-spark-1.3', 'promptTokens': 4789, 'completionTokens': 22224}"
+   ],
+   "diagnostics": 1
+  },
+  {
+   "runId": "ci-41251642563-air-jump",
+   "snapshots": [
+    [
+     "air-jump",
+     "base"
+    ]
+   ],
+   "completion": "complete",
+   "stopReason": null,
+   "episodes": 48,
+   "wallSeconds": 172.8,
+   "coverage": {
+    "air-jump": {
+     "pass": 102,
+     "fail": 6,
+     "not_exercised": 75,
+     "insufficient_observation": 0,
+     "execution_error": 0
+    }
+   },
+   "findings": [
+    [
+     "air-jump",
+     "jump-no-extra-air-jumps-jump-w0-x8",
+     "reproduced",
+     3,
+     3,
+     [
+      "jump-w0-x2",
+      "jump-w0-x8"
+     ]
+    ],
+    [
+     "air-jump",
+     "jump-no-extra-air-jumps-jump-w40-x8",
+     "reproduced",
+     3,
+     3,
+     [
+      "jump-w40-x2",
+      "jump-w40-x8"
+     ]
+    ],
+    [
+     "air-jump",
+     "jump-no-extra-air-jumps-jump-w80-x8",
+     "reproduced",
+     3,
+     3,
+     [
+      "jump-w80-x2",
+      "jump-w80-x8"
+     ]
+    ],
+    [
+     "air-jump",
+     "jump-no-extra-air-jumps-jump-w120-x8",
+     "reproduced",
+     3,
+     3,
+     [
+      "jump-w120-x2",
+      "jump-w120-x8"
+     ]
+    ],
+    [
+     "air-jump",
+     "model-jump-walk-should-not-change-height",
+     "reproduced",
+     3,
+     3,
+     [
+      "jump-w0-x2",
+      "jump-w120-x2"
+     ]
+    ],
+    [
+     "air-jump",
+     "model-enemy-no-drop",
+     "reproduced",
+     3,
+     3,
+     [
+      "wait-long"
+     ]
+    ]
+   ],
+   "rejected": [],
+   "modelCandidates": [
+    [
+     "model-jump-hold-higher-than-tap",
+     "proposed"
+    ],
+    [
+     "model-jump-double-higher-than-single",
+     "proposed"
+    ],
+    [
+     "model-jump-eight-same-as-two",
+     "proposed"
+    ],
+    [
+     "model-jump-walk-should-not-change-height",
+     "proposed"
+    ],
+    [
+     "model-enemy-no-drop",
+     "proposed"
+    ]
+   ],
+   "plannerProbes": [
+    "plan-hold-jump-full",
+    "plan-hold-shoot",
+    "plan-shoot-every36",
+    "plan-turn-shoot-left"
+   ],
+   "planner": [
+    "complete",
+    "4 probes and 5 contracts proposed; {'model': 'muse-spark-1.3', 'promptTokens': 4789, 'completionTokens': 14212}"
+   ],
+   "diagnostics": 3
+  },
+  {
+   "runId": "ci-41251642563-gun-cooldown",
+   "snapshots": [
+    [
+     "gun-cooldown",
+     "base"
+    ]
+   ],
+   "completion": "complete",
+   "stopReason": null,
+   "episodes": 44,
+   "wallSeconds": 206.6,
+   "coverage": {
+    "gun-cooldown": {
+     "pass": 98,
+     "fail": 8,
+     "not_exercised": 77,
+     "insufficient_observation": 0,
+     "execution_error": 0
+    }
+   },
+   "findings": [
+    [
+     "gun-cooldown",
+     "weapon-min-interval",
+     "reproduced",
+     3,
+     3,
+     [
+      "shoot-right-every12"
+     ]
+    ],
+    [
+     "gun-cooldown",
+     "weapon-faster-taps-shoot-right-every12",
+     "reproduced",
+     3,
+     3,
+     [
+      "shoot-right-every48",
+      "shoot-right-every12"
+     ]
+    ],
+    [
+     "gun-cooldown",
+     "weapon-faster-taps-shoot-left-every12",
+     "reproduced",
+     3,
+     3,
+     [
+      "shoot-left-every48",
+      "shoot-left-every12"
+     ]
+    ],
+    [
+     "gun-cooldown",
+     "model-cooldown-limits-rapid-fire",
+     "reproduced",
+     3,
+     3,
+     [
+      "shoot-right-every48",
+      "shoot-right-every12"
+     ]
+    ],
+    [
+     "gun-cooldown",
+     "model-cooldown-min-interval",
+     "reproduced",
+     3,
+     3,
+     [
+      "shoot-right-every12"
+     ]
+    ],
+    [
+     "gun-cooldown",
+     "model-enemies-stay-on-platform",
+     "reproduced",
+     3,
+     3,
+     [
+      "wait-long"
+     ]
+    ]
+   ],
+   "rejected": [],
+   "modelCandidates": [
+    [
+     "model-jump-cut-hold-higher",
+     "proposed"
+    ],
+    [
+     "model-double-jump-only-once",
+     "proposed"
+    ],
+    [
+     "model-cooldown-limits-rapid-fire",
+     "proposed"
+    ],
+    [
+     "model-cooldown-min-interval",
+     "proposed"
+    ],
+    [
+     "model-enemies-stay-on-platform",
+     "proposed"
+    ]
+   ],
+   "plannerProbes": [
+    "plan-jump-hold-1",
+    "plan-jump-hold-2",
+    "plan-shoot-hold-1",
+    "plan-turn-shoot-left"
+   ],
+   "planner": [
+    "complete",
+    "4 probes and 5 contracts proposed; {'model': 'muse-spark-1.3', 'promptTokens': 4789, 'completionTokens': 12953}"
+   ],
+   "diagnostics": 3
+  },
+  {
+   "runId": "ci-41251642563-sinking-v1",
+   "snapshots": [
+    [
+     "sinking-v1",
+     "base"
+    ]
+   ],
+   "completion": "complete",
+   "stopReason": null,
+   "episodes": 30,
+   "wallSeconds": 170.1,
+   "coverage": {
+    "sinking-v1": {
+     "pass": 100,
+     "fail": 1,
+     "not_exercised": 77,
+     "insufficient_observation": 0,
+     "execution_error": 0
+    }
+   },
+   "findings": [
+    [
+     "sinking-v1",
+     "model-c-hold-higher",
+     "reproduced",
+     3,
+     3,
+     [
+      "jump-w0-x1",
+      "plan-hold-jump-wait-long"
+     ]
+    ]
+   ],
+   "rejected": [],
+   "modelCandidates": [
+    [
+     "model-c-double-cap",
+     "proposed"
+    ],
+    [
+     "model-c-hold-higher",
+     "proposed"
+    ],
+    [
+     "model-c-cooldown-blocks",
+     "proposed"
+    ]
+   ],
+   "plannerProbes": [
+    "plan-hold-jump-wait-long",
+    "plan-shoot-pair-wide",
+    "plan-shoot-pair-narrow",
+    "plan-face-left-fire"
+   ],
+   "planner": [
+    "complete",
+    "4 probes and 3 contracts proposed; {'model': 'muse-spark-1.3', 'promptTokens': 4789, 'completionTokens': 12453}"
+   ],
+   "diagnostics": 5
+  },
+  {
+   "runId": "ci-41251642563-physics-fall-through-v1",
+   "snapshots": [
+    [
+     "physics-fall-through-v1",
+     "base"
+    ]
+   ],
+   "completion": "complete",
+   "stopReason": null,
+   "episodes": 46,
+   "wallSeconds": 204.6,
+   "coverage": {
+    "physics-fall-through-v1": {
+     "pass": 89,
+     "fail": 5,
+     "not_exercised": 96,
+     "insufficient_observation": 0,
+     "execution_error": 0
+    }
+   },
+   "findings": [
+    [
+     "physics-fall-through-v1",
+     "jump-air-jump-exists-jump-w0-x2",
+     "reproduced",
+     3,
+     3,
+     [
+      "jump-w0-x1",
+      "jump-w0-x2"
+     ]
+    ],
+    [
+     "physics-fall-through-v1",
+     "jump-air-jump-exists-jump-w40-x2",
+     "reproduced",
+     3,
+     3,
+     [
+      "jump-w40-x1",
+      "jump-w40-x2"
+     ]
+    ],
+    [
+     "physics-fall-through-v1",
+     "jump-air-jump-exists-jump-w80-x2",
+     "reproduced",
+     3,
+     3,
+     [
+      "jump-w80-x1",
+      "jump-w80-x2"
+     ]
+    ],
+    [
+     "physics-fall-through-v1",
+     "jump-air-jump-exists-jump-w120-x2",
+     "reproduced",
+     3,
+     3,
+     [
+      "jump-w120-x1",
+      "jump-w120-x2"
+     ]
+    ],
+    [
+     "physics-fall-through-v1",
+     "model-c-double-higher",
+     "reproduced",
+     3,
+     3,
+     [
+      "plan-jump-hold-x1",
+      "plan-jump-hold-x2"
+     ]
+    ]
+   ],
+   "rejected": [],
+   "modelCandidates": [
+    [
+     "model-c-double-higher",
+     "proposed"
+    ],
+    [
+     "model-c-triple-no-gain",
+     "proposed"
+    ],
+    [
+     "model-c-cooldown-interval",
+     "proposed"
+    ],
+    [
+     "model-c-spaced-fires",
+     "proposed"
+    ],
+    [
+     "model-c-bullet-direction",
+     "proposed"
+    ],
+    [
+     "model-c-patrol-bounded",
+     "proposed"
+    ]
+   ],
+   "plannerProbes": [
+    "plan-jump-hold-x1",
+    "plan-jump-hold-x2",
+    "plan-jump-hold-x3",
+    "plan-wait-xxlong"
+   ],
+   "planner": [
+    "complete",
+    "4 probes and 6 contracts proposed; {'model': 'muse-spark-1.3', 'promptTokens': 4790, 'completionTokens': 11513}"
+   ],
+   "diagnostics": 2
+  },
+  {
+   "runId": "ci-41251642563-body-flip",
+   "snapshots": [
+    [
+     "body-flip",
+     "base"
+    ]
+   ],
+   "completion": "complete",
+   "stopReason": null,
+   "episodes": 46,
+   "wallSeconds": 211.6,
+   "coverage": {
+    "body-flip": {
+     "pass": 98,
+     "fail": 12,
+     "not_exercised": 75,
+     "insufficient_observation": 0,
+     "execution_error": 0
+    }
+   },
+   "findings": [
+    [
+     "body-flip",
+     "facing-follows-motion",
+     "reproduced",
+     3,
+     3,
+     [
+      "hold-left"
+     ]
+    ],
+    [
+     "body-flip",
+     "facing-bullets-follow-facing",
+     "reproduced",
+     3,
+     3,
+     [
+      "shoot-left-every48"
+     ]
+    ],
+    [
+     "body-flip",
+     "facing-mirror-hold-left",
+     "reproduced",
+     3,
+     3,
+     [
+      "hold-right",
+      "hold-left"
+     ]
+    ],
+    [
+     "body-flip",
+     "facing-mirror-move-fire-left",
+     "reproduced",
+     3,
+     3,
+     [
+      "move-fire-right",
+      "move-fire-left"
+     ]
+    ],
+    [
+     "body-flip",
+     "model-double-higher-than-single-full",
+     "reproduced",
+     3,
+     3,
+     [
+      "plan-jump-full-hold",
+      "plan-walk120-double-hold"
+     ]
+    ],
+    [
+     "body-flip",
+     "model-actor-faces-movement",
+     "reproduced",
+     3,
+     3,
+     [
+      "hold-left"
+     ]
+    ],
+    [
+     "body-flip",
+     "model-enemies-stay-on-platform",
+     "reproduced",
+     3,
+     3,
+     [
+      "wait-long"
+     ]
+    ]
+   ],
+   "rejected": [],
+   "modelCandidates": [
+    [
+     "model-jump-cut-hold-higher",
+     "proposed"
+    ],
+    [
+     "model-double-higher-than-single-full",
+     "proposed"
+    ],
+    [
+     "model-air-jumps-limited",
+     "proposed"
+    ],
+    [
+     "model-cooldown-interval",
+     "proposed"
+    ],
+    [
+     "model-actor-faces-movement",
+     "proposed"
+    ],
+    [
+     "model-enemies-stay-on-platform",
+     "proposed"
+    ]
+   ],
+   "plannerProbes": [
+    "plan-jump-full-hold",
+    "plan-walk120-double-hold",
+    "plan-shoot-once-right",
+    "plan-shoot-once-left"
+   ],
+   "planner": [
+    "complete",
+    "4 probes and 6 contracts proposed; {'model': 'muse-spark-1.3', 'promptTokens': 4794, 'completionTokens': 13627}"
+   ],
+   "diagnostics": 2
+  },
+  {
+   "runId": "ci-41251642563-layering-v1",
+   "snapshots": [
+    [
+     "layering-v1",
+     "base"
+    ]
+   ],
+   "completion": "complete",
+   "stopReason": null,
+   "episodes": 28,
+   "wallSeconds": 172.8,
+   "coverage": {
+    "layering-v1": {
+     "pass": 103,
+     "fail": 1,
+     "not_exercised": 75,
+     "insufficient_observation": 0,
+     "execution_error": 0
+    }
+   },
+   "findings": [
+    [
+     "layering-v1",
+     "model-c-enemy-no-fall",
+     "reproduced",
+     3,
+     3,
+     [
+      "wait-long"
+     ]
+    ]
+   ],
+   "rejected": [],
+   "modelCandidates": [
+    [
+     "model-c-double-higher",
+     "proposed"
+    ],
+    [
+     "model-c-triple-same",
+     "proposed"
+    ],
+    [
+     "model-c-hold-higher",
+     "proposed"
+    ],
+    [
+     "model-c-enemy-no-fall",
+     "proposed"
+    ]
+   ],
+   "plannerProbes": [
+    "plan-hold-jump-full",
+    "plan-shoot-every36",
+    "plan-turn-shoot-left",
+    "plan-walk160-double"
+   ],
+   "planner": [
+    "complete",
+    "4 probes and 4 contracts proposed; {'model': 'muse-spark-1.3', 'promptTokens': 4789, 'completionTokens': 16286}"
+   ],
+   "diagnostics": 4
+  },
+  {
+   "runId": "ci-41251642563-sinking-v2",
+   "snapshots": [
+    [
+     "sinking-v2",
+     "base"
+    ]
+   ],
+   "completion": "complete",
+   "stopReason": null,
+   "episodes": 26,
+   "wallSeconds": 142.0,
+   "coverage": {
+    "sinking-v2": {
+     "pass": 101,
+     "fail": 0,
+     "not_exercised": 77,
+     "insufficient_observation": 0,
+     "execution_error": 0
+    }
+   },
+   "findings": [],
+   "rejected": [],
+   "modelCandidates": [
+    [
+     "model-c1",
+     "proposed"
+    ],
+    [
+     "model-c2",
+     "proposed"
+    ],
+    [
+     "model-c3",
+     "proposed"
+    ]
+   ],
+   "plannerProbes": [
+    "plan-hold-jump-full",
+    "plan-shoot-every40",
+    "plan-wait-extra-long",
+    "plan-face-left-shoot-once"
+   ],
+   "planner": [
+    "complete",
+    "4 probes and 3 contracts proposed; {'model': 'muse-spark-1.3', 'promptTokens': 4789, 'completionTokens': 11951}"
+   ],
+   "diagnostics": 5
+  },
+  {
+   "runId": "ci-41251642563-missing-texture-v2",
+   "snapshots": [
+    [
+     "missing-texture-v2",
+     "base"
+    ]
+   ],
+   "completion": "complete",
+   "stopReason": null,
+   "episodes": 30,
+   "wallSeconds": 148.0,
+   "coverage": {
+    "missing-texture-v2": {
+     "pass": 99,
+     "fail": 1,
+     "not_exercised": 79,
+     "insufficient_observation": 0,
+     "execution_error": 0
+    }
+   },
+   "findings": [
+    [
+     "missing-texture-v2",
+     "model-cooldown-boundary-count",
+     "reproduced",
+     3,
+     3,
+     [
+      "shoot-right-every48",
+      "plan-shoot-every36"
+     ]
+    ]
+   ],
+   "rejected": [],
+   "modelCandidates": [
+    [
+     "model-double-hold-higher",
+     "proposed"
+    ],
+    [
+     "model-double-adds-height",
+     "proposed"
+    ],
+    [
+     "model-no-triple",
+     "proposed"
+    ],
+    [
+     "model-cooldown-boundary-count",
+     "proposed"
+    ]
+   ],
+   "plannerProbes": [
+    "plan-jump-hold-full",
+    "plan-shoot-every36",
+    "plan-patrol-long",
+    "plan-hold-left-long"
+   ],
+   "planner": [
+    "complete",
+    "4 probes and 4 contracts proposed; {'model': 'muse-spark-1.3', 'promptTokens': 4789, 'completionTokens': 14322}"
+   ],
+   "diagnostics": 4
+  },
+  {
+   "runId": "ci-41251642563-missing-texture-v1",
+   "snapshots": [
+    [
+     "missing-texture-v1",
+     "base"
+    ]
+   ],
+   "completion": "complete",
+   "stopReason": null,
+   "episodes": 28,
+   "wallSeconds": 132.9,
+   "coverage": {
+    "missing-texture-v1": {
+     "pass": 104,
+     "fail": 1,
+     "not_exercised": 74,
+     "insufficient_observation": 0,
+     "execution_error": 0
+    }
+   },
+   "findings": [
+    [
+     "missing-texture-v1",
+     "model-enemy-no-fall",
+     "reproduced",
+     3,
+     3,
+     [
+      "wait-long"
+     ]
+    ]
+   ],
+   "rejected": [],
+   "modelCandidates": [
+    [
+     "model-double-higher-single",
+     "proposed"
+    ],
+    [
+     "model-extra-jumps-no-higher",
+     "proposed"
+    ],
+    [
+     "model-hold-higher-tap",
+     "proposed"
+    ],
+    [
+     "model-enemy-no-fall",
+     "proposed"
+    ]
+   ],
+   "plannerProbes": [
+    "plan-jump-hold-full",
+    "plan-shoot-every36",
+    "plan-face-right-shoot",
+    "plan-face-left-shoot"
+   ],
+   "planner": [
+    "complete",
+    "4 probes and 4 contracts proposed; {'model': 'muse-spark-1.3', 'promptTokens': 4789, 'completionTokens': 10916}"
+   ],
+   "diagnostics": 4
+  },
+  {
+   "runId": "ci-41251642563-physics-fall-through-v2",
+   "snapshots": [
+    [
+     "physics-fall-through-v2",
+     "base"
+    ]
+   ],
+   "completion": "complete",
+   "stopReason": null,
+   "episodes": 50,
+   "wallSeconds": 200.0,
+   "coverage": {
+    "physics-fall-through-v2": {
+     "pass": 68,
+     "fail": 22,
+     "not_exercised": 91,
+     "insufficient_observation": 0,
+     "execution_error": 0
+    }
+   },
+   "findings": [
+    [
+     "physics-fall-through-v2",
+     "jump-air-jump-exists-jump-w0-x2",
+     "reproduced",
+     3,
+     3,
+     [
+      "jump-w0-x1",
+      "jump-w0-x2"
+     ]
+    ],
+    [
+     "physics-fall-through-v2",
+     "jump-air-jump-exists-jump-w40-x2",
+     "reproduced",
+     3,
+     3,
+     [
+      "jump-w40-x1",
+      "jump-w40-x2"
+     ]
+    ],
+    [
+     "physics-fall-through-v2",
+     "jump-air-jump-exists-jump-w80-x2",
+     "reproduced",
+     3,
+     3,
+     [
+      "jump-w80-x1",
+      "jump-w80-x2"
+     ]
+    ],
+    [
+     "physics-fall-through-v2",
+     "jump-air-jump-exists-jump-w120-x2",
+     "reproduced",
+     3,
+     3,
+     [
+      "jump-w120-x1",
+      "jump-w120-x2"
+     ]
+    ],
+    [
+     "physics-fall-through-v2",
+     "enemy-max-drop",
+     "reproduced",
+     3,
+     3,
+     [
+      "wait-long"
+     ]
+    ],
+    [
+     "physics-fall-through-v2",
+     "model-jump-double-higher",
+     "reproduced",
+     3,
+     3,
+     [
+      "plan-single-full-hop",
+      "plan-double-full-hop"
+     ]
+    ],
+    [
+     "physics-fall-through-v2",
+     "model-enemy-no-fall",
+     "reproduced",
+     3,
+     3,
+     [
+      "wait-long"
+     ]
+    ]
+   ],
+   "rejected": [],
+   "modelCandidates": [
+    [
+     "model-jump-double-higher",
+     "proposed"
+    ],
+    [
+     "model-jump-eight-same-as-two",
+     "proposed"
+    ],
+    [
+     "model-cooldown-interval",
+     "proposed"
+    ],
+    [
+     "model-enemy-no-fall",
+     "proposed"
+    ],
+    [
+     "model-enemy-walks",
+     "proposed"
+    ]
+   ],
+   "plannerProbes": [
+    "plan-single-full-hop",
+    "plan-double-full-hop",
+    "plan-single-shot",
+    "plan-left-shot"
+   ],
+   "planner": [
+    "complete",
+    "4 probes and 5 contracts proposed; {'model': 'muse-spark-1.3', 'promptTokens': 4810, 'completionTokens': 12082}"
+   ],
+   "diagnostics": 3
+  }
+ ],
+ "findings": [
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-no-extra-air-jumps-jump-w0-x8",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "jump-w0-x2",
+    "jump-w0-x8"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-no-extra-air-jumps-jump-w40-x8",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "jump-w40-x2",
+    "jump-w40-x8"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-no-extra-air-jumps-jump-w80-x8",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "jump-w80-x2",
+    "jump-w80-x8"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "jump-no-extra-air-jumps-jump-w120-x8",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "jump-w120-x2",
+    "jump-w120-x8"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "model-jump-walk-should-not-change-height",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "jump-w0-x2",
+    "jump-w120-x2"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "air-jump",
+   "specId": "model-enemy-no-drop",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "wait-long"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-follows-motion",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "hold-left"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-bullets-follow-facing",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "shoot-left-every48"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-mirror-hold-left",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "hold-right",
+    "hold-left"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "facing-mirror-move-fire-left",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "move-fire-right",
+    "move-fire-left"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "model-double-higher-than-single-full",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "plan-jump-full-hold",
+    "plan-walk120-double-hold"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "model-actor-faces-movement",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "hold-left"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "body-flip",
+   "specId": "model-enemies-stay-on-platform",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "wait-long"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "clean",
+   "specId": "model-recharge",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "jump-w0-x2",
+    "plan-jump-double-recharge"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "clean",
+   "specId": "model-enemies-stay",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "wait-long"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "enemy-max-drop",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "wait-long"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "model-rel-rapid-more-than-slow",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "shoot-right-every48",
+    "shoot-right-every12"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "enemy-ledge",
+   "specId": "model-enemies-stay-on-platform",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "wait-long"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-min-interval",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "shoot-right-every12"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-faster-taps-shoot-right-every12",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "shoot-right-every48",
+    "shoot-right-every12"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "weapon-faster-taps-shoot-left-every12",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "shoot-left-every48",
+    "shoot-left-every12"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "model-cooldown-limits-rapid-fire",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "shoot-right-every48",
+    "shoot-right-every12"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "model-cooldown-min-interval",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "shoot-right-every12"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "gun-cooldown",
+   "specId": "model-enemies-stay-on-platform",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "wait-long"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "layering-v1",
+   "specId": "model-c-enemy-no-fall",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "wait-long"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "missing-texture-v1",
+   "specId": "model-enemy-no-fall",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "wait-long"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "missing-texture-v2",
+   "specId": "model-cooldown-boundary-count",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "shoot-right-every48",
+    "plan-shoot-every36"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "physics-fall-through-v1",
+   "specId": "jump-air-jump-exists-jump-w0-x2",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "jump-w0-x1",
+    "jump-w0-x2"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "physics-fall-through-v1",
+   "specId": "jump-air-jump-exists-jump-w40-x2",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "jump-w40-x1",
+    "jump-w40-x2"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "physics-fall-through-v1",
+   "specId": "jump-air-jump-exists-jump-w80-x2",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "jump-w80-x1",
+    "jump-w80-x2"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "physics-fall-through-v1",
+   "specId": "jump-air-jump-exists-jump-w120-x2",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "jump-w120-x1",
+    "jump-w120-x2"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "physics-fall-through-v1",
+   "specId": "model-c-double-higher",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "plan-jump-hold-x1",
+    "plan-jump-hold-x2"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "physics-fall-through-v2",
+   "specId": "jump-air-jump-exists-jump-w0-x2",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "jump-w0-x1",
+    "jump-w0-x2"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "physics-fall-through-v2",
+   "specId": "jump-air-jump-exists-jump-w40-x2",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "jump-w40-x1",
+    "jump-w40-x2"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "physics-fall-through-v2",
+   "specId": "jump-air-jump-exists-jump-w80-x2",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "jump-w80-x1",
+    "jump-w80-x2"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "physics-fall-through-v2",
+   "specId": "jump-air-jump-exists-jump-w120-x2",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "jump-w120-x1",
+    "jump-w120-x2"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "physics-fall-through-v2",
+   "specId": "enemy-max-drop",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "wait-long"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "physics-fall-through-v2",
+   "specId": "model-jump-double-higher",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "plan-single-full-hop",
+    "plan-double-full-hop"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "physics-fall-through-v2",
+   "specId": "model-enemy-no-fall",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "wait-long"
+   ],
+   "alsoFailsOnClean": false
+  },
+  {
+   "snapshot": "sinking-v1",
+   "specId": "model-c-hold-higher",
+   "lifecycle": "reproduced",
+   "failures": 3,
+   "runs": 3,
+   "probes": [
+    "jump-w0-x1",
+    "plan-hold-jump-wait-long"
+   ],
+   "alsoFailsOnClean": false
+  }
+ ]
+}

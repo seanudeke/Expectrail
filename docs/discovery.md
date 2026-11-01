@@ -23,12 +23,17 @@ it is in [What's next](#whats-next).
 ## Status, October 31
 
 - **Built and measured:** everything on this page, locally and in CI (below).
-- **Tested blind once:** with the discoverer frozen, ten fresh entries written after the freeze
-  and their digest committed (pull request #150), the blind run flagged **4 of 8 defects** and
-  **none** of the 2 intentional changes or the clean game, every job complete
-  ([below](#blind-run-1-october-31)).
-- **Not run live:** the Muse Spark planner. It is built and tested against a fake transport; every
-  result on this page is with the planner off.
+- **Tested blind:** with the discoverer frozen, ten fresh entries written after the freeze and their
+  digest committed (pull request #150), the blind run flagged **4 of 8 defects** and **none** of the
+  2 intentional changes or the clean game, every job complete ([below](#blind-run-1-october-31)). A
+  second run meant to add the planner gave the same result because the planner never answered
+  ([run 2](#blind-run-2-planner-on-the-planner-never-answered)).
+- **The planner, live on public builds only:** after a fix (its token limit), Muse Spark proposes
+  probes and contracts on every build; with the clean game as each job's reference, none of its
+  contracts raised a finding on a healthy or visual-only build, and it added no detection the
+  templates had not already made ([below](#the-planner-live-on-public-builds)).
+- **Set 2 is next:** fresh set 1 is retired after two runs; set 2 is to be written against freeze 2,
+  which differs from freeze 1 only in the planner's request ([below](#freeze-2-and-fresh-set-2)).
 
 ## What runs
 
@@ -151,16 +156,19 @@ the jobs' own notices in [`bench/discovery/run-41238187197.json`](../bench/disco
 
 The results above are development reproduction. The blind run is the test that is not:
 
-1. **Freeze.** `discovery/freeze.json` records the sha256 of every file that decides a finding (the
-   profile and templates, probes, route compiler, signals, interpreter, job, planner prompt and
-   model, record schemas, recorder, replay harness) and of the clean game, plus the exact blind
-   command, as of commit `0b6556c14a51`. `python -m expectrail.discovery.freeze verify` names
-   any file that changed, and a test keeps the freeze holding on main while the fresh set is in use.
+1. **Freeze.** A freeze records the sha256 of every file that decides a finding (the profile and
+   templates, probes, route compiler, signals, interpreter, job, planner prompt and model, record
+   schemas, recorder, replay harness) and of the clean game, plus the exact blind command. Freeze 1
+   (commit `0b6556c14a51`, kept as `discovery/freeze-1.json`) is what set 1 was written against;
+   freeze 2 (`discovery/freeze.json`) is set 2's. `python -m expectrail.discovery.freeze verify`
+   names any file that changed, and a test keeps the freeze holding on main while a set is in use.
 2. **Fresh defects, written after the freeze.** Eight to ten defects and one or two intentional
-   changes, in the private held-out repository under `fresh/`, each with a private route showing it.
+   changes, in the private held-out repository (set 1 under `fresh/`, set 2 under `fresh-2/`), each
+   with a private route showing it.
    They are written without the discoverer's rules in front of the writer, and chosen by a random
    draw from a longer written list, so nobody picks them for being easy or hard to catch.
-3. **Commit the set's digest** here (`bugs/fresh/fresh.sha256`) before any run.
+3. **Commit the set's digest** here (`bugs/fresh/fresh.sha256`, `bugs/fresh/fresh-2.sha256`) before
+   any run.
 4. **Run once** with the Discovery blind run workflow
    ([`.github/workflows/discovery-blind.yml`](../.github/workflows/discovery-blind.yml)). It verifies
    the freeze and the digest before replaying anything, runs the clean game as a control, and uses
@@ -211,6 +219,56 @@ What it does and does not show:
 - **Which rules fired, and what each entry is, stay private until the event is over,** like the
   held-out bugs. The ids, kinds and flags above are what the run published.
 
+### Blind run 2, planner on: the planner never answered
+
+Run [41250932288](https://github.com/seanudeke/Expectrail/actions/runs/41250932288), the same frozen
+set, dispatched with the Muse Spark planner on. Every job verified the freeze and the digest, then
+recorded the planner stage as **unavailable**: every Spark call came back with no content. The jobs
+ran the templates alone and gave run 1's result exactly: **4 of 8 defects, 0 of 3 healthy builds,
+no incomplete job** ([`bench/discovery/blind-run-41250932288.json`](../bench/discovery/blind-run-41250932288.json)).
+So the frozen discoverer gave the same answer twice, and **the planner-on condition has not been
+measured.**
+
+Why, found afterwards on public builds only: Muse Spark reasons before it answers, and its reasoning
+counts against the 4,096-token limit the planner sent, so nothing was left for the answer (the same
+public run with the limit removed used 10,000 to 22,000 completion tokens a call). That fix is in
+`expectrail/discovery/planner.py`, a frozen file. Rather than change the discoverer under a set
+whose descriptions its author had already seen, set 1 is retired and a new set is written against a
+new freeze (next).
+
+### Freeze 2 and fresh set 2
+
+- **Freeze 2** (`discovery/freeze.json`, `9af1f621…`) differs from freeze 1 (kept as
+  `discovery/freeze-1.json`, `6e9ca2bd…`) in one frozen file, `expectrail/discovery/planner.py`: the
+  planner sends no token limit and names an empty answer as such. The blind command also changed:
+  with the planner on, each job replays the clean game as its reference, so a model's contract that
+  fails on it is rejected (the reason is in the next section). The probes, profile, templates,
+  signals, interpreter, job, schemas, recorder, harness and clean game are byte for byte the same.
+  `tests/test_discovery_freeze.py` checks both.
+- **Fresh set 2** is written the same way as set 1, after freeze 2, in the private repository under
+  `fresh-2/` (ids `g01` to `g10`), by a new session that has not seen set 1, this repository's
+  discovery code or its docs. Its digest goes in `bugs/fresh/fresh-2.sha256` before any run. Set 1
+  stays where it is; the blind workflow refuses it under freeze 2, because its manifest names
+  freeze 1.
+- **Two runs on set 2:** planner off, then planner on, each once. Set 2's planner-off result is a
+  second blind sample of the frozen templates; the planner-on result is the planner's first blind
+  measurement.
+
+### The planner, live on public builds
+
+Measured on the public builds (the clean game, the four reported bugs, the eight development
+variants), not blind, on branch `discovery/planner-fix` before it merged:
+
+| Run | Planner | Reference | What happened |
+| --- | --- | --- | --- |
+| [41251362155](https://github.com/seanudeke/Expectrail/actions/runs/41251362155) | 4,096-token limit | none | No content from any call; the planner stage unavailable in every job |
+| [41251642563](https://github.com/seanudeke/Expectrail/actions/runs/41251642563) | no limit | none | It answered everywhere: 4 probes and 2 to 7 contracts a build (10,000 to 22,000 completion tokens a call). With nothing to falsify them, its contracts were reproduced 3 of 3 on the **clean game** (2) and on 4 of the 5 visual-only builds that reported. 12 of 13 jobs reported |
+| [41252054622](https://github.com/seanudeke/Expectrail/actions/runs/41252054622) | no limit | the clean game, in each job | 61 contracts proposed, 13 rejected because they failed on the clean game. No model finding on the clean game or any visual-only build; model findings only on gun-cooldown, both fall-through variants and body-flip, all already flagged by the templates. 12 of 13 jobs reported (enemy-ledge's job never got past installing packages on its runner) |
+
+So on public builds the planner adds second reasons, not new detections, and without a healthy
+reference its contracts are false alarms waiting to happen. Records: `bench/discovery/run-41251642563.json`,
+`bench/discovery/run-41252054622.json`.
+
 ## What the development results do and do not say
 
 - **This is development reproduction, not discovery.** The profile's four claims (the double jump,
@@ -249,10 +307,10 @@ air-jump was added after the first jump contract missed it (next point). No bug 
 
 In order, and none of it built yet unless it says so.
 
-1. **The blind run.** Done once, planner off (above). The same frozen set can measure the planner:
-   run it once more with the planner on, under the same freeze.
-2. **The Muse Spark planner, live.** One call per job; its proposals go through the same reference
-   check and reproduction. Measured against the planner-off run on the same builds.
+1. **Fresh set 2.** Written against freeze 2, then run once with the planner off and once with it
+   on (above).
+2. **The Muse Spark planner, measured blind.** On public builds it answers and adds no detection;
+   set 2's planner-on run is its blind test.
 3. **The rest of the autonomous-discovery specification.** The team's specification has three
    rollouts:
    - *Advisory* (this page is its first slice). Still to come: visual discovery (Muse Spark proposes
