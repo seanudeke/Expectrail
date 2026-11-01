@@ -31,10 +31,15 @@ runs' own artifacts and is not edited by hand. Public checks only.
 | Part | Cases | Result | Spend | Runs | Record |
 | --- | --- | --- | --- | --- | --- |
 | 1, wrong fixes | 47 pairs: 39 labelled bad, 8 good | Score **79.5%**: 31 of 39 caught, 7 by the cheap tier, 24 only with SAM. All 8 good cases accepted | 5,473 SAM images, $13.68 | [41268021760](https://github.com/seanudeke/Expectrail/actions/runs/41268021760) | [`wrong-fix/`](wrong-fix/README.md), [notes](wrong-fix/NOTES.md) |
-| 2, generated bugs | 150 sampled: 73 equivalent, 77 judged | Weighted score **0.9%**, covering 100% of the estimated visible mutants of the sampled classes. Over the sample as drawn, a figure about the sample: 13.0%, 10 of 77 caught, 5 by the cheap tier, 5 only with SAM | 15,862 SAM images, $39.66 | [41268023631](https://github.com/seanudeke/Expectrail/actions/runs/41268023631), [41323827584](https://github.com/seanudeke/Expectrail/actions/runs/41323827584), [41323829361](https://github.com/seanudeke/Expectrail/actions/runs/41323829361) | [`generated/`](generated/README.md) |
+| 2, generated bugs | 150 sampled: 73 equivalent, 77 judged | Weighted score **0.9%**, weighted over every class with a visible mutant (boolean's one mutant was equivalent). Over the sample as drawn, a figure about the sample: 13.0%, 10 of 77 caught, 5 by the cheap tier, 5 only with SAM | 15,862 SAM images, $39.66 | [41268023631](https://github.com/seanudeke/Expectrail/actions/runs/41268023631), [41323827584](https://github.com/seanudeke/Expectrail/actions/runs/41323827584), [41323829361](https://github.com/seanudeke/Expectrail/actions/runs/41323829361) | [`generated/`](generated/README.md) |
 
 Part 3 has no row. It gets one only from a merged record in `ai-fixes/`; until then there is no
 result for it, and none of these numbers depends on it.
+
+#175, Part 2's record, was merged before review. Taofeek, working with a separate AI agent session, then
+reproduced it byte for byte from the runs' artifacts: `README.md`, `summary.json` and `findings/` all
+match. That shows the record is what the runs produced. It uses the same recorder, and it does not
+rerun the judging.
 
 Part 2 by class:
 
@@ -54,9 +59,12 @@ What these numbers say:
   scale. They stay in the score as registered, and [the notes](wrong-fix/NOTES.md) explain them.
 - **On generated bugs, most of what differs from the clean game goes unseen.** 67 of 77 judged mutants
   survived. The numeric class sets the weighted score, because it holds nearly all the estimated
-  visible mutants, and it caught 0 of 45: 44 are in level scenes and 1 in the player scene. Under an oracle of
-  0 pixels and 0 frames, any change to what is drawn counts as a bad case, and no check forbids moving
-  scenery. Many of these may not be bugs a player would report, but the bench cannot say which.
+  visible mutants, and it caught 0 of 45. 44 of those move, resize or re-layer scenery that no check
+  covers. Under an oracle of 0 pixels and 0 frames, any change to what is drawn counts as a bad case.
+  Many of these may not be bugs a player would report, but the bench cannot say which.
+- **The 45th numeric survivor is a real miss.** `numeric:player/player.tscn:204:position.x-` moves the
+  player's `Sprite2D` 26 px left of its body, so the robot is drawn away from where it collides. A
+  player could notice that, and nothing catches it: `player-always-visible` still passes.
 - **The other survivors are the more useful list.** 9 code, 12 resource-path and 1 collision-bit
   mutants survived. Each has a finding that records what every check said, but no catch-spec: the
   bench writes those per wrong-fix operator, so only Part 1 has them. Which check would catch each
@@ -75,8 +83,16 @@ What these numbers say:
   than game logic, and stratifying the sample does not change that for the weighted score.
 - The oracle only knows "differs from the clean game", so this measures regressions, not new features.
 - Public checks only. The held-out arm is excluded from every decision here.
-- The verifier's author ran the bench. The registration is the safeguard.
-- Three cases were judged in rehearsals and excluded before the draw, so Part 1 is 47 pairs, not 48.
+- Taofeek dispatched Part 1 and Part 2's cheap tier. An AI agent, the one that built most of
+  Expectrail, dispatched Part 2's SAM phase and Part 3 and recorded Part 2, from lists the registration
+  fixes (`--plan-sam`, `cases.json`). The safeguards are the registration and Taofeek's reproduction
+  of the record.
+- Three cases were judged in rehearsals and excluded before the draw: one wrong-fix pair, so Part 1 is
+  47 pairs, not 48, and two mutants, which Part 2's draw could not pick.
+- #170 changed `agents/judge_bench.py`, a pinned file, at 16:10 UTC on Nov 1, and the registration
+  refused to load until #174 restored it byte for byte at 16:54. No judged run started in that window:
+  the SAM runs started at 15:57 on `5cf2e0a` and Part 3 at 17:13 on `764e7fc`, and the one record
+  attempt in between was refused.
 - The registration's values, including the sample, the steps and the 0/0 oracle, were drafted by an AI
   agent, adopted by Taofeek, and not reviewed by anyone else before the first run. #127 had reserved
   those choices for a person. `decisionProvenance` in the registration records where each came from.
