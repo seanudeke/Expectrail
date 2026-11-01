@@ -68,12 +68,24 @@ jobs:
           set -euo pipefail
           [[ "$GITHUB_REF" == refs/heads/main ]] || { echo "::error::record from main, where the registration is"; exit 1; }
           [[ "$RUNS" =~ ^[0-9]+(,[0-9]+)*$ ]] || { echo "::error::runs must be comma-separated run ids"; exit 1; }
+          # A failure's words become annotations: the log may be unreadable to whoever dispatched this.
+          recorder() {
+            local code=0
+            "$@" > out.txt 2> err.txt || code=$?
+            cat out.txt; cat err.txt >&2
+            if [[ $code -ne 0 ]]; then
+              tail -n 15 err.txt | sed 's/%/%25/g' | while IFS= read -r line; do echo "::error title=Recorder (exit ${code})::${line}"; done
+              tail -n 5 out.txt | sed 's/%/%25/g' | while IFS= read -r line; do echo "::error title=Recorder output::${line}"; done
+              exit 1
+            fi
+            sed 's/%/%25/g' out.txt | while IFS= read -r line; do echo "::notice title=Recorder::${line}"; done
+          }
           args=()
           IFS=, read -ra ids <<< "$RUNS"
           for id in "${ids[@]}"; do args+=(--run "$id"); done
           case "$ACTION" in
-            record-generated) python -m agents.mutation_collect --part generated "${args[@]}"; dir=bench/mutation/generated ;;
-            record-ai-fixes) python -m agents.mutation_fix --record "${args[@]}"; dir=bench/mutation/ai-fixes ;;
+            record-generated) recorder python -m agents.mutation_collect --part generated "${args[@]}"; dir=bench/mutation/generated ;;
+            record-ai-fixes) recorder python -m agents.mutation_fix --record "${args[@]}"; dir=bench/mutation/ai-fixes ;;
             *) echo "::error::unknown action"; exit 1 ;;
           esac
           git add -A -- "$dir"
