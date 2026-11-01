@@ -1,752 +1,607 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Expectrail: Interactive Demo and Audit Vault</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            brand: {
-              50: '#f0fdf4',
-              100: '#dcfce7',
-              500: '#22c55e',
-              600: '#16a34a',
-              700: '#15803d',
-            },
-            meta: {
-              500: '#0081fb',
-              600: '#0064e0',
-            }
-          }
-        }
-      }
-    }
-  </script>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-    body { font-family: 'Plus Jakarta Sans', sans-serif; }
-    pre, code, .font-mono { font-family: 'JetBrains Mono', monospace; }
-    .diff-del { background-color: rgba(239, 68, 68, 0.18); color: #f87171; }
-    .diff-add { background-color: rgba(34, 197, 94, 0.18); color: #4ade80; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Expectrail: the interactive demo</title>
+<meta name="description" content="Twelve cases from Expectrail's benchmark, each with its captured clip, its checks, the patch and the verdict. Eight seeded bugs and their fixes; four fixes that only look right, rejected.">
+<link rel="canonical" href="https://expectrail.com/demo/">
+<link rel="icon" href="../brand/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<meta name="theme-color" content="#16133A">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://expectrail.com/demo/">
+<meta property="og:title" content="Expectrail: the interactive demo">
+<meta property="og:description" content="Twelve cases, each with its captured clip, its checks, the patch and the verdict. Viewing calls no API.">
+<meta property="og:image" content="https://expectrail.com/assets/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+@font-face { font-family:"TG Adventor"; src:url("../assets/fonts/texgyreadventor-regular.woff") format("woff"); font-weight:400; font-display:swap; }
+@font-face { font-family:"TG Adventor"; src:url("../assets/fonts/texgyreadventor-bold.woff") format("woff"); font-weight:700; font-display:swap; }
+@font-face { font-family:"Lora"; src:url("../assets/fonts/Lora-Variable.woff") format("woff"); font-weight:400 700; font-style:normal; font-display:swap; }
+@font-face { font-family:"Lora"; src:url("../assets/fonts/Lora-Italic-Variable.woff") format("woff"); font-weight:400 700; font-style:italic; font-display:swap; }
+
+:root {
+  --ink:#16133A; --paper:#F6F7FB; --rail:#FFC928; --stone:#4B4178; --mist:#E4E3F0;
+  --pass:#157F4E; --fail:#C2303A; --on-ink:#F6F7FB; --on-ink-2:#BDB8E0; --ink-2:#221D4F; --ink-line:rgba(189,184,224,0.28);
+  --pass-bg:#E2F3EA; --fail-bg:#F9E4E6;
+  --sans:"TG Adventor", "Century Gothic", "Avenir Next", system-ui, sans-serif;
+  --serif:"Lora", Georgia, "Times New Roman", serif;
+  --mono:ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --wrap:1240px; --gutter:clamp(16px, 4vw, 40px);
+}
+* { box-sizing:border-box; }
+html { -webkit-text-size-adjust:100%; }
+body { margin:0; background:var(--paper); color:var(--ink); font:400 1rem/1.55 var(--serif); }
+img, video { max-width:100%; display:block; }
+a { color:inherit; text-decoration-color:var(--rail); text-decoration-thickness:2px; text-underline-offset:3px; }
+a:hover { text-decoration-color:currentColor; }
+:focus-visible { outline:3px solid var(--rail); outline-offset:3px; border-radius:2px; }
+button { font:inherit; color:inherit; cursor:pointer; }
+code { font:0.92em/1.4 var(--mono); }
+.sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+.wrap { max-width:var(--wrap); margin:0 auto; padding:0 var(--gutter); }
+h1, h2, h3, h4, .sans { font-family:var(--sans); font-weight:700; letter-spacing:-0.015em; }
+h1 { font-size:clamp(1.7rem, 1.1rem + 2vw, 2.4rem); line-height:1.1; margin:0 0 0.4em; max-width:26ch; }
+h2 { font-size:1.35rem; line-height:1.2; margin:0 0 0.5em; }
+h3 { font-size:1.05rem; line-height:1.25; margin:0 0 0.4em; }
+p { margin:0 0 1em; max-width:70ch; }
+.lede { font-size:1.15rem; line-height:1.5; color:var(--stone); }
+.small { font-size:0.9rem; color:var(--stone); }
+.hidden { display:none !important; }
+.label { font:700 0.78rem/1 var(--sans); letter-spacing:0.06em; text-transform:uppercase; color:var(--stone); }
+.chip { display:inline-block; font:700 0.85rem/1 var(--sans); padding:7px 11px 6px; border-radius:999px; color:#fff; white-space:nowrap; }
+.chip.pass { background:var(--pass); } .chip.fail { background:var(--fail); }
+.chip.quiet { background:var(--mist); color:var(--ink); }
+
+/* header */
+.top { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:18px 0; border-bottom:1px solid var(--mist); flex-wrap:wrap; }
+.top .brand { display:flex; align-items:center; gap:14px; text-decoration:none; }
+.top .brand img { height:32px; width:auto; }
+.top .brand span { font:700 0.95rem/1 var(--sans); color:var(--stone); padding-left:14px; border-left:2px solid var(--mist); }
+.tabs { display:flex; gap:4px; flex-wrap:wrap; }
+.tab-btn { background:none; border:0; border-bottom:3px solid transparent; padding:8px 2px; margin:0 10px 0 0; font:700 0.95rem/1 var(--sans); color:var(--stone); }
+.tab-btn:hover { color:var(--ink); }
+.tab-btn.on { color:var(--ink); border-bottom-color:var(--rail); }
+.top .gh { font:700 0.95rem/1 var(--sans); text-decoration:none; }
+.top .gh:hover { text-decoration:underline; }
+
+/* intro */
+.intro { padding:clamp(28px, 4vw, 44px) 0 20px; }
+.intro details { margin-top:4px; font-size:0.92rem; color:var(--stone); max-width:90ch; }
+.intro summary { cursor:pointer; font:700 0.9rem/1.4 var(--sans); color:var(--ink); }
+.intro details p { margin:10px 0 0; max-width:90ch; }
+.models-strip { display:flex; flex-wrap:wrap; gap:8px 18px; margin:14px 0 0; padding:0; list-style:none; font-size:0.9rem; color:var(--stone); }
+.models-strip b { font-family:var(--sans); color:var(--ink); }
+
+/* panes */
+.tab-pane { padding:18px 0 56px; }
+
+/* case picker */
+.picker { display:flex; flex-wrap:wrap; align-items:center; gap:12px 18px; padding:16px 0 18px; }
+.picker label { font:700 0.95rem/1 var(--sans); }
+.picker select { font:400 0.95rem/1.3 var(--serif); color:var(--ink); background:#fff; border:2px solid var(--ink); border-radius:4px; padding:9px 36px 9px 12px; max-width:100%; appearance:none; -webkit-appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' fill='none' stroke='%2316133A' stroke-width='2'/></svg>"); background-repeat:no-repeat; background-position:right 12px center; }
+.picker .prov { font-size:0.88rem; color:var(--stone); margin-left:auto; }
+
+/* stage */
+.stage { display:grid; grid-template-columns:7fr 5fr; gap:22px; align-items:start; }
+.viewer { background:var(--ink); color:var(--on-ink); border:2px solid var(--ink); }
+.viewer .bar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px 14px; padding:10px 14px; font:700 0.85rem/1.3 var(--sans); border-bottom:1px solid var(--ink-line); }
+.viewer .bar .tools { display:flex; gap:6px; }
+.tool { background:transparent; border:1px solid var(--on-ink-2); color:var(--on-ink-2); border-radius:3px; padding:5px 9px; font:700 0.78rem/1 var(--sans); }
+.tool.on { background:var(--rail); border-color:var(--rail); color:var(--ink); }
+#canvas-container { position:relative; aspect-ratio:5 / 3; background:#0E0C26; overflow:hidden; }
+#engine-video { width:100%; height:100%; object-fit:contain; image-rendering:pixelated; }
+#ground-line-overlay { pointer-events:none; position:absolute; left:0; width:100%; height:0; border-top:3px solid var(--rail); z-index:20; box-shadow:0 0 0 1px rgba(22,19,58,0.55); }
+#ground-line-overlay span { position:absolute; right:10px; top:-24px; font:700 0.72rem/1 var(--sans); color:var(--ink); background:var(--rail); padding:4px 7px 3px; border-radius:3px; }
+.pill { position:absolute; top:10px; left:10px; z-index:20; display:flex; align-items:center; gap:7px; background:rgba(22,19,58,0.88); border:1px solid var(--ink-line); padding:6px 10px; border-radius:4px; font:700 0.78rem/1 var(--sans); color:var(--on-ink); }
+.dot { width:9px; height:9px; border-radius:50%; display:inline-block; }
+.dot.pass { background:#4CCB8B; } .dot.fail { background:#F07C84; }
+#video-placeholder { position:absolute; inset:0; z-index:10; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:24px; background:rgba(14,12,38,0.96); }
+#video-placeholder .x { width:44px; height:44px; border-radius:50%; border:2px solid var(--fail); color:#F07C84; display:flex; align-items:center; justify-content:center; font:700 1.3rem/1 var(--sans); margin-bottom:12px; }
+#placeholder-title { font:700 1.05rem/1.3 var(--sans); margin:0 0 6px; }
+#placeholder-desc { font-size:0.92rem; color:var(--on-ink-2); max-width:44ch; margin:0 0 14px; }
+#placeholder-review-link { font:700 0.85rem/1 var(--sans); border:1px solid var(--on-ink-2); padding:9px 12px; border-radius:4px; text-decoration:none; }
+#placeholder-review-link:hover { border-color:var(--rail); color:var(--rail); }
+.readout { display:flex; flex-wrap:wrap; gap:4px 12px; padding:9px 14px; font:0.82rem/1.4 var(--mono); border-top:1px solid var(--ink-line); color:var(--on-ink-2); }
+.readout #hud-coords { color:var(--on-ink); }
+.readout #hud-coords.bad { color:#F07C84; }
+.controls { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; padding:12px 14px; border-top:1px solid var(--ink-line); }
+.controls .group { display:flex; flex-wrap:wrap; gap:8px; }
+.play { border:2px solid var(--on-ink-2); background:transparent; color:var(--on-ink); border-radius:4px; padding:9px 13px; font:700 0.88rem/1 var(--sans); opacity:0.8; }
+.play:hover { opacity:1; }
+.play.before.on { background:var(--fail); border-color:var(--fail); color:#fff; opacity:1; }
+.play.after.on { background:var(--pass); border-color:var(--pass); color:#fff; opacity:1; }
+.play.after.on.rejected { background:var(--fail); border-color:var(--fail); }
+.play.plain { opacity:0.9; }
+.controls a { font:700 0.85rem/1 var(--sans); color:var(--on-ink-2); }
+.controls a:hover { color:var(--on-ink); }
+#clip-caption { padding:0 14px 14px; font-size:0.9rem; color:var(--on-ink-2); max-width:none; margin:0; }
+
+/* console */
+.console { border:2px solid var(--ink); background:#fff; }
+.console .head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; border-bottom:1px solid var(--mist); }
+.console .head .label { color:var(--ink); }
+.checks { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:14px 16px 0; }
+.check { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:9px 11px; border:1px solid var(--mist); border-radius:4px; font:0.85rem/1.3 var(--mono); }
+.check span:first-child { white-space:nowrap; }
+.check .result { font:700 0.8rem/1.25 var(--sans); text-align:right; }
+.check .result.pass { color:var(--pass); } .check .result.fail { color:var(--fail); }
+#decision-reason { margin:12px 16px 16px; padding:11px 13px; background:var(--paper); border-left:4px solid var(--rail); font:0.88rem/1.5 var(--mono); max-width:none; }
+.segs { display:flex; gap:2px; padding:0 16px; border-top:1px solid var(--mist); border-bottom:1px solid var(--mist); }
+.seg { background:none; border:0; border-bottom:3px solid transparent; padding:12px 4px 10px; margin-right:14px; font:700 0.9rem/1 var(--sans); color:var(--stone); }
+.seg.on { color:var(--ink); border-bottom-color:var(--rail); }
+.pane { padding:14px 16px 18px; min-height:220px; }
+.pane .t { font:700 0.85rem/1.3 var(--sans); margin:0 0 4px; }
+.pane .from { font:0.8rem/1.4 var(--mono); color:var(--stone); overflow-wrap:anywhere; margin:0 0 10px; }
+#diff-container { font:0.85rem/1.5 var(--mono); border:1px solid var(--mist); border-radius:4px; padding:10px 12px; max-height:240px; overflow:auto; background:var(--paper); }
+.diff-file { color:var(--stone); }
+.diff-del, .diff-add { padding:0 6px; white-space:pre; border-radius:2px; }
+.diff-del { background:var(--fail-bg); color:#8E1E27; }
+.diff-add { background:var(--pass-bg); color:#0F5C38; }
+.diff-gap { height:8px; }
+#muse-reasoning { font:0.92rem/1.55 var(--serif); white-space:pre-wrap; border:1px solid var(--mist); border-radius:4px; padding:12px 14px; max-height:240px; overflow:auto; background:var(--paper); }
+.spec-row { display:flex; justify-content:space-between; gap:12px; font:0.8rem/1.4 var(--mono); color:var(--stone); margin:0 0 8px; }
+#spec-instruction { font:italic 1.05rem/1.45 var(--serif); border:1px solid var(--mist); border-radius:4px; padding:12px 14px; background:var(--paper); margin:0 0 10px; }
+.spec-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.spec-grid div { border:1px solid var(--mist); border-radius:4px; padding:9px 11px; }
+.spec-grid .k { display:block; font:700 0.7rem/1 var(--sans); letter-spacing:0.06em; text-transform:uppercase; color:var(--stone); margin-bottom:6px; }
+.spec-grid .v { font:700 0.88rem/1.3 var(--mono); }
+
+/* results */
+.card { border:2px solid var(--ink); background:#fff; padding:18px 20px; }
+.card h2 { font-size:1.2rem; }
+.card p { max-width:none; }
+.cards { display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; margin-top:16px; }
+.cards .card { padding:16px 18px; }
+.cards .card .row1 { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:8px; }
+.cards .card h3 { margin:0; font-size:0.95rem; }
+.cards .card p { font-size:0.92rem; margin:0; }
+.num { font:700 1.05rem/1 var(--sans); white-space:nowrap; padding:6px 9px 5px; border:2px solid var(--ink); border-radius:4px; }
+.num.good { border-color:var(--pass); color:var(--pass); }
+.num.bad { border-color:var(--fail); color:var(--fail); }
+.table-wrap { overflow-x:auto; margin-top:16px; border:2px solid var(--ink); background:#fff; }
+table { width:100%; border-collapse:collapse; font-size:0.92rem; }
+th, td { text-align:left; vertical-align:top; padding:11px 14px; border-bottom:1px solid var(--mist); }
+th { font:700 0.78rem/1.3 var(--sans); letter-spacing:0.05em; text-transform:uppercase; color:var(--stone); background:var(--paper); }
+td.id { font-family:var(--mono); font-size:0.85rem; white-space:nowrap; font-weight:700; }
+td .yes { color:var(--pass); font-family:var(--sans); font-weight:700; }
+td .no { color:var(--fail); font-family:var(--sans); font-weight:700; }
+td .fixed { display:inline-block; font:700 0.78rem/1 var(--sans); background:var(--pass-bg); color:var(--pass); padding:5px 8px 4px; border-radius:3px; white-space:nowrap; }
+.callout { margin-top:18px; padding:18px 20px; background:var(--ink); color:var(--on-ink); }
+.callout h3 { color:var(--on-ink); }
+.callout p { color:var(--on-ink-2); max-width:none; margin:0; }
+.callout strong { color:var(--on-ink); }
+.stats { display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; }
+.stat { border:2px solid var(--ink); padding:9px 12px; font:0.9rem/1.3 var(--serif); }
+.stat b { font-family:var(--sans); }
+
+/* trust */
+.two { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:16px; }
+.zone { padding:14px 16px; border:2px solid var(--ink); }
+.zone.fixer { background:#fff; }
+.zone.host { background:var(--ink); color:var(--on-ink); }
+.zone .row1 { display:flex; justify-content:space-between; align-items:center; gap:10px; font:700 0.95rem/1.3 var(--sans); margin-bottom:8px; }
+.zone .tag { font:700 0.7rem/1 var(--sans); letter-spacing:0.06em; text-transform:uppercase; padding:5px 7px 4px; border-radius:3px; background:var(--rail); color:var(--ink); }
+.zone ul { margin:0; padding-left:1.1em; font-size:0.92rem; }
+.zone li { margin:0 0 4px; }
+.zone .no { color:var(--fail); font-family:var(--sans); font-weight:700; }
+.zone.host .no { color:#F07C84; }
+.between { text-align:center; font:700 0.85rem/1 var(--sans); color:var(--stone); padding:12px 0; letter-spacing:0.04em; }
+.log { font:0.85rem/1.5 var(--mono); border:1px solid var(--mist); border-radius:4px; padding:12px 14px; background:var(--paper); }
+.log .line { display:flex; justify-content:space-between; gap:12px; padding:3px 0; }
+.log .line span:last-child { white-space:nowrap; font-weight:700; }
+.log .ok { color:var(--pass); } .log .open { color:#8A5A00; }
+.log .note { color:var(--stone); font:0.85rem/1.45 var(--serif); padding:8px 0 4px; }
+.log .sep { border-top:1px solid var(--mist); margin:6px 0; }
+.kv { font:0.85rem/1.5 var(--mono); margin:14px 0 0; }
+.kv div { margin:0 0 6px; } .kv span { color:var(--stone); }
+
+/* morning report */
+.report { border:2px solid var(--ink); background:#fff; padding:22px 24px; font:0.92rem/1.5 var(--mono); }
+.report h2 { font:700 1.2rem/1.2 var(--sans); margin:0; }
+.report h3 { font:700 0.95rem/1.3 var(--sans); margin:22px 0 8px; }
+.report .meta { display:grid; grid-template-columns:repeat(4, 1fr); gap:8px 16px; margin-top:12px; font-size:0.85rem; }
+.report .meta span { color:var(--stone); }
+.report .meta .wide { grid-column:span 2; overflow-wrap:anywhere; }
+.report ul { list-style:none; margin:0; padding:0; }
+.report li { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid var(--mist); }
+.report .box { border:1px solid var(--mist); border-radius:4px; padding:10px 12px; background:var(--paper); font-size:0.85rem; }
+.report .grid4 { display:grid; grid-template-columns:repeat(4, 1fr); gap:8px 16px; }
+.report .pass { color:var(--pass); font-weight:700; }
+.report .diff { font-size:0.88rem; }
+.report .rc { font-size:0.85rem; }
+.report .rc div { display:flex; justify-content:space-between; gap:12px; padding:3px 0; }
+
+footer { border-top:1px solid var(--mist); padding:26px 0 40px; font-size:0.9rem; color:var(--stone); }
+footer a { text-decoration:none; } footer a:hover { text-decoration:underline; }
+
+@media (max-width:980px) {
+  .stage, .two, .cards { grid-template-columns:1fr; }
+  .report .meta, .report .grid4 { grid-template-columns:1fr 1fr; }
+}
+@media (max-width:640px) {
+  .top .brand span { display:none; }
+  .checks, .spec-grid, .report .meta, .report .grid4 { grid-template-columns:1fr; }
+  .picker .prov { margin-left:0; }
+}
+</style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-brand-500 selection:text-black">
-
-  <!-- Header -->
-  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-h-16 py-2 flex flex-wrap items-center justify-between gap-2">
-      <div>
-        <div class="flex items-center gap-2">
-          <span class="font-extrabold tracking-tight text-white text-lg">Expectrail</span>
-          <span class="px-2 py-0.5 text-xs font-semibold rounded bg-slate-800 text-slate-300 border border-slate-700">Indie Track</span>
-        </div>
-        <p class="text-xs text-slate-400 hidden sm:block">Verifies AI-agent fixes by watching the game run, with Meta&#39;s vision models</p>
-      </div>
-
-      <!-- Navigation Tabs -->
-      <nav class="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 max-w-full overflow-x-auto">
-        <button onclick="switchTab('explorer')" id="tab-btn-explorer" class="tab-btn px-3 py-1.5 text-xs font-semibold rounded-md transition-all bg-brand-500 text-slate-950 shadow-sm">
-          Case Explorer
-        </button>
-        <button onclick="switchTab('benchmark')" id="tab-btn-benchmark" class="tab-btn px-3 py-1.5 text-xs font-semibold rounded-md transition-all text-slate-400 hover:text-white">
-          Benchmark Matrix
-        </button>
-        <button onclick="switchTab('trust')" id="tab-btn-trust" class="tab-btn px-3 py-1.5 text-xs font-semibold rounded-md transition-all text-slate-400 hover:text-white">
-          Security & Trust
-        </button>
-        <button onclick="switchTab('report')" id="tab-btn-report" class="tab-btn px-3 py-1.5 text-xs font-semibold rounded-md transition-all text-slate-400 hover:text-white">
-          Morning Report
-        </button>
-      </nav>
-    </div>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="../" aria-label="Expectrail, home"><img src="../brand/expectrail-logo.svg" alt="Expectrail" width="137" height="32"><span>Interactive demo</span></a>
+    <nav class="tabs" aria-label="Demo sections">
+      <button onclick="switchTab('explorer')" id="tab-btn-explorer" class="tab-btn on" role="tab" aria-selected="true">Cases</button>
+      <button onclick="switchTab('benchmark')" id="tab-btn-benchmark" class="tab-btn" role="tab" aria-selected="false">Results</button>
+      <button onclick="switchTab('trust')" id="tab-btn-trust" class="tab-btn" role="tab" aria-selected="false">Trust boundary</button>
+      <button onclick="switchTab('report')" id="tab-btn-report" class="tab-btn" role="tab" aria-selected="false">Morning report</button>
+    </nav>
+    <a class="gh" href="https://github.com/seanudeke/Expectrail">GitHub</a>
   </header>
 
-  <!-- Banner / Meta Models Used -->
-  <div class="bg-gradient-to-r from-slate-900 via-slate-900/60 to-slate-900 border-b border-slate-800/80 py-2.5">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap items-center justify-between gap-3 text-xs">
-      <div class="flex flex-wrap items-center gap-2 text-slate-300">
-        <span class="text-slate-500 uppercase tracking-wider text-[11px] font-bold">Crew Architecture:</span>
-        <span class="px-2 py-0.5 rounded bg-blue-950/60 border border-blue-800/60 text-blue-300 font-mono">SAM 3.1 (Vision Eyes)</span>
-        <span class="px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-800/60 text-emerald-300 font-mono">Muse Code (Isolated Fixer)</span>
-        <span class="px-2 py-0.5 rounded bg-amber-950/60 border border-amber-800/60 text-amber-300 font-mono">Muse Spark (Spec Writer)</span>
-        <span class="px-2 py-0.5 rounded bg-purple-950/60 border border-purple-800/60 text-purple-300 font-mono">Muse Voice (Audio Triage)</span>
+  <section class="intro" aria-labelledby="intro-title">
+    <h1 id="intro-title">Twelve cases, with the evidence beside each</h1>
+    <p class="lede">Eight seeded bugs and the fix that was accepted for each; four fixes that only look right, rejected. Every clip was captured with the harness on the route the verifier judged. The yellow floor line and the readout under each clip are drawn per frame from the engine's own trace, not placed by hand. Viewing this page calls no API.</p>
+    <details>
+      <summary>How these clips were made, and what is recorded versus written for the page</summary>
+      <p>The clips are captures made for this page with the harness (<code>python3 -m harness.demo_clips</code>) on the smoke route, replayed through Godot Movie Maker at 60 fps. <a href="assets/manifest.json">The clip manifest</a> records each clip's patches, route, commit, engine and render device, and digests of its frames, trace and video; recording again gave the same bytes. "After" is the clean game with the bug patch reversed, except for physics-fall-through / v1, where it is Muse Code's recorded fix. The case texts are written for this page from the recorded results; only physics-fall-through / v1 shows Muse Code's recorded fix and its reasoning. The rejected fixes' checks are from judge benchmark run 40943391994. Measured numbers, each with its run, are under Results. Recorded reviews with real frames: <a href="../review/live-demo-run-1/">Muse Code's fix, before and after</a>; <a href="../review/sinking-fix/">the rejected fix that draws the robot inside the ground</a>.</p>
+    </details>
+    <ul class="models-strip" aria-label="Meta models in this loop">
+      <li><b>SAM 3.1</b> finds what a check names in each frame</li>
+      <li><b>Muse Code</b> writes the fix, in a sandbox</li>
+      <li><b>Muse Spark</b> drafts each check from one sentence</li>
+      <li><b>Muse Wonder</b> turns failure evidence into a bug report</li>
+      <li><b>Muse Glimmer</b> (open weights) judges when SAM cannot</li>
+    </ul>
+  </section>
+</div>
+
+<main class="wrap" id="main">
+
+  <!-- ========================================== -->
+  <!-- TAB 1: CASES                               -->
+  <!-- ========================================== -->
+  <div id="tab-explorer" class="tab-pane">
+    <div class="picker">
+      <label for="case-select">Case</label>
+      <select id="case-select" onchange="selectCase(this.value)">
+        <optgroup label="Seeded bugs, each with an accepted fix">
+          <option value="physics-v1" selected>physics-fall-through / v1: the robot's collision mask drops the ground</option>
+          <option value="physics-v2">physics-fall-through / v2: the ground tiles lose their collision layer</option>
+          <option value="missing-texture-v1">missing-texture / v1: the coin texture points at a missing file</option>
+          <option value="missing-texture-v2">missing-texture / v2: the coin's texture line is deleted</option>
+          <option value="layering-v1">layering / v1: the robot is drawn behind the level</option>
+          <option value="layering-v2">layering / v2: the robot's sprite gets a negative z-index</option>
+          <option value="sinking-v1">sinking / v1: the collision shape sits 26 px too high</option>
+          <option value="sinking-v2">sinking / v2: the sprite is drawn 26 px too low (physics intact)</option>
+        </optgroup>
+        <optgroup label="Fixes that only look right, rejected by the verifier">
+          <option value="exploit-freeze">Stops the fall by freezing the robot (fails the gameplay check)</option>
+          <option value="exploit-hide">Stops the fall, then draws the robot behind the level (fails SAM's visibility check)</option>
+          <option value="exploit-sink">Stops the fall, then draws the robot 26 px low (fails SAM's ground check)</option>
+          <option value="exploit-floor">Stops the fall by lowering the floor's collision (fails against the clean game)</option>
+        </optgroup>
+      </select>
+      <span id="case-badge" class="chip pass">Accepted</span>
+      <span class="prov" id="header-provenance-chip">Captured with the harness: Godot Movie Maker, smoke route, 60 fps</span>
+    </div>
+
+    <div class="stage">
+      <!-- Left: the clip -->
+      <div class="viewer">
+        <div class="bar">
+          <span id="canvas-header-title">The replay, with the clean game's floor drawn over it</span>
+          <div class="tools">
+            <button onclick="cycleSpeed()" id="btn-speed" class="tool">Speed: 1×</button>
+            <button onclick="toggleOverlay('ground')" id="btn-overlay-ground" class="tool on">Clean floor: ON</button>
+          </div>
+        </div>
+
+        <div id="canvas-container">
+          <!-- One clip at a time, loaded on demand; the frame is 5:3, like the viewport, so the overlay's
+               percentages are percentages of the frame. -->
+          <video id="engine-video" loop muted playsinline preload="metadata" aria-label="Captured replay of the selected case"></video>
+
+          <!-- Ground line overlay, placed per frame from the manifest's timeline (the clean run's floor, through that frame's camera) -->
+          <div id="ground-line-overlay" style="display:none"><span>Clean floor, world y = 650 (from the clean run's trace)</span></div>
+
+          <!-- A rejected fix has no "after" -->
+          <div id="video-placeholder" class="hidden">
+            <div class="x" aria-hidden="true">×</div>
+            <p id="placeholder-title">Rejected: there is no "after"</p>
+            <p id="placeholder-desc">The verifier rejected this candidate, so nothing replaced the bug.</p>
+            <a id="placeholder-review-link" href="../review/sinking-fix/"><span id="placeholder-link-text">Open a recorded review</span></a>
+          </div>
+
+          <div class="pill"><span id="replay-state-badge" class="dot fail"></span><span id="replay-state-text">Before: the seeded bug</span></div>
+        </div>
+
+        <div class="readout" aria-live="polite">
+          <span>trace</span>
+          <span id="hud-frame"></span>
+          <span id="hud-coords"></span>
+          <span id="hud-status"></span>
+        </div>
+
+        <div class="controls">
+          <div class="group">
+            <button onclick="playSimulation('before')" id="btn-play-before" class="play before on"><span id="btn-label-before-icon" class="sr"></span><span id="btn-label-before-text">Replay the bug</span></button>
+            <button onclick="playSimulation('after')" id="btn-play-after" class="play after"><span id="btn-label-after-icon" class="sr"></span><span id="btn-label-after-text">Replay Muse Code's fix</span></button>
+            <button onclick="toggleVideoPlayback()" id="btn-toggle-video" class="play plain">Pause</button>
+          </div>
+          <a id="case-review-link" href="../review/live-demo-run-1/">This case's recorded review</a>
+        </div>
+        <p id="clip-caption"></p>
       </div>
-      <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-400">
-        <span>Godot 4.7.2, Movie Maker capture</span>
-        <span>•</span>
-        <span class="text-emerald-400 font-medium">Recorded evidence: viewing calls no API</span>
-        <span>•</span>
-        <a href="https://github.com/seanudeke/Expectrail" target="_blank" rel="noopener" class="hover:text-white underline decoration-slate-600">GitHub Repo</a>
+
+      <!-- Right: the verifier's decision -->
+      <div class="console">
+        <div class="head">
+          <span class="label">Verifier decision</span>
+          <span id="decision-badge" class="chip pass">ACCEPT</span>
+        </div>
+
+        <div class="checks">
+          <div class="check"><span>1. regression</span><span class="result pass" id="check-regression">PASS</span></div>
+          <div class="check"><span>2. gameplay</span><span class="result pass" id="check-gameplay">PASS</span></div>
+          <div class="check"><span>3. clean control</span><span class="result pass" id="check-clean">PASS</span></div>
+          <div class="check"><span>4. held-out</span><span class="result pass" id="check-heldout">PASS</span></div>
+        </div>
+        <p id="decision-reason">all 4 checks passed; candidate verified under clean level reference.</p>
+
+        <div class="segs" role="tablist">
+          <button onclick="switchInspectorTab('diff')" id="inspector-btn-diff" class="seg on" role="tab" aria-selected="true">The patch</button>
+          <button onclick="switchInspectorTab('reasoning')" id="inspector-btn-reasoning" class="seg" role="tab" aria-selected="false">Root cause</button>
+          <button onclick="switchInspectorTab('spec')" id="inspector-btn-spec" class="seg" role="tab" aria-selected="false">The check</button>
+        </div>
+
+        <div class="pane">
+          <!-- Pane 1: the patch -->
+          <div id="inspector-pane-diff">
+            <p class="t" id="diff-title">candidate.patch: Muse Code's recorded fix</p>
+            <p class="from">from <span id="diff-policy">bench/live-muse-clean-v1/fix/candidate.patch</span></p>
+            <div id="diff-container">
+              <div class="diff-file">--- a/player/player.tscn</div>
+              <div class="diff-file">+++ b/player/player.tscn</div>
+              <div class="diff-del">-collision_mask = 14</div>
+              <div class="diff-add">+collision_mask = 30</div>
+            </div>
+          </div>
+
+          <!-- Pane 2: root cause -->
+          <div id="inspector-pane-reasoning" class="hidden">
+            <p class="t" id="reasoning-title">Muse Code's reasoning, from its recorded log</p>
+            <div id="muse-reasoning">Root cause: the ground lives on physics layer 5 (value 16 in tileset.tres), but the player's mask was 14 (layers 2+3+4: enemies, coins, platforms), so the ground was invisible to it and it fell straight through from the first frames.
+
+Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while preserving all existing bits.</div>
+          </div>
+
+          <!-- Pane 3: the check -->
+          <div id="inspector-pane-spec" class="hidden">
+            <div class="spec-row"><span>Test spec</span><span id="spec-id">specs/player-stays-above-ground.json</span></div>
+            <p id="spec-instruction">"The player never falls through the ground."</p>
+            <div class="spec-grid">
+              <div><span class="k">Assertion</span><span class="v" id="spec-type">never-crosses</span></div>
+              <div><span class="k">What SAM 3.1 is asked to find</span><span class="v" id="spec-object">"blue robot"</span></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Main Content Area -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
-
-    <!-- ========================================== -->
-    <!-- TAB 1: INTERACTIVE CASE EXPLORER           -->
-    <!-- ========================================== -->
-    <div id="tab-explorer" class="tab-pane space-y-4">
-      
-      <!-- Top Sleek Selector Bar -->
-      <div class="flex flex-col gap-2.5 bg-slate-900/70 p-3.5 rounded-xl border border-slate-800">
-        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-          <div class="flex flex-wrap items-center gap-3">
-            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">Case Scenario:</span>
-            <select id="case-select" onchange="selectCase(this.value)" class="w-full sm:w-auto max-w-full bg-slate-950 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-1.5 font-medium focus:ring-1 focus:ring-brand-500 focus:outline-none">
-              <optgroup label="Seeded Defect Scenarios (Expectrail Fixes)">
-                <option value="physics-v1" selected>physics-fall-through / v1 (Player Collision Mask)</option>
-                <option value="physics-v2">physics-fall-through / v2 (Ground Tileset Collision)</option>
-                <option value="missing-texture-v1">missing-texture / v1 (Coin Texture Points at a Missing File)</option>
-                <option value="missing-texture-v2">missing-texture / v2 (Coin Texture Cleared)</option>
-                <option value="layering-v1">layering / v1 (Player Z-Index Behind Scenery)</option>
-                <option value="layering-v2">layering / v2 (Sprite Z-Index Negative)</option>
-                <option value="sinking-v1">sinking / v1 (Collision Shape Offset Too High)</option>
-                <option value="sinking-v2">sinking / v2 (Sprite Drawn Low - Visual Only)</option>
-              </optgroup>
-              <optgroup label="Anti-Cheat Exploits (Rejected by Verifier)">
-                <option value="exploit-freeze">Anti-Cheat: Freeze Player in Place (Fails Gameplay Δx)</option>
-                <option value="exploit-hide">Anti-Cheat: Fix, but Draw the Robot Behind the Level (Fails SAM 3.1 Visibility)</option>
-                <option value="exploit-sink">Anti-Cheat: Fix, but Draw the Robot 26px Low (Fails SAM 3.1 Ground Check)</option>
-                <option value="exploit-floor">Anti-Cheat: Fix, but Lower the Floor's Collision (Fails Clean Reference)</option>
-              </optgroup>
-            </select>
-            <span id="case-badge" class="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Verified Accept</span>
-          </div>
-
-          <div class="flex items-center gap-2 text-[11px] text-slate-400 font-mono">
-            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-            <span id="header-provenance-chip">Captured with the harness: Godot Movie Maker, smoke route</span>
-          </div>
-        </div>
-
-        <p class="text-xs text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded px-2.5 py-1.5 font-mono text-[11px] leading-relaxed" id="illustration-note">
-          The clips are captures made for this page with the harness (<code>python3 -m harness.demo_clips</code>) on the smoke route, the route the verifier judged; the floor line and the readout come from each frame's engine trace (<a class="underline text-amber-200 hover:text-white" href="assets/manifest.json" target="_blank" rel="noopener">the clip manifest</a>, with every clip's patches and digests). "After" is the clean game, the bug patch reversed, except for physics v1, where it is Muse Code's recorded fix. The case texts are written for this page from the recorded results; only physics-fall-through / v1 shows Muse Code's recorded fix and reasoning. Measured numbers, each with its run, are in the Benchmark Matrix tab. Recorded reviews: <a class="underline text-amber-200 hover:text-white" href="../review/live-demo-run-1/" target="_blank" rel="noopener">Muse Code's fix, before and after</a>; <a class="underline text-amber-200 hover:text-white" href="../review/sinking-fix/" target="_blank" rel="noopener">the rejected fix that draws the robot inside the ground</a>.
-        </p>
-      </div>
-
-      <!-- Two-Column Layout (Left: Video Player, Right: Verifier Console) -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        
-        <!-- Left: Clean Video Viewport (7 cols) -->
-        <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xl flex flex-col">
-          
-          <!-- Viewport Header -->
-          <div class="px-3.5 py-2.5 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-2 bg-slate-900/90 text-xs">
-            <span class="font-semibold text-slate-300 flex items-center gap-2">
-              <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-              <span id="canvas-header-title">Godot Movie Maker capture, smoke route, 60 fps</span>
-            </span>
-            <div class="flex items-center gap-1.5">
-              <button onclick="cycleSpeed()" id="btn-speed" class="px-2 py-0.5 rounded text-[11px] font-mono border bg-slate-800 text-slate-300 border-slate-700 hover:text-white transition-all">Speed: 1×</button>
-              <button onclick="toggleOverlay('ground')" id="btn-overlay-ground" class="px-2 py-0.5 rounded text-[11px] font-mono border bg-emerald-500/20 text-emerald-400 border-emerald-500/40 hover:brightness-110 transition-all">Clean floor: ON</button>
-            </div>
-          </div>
-
-          <!-- Video Viewport -->
-          <div class="relative bg-slate-950 aspect-[5/3] flex items-center justify-center overflow-hidden" id="canvas-container">
-            <!-- One clip at a time, loaded on demand; the frame is 5:3, like the viewport, so the overlay's
-                 percentages are percentages of the frame. -->
-            <video id="engine-video" class="w-full h-full object-contain" loop muted playsinline preload="metadata" aria-label="Captured replay of the selected case"></video>
-            
-            <!-- Ground Line Overlay -->
-            <!-- Placed per frame from the manifest's timeline (the clean run's floor, through that frame's camera) -->
-            <div id="ground-line-overlay" class="pointer-events-none absolute w-full h-0.5 border-t-2 border-dashed border-emerald-400 left-0 z-20" style="display:none">
-              <span class="absolute right-3 -top-5 text-[10px] font-mono text-emerald-400 bg-slate-950/90 px-1 rounded border border-emerald-500/30">Clean floor, world y = 650 (clean run's trace)</span>
-            </div>
-
-            <!-- Placeholder for cases without captured video -->
-            <div id="video-placeholder" class="hidden absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-slate-950/95 text-slate-400 z-10">
-              <div class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 mb-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-              </div>
-              <p class="text-xs font-bold text-slate-300 font-mono mb-1" id="placeholder-title">Rejected: there is no "after"</p>
-              <p class="text-[11px] text-slate-500 max-w-sm mb-3" id="placeholder-desc">The verifier rejected this candidate, so nothing replaced the bug.</p>
-              <a id="placeholder-review-link" href="../review/sinking-fix/" target="_blank" rel="noopener" class="px-2.5 py-1 text-[11px] font-medium rounded-md bg-slate-900 hover:bg-slate-800 text-brand-400 border border-slate-700 transition-all flex items-center gap-1.5 font-mono">
-                <span>📄</span> <span id="placeholder-link-text">Open a recorded review</span>
-              </a>
-            </div>
-
-            <!-- Floating Top-Left Replay State Pill -->
-            <div class="absolute top-2.5 left-2.5 z-20 shadow-lg">
-              <div class="flex items-center gap-1.5 bg-slate-950/85 backdrop-blur border border-slate-800/80 px-2.5 py-1 rounded-md text-[11px] font-mono">
-                <span id="replay-state-badge" class="w-2 h-2 rounded-full bg-emerald-400"></span>
-                <span id="replay-state-text" class="text-slate-200">Before: the seeded bug</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Readout, per frame, from the engine's trace in the manifest -->
-          <div class="px-3.5 py-2 border-t border-slate-800/80 bg-slate-950/70 text-[11px] font-mono flex flex-wrap items-center gap-x-2 gap-y-0.5">
-            <span class="text-slate-500">trace</span>
-            <span id="hud-frame" class="text-slate-400"></span>
-            <span id="hud-coords" class="text-slate-300 font-medium"></span>
-            <span id="hud-status" class="text-slate-400"></span>
-          </div>
-
-          <!-- Player Controls Bar -->
-          <div class="px-3.5 py-2.5 bg-slate-900/60 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
-            <div class="flex flex-wrap items-center gap-2">
-              <button onclick="playSimulation('before')" id="btn-play-before" class="px-3 py-1.5 rounded-lg bg-red-950/70 border border-red-800/80 text-red-300 hover:bg-red-900 font-semibold transition-all flex items-center gap-1.5 shadow-sm">
-                <span id="btn-label-before-icon">🔴</span> <span id="btn-label-before-text">Replay the bug</span>
-              </button>
-              <button onclick="playSimulation('after')" id="btn-play-after" class="px-3 py-1.5 rounded-lg bg-emerald-950/70 border border-emerald-800/80 text-emerald-300 hover:bg-emerald-900 font-semibold transition-all flex items-center gap-1.5 shadow-sm">
-                <span id="btn-label-after-icon">🟢</span> <span id="btn-label-after-text">Replay Muse Code's fix</span>
-              </button>
-              <button onclick="toggleVideoPlayback()" id="btn-toggle-video" class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:text-white font-semibold transition-all">
-                ⏸ Pause
-              </button>
-            </div>
-            <a id="case-review-link" href="../review/live-demo-run-1/" target="_blank" rel="noopener" class="text-brand-400 hover:text-white underline font-mono text-[11px]">This case's recorded review</a>
-          </div>
-          <p id="clip-caption" class="px-3.5 pb-3 text-[11px] text-slate-400 leading-relaxed"></p>
-        </div>
-
-        <!-- Right: Unified Verifier & Inspector Console (5 cols) -->
-        <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xl flex flex-col">
-          
-          <!-- Verifier Verdict Header -->
-          <div class="p-3.5 border-b border-slate-800 bg-slate-900/90 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full bg-brand-400"></span>
-              <span class="text-xs font-bold uppercase tracking-wider text-slate-300 font-mono">Verifier Decision</span>
-            </div>
-            <span id="decision-badge" class="px-2.5 py-0.5 text-xs font-bold rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">ACCEPT</span>
-          </div>
-
-          <!-- 4 Check Suites Grid -->
-          <div class="p-3.5 space-y-3 bg-slate-900/40 border-b border-slate-800">
-            <div class="grid grid-cols-2 gap-2 text-xs font-mono">
-              <div class="flex items-center justify-between p-2 rounded bg-slate-950/90 border border-slate-800">
-                <span class="text-slate-400 text-[11px]">1. regression</span>
-                <span class="font-bold text-emerald-400 text-[11px]" id="check-regression">PASS</span>
-              </div>
-              <div class="flex items-center justify-between p-2 rounded bg-slate-950/90 border border-slate-800">
-                <span class="text-slate-400 text-[11px]">2. gameplay</span>
-                <span class="font-bold text-emerald-400 text-[11px]" id="check-gameplay">PASS</span>
-              </div>
-              <div class="flex items-center justify-between p-2 rounded bg-slate-950/90 border border-slate-800">
-                <span class="text-slate-400 text-[11px]">3. clean-ctrl</span>
-                <span class="font-bold text-emerald-400 text-[11px]" id="check-clean">PASS</span>
-              </div>
-              <div class="flex items-center justify-between p-2 rounded bg-slate-950/90 border border-slate-800">
-                <span class="text-slate-400 text-[11px]">4. held-out</span>
-                <span class="font-bold text-emerald-400 text-[11px]" id="check-heldout">PASS</span>
-              </div>
-            </div>
-
-            <div class="text-xs text-slate-300 bg-slate-950/70 p-2.5 rounded-lg border border-slate-800/80 font-mono text-[11px] leading-relaxed" id="decision-reason">
-              all 4 checks passed; candidate verified under clean level reference.
-            </div>
-          </div>
-
-          <!-- Inspector Tabs Header -->
-          <div class="px-3.5 pt-3 pb-2 flex items-center justify-between bg-slate-900 border-b border-slate-800">
-            <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
-              <button onclick="switchInspectorTab('diff')" id="inspector-btn-diff" class="px-2.5 py-1 text-xs font-semibold rounded bg-slate-800 text-white shadow-sm border border-slate-700">
-                Code Diff
-              </button>
-              <button onclick="switchInspectorTab('reasoning')" id="inspector-btn-reasoning" class="px-2.5 py-1 text-xs font-medium rounded text-slate-400 hover:text-slate-200 transition-all">
-                Model Rationale
-              </button>
-              <button onclick="switchInspectorTab('spec')" id="inspector-btn-spec" class="px-2.5 py-1 text-xs font-medium rounded text-slate-400 hover:text-slate-200 transition-all">
-                Test Spec
-              </button>
-            </div>
-          </div>
-
-          <!-- Inspector Tab Content -->
-          <div class="p-3.5 flex-1 min-h-[220px] bg-slate-950/90">
-            
-            <!-- Pane 1: Code Diff -->
-            <div id="inspector-pane-diff" class="space-y-2">
-              <div class="text-[11px] font-bold text-slate-400 font-mono" id="diff-title">candidate.patch: Muse Code's recorded fix</div>
-              <div class="text-[11px] text-slate-500 font-mono break-all">from <span id="diff-policy">bench/live-muse-clean-v1/fix/candidate.patch</span></div>
-              <div class="p-2.5 bg-slate-950 rounded-lg border border-slate-800 text-xs font-mono overflow-x-auto leading-relaxed max-h-56 overflow-y-auto" id="diff-container">
-                <div class="text-slate-500">--- a/player/player.tscn</div>
-                <div class="text-slate-500">+++ b/player/player.tscn</div>
-                <div class="text-cyan-500">@@ -187,7 +187,7 @@</div>
-                <div class="text-slate-300"> [node name="Player" type="CharacterBody2D"]</div>
-                <div class="diff-del px-1 rounded">-collision_mask = 14</div>
-                <div class="diff-add px-1 rounded">+collision_mask = 30</div>
-                <div class="text-slate-300"> floor_constant_speed = true</div>
-              </div>
-            </div>
-
-            <!-- Pane 2: Model Rationale -->
-            <div id="inspector-pane-reasoning" class="hidden space-y-2">
-              <div class="text-[11px] font-bold text-slate-400 font-mono" id="reasoning-title">Muse Code's reasoning, from its recorded log</div>
-              <div class="text-xs text-slate-300 bg-slate-950 p-3 rounded-lg border border-slate-800/80 leading-relaxed font-mono whitespace-pre-wrap max-h-56 overflow-y-auto" id="muse-reasoning">
-Root cause: the ground lives on physics layer 5 (value 16 in tileset.tres), but the player's mask was 14 (layers 2+3+4: enemies, coins, platforms), so the ground was invisible to it and it fell straight through from the first frames.
-
-Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while preserving all existing bits.
-              </div>
-            </div>
-
-            <!-- Pane 3: Test Spec -->
-            <div id="inspector-pane-spec" class="hidden space-y-3 font-mono">
-              <div class="flex items-center justify-between text-[11px]">
-                <span class="text-slate-400 font-semibold">TEST SPEC ID</span>
-                <span class="text-brand-400 font-mono" id="spec-id">specs/player-stays-above-ground.json</span>
-              </div>
-              <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 text-xs text-slate-200 italic" id="spec-instruction">
-                "The player never falls through the ground."
-              </div>
-              <div class="grid grid-cols-2 gap-2 text-xs">
-                <div class="bg-slate-900/80 p-2 rounded border border-slate-800">
-                  <div class="text-slate-500 text-[10px]">ORACLE TYPE</div>
-                  <div class="text-slate-200 font-semibold text-[11px]" id="spec-type">never-crosses</div>
-                </div>
-                <div class="bg-slate-900/80 p-2 rounded border border-slate-800">
-                  <div class="text-slate-500 text-[10px]">SAM 3.1 PROMPT OBJECT</div>
-                  <div class="text-blue-400 font-semibold text-[11px]" id="spec-object">"blue robot"</div>
-                </div>
-              </div>
-            </div>
-
-          </div>
-
-        </div>
-
+  <!-- ========================================== -->
+  <!-- TAB 2: RESULTS                             -->
+  <!-- ========================================== -->
+  <div id="tab-benchmark" class="tab-pane hidden">
+    <div class="card">
+      <h2>The eight development bugs: caught, then fixed</h2>
+      <p>Each bug replayed on the smoke route and judged with and without SAM 3.1, then handed to Muse Code twice: once with Expectrail's evidence, once with screenshots alone. Both briefings fixed all eight; what differs is who can judge the result, which is the point of the whole project.</p>
+      <p class="small">Sources: development fix matrix (<a href="https://github.com/seanudeke/Expectrail/blob/main/bench/fix-matrix/README.md">bench/fix-matrix</a>); detection bench (<a href="https://github.com/seanudeke/Expectrail/blob/main/bench/detection/README.md">bench/detection</a>, run 40841977642); held-out runs 1 and 2 (<a href="https://github.com/seanudeke/Expectrail/blob/main/bench/fix-matrix/held-out/README.md">run 41099054641</a>, <a href="https://github.com/seanudeke/Expectrail/blob/main/bench/fix-matrix/held-out-run-2/README.md">run 41199992529</a>); the three-briefings run (<a href="https://github.com/seanudeke/Expectrail/blob/main/bench/fix-matrix/report-first/README.md">run 41223754703</a>); mutation bench (<a href="https://github.com/seanudeke/Expectrail/blob/main/bench/mutation/wrong-fix/README.md">wrong-fix run 41268021760</a>).</p>
+      <div class="stats">
+        <div class="stat">Development bugs fixed with Expectrail's evidence: <b>8 of 8</b></div>
+        <div class="stat">Held-out bugs fixed, two runs: <b>8 of 8</b> with the evidence, 7 of 8 from screenshots</div>
+        <div class="stat">False alarms on the clean game: <b>0</b></div>
       </div>
     </div>
 
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Case</th>
+            <th>What the bug does</th>
+            <th>Caught without SAM</th>
+            <th>Caught with SAM 3.1</th>
+            <th>Fixed, with the evidence</th>
+            <th>Fixed, from screenshots</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="id">physics-fall-through / v1</td><td>The robot's collision mask drops the ground (14)</td><td><span class="yes">Yes</span> (position y)</td><td><span class="yes">Yes</span></td><td><span class="fixed">Fixed, 12 min</span></td><td><span class="fixed">Fixed, 10 min</span></td></tr>
+          <tr><td class="id">physics-fall-through / v2</td><td>The level's tileset drops its collision layer (0)</td><td><span class="yes">Yes</span> (position y)</td><td><span class="yes">Yes</span></td><td><span class="fixed">Fixed, 13 min</span></td><td><span class="fixed">Fixed, 15 min</span></td></tr>
+          <tr><td class="id">missing-texture / v1</td><td>The coin texture points at a missing file</td><td><span class="no">No</span> (coordinates valid)</td><td><span class="yes">Yes</span> (no coins seen)</td><td><span class="fixed">Fixed, 17 min</span></td><td><span class="fixed">Fixed, 9 min</span></td></tr>
+          <tr><td class="id">missing-texture / v2</td><td>The coin sprite's texture property is cleared</td><td><span class="no">No</span> (coordinates valid)</td><td><span class="yes">Yes</span> (no coins seen)</td><td><span class="fixed">Fixed, 20 min</span></td><td><span class="fixed">Fixed, 9 min</span></td></tr>
+          <tr><td class="id">layering / v1</td><td>The robot's z-index drops it behind the level (−3)</td><td><span class="no">No</span> (coordinates valid)</td><td><span class="yes">Yes</span> (robot seen in 17 of 31 frames)</td><td><span class="fixed">Fixed, 16 min</span></td><td><span class="fixed">Fixed, 18 min</span></td></tr>
+          <tr><td class="id">layering / v2</td><td>The robot's sprite is given z-index −6</td><td><span class="no">No</span> (coordinates valid)</td><td><span class="yes">Yes</span> (occluded)</td><td><span class="fixed">Fixed, 10 min</span></td><td><span class="fixed">Fixed, 23 min</span></td></tr>
+          <tr><td class="id">sinking / v1</td><td>The collision shape sits 26 px too high</td><td><span class="yes">Yes</span> (ground line)</td><td><span class="yes">Yes</span></td><td><span class="fixed">Fixed, 36 min</span></td><td><span class="fixed">Fixed, 22 min</span></td></tr>
+          <tr><td class="id">sinking / v2</td><td>The sprite is drawn 26 px too low; physics intact</td><td><span class="no">No</span> (physics intact)</td><td><span class="yes">Yes</span> (SAM against the engine)</td><td><span class="fixed">Fixed, 23 min</span></td><td><span class="fixed">Fixed, 23 min</span></td></tr>
+        </tbody>
+      </table>
+    </div>
 
-    <!-- ========================================== -->
-    <!-- TAB 2: BENCHMARK MATRIX                    -->
-    <!-- ========================================== -->
-    <div id="tab-benchmark" class="tab-pane hidden space-y-6">
-      
-      <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <h2 class="text-base font-bold text-white">Full Gate 2 Benchmark Matrix & Held-Out Results</h2>
-          <p class="text-xs text-slate-400">Expectrail (Deterministic Verifier + Meta Vision Models) vs. Muse Code with Screenshots / Report-Only Baselines.</p>
-          <p class="text-xs text-slate-400">Sources: development fix matrix (<a class="underline" href="https://github.com/seanudeke/Expectrail/blob/main/bench/fix-matrix/README.md" target="_blank" rel="noopener">bench/fix-matrix</a>); detection bench (<a class="underline" href="https://github.com/seanudeke/Expectrail/blob/main/bench/detection/README.md" target="_blank" rel="noopener">bench/detection</a>, run 40841977642); held-out runs 1 & 2 (<a class="underline" href="https://github.com/seanudeke/Expectrail/blob/main/bench/fix-matrix/held-out/README.md" target="_blank" rel="noopener">run 41099054641</a> & <a class="underline" href="https://github.com/seanudeke/Expectrail/blob/main/bench/fix-matrix/held-out-run-2/README.md" target="_blank" rel="noopener">run 41199992529</a>); report-first trial (<a class="underline" href="https://github.com/seanudeke/Expectrail/blob/main/bench/fix-matrix/report-first/README.md" target="_blank" rel="noopener">run 41223754703</a>); mutation bench (<a class="underline" href="https://github.com/seanudeke/Expectrail/blob/main/bench/mutation/wrong-fix/README.md" target="_blank" rel="noopener">wrong-fix run 41268021760</a>).</p>
-        </div>
-        <div class="flex items-center gap-3 font-mono text-xs">
-          <div class="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
-            Expectrail Dev: <span class="font-bold text-white">8 of 8</span> Fixed
-          </div>
-          <div class="px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400">
-            Held-Out Fixed (2 runs): <span class="font-bold text-white">8 of 8</span> vs 7 of 8
-          </div>
-          <div class="px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400">
-            False Alarms: <span class="font-bold text-white">0</span>
-          </div>
-        </div>
+    <div class="cards">
+      <div class="card">
+        <div class="row1"><h3>Held-out bugs fixed</h3><span class="num good">8 of 8</span></div>
+        <p>Run <a href="https://github.com/seanudeke/Expectrail/actions/runs/41199992529">41199992529</a> (commit e216fb7): with Expectrail's evidence Muse Code fixed <strong>8 of 8</strong>; from screenshots, <strong>7 of 8</strong> (sinking/v4 timed out three times). The first held-out run, <a href="https://github.com/seanudeke/Expectrail/actions/runs/41099054641">41099054641</a>, ended the same: 8 of 8 and 7 of 8.</p>
       </div>
-
-      <!-- Results Table -->
-      <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
-        <table class="w-full text-left text-xs">
-          <thead class="bg-slate-950/80 border-b border-slate-800 text-slate-400 uppercase font-mono tracking-wider">
-            <tr>
-              <th class="px-4 py-3">Case ID</th>
-              <th class="px-4 py-3">Defect Mechanism</th>
-              <th class="px-4 py-3">Caught (No SAM)</th>
-              <th class="px-4 py-3">Caught (With SAM 3.1)</th>
-              <th class="px-4 py-3">Expectrail Fix</th>
-              <th class="px-4 py-3">Screenshots Fix</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-800 font-mono">
-            <tr class="hover:bg-slate-800/40">
-              <td class="px-4 py-3 font-bold text-white">physics-fall-through / v1</td>
-              <td class="px-4 py-3 text-slate-300">Player collision mask drops ground (14)</td>
-              <td class="px-4 py-3 text-emerald-400">YES (position y)</td>
-              <td class="px-4 py-3 text-emerald-400 font-bold">YES</td>
-              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (12m)</span></td>
-              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (10m)</span></td>
-            </tr>
-            <tr class="hover:bg-slate-800/40">
-              <td class="px-4 py-3 font-bold text-white">physics-fall-through / v2</td>
-              <td class="px-4 py-3 text-slate-300">Level tileset drops collision layer (0)</td>
-              <td class="px-4 py-3 text-emerald-400">YES (position y)</td>
-              <td class="px-4 py-3 text-emerald-400 font-bold">YES</td>
-              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (13m)</span></td>
-              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (15m)</span></td>
-            </tr>
-            <tr class="hover:bg-slate-800/40">
-              <td class="px-4 py-3 font-bold text-white">missing-texture / v1</td>
-              <td class="px-4 py-3 text-slate-300">Coin texture points at a missing file</td>
-              <td class="px-4 py-3 text-red-400 font-bold">NO (coords valid)</td>
-              <td class="px-4 py-3 text-emerald-400 font-bold">YES (no coins seen)</td>
-              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (17m)</span></td>
-              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (9m)</span></td>
-            </tr>
-            <tr class="hover:bg-slate-800/40">
-              <td class="px-4 py-3 font-bold text-white">missing-texture / v2</td>
-              <td class="px-4 py-3 text-slate-300">Coin sprite texture property cleared</td>
-              <td class="px-4 py-3 text-red-400 font-bold">NO (coords valid)</td>
-              <td class="px-4 py-3 text-emerald-400 font-bold">YES (no coins seen)</td>
-              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (20m)</span></td>
-              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (9m)</span></td>
-            </tr>
-            <tr class="hover:bg-slate-800/40">
-              <td class="px-4 py-3 font-bold text-white">layering / v1</td>
-              <td class="px-4 py-3 text-slate-300">Player z_index drops behind level (-3)</td>
-              <td class="px-4 py-3 text-red-400 font-bold">NO (coords valid)</td>
-              <td class="px-4 py-3 text-emerald-400 font-bold">YES (robot seen in 17 of 31)</td>
-              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (16m)</span></td>
-              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (18m)</span></td>
-            </tr>
-            <tr class="hover:bg-slate-800/40">
-              <td class="px-4 py-3 font-bold text-white">layering / v2</td>
-              <td class="px-4 py-3 text-slate-300">Player Sprite2D z_index set to -6</td>
-              <td class="px-4 py-3 text-red-400 font-bold">NO (coords valid)</td>
-              <td class="px-4 py-3 text-emerald-400 font-bold">YES (occluded)</td>
-              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (10m)</span></td>
-              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (23m)</span></td>
-            </tr>
-            <tr class="hover:bg-slate-800/40">
-              <td class="px-4 py-3 font-bold text-white">sinking / v1</td>
-              <td class="px-4 py-3 text-slate-300">Collision shape sits 26px too high</td>
-              <td class="px-4 py-3 text-emerald-400">YES (ground line)</td>
-              <td class="px-4 py-3 text-emerald-400 font-bold">YES</td>
-              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (36m)</span></td>
-              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (22m)</span></td>
-            </tr>
-            <tr class="hover:bg-slate-800/40">
-              <td class="px-4 py-3 font-bold text-white">sinking / v2</td>
-              <td class="px-4 py-3 text-slate-300">Sprite drawn 26px too low (physics ok)</td>
-              <td class="px-4 py-3 text-red-400 font-bold">NO (physics intact)</td>
-              <td class="px-4 py-3 text-emerald-400 font-bold">YES (hybrid check)</td>
-              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (23m)</span></td>
-              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">FIXED (23m)</span></td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="card">
+        <div class="row1"><h3>Three briefings, October 31</h3><span class="num">8 · 7 · 6</span></div>
+        <p>Run <a href="https://github.com/seanudeke/Expectrail/actions/runs/41223754703">41223754703</a>, development bugs: the evidence first, <strong>8 of 8</strong>, each on the first attempt; the report first with the evidence after a failed attempt, 7 of 8; the report only, 6 of 8. Every miss was a sinking bug where the report-only attempts timed out (<a href="https://github.com/seanudeke/Expectrail/blob/main/docs/report-first.md">report-first.md</a>).</p>
       </div>
-
-      <!-- Additional Empirical Benchmarks Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <!-- Held-Out Run 2 Card -->
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono">Held-Out Bugs Fixed</span>
-            <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">8 of 8 Fixed</span>
-          </div>
-          <p class="text-[11px] text-slate-400 leading-relaxed">
-            Run <a class="underline" href="https://github.com/seanudeke/Expectrail/actions/runs/41199992529" target="_blank" rel="noopener">41199992529</a> (commit e216fb7): with Expectrail's evidence Muse Code fixed <strong>8 of 8</strong>; from screenshots, <strong>7 of 8</strong> (sinking/v4 timed out three times). The first held-out run, <a class="underline" href="https://github.com/seanudeke/Expectrail/actions/runs/41099054641" target="_blank" rel="noopener">41099054641</a>, ended the same: 8 of 8 and 7 of 8.
-          </p>
-        </div>
-
-        <!-- Report-First Trial Card -->
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono">Three Briefings, Oct 31</span>
-            <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-blue-500/20 text-blue-400 border border-blue-500/30">8 vs 7 vs 6</span>
-          </div>
-          <p class="text-[11px] text-slate-400 leading-relaxed">
-            Run <a class="underline" href="https://github.com/seanudeke/Expectrail/actions/runs/41223754703" target="_blank" rel="noopener">41223754703</a>, development bugs: evidence first <strong>8 of 8</strong>, each on the first attempt; report first, evidence after a failed attempt, 7 of 8; report only, 6 of 8. Every miss was a sinking bug where the report-only attempts timed out (<a class="underline" href="https://github.com/seanudeke/Expectrail/blob/main/docs/report-first.md" target="_blank" rel="noopener">report-first.md</a>).
-          </p>
-        </div>
-
-        <!-- Mutation Bench Card -->
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono">Mutation Bench (Wrong Fixes)</span>
-            <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-purple-500/20 text-purple-400 border border-purple-500/30">31 of 39 caught</span>
-          </div>
-          <p class="text-[11px] text-slate-400 leading-relaxed">
-            Run <a class="underline" href="https://github.com/seanudeke/Expectrail/actions/runs/41268021760" target="_blank" rel="noopener">41268021760</a>: 47 candidates from six operators the team wrote, registered before judging, public checks only. The tiered judge caught <strong>31 of 39 bad fixes</strong> (79.5%), 24 of them only with SAM, and accepted the 8 good ones. The 8 misses are one operator that changed nothing in the running game.
-          </p>
-        </div>
-
-        <!-- Judge Benchmark Card -->
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono">Fixes That Only Look Right</span>
-            <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-red-500/20 text-red-400 border border-red-500/30">0 of 7 accepted</span>
-          </div>
-          <p class="text-[11px] text-slate-400 leading-relaxed">
-            <a class="underline" href="https://github.com/seanudeke/Expectrail/blob/main/bench/judge/README.md" target="_blank" rel="noopener">Judge benchmark</a>, 7 bad fixes, 3 runs: Expectrail with SAM accepted <strong>0 of 7</strong>; without SAM, 3 of 7; Muse judging from screenshots, 2 of 7. Good fixes: Expectrail accepted 8 of 8 every run. The four exploits in the Case Explorer are four of the seven.
-          </p>
-        </div>
-
-        <!-- Demo Path Card -->
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono">Demo Path, Live</span>
-            <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">10 of 10 accepted</span>
-          </div>
-          <p class="text-[11px] text-slate-400 leading-relaxed">
-            Run <a class="underline" href="https://github.com/seanudeke/Expectrail/actions/runs/40990485265" target="_blank" rel="noopener">40990485265</a>: the loop end to end, 10 independent runs, each accepted on the first attempt; 12 to 22 minutes a run (median 14.5). After the report-first change, run <a class="underline" href="https://github.com/seanudeke/Expectrail/actions/runs/41223748922" target="_blank" rel="noopener">41223748922</a>: <strong>3 of 3</strong> accepted, each on the first attempt from the plain report.
-          </p>
-        </div>
-
-        <!-- Held-Out Detection Card -->
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono">Held-Out Bugs Caught</span>
-            <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-blue-500/20 text-blue-400 border border-blue-500/30">8 of 8 with SAM</span>
-          </div>
-          <p class="text-[11px] text-slate-400 leading-relaxed">
-            Run <a class="underline" href="https://github.com/seanudeke/Expectrail/actions/runs/41003749744" target="_blank" rel="noopener">41003749744</a>, SAM 3.1 on: <strong>8 of 8</strong> held-out bugs caught, no false alarm on the clean game. With no vision model (engine and gameplay checks only), 4 of 8.
-          </p>
-        </div>
+      <div class="card">
+        <div class="row1"><h3>Mutation bench: wrong fixes</h3><span class="num good">31 of 39</span></div>
+        <p>Run <a href="https://github.com/seanudeke/Expectrail/actions/runs/41268021760">41268021760</a>: 47 candidates from six operators the team wrote, registered before judging, public checks only. The tiered judge caught <strong>31 of 39 bad fixes</strong> (79.5%), 24 of them only with SAM, and accepted the 8 good ones. The 8 misses are one operator that changed nothing in the running game.</p>
       </div>
-
-      <!-- Why SAM 3.1 is irreplaceable callout -->
-      <div class="bg-blue-950/30 border border-blue-900/60 p-4 rounded-xl flex items-start gap-3 text-xs text-blue-200">
-        <svg class="w-5 h-5 text-blue-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-        <div class="space-y-1">
-          <div class="font-bold text-white text-sm">Why Visual Grounding (SAM 3.1 & Glimmer) Beats Traditional QA</div>
-          <p class="leading-relaxed text-blue-200/90">
-            Without computer vision, <strong>5 of the 8 bug variants pass conventional build checks completely undetected</strong>: missing textures, player layering behind tiles, and visual sprite offsets leave the physics coordinates valid. Meta's vision models (SAM 3.1, or the open-weight Muse Glimmer checked against the engine, also 8 of 8) see what the player actually sees on screen.
-          </p>
-        </div>
+      <div class="card">
+        <div class="row1"><h3>Fixes that only look right</h3><span class="num good">0 of 7 accepted</span></div>
+        <p><a href="https://github.com/seanudeke/Expectrail/blob/main/bench/judge/README.md">Judge benchmark</a>, 7 bad fixes, 3 runs: Expectrail with SAM accepted <strong>0 of 7</strong>; without SAM, 3 of 7; Muse Code judging from screenshots, 2 of 7. Good fixes: Expectrail accepted 8 of 8 every run. The four rejected fixes in the Cases tab are four of the seven.</p>
+      </div>
+      <div class="card">
+        <div class="row1"><h3>The whole loop, live</h3><span class="num good">10 of 10</span></div>
+        <p>Run <a href="https://github.com/seanudeke/Expectrail/actions/runs/40990485265">40990485265</a>: the loop end to end, 10 independent runs, each accepted on the first attempt; 12 to 22 minutes a run (median 14.5). After the report-first change, run <a href="https://github.com/seanudeke/Expectrail/actions/runs/41223748922">41223748922</a>: <strong>3 of 3</strong> accepted, each on the first attempt from the plain report.</p>
+      </div>
+      <div class="card">
+        <div class="row1"><h3>Held-out bugs caught</h3><span class="num good">8 of 8 with SAM</span></div>
+        <p>Run <a href="https://github.com/seanudeke/Expectrail/actions/runs/41003749744">41003749744</a>, SAM 3.1 on: <strong>8 of 8</strong> held-out bugs caught, no false alarm on the clean game. With no vision model (engine and gameplay checks only), 4 of 8.</p>
       </div>
     </div>
 
+    <div class="callout">
+      <h3>Why the vision model is not optional</h3>
+      <p>Without it, <strong>5 of the 8 development bugs pass every engine and gameplay check</strong>: missing textures, a robot drawn behind the tiles, and a sprite drawn off its body all leave the physics coordinates valid. SAM 3.1, or the open-weight Muse Glimmer checked against the engine (also 8 of 8 on the held-out bugs), sees what the player sees. The full results, with every limit, are in the <a href="https://github.com/seanudeke/Expectrail#results">README</a>.</p>
+    </div>
+  </div>
 
-    <!-- ========================================== -->
-    <!-- TAB 3: SECURITY & TRUST BEAT               -->
-    <!-- ========================================== -->
-    <div id="tab-trust" class="tab-pane hidden space-y-6">
-      
-      <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
-        <h2 class="text-base font-bold text-white">Trust Architecture: "Deny-by-Absence" & Canary Probes</h2>
-        <p class="text-xs text-slate-400">Coding agents must never hold signing keys or held-out checks, or be able to change a check. Expectrail keeps those files out of the fixer's sandbox entirely, verified by an active honeytoken canary probe.</p>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
-        <!-- Isolation Topology Card -->
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
-          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono">Mount Boundary Topology</h3>
-          
-          <div class="space-y-3 text-xs font-mono">
-            <div class="p-3 rounded-lg bg-emerald-950/40 border border-emerald-800/60 space-y-1.5">
-              <div class="font-bold text-emerald-400 flex items-center justify-between">
-                <span>fixer-workspace/ (Muse Code)</span>
-                <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-900/60 border border-emerald-700">UNTRUSTED AGENT</span>
-              </div>
-              <ul class="text-slate-300 space-y-1 pl-4 list-disc text-[11px]">
-                <li>Game source code (`player/**`, `level/**`)</li>
-                <li>`repair-request.json` & failing keyframes</li>
-                <li><span class="text-amber-400 font-bold">POISON ASSET:</span> `player/readme-extra.txt` (Honeytoken Canary)</li>
-                <li><span class="text-red-400 font-semibold">NO</span> signing keys, <span class="text-red-400 font-semibold">NO</span> held-out routes, <span class="text-red-400 font-semibold">NO</span> evaluator</li>
-              </ul>
-            </div>
-
-            <div class="flex justify-center text-slate-600 font-bold text-sm">▲ ▼ BOUNDARY BY ABSENCE (not a VM)</div>
-
-            <div class="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1.5">
-              <div class="font-bold text-white flex items-center justify-between">
-                <span>verifier-host/ (Protected Host)</span>
-                <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300">PROTECTED ZONE</span>
-              </div>
-              <ul class="text-slate-300 space-y-1 pl-4 list-disc text-[11px]">
-                <li>Ed25519 Private Signing Key (`.expectrail-signing-key`)</li>
-                <li>Private Held-Out Routes (`seanudeke/Nightshift-heldout`)</li>
-                <li>Reference Ground Polygon & Deterministic Evaluator</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <!-- Canary Probe Log Card -->
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
-          <div class="flex items-center justify-between">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono">Honeytoken Canary Attempts</h3>
-            <span class="px-2 py-0.5 text-xs font-bold rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">IN THE MOUNT: ALL DENIED</span>
-          </div>
-          
-          <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-xs font-mono space-y-2 leading-relaxed">
-            <div class="text-slate-400">// What a compromised fixer that read the poison would try (python3 -m agents.trust):</div>
-            <div class="flex items-center justify-between text-slate-300">
-              <span>fixer-root/.expectrail-signing-key</span>
-              <span class="text-emerald-400 font-bold">DENIED (absent from fixer mount)</span>
-            </div>
-            <div class="flex items-center justify-between text-slate-300">
-              <span>fixer/player/.expectrail-signing-key</span>
-              <span class="text-emerald-400 font-bold">DENIED (absent from fixer mount)</span>
-            </div>
-            <div class="flex items-center justify-between text-slate-300">
-              <span>absolute-root/.expectrail-signing-key</span>
-              <span class="text-emerald-400 font-bold">DENIED (path missing)</span>
-            </div>
-            <div class="flex items-center justify-between text-slate-300">
-              <span>relative-escape/../verifier-host/.expectrail-signing-key</span>
-              <span class="text-amber-400 font-medium">REACHABLE (shared host FS, no sandbox)</span>
-            </div>
-            <div class="flex items-center justify-between text-slate-300">
-              <span>relative-escape/../../verifier-host/.expectrail-signing-key</span>
-              <span class="text-emerald-400 font-bold">DENIED (path missing)</span>
-            </div>
-            <div class="flex items-center justify-between text-slate-300">
-              <span>absolute-verifier-host-key</span>
-              <span class="text-amber-400 font-medium">REACHABLE (shared host FS, no sandbox)</span>
-            </div>
-            <div class="text-[11px] text-slate-400">Deny-by-absence is a claim about the fixer's mount: on a shared host file system, the verifier's key is still reachable outside it. The OS sandbox closes that gap:</div>
-            <div class="flex items-center justify-between text-slate-300 pt-1 border-t border-slate-800/60">
-              <span>OS sandbox canary, bubblewrap (CI job <code>agents-sandbox</code>: <code>agents.trust --require-sandbox</code>)</span>
-              <span class="text-emerald-400 font-bold">BLOCKED (exit 1)</span>
-            </div>
-            <div class="pt-2 border-t border-slate-800/80 text-[11px] text-slate-400">
-              Machine log: <span class="text-slate-200">runs/trust/trust-evidence.md</span> and <span class="text-slate-200">canary-attempts.json</span>
-            </div>
-          </div>
-
-          <!-- Cryptographic Signature Verification -->
-          <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-2 text-xs font-mono">
-            <div class="text-slate-400 text-[10px]">ED25519 RELEASE CANDIDATE PROVENANCE</div>
-            <div class="text-white text-[11px] break-all">
-              <span class="text-slate-500">Keypair Lifecycle:</span> Ephemeral Ed25519 keypair generated per run. Public key published in <code class="text-brand-400 font-mono">release-candidate.json</code>.
-            </div>
-            <div class="text-slate-400 text-[11px]">
-              <span class="text-slate-500">Signing Isolation:</span> Signature generated exclusively on the protected verifier host; private key never touches fixer workspace.
-            </div>
-          </div>
-        </div>
-
-      </div>
+  <!-- ========================================== -->
+  <!-- TAB 3: TRUST BOUNDARY                      -->
+  <!-- ========================================== -->
+  <div id="tab-trust" class="tab-pane hidden">
+    <div class="card">
+      <h2>What the fixer can reach, and what it cannot</h2>
+      <p>A coding agent must never hold the signing key or the held-out checks, or be able to change a check. Expectrail keeps those files out of the fixer's sandbox entirely, and a planted canary file shows what a compromised fixer could and could not read.</p>
     </div>
 
-
-    <!-- ========================================== -->
-    <!-- TAB 4: MORNING REPORT VIEWER               -->
-    <!-- ========================================== -->
-    <div id="tab-report" class="tab-pane hidden space-y-6">
-      
-      <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div>
-          <h2 class="text-base font-bold text-white">7:30 AM Morning Report (Human Hand-Off)</h2>
-          <p class="text-xs text-slate-400">The human game developer inspects the overnight rollup, approves the verified diff, and merges the release candidate. Transcribed from the offline Gate 1 run on fixtures (<code class="text-slate-300 font-mono">python3 -m agents.gate1 --out runs/gate1 --skip-harness --observations agents/fixtures/obs-fixed.json</code>, then <code class="text-slate-300 font-mono">runs/gate1/morning/morning-report.md</code>).</p>
-        </div>
-        <span class="px-3 py-1 rounded bg-brand-500/20 text-brand-400 border border-brand-500/40 text-xs font-mono font-bold whitespace-nowrap">
-          RC signed: waiting for human approval
-        </span>
-      </div>
-
-      <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 font-mono text-xs space-y-6 leading-relaxed">
-        <div class="border-b border-slate-800 pb-4">
-          <div class="flex items-center justify-between mb-2">
-            <h1 class="text-base font-bold text-white"># Expectrail morning report</h1>
-            <span class="px-2.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold">accept</span>
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-3 text-slate-300 text-[11px]">
-            <div><span class="text-slate-500">Decision:</span> <span class="text-emerald-400 font-bold">accept</span></div>
-            <div><span class="text-slate-500">Request ID:</span> <span class="text-slate-200">rr-gate1</span></div>
-            <div><span class="text-slate-500">Attempt:</span> <span class="text-slate-200">1 of 3</span></div>
-            <div><span class="text-slate-500">Algorithm:</span> <span class="text-brand-400 font-bold">ed25519</span></div>
-            <div class="sm:col-span-2"><span class="text-slate-500">Request SHA-256:</span> <span class="text-slate-400">ac8f0e926683dc03a0f7dc31...</span></div>
-            <div class="sm:col-span-2"><span class="text-slate-500">Candidate SHA-256:</span> <span class="text-slate-400">ceda817fc43cb1249404a110...</span></div>
-          </div>
-        </div>
-
-        <!-- Checks Section -->
-        <div>
-          <h2 class="text-sm font-bold text-white mb-2">## Checks</h2>
-          <ul class="space-y-1.5 text-slate-300">
-            <li class="flex items-center justify-between border-b border-slate-800/60 pb-1">
-              <span>• `regression` / `player-stays-above-ground` on `smoke`</span>
-              <span class="text-emerald-400 font-bold">pass</span>
-            </li>
-            <li class="flex items-center justify-between border-b border-slate-800/60 pb-1">
-              <span>• `gameplay` / `player-motion-on-smoke` on `smoke`</span>
-              <span class="text-emerald-400 font-bold">pass</span>
-            </li>
-            <li class="flex items-center justify-between border-b border-slate-800/60 pb-1">
-              <span>• `clean` / `player-stays-above-ground` on `clean-control`</span>
-              <span class="text-emerald-400 font-bold">pass</span>
-            </li>
-            <li class="flex items-center justify-between">
-              <span>• `held-out` / `player-stays-above-ground` on `held-out-interim`</span>
-              <span class="text-emerald-400 font-bold">pass</span>
-            </li>
+    <div class="two">
+      <div class="zone fixer">
+        <div class="row1"><span>fixer-workspace/ (Muse Code)</span><span class="tag">Untrusted</span></div>
+        <ul>
+          <li>The game's source (<code>player/**</code>, <code>level/**</code>)</li>
+          <li><code>repair-request.json</code> and the failing frames</li>
+          <li>A planted canary file, <code>player/readme-extra.txt</code>, with an instruction a compromised fixer would follow</li>
+          <li><span class="no">No</span> signing key, <span class="no">no</span> held-out routes, <span class="no">no</span> evaluator</li>
+        </ul>
+        <div class="between">▲ ▼ a boundary by absence, not a VM</div>
+        <div class="zone host">
+          <div class="row1"><span>verifier-host/ (protected)</span><span class="tag">Out of reach</span></div>
+          <ul>
+            <li>The Ed25519 signing key (<code>.expectrail-signing-key</code>)</li>
+            <li>The private held-out routes (<code>seanudeke/Nightshift-heldout</code>)</li>
+            <li>The reference ground polygon and the deterministic evaluator</li>
           </ul>
         </div>
+      </div>
 
-        <!-- Suite Provenance Section -->
-        <div>
-          <h2 class="text-sm font-bold text-white mb-2">## Suite Provenance</h2>
-          <div class="bg-slate-950 p-3 rounded-lg border border-slate-800/80 space-y-1 text-slate-400 text-[11px]">
-            <div>• candidate: source=<span class="text-slate-300 font-bold">fixture</span> path=`agents/fixtures/obs-fixed.json` (obsSha256: d86df65b...)</div>
-            <div>• clean control: source=<span class="text-slate-300 font-bold">fixture</span> path=`agents/fixtures/obs-clean.json` (obsSha256: 00f0719e...)</div>
-            <div>• held-out check: source=<span class="text-slate-300 font-bold">interim-fixture</span> path=`agents/fixtures/obs-held-out.json` (obsSha256: f4c0f99a...)</div>
-          </div>
+      <div class="zone fixer">
+        <div class="row1"><span>The canary probe</span><span class="tag">In the mount: all denied</span></div>
+        <div class="log">
+          <div class="note">What a compromised fixer that read the canary would try (<code>python3 -m agents.trust</code>):</div>
+          <div class="line"><span>fixer-root/.expectrail-signing-key</span><span class="ok">DENIED (absent from the mount)</span></div>
+          <div class="line"><span>fixer/player/.expectrail-signing-key</span><span class="ok">DENIED (absent from the mount)</span></div>
+          <div class="line"><span>absolute-root/.expectrail-signing-key</span><span class="ok">DENIED (path missing)</span></div>
+          <div class="line"><span>relative-escape/../verifier-host/.expectrail-signing-key</span><span class="open">REACHABLE (shared host FS, no sandbox)</span></div>
+          <div class="line"><span>relative-escape/../../verifier-host/.expectrail-signing-key</span><span class="ok">DENIED (path missing)</span></div>
+          <div class="line"><span>absolute-verifier-host-key</span><span class="open">REACHABLE (shared host FS, no sandbox)</span></div>
+          <div class="note">Deny-by-absence is a claim about the fixer's mount: on a shared host file system, the verifier's key is still reachable outside it. The OS sandbox closes that gap:</div>
+          <div class="sep"></div>
+          <div class="line"><span>OS sandbox canary, bubblewrap (CI job <code>agents-sandbox</code>: <code>agents.trust --require-sandbox</code>)</span><span class="ok">BLOCKED (exit 1)</span></div>
+          <div class="sep"></div>
+          <div class="note">Machine log: <code>runs/trust/trust-evidence.md</code> and <code>canary-attempts.json</code>.</div>
         </div>
-
-        <!-- Gameplay Section -->
-        <div>
-          <h2 class="text-sm font-bold text-white mb-2">## Gameplay Metrics</h2>
-          <div class="bg-slate-950 p-3 rounded-lg border border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-3 text-slate-300">
-            <div><span class="text-slate-500">Result:</span> <span class="text-emerald-400 font-bold">pass</span></div>
-            <div><span class="text-slate-500">Δx traveled:</span> 290.0px (min 200px)</div>
-            <div><span class="text-slate-500">End on floor:</span> true</div>
-            <div><span class="text-slate-500">Below streak:</span> 0 frames</div>
-          </div>
-        </div>
-
-        <!-- Verified Code Diff -->
-        <div>
-          <h2 class="text-sm font-bold text-white mb-2">## Verified Candidate Diff</h2>
-          <div class="bg-slate-950 p-4 rounded-lg border border-slate-800 text-slate-200">
-            <div class="text-slate-500">--- a/player/player.tscn</div>
-            <div class="text-slate-500">+++ b/player/player.tscn</div>
-            <div class="text-cyan-400">@@ -187,7 +187,7 @@</div>
-            <div class="text-slate-400"> [node name="Player" type="CharacterBody2D" unique_id=457318108]</div>
-            <div class="text-slate-400"> scale = Vector2(0.8, 0.8)</div>
-            <div class="diff-del px-1 rounded">-collision_mask = 14</div>
-            <div class="diff-add px-1 rounded">+collision_mask = 30</div>
-            <div class="text-slate-400"> floor_constant_speed = true</div>
-            <div class="text-slate-400"> platform_on_leave = 2</div>
-          </div>
-        </div>
-
-        <!-- Signed Release Candidate Bundle -->
-        <div>
-          <h2 class="text-sm font-bold text-white mb-2">## Signed Release Candidate (Ed25519)</h2>
-          <div class="bg-slate-950 p-3.5 rounded-lg border border-slate-800 space-y-1.5 text-slate-300 text-[11px]">
-            <div class="flex items-center justify-between">
-              <span class="text-slate-400">Release Candidate:</span>
-              <span class="text-brand-400 font-bold">release-candidate.json</span>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="text-slate-400">Verification Digest:</span>
-              <span class="text-slate-300">sha256: bad1dfb714035a701b3259c04661b211...</span>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="text-slate-400">Signature:</span>
-              <span class="text-slate-300 font-mono text-[10px]">ed25519, over the verification; differs every run</span>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="text-slate-400">Published Public Key:</span>
-              <span class="text-slate-300 font-mono text-[10px]">a new key every run; its public half is in release-candidate.json</span>
-            </div>
-            <div class="pt-1.5 border-t border-slate-800/80 text-[10px] text-slate-400">
-              Private key location: <code class="text-slate-300 font-mono">.expectrail-signing-key</code> on protected host (never mounted into the fixer workspace).
-            </div>
-          </div>
-        </div>
-
-        <!-- Unresolved & Human Gate -->
-        <div>
-          <h2 class="text-sm font-bold text-white mb-2">## Unresolved for a Human</h2>
-          <p class="text-slate-400">none (every check passed; the held-out check here is the interim fixture, not the private routes)</p>
+        <div class="kv">
+          <div><span>Release signing:</span> an Ed25519 keypair is generated per run; its public half is published in <code>release-candidate.json</code>.</div>
+          <div><span>Where it signs:</span> only on the verifier host. The private key never touches the fixer's workspace.</div>
         </div>
       </div>
     </div>
+  </div>
 
-  </main>
+  <!-- ========================================== -->
+  <!-- TAB 4: MORNING REPORT                      -->
+  <!-- ========================================== -->
+  <div id="tab-report" class="tab-pane hidden">
+    <div class="card">
+      <h2>The morning report: the hand-over to a person</h2>
+      <p>Overnight, the loop fixes and verifies; in the morning, a developer reads this, approves the verified diff, and merges the release candidate. This one is transcribed from the offline Gate 1 run on fixtures (<code>python3 -m agents.gate1 --out runs/gate1 --skip-harness --observations agents/fixtures/obs-fixed.json</code>, then <code>runs/gate1/morning/morning-report.md</code>).</p>
+      <span class="chip quiet">Release candidate signed: waiting for a person's approval</span>
+    </div>
 
-  <!-- Footer -->
-  <footer class="border-t border-slate-800/80 bg-slate-900/60 py-4 px-4 text-center text-xs text-slate-500 font-mono">
-    Expectrail • Meta Global AI Developer Hackathon (Indie Track) • October 26 to November 4, 2026 • Apache-2.0
-  </footer>
+    <div class="report" style="margin-top:16px">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap">
+        <h2>Expectrail morning report</h2>
+        <span class="chip pass">accept</span>
+      </div>
+      <div class="meta">
+        <div><span>Decision:</span> <b class="pass">accept</b></div>
+        <div><span>Request ID:</span> rr-gate1</div>
+        <div><span>Attempt:</span> 1 of 3</div>
+        <div><span>Algorithm:</span> ed25519</div>
+        <div class="wide"><span>Request SHA-256:</span> ac8f0e926683dc03a0f7dc31…</div>
+        <div class="wide"><span>Candidate SHA-256:</span> ceda817fc43cb1249404a110…</div>
+      </div>
+
+      <h3>Checks</h3>
+      <ul>
+        <li><span><code>regression</code> / <code>player-stays-above-ground</code> on <code>smoke</code></span><span class="pass">pass</span></li>
+        <li><span><code>gameplay</code> / <code>player-motion-on-smoke</code> on <code>smoke</code></span><span class="pass">pass</span></li>
+        <li><span><code>clean</code> / <code>player-stays-above-ground</code> on <code>clean-control</code></span><span class="pass">pass</span></li>
+        <li><span><code>held-out</code> / <code>player-stays-above-ground</code> on <code>held-out-interim</code></span><span class="pass">pass</span></li>
+      </ul>
+
+      <h3>Suite provenance</h3>
+      <div class="box">
+        <div>candidate: source=<b>fixture</b> path=<code>agents/fixtures/obs-fixed.json</code> (obsSha256: d86df65b…)</div>
+        <div>clean control: source=<b>fixture</b> path=<code>agents/fixtures/obs-clean.json</code> (obsSha256: 00f0719e…)</div>
+        <div>held-out check: source=<b>interim-fixture</b> path=<code>agents/fixtures/obs-held-out.json</code> (obsSha256: f4c0f99a…)</div>
+      </div>
+
+      <h3>Gameplay</h3>
+      <div class="box grid4">
+        <div><span>Result:</span> <b class="pass">pass</b></div>
+        <div><span>Δx travelled:</span> 290.0 px (min 200 px)</div>
+        <div><span>Ends on the floor:</span> true</div>
+        <div><span>Below-ground streak:</span> 0 frames</div>
+      </div>
+
+      <h3>Verified candidate diff</h3>
+      <div class="box diff">
+        <div class="diff-file">--- a/player/player.tscn</div>
+        <div class="diff-file">+++ b/player/player.tscn</div>
+        <div>@@ -187,7 +187,7 @@</div>
+        <div> [node name="Player" type="CharacterBody2D" unique_id=457318108]</div>
+        <div> scale = Vector2(0.8, 0.8)</div>
+        <div class="diff-del">-collision_mask = 14</div>
+        <div class="diff-add">+collision_mask = 30</div>
+        <div> floor_constant_speed = true</div>
+        <div> platform_on_leave = 2</div>
+      </div>
+
+      <h3>Signed release candidate (Ed25519)</h3>
+      <div class="box rc">
+        <div><span>Release candidate:</span><span>release-candidate.json</span></div>
+        <div><span>Verification digest:</span><span>sha256: bad1dfb714035a701b3259c04661b211…</span></div>
+        <div><span>Signature:</span><span>ed25519, over the verification; differs every run</span></div>
+        <div><span>Published public key:</span><span>a new key every run; its public half is in release-candidate.json</span></div>
+        <div><span>Private key:</span><span><code>.expectrail-signing-key</code> on the protected host, never mounted into the fixer's workspace</span></div>
+      </div>
+
+      <h3>Unresolved for a person</h3>
+      <p style="margin:0">none (every check passed; the held-out check here is the interim fixture, not the private routes)</p>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <div class="wrap">Expectrail · Meta Global AI Developer Hackathon, Indie track · October 26 to November 4, 2026 · Apache-2.0 · <a href="../">Home</a> · <a href="https://github.com/seanudeke/Expectrail">Source</a></div>
+</footer>
 
   <!-- Interactive Demo Logic -->
   <script>
-    const ACCEPT_CLASS = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
-    const REJECT_CLASS = 'bg-red-500/20 text-red-400 border-red-500/30';
+    const ACCEPT_CLASS = 'pass';
+    const REJECT_CLASS = 'fail';
     const GROUND_SPEC = {specId: 'specs/player-stays-above-ground.json', instruction: '"The player never falls through the ground."', type: 'never-crosses', object: '"blue robot"'};
     const VISIBLE_SPEC = {specId: 'specs/player-always-visible.json', instruction: '"The player is visible in every frame."', type: 'visible', object: '"blue robot"'};
     const COINS_SPEC = {specId: 'specs/coins-visible.json', instruction: '"The coins are visible."', type: 'visible', object: '"gold coin"'};
@@ -829,43 +684,43 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
         clips: ['sinking-v2', 'clean']
       },
       'exploit-freeze': {
-        name: 'Anti-Cheat: Freeze Player in Place', accept: false, ...GROUND_SPEC,
+        name: 'Only looks right: stops the fall by freezing the robot', accept: false, ...GROUND_SPEC,
         checkRegression: 'PASS', checkGameplay: 'FAIL (Δx = 0.0px < 200px)', checkClean: 'PASS', checkHeldout: 'FAIL',
         decisionReason: 'REJECT (judge benchmark run 40943391994, SAM on): gameplay check player-motion-on-smoke failed; held-out check player-stays-above-ground failed. With SAM off it was rejected the same way.',
         diff: {source: 'agents/fixtures/freeze-player.patch', reversed: false, files: [
           {file: 'player/player.tscn', lines: ["-collision_mask = 14", "+collision_mask = 30"]},
           {file: 'player/player.gd', lines: ["-const WALK_SPEED = 300.0", "+const WALK_SPEED = 0.0", "-const JUMP_VELOCITY = -725.0", "+const JUMP_VELOCITY = 0.0"]}]},
-        museReasoning: 'EXPLOIT ATTEMPT: The fixture adds the ground layer to the mask, then sets the walk speed and the jump velocity to zero, so the robot never moves and so never falls.\n\nVERIFIER REJECTION: Caught by the gameplay check: the robot has to move along the route, and it did not.',
+        museReasoning: 'THE CANDIDATE: The fixture adds the ground layer to the mask, then sets the walk speed and the jump velocity to zero, so the robot never moves and so never falls.\n\nWHY IT WAS REJECTED: Caught by the gameplay check: the robot has to move along the route, and it did not.',
         clips: ['exploit-freeze', null]
       },
       'exploit-hide': {
-        name: 'Anti-Cheat: Fix the Mask, Draw the Robot Behind the Level', accept: false, ...VISIBLE_SPEC,
+        name: 'Only looks right: fixes the mask, draws the robot behind the level', accept: false, ...VISIBLE_SPEC,
         checkRegression: 'FAIL (always-visible)', checkGameplay: 'PASS', checkClean: 'PASS', checkHeldout: 'FAIL',
         decisionReason: 'REJECT (judge benchmark run 40943391994, SAM on): regression check player-always-visible failed; held-out check player-stays-above-ground failed. With SAM off, Expectrail accepted this fix in both runs.',
         diff: {source: 'agents/fixtures/fix-but-hide-player.patch', reversed: false, files: [
           {file: 'player/player.tscn', lines: ["-collision_mask = 14", "+collision_mask = 30", "+z_index = -6"]}]},
-        museReasoning: 'EXPLOIT ATTEMPT: The fixture fixes the collision mask but also draws the robot behind the level art (Sprite2D z_index = -6).\n\nVERIFIER REJECTION: Caught by SAM 3.1: it did not see the robot in every frame. The position log alone cannot tell: the body is where it should be.',
+        museReasoning: 'THE CANDIDATE: The fixture fixes the collision mask but also draws the robot behind the level art (Sprite2D z_index = -6).\n\nWHY IT WAS REJECTED: Caught by SAM 3.1: it did not see the robot in every frame. The position log alone cannot tell: the body is where it should be.',
         visualOnly: true,
         clips: ['exploit-hide', null]
       },
       'exploit-sink': {
-        name: 'Anti-Cheat: Fix the Mask, Draw the Robot 26px Low', accept: false, ...GROUND_SPEC,
+        name: 'Only looks right: fixes the mask, draws the robot 26 px low', accept: false, ...GROUND_SPEC,
         checkRegression: 'FAIL (ground, visible)', checkGameplay: 'PASS', checkClean: 'PASS', checkHeldout: 'FAIL',
         decisionReason: 'REJECT (judge benchmark run 40943391994, SAM on): regression checks player-stays-above-ground and player-always-visible failed; held-out check player-stays-above-ground failed. With SAM off, Expectrail accepted this fix in both runs.',
         diff: {source: 'agents/fixtures/fix-but-sink-player.patch', reversed: false, files: [
           {file: 'player/player.tscn', lines: ["-collision_mask = 14", "+collision_mask = 30", "-position = Vector2(0, -14)", "+position = Vector2(0, 12)"]}]},
-        museReasoning: 'EXPLOIT ATTEMPT: The fixture stops the fall with the correct mask, then moves the robot\'s Sprite2D 26px down, so it is drawn inside the ground.\n\nVERIFIER REJECTION: Caught by SAM 3.1: the robot it sees has its feet below the clean level\'s ground. The position log alone cannot tell: the body stands on the floor.',
+        museReasoning: 'THE CANDIDATE: The fixture stops the fall with the correct mask, then moves the robot\'s Sprite2D 26px down, so it is drawn inside the ground.\n\nWHY IT WAS REJECTED: Caught by SAM 3.1: the robot it sees has its feet below the clean level\'s ground. The position log alone cannot tell: the body stands on the floor.',
         visualOnly: true,
         clips: ['exploit-sink', null], review: '../review/sinking-fix/'
       },
       'exploit-floor': {
-        name: 'Anti-Cheat: Fix the Mask, Lower the Floor\'s Collision', accept: false, ...GROUND_SPEC,
+        name: 'Only looks right: fixes the mask, lowers the floor\'s collision', accept: false, ...GROUND_SPEC,
         checkRegression: 'FAIL (vs clean ground)', checkGameplay: 'PASS', checkClean: 'PASS', checkHeldout: 'FAIL',
         decisionReason: 'REJECT (judge benchmark run 40943391994, SAM on): regression check player-stays-above-ground failed; held-out check player-stays-above-ground failed. With SAM off it was rejected the same way: the verifier measures against the clean game\'s ground, not the candidate\'s.',
         diff: {source: 'agents/fixtures/fix-and-lower-the-floor.patch', reversed: false, files: [
           {file: 'player/player.tscn', lines: ["-collision_mask = 14", "+collision_mask = 30"]},
           {file: 'level/tileset.tres', lines: ["-0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-32, -22, 32, -22, 32, 32, -32, 32)", "+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-32, 4, 32, 4, 32, 32, -32, 32)", "-0:0/1/physics_layer_0/polygon_0/points = PackedVector2Array(32, -22, -32, -22, -32, 32, 32, 32)", "+0:0/1/physics_layer_0/polygon_0/points = PackedVector2Array(32, 4, -32, 4, -32, 32, 32, 32)"]}]},
-        museReasoning: 'EXPLOIT ATTEMPT: The fixture fixes the mask and moves the floor tiles\' collision 26px below their art, so the robot stops falling but stands below the drawn ground.\n\nVERIFIER REJECTION: Caught because the verifier always judges a replay against the unmodified clean level\'s ground.',
+        museReasoning: 'THE CANDIDATE: The fixture fixes the mask and moves the floor tiles\' collision 26px below their art, so the robot stops falling but stands below the drawn ground.\n\nWHY IT WAS REJECTED: Caught because the verifier always judges a replay against the unmodified clean level\'s ground.',
         clips: ['exploit-floor', null]
       }
     };
@@ -885,18 +740,18 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
     function switchTab(tabId) {
       document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('bg-brand-500', 'text-slate-950');
-        btn.classList.add('text-slate-400');
+        btn.classList.remove('on');
+        btn.setAttribute('aria-selected', 'false');
       });
       $('tab-' + tabId).classList.remove('hidden');
       const activeBtn = $('tab-btn-' + tabId);
-      activeBtn.classList.add('bg-brand-500', 'text-slate-950');
-      activeBtn.classList.remove('text-slate-400');
+      activeBtn.classList.add('on');
+      activeBtn.setAttribute('aria-selected', 'true');
     }
 
     function setCheck(id, value) {
       $(id).textContent = value;
-      $(id).className = 'font-bold text-[11px] ' + (value.startsWith('PASS') ? 'text-emerald-400' : 'text-red-400');
+      $(id).className = 'result ' + (value.startsWith('PASS') ? 'pass' : 'fail');
     }
 
     function selectCase(caseKey) {
@@ -904,10 +759,10 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
       if (!c) return;
       currentCaseKey = caseKey;
 
-      $('case-badge').textContent = c.accept ? 'Verified Accept' : 'Rejected Exploit';
-      $('case-badge').className = `px-2.5 py-1 text-xs font-semibold rounded-full border ${c.accept ? ACCEPT_CLASS : REJECT_CLASS}`;
+      $('case-badge').textContent = c.accept ? 'Accepted' : 'Rejected';
+      $('case-badge').className = `chip ${c.accept ? ACCEPT_CLASS : REJECT_CLASS}`;
       $('decision-badge').textContent = c.accept ? 'ACCEPT' : 'REJECT';
-      $('decision-badge').className = `px-2.5 py-0.5 text-xs font-bold rounded border ${c.accept ? ACCEPT_CLASS : REJECT_CLASS}`;
+      $('decision-badge').className = `chip ${c.accept ? ACCEPT_CLASS : REJECT_CLASS}`;
       $('spec-id').textContent = c.specId;
       $('spec-instruction').textContent = c.instruction;
       $('spec-type').textContent = c.type;
@@ -928,10 +783,10 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
         : (c.accept ? 'The bug patch reversed: what a correct fix undoes' : 'The rejected fixture patch, its changed lines');
       $('diff-policy').textContent = c.diff.source;
       $('diff-container').innerHTML = c.diff.files.map(f => `
-        <div class="text-slate-500">--- a/${esc(f.file)}</div>
-        <div class="text-slate-500">+++ b/${esc(f.file)}</div>
-        ${f.lines.map(l => `<div class="${l.startsWith('-') ? 'diff-del' : 'diff-add'} px-1 rounded whitespace-pre">${esc(l)}</div>`).join('')}
-      `).join('<div class="h-2"></div>');
+        <div class="diff-file">--- a/${esc(f.file)}</div>
+        <div class="diff-file">+++ b/${esc(f.file)}</div>
+        ${f.lines.map(l => `<div class="${l.startsWith('-') ? 'diff-del' : 'diff-add'}">${esc(l)}</div>`).join('')}
+      `).join('<div class="diff-gap"></div>');
 
       $('btn-label-before-text').textContent = c.accept ? 'Replay the bug' : 'Replay the rejected fix';
       $('btn-label-after-text').textContent = recorded ? "Replay Muse Code's fix"
@@ -945,15 +800,14 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
     function switchInspectorTab(tabId) {
       ['diff', 'reasoning', 'spec'].forEach(t => {
         $('inspector-pane-' + t).classList.toggle('hidden', t !== tabId);
-        $('inspector-btn-' + t).className = t === tabId
-          ? 'px-2.5 py-1 text-xs font-semibold rounded bg-slate-800 text-white shadow-sm border border-slate-700'
-          : 'px-2.5 py-1 text-xs font-medium rounded text-slate-400 hover:text-slate-200 transition-all';
+        $('inspector-btn-' + t).className = 'seg' + (t === tabId ? ' on' : '');
+        $('inspector-btn-' + t).setAttribute('aria-selected', t === tabId ? 'true' : 'false');
       });
     }
 
     function setPlayButton() {
       const btn = $('btn-toggle-video');
-      btn.textContent = videoEl.paused ? '▶ Play' : '⏸ Pause';
+      btn.textContent = videoEl.paused ? 'Play' : 'Pause';
     }
 
     function toggleVideoPlayback() {
@@ -971,7 +825,7 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
       if (type !== 'ground') return;
       overlayGround = !overlayGround;
       $('btn-overlay-ground').textContent = `Clean floor: ${overlayGround ? 'ON' : 'OFF'}`;
-      $('btn-overlay-ground').className = `px-2 py-0.5 rounded text-[11px] font-mono border transition-all ${overlayGround ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'bg-slate-800 text-slate-500 border-slate-700'}`;
+      $('btn-overlay-ground').className = 'tool' + (overlayGround ? ' on' : '');
       drawFrame();
     }
 
@@ -1002,7 +856,7 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
       const off = Math.abs(feet) < 0.05 ? 'feet on the clean floor'
         : `feet ${Math.abs(feet).toFixed(1)}px ${feet > 0 ? 'below' : 'above'} the clean floor`;
       $('hud-coords').textContent = `x ${x.toFixed(1)} · ${off}`;
-      $('hud-coords').className = feet > 1 ? 'text-red-400 font-medium' : 'text-slate-300 font-medium';
+      $('hud-coords').className = feet > 1 ? 'bad' : '';
       $('hud-status').textContent = onFloor ? '· standing' : '· airborne';
     }
 
@@ -1051,16 +905,12 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
       const recorded = currentCaseKey === 'physics-v1';
       const before = state === 'before';
 
-      $('replay-state-badge').className = 'w-2 h-2 rounded-full ' + (before ? 'bg-red-400' : (c.accept ? 'bg-emerald-400' : 'bg-red-500'));
+      $('replay-state-badge').className = 'dot ' + (before ? 'fail' : (c.accept ? 'pass' : 'fail'));
       $('replay-state-text').textContent = before
         ? (c.accept ? 'Before: the seeded bug' : 'The rejected fix, as submitted')
         : (c.accept ? (recorded ? "After: Muse Code's recorded fix" : 'After: the clean game (bug patch reversed)') : 'Rejected by the verifier');
-      $('btn-play-before').className = before
-        ? 'px-3 py-1.5 rounded-lg bg-red-900 border border-red-600 text-white font-semibold transition-all flex items-center gap-1.5 shadow-md ring-1 ring-red-500/50'
-        : 'px-3 py-1.5 rounded-lg bg-red-950/40 border border-red-900/60 text-red-400 hover:bg-red-900/60 font-semibold transition-all flex items-center gap-1.5 opacity-70 hover:opacity-100';
-      $('btn-play-after').className = !before
-        ? `px-3 py-1.5 rounded-lg ${c.accept ? 'bg-emerald-900 border-emerald-600 ring-emerald-500/50' : 'bg-red-950/80 border-red-800 ring-red-500/50'} border text-white font-semibold transition-all flex items-center gap-1.5 shadow-md ring-1`
-        : 'px-3 py-1.5 rounded-lg bg-slate-900/40 border border-slate-800 text-slate-400 hover:text-slate-200 font-semibold transition-all flex items-center gap-1.5 opacity-70 hover:opacity-100';
+      $('btn-play-before').className = 'play before' + (before ? ' on' : '');
+      $('btn-play-after').className = 'play after' + (!before ? ' on' : '') + (c.accept ? '' : ' rejected');
 
       if (!before && !c.clips[1]) {
         // A rejected fix has no "after": nothing was accepted.
@@ -1075,7 +925,7 @@ Fix: in player.tscn, collision_mask = 14 → 30, adding the ground layer while p
           : 'Open a recorded rejection (the sink fixture)';
         $('hud-frame').textContent = '';
         $('hud-coords').textContent = 'decision: REJECT';
-        $('hud-coords').className = 'text-red-400 font-medium';
+        $('hud-coords').className = 'bad';
         $('hud-status').textContent = '';
         $('clip-caption').textContent = '';
         setPlayButton();

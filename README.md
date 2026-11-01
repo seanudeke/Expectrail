@@ -2,82 +2,128 @@
 
 **An AI coding agent says it fixed the bug. Expectrail plays the game and watches to find out.**
 
-[expectrail.com](https://expectrail.com)
+[expectrail.com](https://expectrail.com) · [Interactive demo](https://expectrail.com/demo/) ·
+[A rejected fix, frame by frame](https://expectrail.com/review/sinking-fix/)
+
+![Two fixes for the same bug, frame 5 of each replay. Left: Muse Code's fix, the robot standing on the floor's edge, accepted. Right: a fix that only looks right, the robot drawn with its legs inside the floor, rejected.](docs/assets/frames/fix-pair.png)
+
+**Left, accepted:** Muse Code's fix, written from a plain bug report. **Right, rejected:** the same
+line, plus one that draws the robot lower than its body. Both stop the fall; the engine's position
+log and Muse Code's own screenshot review accept both. Real frames from the recorded reviews
+([left](docs/review/report-first-run-1/), [right](docs/review/sinking-fix/)); the yellow line is
+drawn here at the floor's edge, the verdicts are the runs' own.
 
 <!-- The demo video's link goes first in the box below once it is uploaded. -->
-> **For judges, in three minutes**
+> **For judges: the whole project in three minutes**
 >
-> - **A fake fix rejected, with its real frames:** the "fix" stops the fall by drawing the robot inside
->   the floor. [docs/review/sinking-fix](docs/review/sinking-fix/) ([live page](https://expectrail.com/review/sinking-fix/))
-> - **A real fix, failing before and passing after:** Muse Code's fix from a live overnight run.
->   [docs/review/report-first-run-1](docs/review/report-first-run-1/) ([live page](https://expectrail.com/review/report-first-run-1/))
-> - **Every result, each with the run behind it:** [Results](#results), and what it cannot do yet:
->   [What Expectrail cannot do yet](#what-expectrail-cannot-do-yet)
-> - **Which Meta models do what:** [Meta models](#meta-models)
-> - **Run it with no keys, in seconds:** `python3 -m pip install -r requirements-dev.txt`, then
->   `python3 -m agents.loop --out runs/loop --mode offline --runs 1` (fixtures, labelled as such;
->   real replays need Linux and Godot: [Try it](#try-it))
-
-Expectrail verifies AI-agent changes by observation, not by trust. It replays the changed game, has
-Meta's vision models (SAM 3.1, or the open-weight Muse Glimmer) find what a plain-English check names
-in the frames, measures that against the engine's own record of where the robot, the coins and the
-floor really are, and accepts the change only if every check passes: checks a person approves (Muse
-Spark can draft one from a sentence; the ground check started from its draft, tightened by hand), kept
-where the agent cannot change them (it sees a failing check's spec only after a failed attempt, and
-never sees the held-out ones).
-
-Those checks are written by people, and they are the gate. Since October 31 Expectrail also looks
-for problems nobody wrote a check for: advisory discovery replays 22 generic probes and judges each
-replay against rules read from the game's own code, reporting only what fails three times out of
-three. It found all four reproduced public bug reports with no false alarm on the clean game, but its
-rules were written after we read those reports, so that is a development result. Blind, on two sets
-of fresh entries written after it was frozen, it flagged 7 of 16 defects and none of the 4
-intentional changes. Discovered checks advise; only the human-written ones can reject a change
-([Two kinds of checks](#two-kinds-of-checks)).
-
-It catches fixes that only look right. Given a "fix" that stops the robot falling through
-the floor by drawing it sunk into the ground, a position-only check passed it, and Muse Code, shown
-the before-and-after screenshots, said the fall was fixed. Expectrail saw the robot's feet below the
-floor and rejected it. In our judge benchmark, with SAM, it accepted none of the 7 fixes that only
-look right and turned down none of the 8 correct ones, in all three runs ([Results](#results)).
-
-We also tried to break it with a mutation bench, registered before any case in the study was
-judged ([`bench/mutation/`](bench/mutation/README.md#results)). Of 47 candidate fixes made by six operators,
-it caught 31 of the 39 that are wrong and accepted all 8 that are right; the 8 misses are one
-operator that changed nothing in the running game. On bugs nobody
-wrote it is weak: weighted by how common each kind of edit is, it caught 0.9% of random single
-edits that differ from the clean game, because it caught none of the 45 in the sample that move,
-resize or re-layer something, 44 of them scenery that no check covers (over the sample as drawn, 10
-of 77). Given the 10 it caught, Muse Code fixed every one correctly on its first attempt, so there
-was no wrong fix left to catch.
-
-Every fix is also reviewed against its failing base: the same checks run on the game with the bug
-and on the game with the fix, so the report shows the requested behavior failing before and passing
-after, not only passing. In six live overnight runs, three on October 30 and three on October 31 on
-the loop as it ships (Muse Code fixing from a plain report), each Muse Code fix was a demonstrated
-repair, and the fix that sinks the robot was rejected with its requested checks still failing
-([docs/review.md](docs/review.md)). Reviews with their real frames before and after the fix: one
-run on the loop as it ships, [docs/review/report-first-run-1](docs/review/report-first-run-1/), one
-from October 30, [docs/review/live-demo-run-1](docs/review/live-demo-run-1/), and the rejected fix
-that sinks the robot, [docs/review/sinking-fix](docs/review/sinking-fix/).
-
-We built and measured it on a game first, because a game shows the gap plainly: a change can pass
-every test and still be visibly broken. Then, to see whether the engineering carries past one game,
-we ran the same verifier on a web checkout page ([Beyond games](#beyond-games-a-web-checkout-page)). Built for the Meta Global AI Developer Hackathon (Indie
-track), October 26 to November 4, 2026. Expectrail was called Nightshift until October 30; the old
-names still work wherever a file or setting from before then turns up
-([`expectrail/legacy.py`](expectrail/legacy.py)).
+> 1. **Two fixes for the same bug.** Both stop the robot falling through the floor. One of them does
+>    it by drawing the robot inside the floor. The engine's position log accepts both. Muse Code,
+>    shown the before-and-after screenshots, accepts both. Expectrail rejects the fake one, because
+>    SAM 3.1 sees the robot's feet below the floor's edge.
+>    [Real frames, before and after](docs/review/sinking-fix/)
+>    ([live page](https://expectrail.com/review/sinking-fix/)); a real fix from a live overnight run,
+>    failing before and passing after: [report-first-run-1](docs/review/report-first-run-1/).
+> 2. **The same question, asked fifteen times.** Seven fixes that only look right and eight correct
+>    ones, each given to three judges, in three runs. Expectrail with SAM accepted 0 of the 7 and all
+>    8 of the 8, every run. The position log alone let 3 of the 7 through; Muse Code from screenshots
+>    let 2 through and turned down correct ones. [The table](#who-catches-a-fix-that-only-looks-right).
+> 3. **Where it is weak, measured.** On single edits nobody wrote, the checks caught 10 of 77; there
+>    is no blind catch on a real-world bug yet; it replays fixed routes and does not explore. Every
+>    number has the CI run behind it. [Results](#results) ·
+>    [What Expectrail cannot do yet](#what-expectrail-cannot-do-yet).
+> 4. **Run it with no keys, in seconds:** `python3 -m pip install -r requirements-dev.txt`, then
+>    `python3 -m agents.loop --out runs/loop --mode offline --runs 1` (fixtures, labelled as such;
+>    a real replay needs Linux and Godot: [Try it](#try-it)).
+> 5. **Which Meta model does what:** [Meta models](#meta-models). Seven are used; none of them
+>    decides whether a change passes.
 
 ## The problem
 
-Coding agents now change code faster than anyone can review it, and the usual gate, "the tests
-pass", checks only what someone wrote a test for. Ask the agent whether its own fix worked and it
-grades its own homework. Games show the gap most plainly: the demo game we use ships with no tests
-at all, so existing checks catch none of our seeded bugs, and most of what goes wrong (a robot
-falling through the floor, coins that are not drawn, a character hidden behind trees) shows only on
-screen. Our first users would be teams that let coding agents change code their tests do not cover,
-starting with game studios, where that gap is widest. Expectrail fits into the pipeline they already
-have as one more gate; it does not replace their CI, their tests or their QA.
+Coding agents now change code faster than anyone can review it. The gate everyone relies on, "the
+tests pass", checks only what someone already wrote a test for, and the bugs that matter most are
+the ones nobody anticipated. Ask the agent whether its own fix worked and it grades its own
+homework. It believes in exactly the fixes that matter most, the ones that only look right: shown
+before-and-after screenshots of a fix that draws the robot inside the ground, Muse Code said the
+fall was fixed.
+
+Games show the gap most plainly. A change can pass every test and still be visibly broken: a robot
+falling through the floor, coins that are not drawn, a character hidden behind trees. The demo game
+we use ships with no tests at all, so existing checks catch none of our seeded bugs, and most of
+what goes wrong shows only on screen. That is why we built and measured on a game first. Our first
+users would be teams that let coding agents change code their tests do not cover, starting with
+game studios, where that gap is widest. Expectrail fits into the pipeline they already have as one
+more gate; it does not replace their CI, their tests or their QA.
+
+## The idea: verify by observation, not by trust
+
+Expectrail is an independent verification layer for changes made by AI agents. The agent that
+writes a change never certifies it. Three rules carry that:
+
+1. **Evidence comes from running the changed software and watching it**, not from the diff or the
+   agent's account of it. A harness replays a fixed route through the game and captures every
+   frame, the same way every time.
+2. **Models observe; plain code decides.** Meta's vision models (SAM 3.1, or the open-weight Muse
+   Glimmer) find what a plain-English check names in the frames. The engine logs where the robot,
+   the coins and the floor really are. A deterministic evaluator measures one against the other,
+   and against the clean game, and accepts the change only if every check passes. A missing or
+   uncertain observation is "needs review", never a pass.
+3. **The agent cannot reach the judge.** The checks are written by people and approved once (Muse
+   Spark drafts one from a sentence; the ground check started from its draft, tightened by hand).
+   They live outside the fixer's sandbox, with the held-out routes and the key that signs a
+   release. The fixer sees a failing check's spec only after a failed attempt, and never sees the
+   held-out ones.
+
+Built for the Meta Global AI Developer Hackathon (Indie track), October 26 to November 4, 2026.
+Expectrail was called Nightshift until October 30; the old names still work wherever a file or
+setting from before then turns up ([`expectrail/legacy.py`](expectrail/legacy.py)).
+
+## What it shows
+
+Each claim below has a run behind it; the full tables, with limits, are under [Results](#results).
+
+- **It rejects fixes that only look right.** Given a "fix" that stops the robot falling through the
+  floor by drawing it sunk into the ground, a position-only check passed it, and Muse Code, shown
+  the before-and-after screenshots, said the fall was fixed. Expectrail saw the robot's feet below
+  the floor and rejected it. In the judge benchmark, with SAM, it accepted none of the 7 fixes that
+  only look right and turned down none of the 8 correct ones, in all three runs
+  ([the table](#who-catches-a-fix-that-only-looks-right)).
+- **The verifier is where it wins, not the fixer.** Muse Code fixes most bugs from a plain report:
+  on October 29 it fixed all 8 development bugs from screenshots alone, as well as with our
+  evidence. What screenshots cannot do is judge. So the loop as it ships gives the fixer a plain
+  bug report first, verifies every attempt, and sends Expectrail's evidence to the fixer only after
+  a failed one ([docs/report-first.md](docs/report-first.md)). The evidence still matters on the
+  subtle bugs: on October 31 it fixed both sinking bugs on the first attempt, where the report
+  alone timed out.
+- **We tried to break it, and wrote down where it broke.** A mutation bench, registered before any
+  case was judged, made 47 candidate fixes with six operators: the checks caught 31 of the 39 that
+  are wrong and accepted all 8 that are right; the 8 misses are one operator that changed nothing
+  in the running game. On single edits nobody wrote it is weak: weighted by how common each kind of
+  edit is, it caught 0.9% of those that differ from the clean game, because it caught none of the
+  45 that move, resize or re-layer something, 44 of them scenery no check covers (10 of 77 over the
+  sample as drawn). Given the 10 it caught, Muse Code fixed every one correctly on its first
+  attempt ([`bench/mutation/`](bench/mutation/README.md#results)).
+- **Every fix is reviewed against its failing base.** The same checks run on the game with the bug
+  and on the game with the fix, so a report shows the requested behaviour failing before and
+  passing after, not only passing. In six live overnight runs on October 30 and 31, each Muse Code
+  fix was a demonstrated repair, and the fix that sinks the robot was rejected with its requested
+  checks still failing ([docs/review.md](docs/review.md)). Reviews with real frames:
+  [report-first-run-1](docs/review/report-first-run-1/) (the loop as it ships),
+  [live-demo-run-1](docs/review/live-demo-run-1/) (the evidence given first), and the rejected
+  [sinking-fix](docs/review/sinking-fix/).
+- **The same engineering carries to a second kind of software.** To see whether the design is
+  about games or about verification, we pointed the same verifier at a web checkout page, with
+  Chromium in place of the game engine and the page's layout boxes in place of the position log.
+  With SAM it caught 8 of 8 seeded bugs and 4 of 4 private ones, accepted none of 5 changes that
+  only look right, and accepted all 16 of Muse Code's live repairs
+  ([Beyond games](#beyond-games-a-web-checkout-page)).
+- **It has started to look for problems nobody wrote a check for.** Human-written checks are the
+  gate. Since October 31, advisory discovery also replays 22 generic probes and judges each replay
+  against rules read from the game's own code, reporting only what fails three times out of three.
+  It found all four reproduced public bug reports with no false alarm on the clean game, but its
+  rules were written after we read those reports, so that is a development result. Blind, on two
+  sets of fresh entries written after it was frozen, it flagged 7 of 16 defects and none of the 4
+  intentional changes. Discovered checks advise; only the human-written ones can reject a change
+  ([Two kinds of checks](#two-kinds-of-checks)).
 
 ## How it works
 
@@ -99,38 +145,44 @@ flowchart LR
   rc -->|"approves the release"| person
 ```
 
+Five steps. Models do the looking and the fixing; plain code makes every decision.
+
 1. **Play.** A harness replays a fixed route through the game and captures every frame, the same
-   way every time.
+   way every time (ten replays, bit-identical).
 2. **See.** Muse Spark turns a plain-English check ("the player never falls through the ground")
    into a structured test spec that a person approves once. SAM 3.1 (or Muse Glimmer) finds the
-   objects the spec names, and the engine logs where they really are. A deterministic evaluator,
-   not a model, decides pass or fail; a missing or uncertain observation is "needs review", never a
-   pass.
-3. **Fix.** Muse Code first gets a plain bug report: the failing check's sentence, screenshots of
-   the failing run, the route and its log. If that attempt fails (the verifier rejects it, or it
-   produces no fix in time), the next one gets Expectrail's evidence (the spec, the verdict, the
-   first failing frame, and which public checks failed), and never anything about the held-out
-   routes. Muse fixes most bugs from the report alone, but on October 31 it timed out on both
-   sinking bugs until it had the evidence. The verifier is what stops a fix that only looks right,
-   so it runs on every attempt ([docs/report-first.md](docs/report-first.md)). Muse patches the
-   game in its own worktree. In the live runs it works inside bubblewrap: only that worktree is mounted (its
-   project config read-only, an empty home), so the verifier's code, the held-out cases and the
-   signing key are not in its filesystem at all. Since October 30 it has no network of its own: its
-   only way out is the key gateway, which reaches Meta's API (`*.meta.ai`) and holds the key
-   ([docs/obaaf.md](docs/obaaf.md)). Bubblewrap is a namespace sandbox on the host's kernel, not a VM. Where
-   bubblewrap is not available, the fixer falls back to a worktree that does not contain those files.
-4. **Verify.** A separate verifier rebuilds, replays, and runs the regression, gameplay, held-out
-   and clean checks. It accepts a candidate only if every check passes, and it rejects a fix that
-   only looks right, such as one that stops the fall by drawing the robot inside the ground. Before
-   anything is spent, one image checks that SAM answers; if it does not, the run stops before the
-   fixer. If the judge stops answering later (SAM down or out of credit), the same fix is judged
-   again: by SAM once more (unless the key was refused or is out of credit), then by Muse Glimmer
-   checked against the engine, labelled as such, then left for a person. A rejection is never sent
-   to a second judge, an outage never costs the fixer an attempt, and the review against the
-   failing base uses whichever judge decided ([docs/fallbacks.md](docs/fallbacks.md)).
-5. **Hand over.** Before-and-after frames, the diff, unresolved cases, and a release candidate
-   signed outside the fixer's reach, for a person to approve. It can run overnight; the point is the
-   sign-off, not the hour.
+   objects the spec names in the frames, and the engine logs where they really are.
+3. **Decide.** A deterministic evaluator, not a model, compares the two and decides pass or fail. A
+   missing or uncertain observation is "needs review", never a pass.
+4. **Fix.** Muse Code gets what a developer would get, and nothing the judge keeps private:
+   - **The first attempt gets a plain bug report:** the failing check's sentence, screenshots of
+     the failing run, the route and its log.
+   - **A failed attempt earns the evidence.** If the verifier rejects the attempt, or it produces
+     no fix in time, the next one gets the spec, the verdict, the first failing frame and which
+     public checks failed. Never anything about the held-out routes. Muse fixes most bugs from the
+     report alone, but on October 31 it timed out on both sinking bugs until it had the evidence
+     ([docs/report-first.md](docs/report-first.md)).
+   - **It works in a sandbox.** Muse patches the game in its own worktree. In the live runs that
+     worktree is the only thing mounted inside bubblewrap (its project config read-only, an empty
+     home), so the verifier's code, the held-out cases and the signing key are not in its
+     filesystem at all. Since October 30 it has no network of its own: its only way out is the key
+     gateway, which reaches Meta's API (`*.meta.ai`) and holds the key
+     ([docs/obaaf.md](docs/obaaf.md)). Bubblewrap is a namespace sandbox on the host's kernel, not
+     a VM; where it is not available, the fixer falls back to a worktree that does not contain
+     those files.
+5. **Verify and hand over.** A separate verifier rebuilds, replays, and runs the regression,
+   gameplay, held-out and clean checks on every attempt. It accepts a candidate only if every
+   check passes, so a fix that only looks right, such as one that stops the fall by drawing the
+   robot inside the ground, is rejected with its evidence. What a person then gets: before-and-after
+   frames, the diff, unresolved cases, and a release candidate signed outside the fixer's reach.
+   It can run overnight; the point is the sign-off, not the hour.
+   - **When the judge cannot answer, nobody wins by default.** Before anything is spent, one image
+     checks that SAM answers; if it does not, the run stops before the fixer. If SAM stops
+     answering later (down, or out of credit), the same fix is judged again: by SAM once more
+     (unless the key was refused or is out of credit), then by Muse Glimmer checked against the
+     engine, labelled as such, then left for a person. A rejection is never sent to a second judge,
+     an outage never costs the fixer an attempt, and the review against the failing base uses
+     whichever judge decided ([docs/fallbacks.md](docs/fallbacks.md)).
 
 **Feedback goes in, but never straight to the fixer.** Muse Voice Transcribe turns a recorded
 playtest into who-said-what. When Muse Spark sorts a remark as a bug and writes a one-line check
@@ -176,11 +228,15 @@ CI ([docs/discovery.md](docs/discovery.md)).
 ## Results
 
 Every number here comes from a file in [`bench/`](bench), written from a CI run's own output, with
-the command that reruns it; the one exception, Meta API spend, comes from the team's usage export. Four bug families (physics fall-through, missing texture, layering,
-sinking), with two public development variants and two private held-out variants of each; the
-detection benches replay every variant, and the clean game, on five routes. We wrote those bugs;
-four more reproduce bugs other people reported ([Bugs we did not write](#bugs-we-did-not-write)),
-and the mutation bench generates its own ([`bench/mutation/`](bench/mutation/README.md)).
+the command that reruns it; the one exception, Meta API spend, comes from the team's usage export.
+Read the table as three questions: does it catch the bug (detection), does it reject a fix that
+only looks right (the judge), and does the whole loop run live (the demo path).
+
+The cases: four bug families (physics fall-through, missing texture, layering, sinking), with two
+public development variants and two private held-out variants of each; the detection benches
+replay every variant, and the clean game, on five routes. We wrote those bugs; four more reproduce
+bugs other people reported ([Bugs we did not write](#bugs-we-did-not-write)), and the mutation
+bench generates its own ([`bench/mutation/`](bench/mutation/README.md)).
 
 | What we measured | Result | Run |
 | --- | --- | --- |
@@ -247,15 +303,16 @@ game, and that is the next thing to test, not a result.
 What these numbers do and do not say:
 
 - **The verifier is where Expectrail wins, not the fixer.** On October 29 Muse Code fixed all 8
-  development bugs from screenshots alone, as well as with our evidence. What screenshots alone cannot do is judge:
-  Muse from screenshots accepted 2 of 7 fixes that only look right (one lowers the floor, one sinks
-  the robot) and turned down one or two good ones, and the strongest outside models, which accepted
-  every bad fix, still turned down correct ones (Claude 5 times in 24, GPT once). Expectrail with SAM
-  accepted none of the bad and all of the good, in all three runs. So since October 30 the fixer gets a plain report first, every
-  attempt is verified, and Expectrail's evidence goes to the fixer after a failed attempt. The
-  evidence still matters for fixing on the subtle bugs: on October 31 it fixed both sinking bugs
-  on the first attempt, where the report alone timed out
-  ([docs/report-first.md](docs/report-first.md) has the decision, its evidence and that amendment).
+  development bugs from screenshots alone, as well as with our evidence. What screenshots alone
+  cannot do is judge: Muse from screenshots accepted 2 of 7 fixes that only look right (one lowers
+  the floor, one sinks the robot) and turned down one or two good ones. The strongest outside
+  models rejected every bad fix on this small game, but still turned down correct ones (Claude 5
+  times in 24, GPT once). Expectrail with SAM accepted none of the bad and all of the good, in all
+  three runs. So since October 30 the fixer gets a plain report first, every attempt is verified,
+  and Expectrail's evidence goes to the fixer after a failed attempt. The evidence still matters
+  for fixing on the subtle bugs: on October 31 it fixed both sinking bugs on the first attempt,
+  where the report alone timed out ([docs/report-first.md](docs/report-first.md) has the decision,
+  its evidence and that amendment).
 - **One held-out catch came after a miss.** The first held-out runs caught 7 of 8. The eighth
   (sinking/v4) was caught only after we added a check, built from the public game without reading
   that variant's patch, so it is not a blind catch ([docs/sam.md](docs/sam.md),
@@ -496,10 +553,12 @@ What this does and does not show:
 
 Known limits in more detail, and what we would build next: [docs/future-work.md](docs/future-work.md).
 
-## Interactive Hosted Demo
+## Interactive demo
 
 The case explorer and audit vault, at [expectrail.com/demo/](https://expectrail.com/demo/) (source:
-[`docs/demo/index.html`](docs/demo/index.html)). Viewing it calls no API.
+[`docs/demo/index.html`](docs/demo/index.html)). Pick a seeded bug or a rejected fix, replay the
+captured clip with the clean floor drawn over it, and read the checks, the patch and the verdict
+beside it. Viewing it calls no API; the page is self-contained and needs no CDN.
 
 Every clip in it is a capture made for the page with the harness, `python3 -m harness.demo_clips`:
 the clean game with a public bug patch, Muse Code's recorded fix or a rejected fixture applied,
@@ -516,15 +575,15 @@ under [Results](#results) and in [`bench/`](bench).
 - **Run it locally:** `python3 -m http.server 8000 --directory docs`, then open
   http://localhost:8000/demo/. It needs a server: the page reads its clip manifest, which browsers
   do not let a page read from `file://`.
-- **Case Explorer:** the 8 development bugs (physics fall-through, missing textures, layering,
-  sinking) and the 4 rejected fixes that only look right (freezing the robot, drawing it behind the
-  level, drawing it 26 px low, lowering the floor's collision), each with its clip, its checks (the
-  exploits' from judge benchmark run 40943391994), and the patch lines a correct fix undoes or the
-  fixture changes, copied from the patch (`tests/test_demo_page.py` checks them).
-- **Benchmark Matrix:** the October 30 development fix matrix, and later results with their runs.
-- **Security & Trust:** deny-by-absence and the canary probe, including the reads it does not deny
+- **Cases:** the 8 development bugs (physics fall-through, missing textures, layering, sinking)
+  and the 4 rejected fixes that only look right (freezing the robot, drawing it behind the level,
+  drawing it 26 px low, lowering the floor's collision), each with its clip, its checks (the
+  rejected fixes' from judge benchmark run 40943391994), and the patch lines a correct fix undoes
+  or the fixture changes, copied from the patch (`tests/test_demo_page.py` checks them).
+- **Results:** the October 30 development fix matrix, and later results with their runs.
+- **Trust boundary:** deny-by-absence and the canary probe, including the reads it does not deny
   without an OS sandbox.
-- **Morning Report:** the offline Gate 1 report and its signed release candidate.
+- **Morning report:** the offline Gate 1 report and its signed release candidate.
 
 ## Try it
 
@@ -585,7 +644,7 @@ See [agents/README.md](agents/README.md) for Muse API / Muse Code setup (`.env`,
 | [`apps/checkout/`](apps/checkout/README.md) | The second domain: Bootstrap's checkout example (unmodified, MIT), its seeded bugs and checks, judged through a Chromium harness ([`harness/web/`](harness/web)) | Sean |
 | [`bench/`](bench/README.md) | Every recorded result, written from a CI run's own output with the command that reruns it; the mutation bench's registration and records ([`bench/mutation/`](bench/mutation/README.md)) | everyone; the mutation bench, Taofeek |
 
-## Gates
+## Milestones
 
 - **Gate 1, October 28:** one seeded bug caught by a visual assertion, fixed by Muse Code in a
   fixer worktree without verifier secrets mounted, and accepted by the protected verifier, end to
