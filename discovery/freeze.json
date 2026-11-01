@@ -8,7 +8,7 @@
   "expectrail/trace/normalize.py": "7e4aec8f3ec4af9c503a3c7ff2efaf2252022c03cf237c445e8e78596774a8eb",
   "expectrail/trace/signals.py": "81e522b01d580ee9718679fe738cc6434024d5214790dc9fea921ae7bcd0be92",
   "expectrail/discovery/__init__.py": "184d38203c6cda9eed5d96189b9cce737a4541bad62b84e8dfd16bc223d9e4d3",
-  "expectrail/discovery/planner.py": "aac2d874472295d68c328637826387f82330bfc2a2f0787dd3d10ec6dd6d998d",
+  "expectrail/discovery/planner.py": "c8e422d7d4c76509f8fa5c8a21e474fb82db6a0abc06551a599db9a66feeb8ab",
   "expectrail/discovery/probes.py": "60a146a945bbaa0c43b19b57e1d6b08c3f393ef2284d1b051c98a56d3d73b054",
   "expectrail/discovery/route_compiler.py": "82f83af3fdf00876d5e579405879921cc42726e2c6e0bc39fa0554b7daeae0b7",
   "expectrail/discovery/run.py": "54b4ba41aba4c04c0403b9d740a1094118e3389b99050379c0f96be0dd65066a",
@@ -26,6 +26,6 @@
  "gameTree": {
   "game/platformer": "6a273587d64e10a74c0160256cfdc4964f16ed3e93fe7ab178e1bedc5071b280"
  },
- "command": "python -m expectrail.discovery.cli discover --profile discovery/platformer.profile.json --snapshot <id>:base:<patch> --out <dir> --planner <off|spark> --label 'FRESH LIVE' --max-seconds 1800",
- "sha256": "6e9ca2bda1c0cf3d0d491ae411bbeb54e18c6701ebd1ed6274c742c02a644824"
+ "command": "python -m expectrail.discovery.cli discover --profile discovery/platformer.profile.json --snapshot <id>:base:<patch> [--snapshot reference:reference with the planner on] --out <dir> --planner <off|spark> --label 'FRESH LIVE' --max-seconds 1800",
+ "sha256": "9af1f621c33ce4668eb8ad356a3220ea352d106595b0bc1b4cf877eead5e3053"
 }

@@ -138,6 +138,8 @@ benchmark.
   (`bench/discovery/blind-run-41248745687.json`). A second run with the Muse Spark planner on
   (41250932288) gave the same counts because the planner never answered (no content from any
   call), so the planner-on condition is not measured (`bench/discovery/blind-run-41250932288.json`).
+  Set 1 is then retired: the planner's fix touches a frozen file, so fresh set 2 is written against
+  freeze 2 and gets one planner-off and one planner-on run, scored the same way.
 - **What we report for discovery:** defects flagged out of defects; intentional changes and the
   clean game flagged (false alarms); findings that did not reproduce three times out of three;
   incomplete jobs. Development and blind results are reported apart, and a miss is never answered

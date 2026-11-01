@@ -294,9 +294,11 @@ clean game as the false-alarm control ([`bench/discovery/`](bench/discovery/READ
   a small set; the writer was an AI agent following a prompt written by the session that built the
   discoverer, which suggested the areas to draw from; and what each entry is stays private until
   the event is over ([docs/discovery.md](docs/discovery.md#blind-run-1-october-31)).
-- **The Muse Spark planner has not produced a result yet:** in its first live calls, blind run 2,
-  it returned no content (its reasoning used up the token limit we set), so that run repeated run
-  1's counts from the templates alone.
+- **The Muse Spark planner has no blind result yet.** In its first live calls, blind run 2, it
+  returned no content (its reasoning used up the token limit we set), so that run repeated run 1's
+  counts from the templates alone. Fixed and run on the public builds, with the clean game as each
+  job's reference, it added second reasons but no new detection. A second fresh set, written
+  against a new freeze that includes the fix, is its blind test.
 - **Next:** the specification's promotion and enforcement stages, and what we would take from AI
   code review that runs code (Greptile), are in [docs/discovery.md](docs/discovery.md#whats-next).
 
