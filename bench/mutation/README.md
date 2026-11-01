@@ -3,7 +3,7 @@
 How much does Expectrail's tiered checker catch, which checks catch what, what does it miss, and what
 did the judging cost? Issue #127 sets the rules. Nobody on the team writes a bug or picks a case.
 
-**Status: registered, and Parts 1 and 2 are recorded.** See [Results](#results). `agents/mutation_bench.py` and the
+**Status: registered, and all three parts are recorded.** See [Results](#results). `agents/mutation_bench.py` and the
 **Mutation bench** workflow refuse to run until [`preregistration.json`](preregistration.json) has no
 empty field left, the code it pins has not moved, and the committed manifest is exactly what the
 generator writes. A judged run starts only from `main`, so nothing is judged before the file is merged.
@@ -32,14 +32,16 @@ runs' own artifacts and is not edited by hand. Public checks only.
 | --- | --- | --- | --- | --- | --- |
 | 1, wrong fixes | 47 pairs: 39 labelled bad, 8 good | Score **79.5%**: 31 of 39 caught, 7 by the cheap tier, 24 only with SAM. All 8 good cases accepted | 5,473 SAM images, $13.68 | [41268021760](https://github.com/seanudeke/Expectrail/actions/runs/41268021760) | [`wrong-fix/`](wrong-fix/README.md), [notes](wrong-fix/NOTES.md) |
 | 2, generated bugs | 150 sampled: 73 equivalent, 77 judged | Weighted score **0.9%**, weighted over every class with a visible mutant (boolean's one mutant was equivalent). Over the sample as drawn, a figure about the sample: 13.0%, 10 of 77 caught, 5 by the cheap tier, 5 only with SAM | 15,862 SAM images, $39.66 | [41268023631](https://github.com/seanudeke/Expectrail/actions/runs/41268023631), [41323827584](https://github.com/seanudeke/Expectrail/actions/runs/41323827584), [41323829361](https://github.com/seanudeke/Expectrail/actions/runs/41323829361) | [`generated/`](generated/README.md) |
+| 3, AI-written fixes | The 10 generated bugs Part 2 caught, 1 candidate each | Muse Code fixed all 10 on the first attempt and Expectrail accepted all 10. The oracle labelled all 10 good, on 6 routes the judge does not use. **0 natural catches**, 0 false accepts, 0 false rejects. Muse from screenshots rejected 5 of the same 10 | 250 SAM images, $0.62 | [41330361829](https://github.com/seanudeke/Expectrail/actions/runs/41330361829) | [`ai-fixes/`](ai-fixes/README.md) |
 
-Part 3 has no row. It gets one only from a merged record in `ai-fixes/`; until then there is no
-result for it, and none of these numbers depends on it.
+SAM spend across the three parts: $53.96. Muse Code's own cost is not reported per run, so it is not
+in that figure.
 
 #175, Part 2's record, was merged before review. Taofeek, working with a separate AI agent session, then
 reproduced it byte for byte from the runs' artifacts: `README.md`, `summary.json` and `findings/` all
-match. That shows the record is what the runs produced. It uses the same recorder, and it does not
-rerun the judging.
+match. #179, Part 3's record, was reproduced the same way before it merged, and its patches and
+prompts were read from the run's artifacts. That shows the records are what the runs produced. It uses the
+same recorders, and it does not rerun the judging.
 
 Part 2 by class:
 
@@ -75,6 +77,11 @@ What these numbers say:
   stand in for the cheap tier, and this sample does not show the two tiers giving the same answer.
 - **The tier saved little on generated bugs.** Part 2 spent 14,273 images on the tiered judge against
   15,305 for a full run, because 72 of 77 cases reached SAM.
+- **Part 3 had nothing to catch.** Muse Code wrote no fix that only looked right, so Part 3 says nothing
+  about Expectrail's catch rate. Every candidate gave exactly the clean game on all 6 label routes: 0 px
+  of trace difference and 0 frames different. 7 are exact undos of the bug. 2 restore the jump velocity
+  as `-725` rather than `-725.0`, and 1 swaps two branches, which plays the same. What Part 3 does show,
+  on 10 cases: Expectrail rejected no correct AI-written fix, and Muse judging from screenshots rejected 5.
 
 ## Limits of these results
 
@@ -84,9 +91,9 @@ What these numbers say:
 - The oracle only knows "differs from the clean game", so this measures regressions, not new features.
 - Public checks only. The held-out arm is excluded from every decision here.
 - Taofeek dispatched Part 1 and Part 2's cheap tier. An AI agent, the one that built most of
-  Expectrail, dispatched Part 2's SAM phase and Part 3 and recorded Part 2, from lists the registration
+  Expectrail, dispatched and recorded Part 2's SAM phase and Part 3, from lists the registration
   fixes (`--plan-sam`, `cases.json`). The safeguards are the registration and Taofeek's reproduction
-  of the record.
+  of the records.
 - Three cases were judged in rehearsals and excluded before the draw: one wrong-fix pair, so Part 1 is
   47 pairs, not 48, and two mutants, which Part 2's draw could not pick.
 - #170 changed `agents/judge_bench.py`, a pinned file, at 16:10 UTC on Nov 1, and the registration
@@ -98,6 +105,13 @@ What these numbers say:
   those choices for a person. `decisionProvenance` in the registration records where each came from.
 - The agreement sample is 5 in Part 2, below the registered minimum of 20, because only 5 cheap
   catches exist. All 5 were used.
+- Part 3's label rule changed before anything ran, from engine record only to the registered oracle,
+  positions and frames (#168).
+- Part 3's seed decided nothing: Part 2 caught exactly 10 mutants and Part 3 samples 10, so the case
+  list is every catch. They are bugs the checks already catch, and each report is built from the
+  catching check's sentence.
+- In Part 3 the fixer got the registered report, the route, six screenshots and the game log, with no
+  spec and no verdict. Ten cases is a small sample.
 - The specs judge the first two seconds of one route, so anything a mutant breaks later or elsewhere
   reads as a survivor or as equivalent.
 
