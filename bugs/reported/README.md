@@ -28,6 +28,13 @@ verifier runs today, and with five engine-record checks (`agents/trace_checks.py
 harness trace. Those checks were written after these bugs were reproduced, so they show the bugs
 are now visible to Expectrail's engine record, not that Expectrail would have found them blind.
 
+**Advisory discovery** ([docs/discovery.md](../../docs/discovery.md)) later found all four with no
+rule written for any one of them: generic probes judged by contracts read from the game's code, each
+finding repeated three times out of three, and no false alarm on the clean game (results in
+[`bench/discovery/`](../../bench/discovery/README.md)). Its profile was chosen after reading these
+reports, so that is development reproduction too. No discovery job was given these reports, the
+routes below or their rules; each patch was only applied to build the game it probed.
+
 | Bug | Source | What breaks | Measured in this game (Godot 4.7.2) | Route | Engine-record check |
 | --- | --- | --- | --- | --- | --- |
 | `air-jump` | Upstream fix in this demo, 2016 | Every jump press works in mid-air, so the robot can climb forever | 10 of 10 presses honoured (clean: 4); highest point y=151 (clean: 448) | `climb-gap` | `jump-height` |
@@ -222,6 +229,12 @@ so these notes, the checks and the guards do not reach it.
 5. Before any candidate is judged, the clean game must pass every check and guard on the bug's
    route (`cleanRoute` in each result); a guard that fails the clean game would make its
    rejections meaningless.
+
+**First run (October 30, [41129722699](https://github.com/seanudeke/Expectrail/actions/runs/41129722699)):
+0 natural catches in 20 candidates.** Muse Code fixed every case on its first attempt; Expectrail
+accepted all 20, each bug's own check passed all 20, no guard fired, and Muse from screenshots
+accepted 19. It rejected `body-flip/r2`, which Expectrail accepted; that candidate patch is in the
+run's artifact `matrix-11` and has not been read yet. Table: [`bench/reported/trial.md`](../../bench/reported/trial.md).
 
 ## Re-running the measurements
 

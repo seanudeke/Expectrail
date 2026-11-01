@@ -57,6 +57,27 @@ and never in this one:
 **Clean controls:** each family's spec must pass on the clean route. A spec that fails a clean run
 is a false alarm and counts against us, not a bug.
 
+Detection on the held-out variants, ids and verdicts only, as the benchmark published them (run
+41003749744, October 30; the record is `bench/detection/held-out.json`, per-check counts in
+docs/sam.md):
+
+| Held-out variant | Caught, SAM on | Caught, SAM off |
+| --- | --- | --- |
+| clean (control) | no false alarm | no false alarm |
+| physics-fall-through/v5 | yes | yes |
+| physics-fall-through/v6 | yes | yes |
+| sinking/v3 | yes | yes |
+| sinking/v4 | yes | yes |
+| missing-texture/v5 | yes | no |
+| missing-texture/v6 | yes | no |
+| layering/v5 | yes | no |
+| layering/v6 | yes | no |
+
+With SAM on, 8 of 8 variants were caught; without it, 4 of 8; no false alarm on the clean routes
+either way. The first full run (40805529944, October 28) caught 7 of 8 with SAM on and 3 of 8
+without; the difference, sinking/v4, and the check built after that miss, are documented in
+docs/sam.md ("The drawn floor").
+
 ## Reported bugs (added Oct 30)
 
 The families above were seeded by the team. `bugs/reported/` holds the other kind: four
@@ -92,7 +113,40 @@ How to read it:
   Muse from screenshots. The guards live in the held-out set; their digest was committed in
   `bugs/reported/guards.sha256` before any trial ran, and a trial refuses any other guard file
   (protocol in [bugs/reported/README.md](../bugs/reported/README.md#running-a-natural-catch-trial),
-  results in [`bench/reported/trial.md`](../bench/reported/trial.md)).
+  results in [`bench/reported/trial.md`](../bench/reported/trial.md)). The first run, on October 30,
+  found none: Muse Code fixed all 20 cases on its first attempt, every candidate passed every
+  check and guard, and Muse from screenshots rejected one that Expectrail accepted.
+
+## Discovery: checks nobody wrote (added Oct 31)
+
+Everything above judges with checks people wrote. Advisory discovery ([discovery.md](discovery.md))
+is measured separately, because it answers a different question: does Expectrail find a defect
+nobody wrote a check for? It never decides a fix, so it has no place in the fix matrix or the judge
+benchmark.
+
+- **Development reproduction** (recorded): one CI job per build, no healthy reference build, the
+  clean game as the false-alarm control. The four reported bugs were found and the clean game
+  raised nothing (run 41238187197, `bench/discovery/`). The profile was written after reading those
+  four reports, so this counts as development evidence only. The eight seeded development variants
+  are the builds it was not written for: two flagged, six missed.
+- **Blind run** (recorded, run 41248745687): the discoverer's files are frozen
+  (`discovery/freeze.json`), a fresh set of ten entries (8 defects, 2 intentional changes) was
+  written after the freeze in the private repository, and its digest was committed in
+  `bugs/fresh/fresh.sha256` before the run. It ran once, planner off, from a checkout that passed the
+  freeze check, and published counts only: **4 of 8 defects flagged, 0 of 3 healthy builds (the two
+  intentional changes and the clean game), no incomplete job**
+  (`bench/discovery/blind-run-41248745687.json`). A second run with the Muse Spark planner on
+  (41250932288) gave the same counts because the planner never answered (no content from any
+  call), so the planner-on condition is not measured (`bench/discovery/blind-run-41250932288.json`).
+  Set 1 is then retired: the planner's fix touches a frozen file, so fresh set 2 is written against
+  freeze 2 and gets one planner-off and one planner-on run, scored the same way (runs 41319184209
+  and 41319197682): **3 of 8 defects with the planner off, 4 of 8 with it on, 0 of 3 healthy
+  builds either way.** Across both sets the frozen templates flagged 7 of 16 defects and none of
+  the 4 intentional changes or the clean game.
+- **What we report for discovery:** defects flagged out of defects; intentional changes and the
+  clean game flagged (false alarms); findings that did not reproduce three times out of three;
+  incomplete jobs. Development and blind results are reported apart, and a miss is never answered
+  by changing the frozen system.
 
 ## Ground truth
 
@@ -135,6 +189,12 @@ verifier's reasons, and opens a repair only when its own check caught the bug. E
 judged by the same verifier with SAM on and the private routes mounted; Muse Code runs only inside
 bubblewrap there. "Existing checks" needs no run: the game has no tests, so it catches nothing.
 
+A third condition, `escalate` (added October 30), is what the overnight loop now does
+([report-first.md](report-first.md)). The first attempt gets the screenshots briefing. Only after
+the verifier rejects an attempt does the next one get the Expectrail briefing, with the verifier's
+reasons limited to the public checks. The workflow runs it by default beside the other two, so
+every matrix run measures the policy the loop ships.
+
 The held-out variants go through the same matrix once, after the code freeze (`set: held-out`).
 Only ids, outcomes and per-attempt decisions leave the runner for them: a candidate patch, a
 verifier reason or Muse's log would describe the private bug.
@@ -160,13 +220,42 @@ Twice, live (runs 40936362830 and 40943391994):
 | Expectrail, SAM off | 8 of 8, both runs | 3 of 7, both runs |
 | Muse from screenshots | 6 of 8, then 7 of 8 | 2 of 7, both runs |
 
+A third run on October 31 ([41230177124](https://github.com/seanudeke/Expectrail/actions/runs/41230177124),
+`bench/judge/glimmer/`) gave these three judges the same counts, Muse from screenshots at 6 of 8 as in
+the first, and added a fourth judge: the verifier with Muse Glimmer checked against the engine and no
+SAM. It accepted 8 of 8 good and 0 of 7 bad, but the deleted trees got past every public check under
+Glimmer and were stopped only on a held-out route ([docs/open-weights.md](open-weights.md)).
+
+On November 1 the same 15 candidates went to the strongest models two other vendors sell, as
+screenshot judges beside Muse in one run ([41320444374](https://github.com/seanudeke/Expectrail/actions/runs/41320444374),
+`bench/judge/outside-models/`, `agents/outside_judge.py`). Each got the screenshot judge's prompt
+byte for byte, the same ten frames under the same file names, and the same decision line, three
+times, each pass its own request. The models, prompt, passes and scoring were fixed before the run,
+and it was not run again. The SAM-on verifier was skipped; its decisions are the three runs above.
+
+| Judge, from screenshots | Good fixes accepted, per pass | Bad fixes accepted, per pass |
+| --- | --- | --- |
+| Claude Fable 5.1 (`claude-fable-5-1`) | 6, 6 and 7 of 8 | 0, 0 and 0 of 7 |
+| GPT-6 Astra (`gpt-6-astra`, reasoning effort high) | 8, 7 and 8 of 8 | 0, 0 and 0 of 7 |
+| Muse Code, the same frames, the same run | 7 of 8 | 2 of 7 |
+
+- Both caught the two fixes Muse accepted. They saw the robot's feet below the grass line, and the
+  enemies sunk into the floor when the floor's collision was lowered: the five frames do show it.
+- Their mistakes were on correct fixes. Claude rejected sinking/v1 in all three passes and
+  sinking/v2 in two, GPT sinking/v2 once, each reading the robot as floating above the ground, as
+  Muse does. Those fixes are exact undos, so what they saw is how the clean game plays.
+  Claude's third pass on the hidden player was needs-review, not an accept.
+- Expectrail with SAM made no mistakes on either, in three runs. On 15 cases the difference from
+  GPT is one judgment; it says screenshot judging errs even in a simple game, not how often it would
+  in a bigger one. About $21 at list prices for the 90 outside-model requests.
+
 What the reasons show (second run):
 
 - Without SAM the verifier sees the engine, not the picture, so it passes the hidden player, the
   sunk player and the hidden trees. SAM's checks reject all three.
-- Muse accepts the lowered floor and the sunk player ("player stays in view, on ground"): five
-  frames carry no reference for where the ground should be. It rejects real sinking fixes because
-  it reads a normal jump as the robot floating.
+- Muse accepts the lowered floor and the sunk player ("player stays in view, on ground"). The five
+  frames do show the feet below the grass line: Claude and GPT, given the same frames, saw it (see
+  above). It rejects real sinking fixes because it reads a normal jump as the robot floating.
 - The floating robot fails `player-stays-above-ground` in both modes: the spec holds the feet within
   20 px of the ground, so floating fails as well as sinking.
 - Expectrail does not notice the missing trees. It rejects that candidate because the player is
@@ -189,8 +278,9 @@ For each condition, across all variants and clean runs:
 - wall-clock time, model calls, and total cost (API spend and compute).
 
 Rules: report frames analyzed, not frames captured; repeated runs of the same variant are not
-separate bugs; held-out results are reported separately from development results, and reported
-bugs separately from seeded ones; every number on
+separate bugs; held-out results are reported separately from development results, reported
+bugs separately from seeded ones, and discovery's advisory findings separately from the verifier's
+decisions; every number on
 screen comes from `bench/` and reruns with one command.
 
 ## Budget

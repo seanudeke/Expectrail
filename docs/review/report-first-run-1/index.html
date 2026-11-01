@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Expectrail review</title>
+<style>
+:root { --bg:#fbfaf7; --fg:#1d1d1b; --quiet:#6b6a64; --line:#e3e0d8; --card:#ffffff;
+  --good:#1f7a4d; --good-bg:#e5f4e4; --bad:#b3261e; --bad-bg:#fbebeb; --warn:#8a5a00; --warn-bg:#f9eeda; }
+@media (prefers-color-scheme: dark) { :root { --bg:#161614; --fg:#ecebe6; --quiet:#a3a19a; --line:#34332f;
+  --card:#1e1e1b; --good:#7fd1a2; --good-bg:#16301f; --bad:#f2a49e; --bad-bg:#3a1a18; --warn:#f0c470; --warn-bg:#352a12; } }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; }
+main { max-width:960px; margin:0 auto; padding:24px 16px 48px; }
+h1 { font-size:15px; font-weight:600; color:var(--quiet); margin:0 0 8px; letter-spacing:.02em; }
+h2 { font-size:16px; margin:32px 0 8px; }
+.status { font-size:30px; font-weight:700; margin:0; }
+.status.good { color:var(--good); } .status.bad { color:var(--bad); } .status.warn { color:var(--warn); }
+.meta { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+.chip { border:1px solid var(--line); border-radius:999px; padding:2px 10px; font-size:13px; background:var(--card); }
+.reason { font-size:16px; margin:8px 0; }
+.small { font-size:13px; color:var(--quiet); }
+.card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; }
+table { width:100%; border-collapse:collapse; font-size:14px; }
+th, td { text-align:left; padding:8px; border-bottom:1px solid var(--line); vertical-align:top; }
+th { color:var(--quiet); font-weight:600; }
+td code { overflow-wrap:normal; word-break:normal; }
+.r-fail { color:var(--bad); } .r-pass { color:var(--good); }
+@media (max-width:520px) { th, td { padding:6px 4px; } .card { padding:12px; } .status { font-size:24px; }
+  table { font-size:13px; } }
+.pill { border-radius:6px; padding:1px 8px; font-size:12px; font-weight:600; white-space:nowrap; }
+.pill.good { background:var(--good-bg); color:var(--good); } .pill.bad { background:var(--bad-bg); color:var(--bad); }
+.pill.warn { background:var(--warn-bg); color:var(--warn); } .pill.quiet { color:var(--quiet); border:1px solid var(--line); }
+.frames { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; }
+.frame { margin:0; } .frame img { width:100%; border-radius:8px; border:1px solid var(--line); image-rendering:pixelated; }
+.frame figcaption { display:flex; flex-direction:column; font-size:13px; margin-top:6px; }
+.frame figcaption span { color:var(--quiet); }
+.hole { aspect-ratio:16/9; display:flex; align-items:center; justify-content:center; text-align:center; padding:16px;
+  border:1px dashed var(--line); border-radius:8px; color:var(--quiet); font-size:14px; }
+.warning { background:var(--warn-bg); color:var(--warn); border-radius:8px; padding:8px 12px; }
+code { font:13px ui-monospace,SFMono-Regular,Menlo,monospace; overflow-wrap:anywhere; }
+ul { padding-left:20px; } li { margin:4px 0; }
+dl { display:grid; grid-template-columns:max-content 1fr; gap:4px 16px; font-size:13px; margin:0; }
+dt { color:var(--quiet); } dd { margin:0; overflow-wrap:anywhere; }
+.table-wrap { overflow-x:auto; }
+</style></head>
+<body><main>
+<h1>Expectrail review: the same checks before and after a change</h1>
+<p class="status good">REPAIR DEMONSTRATED</p>
+<p>A requested check failed on the game before the change and passes after it, every required check passes, and the verifier accepted.</p>
+
+<div class="meta">
+<span class="chip">Evidence: RECORDED LIVE, an archived live run (the run labelled it FRESH LIVE)</span>
+<span class="chip">Candidate from Muse Code</span>
+<span class="chip">Verifier decision: accept</span>
+</div>
+<p class="warning">Recorded evidence: fix matrix run 41223748922, demo run 1. This page shows that run as it wrote its record; nothing was run again.</p>
+
+
+
+<h2>Each check, before and after the change</h2>
+<div class="card table-wrap"><table>
+<thead><tr><th>Check</th><th>Role</th><th>Before</th><th>After</th><th>Result</th></tr></thead>
+<tbody><tr><td><code>player-stays-above-ground</code></td><td>requested</td><td class="r-fail">fail</td><td class="r-pass">pass</td><td><span class="pill good">REPAIRED</span></td></tr><tr><td><code>player-motion-on-smoke</code></td><td>guard</td><td class="r-fail">fail</td><td class="r-pass">pass</td><td><span class="pill good">REPAIRED</span></td></tr><tr><td><code>coins-visible</code></td><td>guard</td><td class="r-pass">pass</td><td class="r-pass">pass</td><td><span class="pill quiet">PRESERVED</span></td></tr><tr><td><code>player-always-visible</code></td><td>guard</td><td class="r-fail">fail</td><td class="r-pass">pass</td><td><span class="pill good">REPAIRED</span></td></tr></tbody></table>
+<p class="small">Before is the game with the reported bug and no fix; after is the same game with the candidate.
+A requested check is one the repair request names as failing; only those can show a repair.
+Guards must pass after the change. The verifier also checked the clean game, separately.</p></div>
+
+<h2>The first failing frame, before and after</h2>
+<div class="frames"><figure class="frame"><img src="assets/base.png" alt="Before the change, frame 5"><figcaption><b>Before the change</b><span>run review-20261031T173328Z-20773, failing base, frame 5, replay 919a9e67ce0f</span></figcaption></figure><figure class="frame"><img src="assets/candidate.png" alt="After the change, frame 5"><figcaption><b>After the change</b><span>run review-20261031T173328Z-20773, candidate, frame 5, replay 3c3ae0ad9fb1</span></figcaption></figure></div>
+
+<h2>Private routes</h2>
+<p>1 check on the private routes: 1 passed, 0 failed, 0 need review (source: harness). Route names and frames stay private.</p>
+
+<h2>How the review ran</h2>
+<div class="card"><ul><li><b>preflight</b> completed</li><li><b>base</b> completed</li><li><b>candidate</b> completed, reused the verification</li><li><b>compare</b> completed</li><li><b>export</b> completed</li></ul></div>
+
+<h2>Diagnostics</h2>
+<ul><li>None</li></ul>
+
+<h2>Identities</h2>
+<div class="card"><dl>
+<dt>Review run</dt><dd><code>review-20261031T173328Z-20773</code> (live mode)</dd>
+<dt>Repair request</dt><dd><code>rr-triage-player-stays-above-ground</code>, SHA256 <code>f2e2b73e844199de6dce919b79a3c65da4bc06425f9dcb7581e6a08324100463</code></dd>
+<dt>Candidate patch</dt><dd><code>ceda817fc43cb1249404a110b2517adc10e22b5d39ec7c29f0ed322862e38c09</code></dd>
+<dt>Verification file</dt><dd><code>b37aea26eabc5340fcba75e61513968ec6198b23f902a7c9dc14a7f0ae564694</code></dd>
+<dt>Failing base</dt><dd>harness, observed by SAM 3.1, replay <code>919a9e67ce0f</code></dd>
+<dt>Candidate</dt><dd>harness, observed by SAM 3.1, replay <code>3c3ae0ad9fb1</code></dd>
+<dt>Run it again</dt><dd><code>python3 -m agents.review_change --request &lt;request.json&gt; --candidate &lt;candidate.patch&gt; --mode live --out &lt;new folder&gt;</code></dd>
+</dl></div>
+
+<p class="small">This page shows evidence for these checks on this route. It is not proof that the game is correct,
+and no status here approves a merge or a release. Generated from change-evidence.json.</p>
+</main></body></html>

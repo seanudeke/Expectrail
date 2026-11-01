@@ -33,6 +33,30 @@ verification ◄── verifier (rebuild, replay, all checks) ◄── candidat
 | `overnight-summary` | overnight loop (`agents.loop`) | rollup / bench stub | Taofeek |
 | `feedback-intake` | voice feedback intake (`agents.feedback`) | morning report, a person | Sean |
 
+## Discovery records (v1, added October 31)
+
+Advisory discovery ([discovery.md](discovery.md)) has its own five records, each with a closed
+schema (`contracts/<kind>.v1.schema.json`) and the format `expectrail.<kind>/v1`. They are read with
+strict JSON (`expectrail.contracts.strict_loads`: duplicate keys, NaN and Infinity are refused) and
+never feed the verifier's decision.
+
+| Record | Written by | Read by |
+| --- | --- | --- |
+| `mechanics-profile` | written from the game's code; each claim is `inferred_code` until a person approves it (none is yet) | the template factory |
+| `episode` | the episode normalizer, from one replay's trace | the trace-contract interpreter |
+| `trace-spec` | the templates, or the Muse Spark planner (`model_prior` authority) | the trace-contract interpreter |
+| `trace-verdict` | the trace-contract interpreter | the discovery job |
+| `discovery-run` | the discovery job | the report, the CI notices and the collector |
+
+Two more documents support the blind run without a schema of their own: `discovery/freeze.json`
+(`expectrail.discovery-freeze/v1`, the digests of every file that decides a finding) and the fresh
+set's manifest (`expectrail.fresh-set/v1`), which lives only in the private repository and is
+checked by `python -m expectrail.discovery.fresh check`.
+
+The difference from a `test-spec`: a person approves every test spec before it can fail a fix. A
+`trace-spec` from discovery is advisory until the promotion stage exists (validation, a person's
+approval, a pinned contract set), which is not built.
+
 ## Rules the contracts encode
 
 - **A missing object is never a pass.** In `observations`, an object with an empty list in a frame

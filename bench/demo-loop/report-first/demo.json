@@ -1,0 +1,61 @@
+{
+  "format": "expectrail.demo-loop/v0",
+  "run": 41223748922,
+  "runUrl": "https://github.com/seanudeke/Expectrail/actions/runs/41223748922",
+  "commit": "4697f549109cb7e90e71ab70cd14889483cc26c0",
+  "date": "2026-10-31T17:16:50Z",
+  "asked": 3,
+  "recorded": 3,
+  "accepted": 3,
+  "firstAttempt": 3,
+  "spend": {
+    "samImages": 471,
+    "samUsd": 1.18,
+    "museCalls": 3,
+    "jobMinutes": 29.3
+  },
+  "rows": [
+    {
+      "run": 1,
+      "decision": "accept",
+      "attempts": [
+        "accept"
+      ],
+      "triage": "muse-wonder-1.0",
+      "fixer": "muse",
+      "trust": "ok",
+      "verifiedOn": "harness",
+      "signed": true,
+      "seconds": 669.2,
+      "samImages": 157
+    },
+    {
+      "run": 2,
+      "decision": "accept",
+      "attempts": [
+        "accept"
+      ],
+      "triage": "muse-wonder-1.0",
+      "fixer": "muse",
+      "trust": "ok",
+      "verifiedOn": "harness",
+      "signed": true,
+      "seconds": 694.5,
+      "samImages": 157
+    },
+    {
+      "run": 3,
+      "decision": "accept",
+      "attempts": [
+        "accept"
+      ],
+      "triage": "muse-wonder-1.0",
+      "fixer": "muse",
+      "trust": "ok",
+      "verifiedOn": "harness",
+      "signed": true,
+      "seconds": 393.2,
+      "samImages": 157
+    }
+  ]
+}

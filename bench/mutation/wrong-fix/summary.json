@@ -1,0 +1,3179 @@
+{
+  "format": "expectrail.mutation-bench/v0-summary",
+  "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+  "rehearsal": false,
+  "cases": 47,
+  "caught-cheap": 7,
+  "caught-sam": 24,
+  "survived": 16,
+  "undecided": 0,
+  "crash": 0,
+  "error": 0,
+  "awaiting-sam": 0,
+  "badCaught": 31,
+  "badSurvived": 8,
+  "score": 0.7949,
+  "cheapTierScore": 0.1795,
+  "samImages": {
+    "spent": 5233,
+    "tiered": 3576,
+    "agreementOnly": 1610,
+    "probes": 47,
+    "warm": 240,
+    "fullRun": 5186,
+    "fullRunCases": 31,
+    "ofCases": 47
+  },
+  "samImagesTiered": 3576,
+  "samImagesFullRun": 5186,
+  "equivalentDropped": [],
+  "unlabelled": 0,
+  "noopCandidates": 2,
+  "byOperator": {
+    "behind-scenery": {
+      "cases": 8,
+      "caught-cheap": 0,
+      "caught-sam": 8,
+      "survived": 0,
+      "undecided": 0,
+      "crash": 0,
+      "error": 0,
+      "awaiting-sam": 0,
+      "badCaught": 8,
+      "badSurvived": 0,
+      "score": 1.0,
+      "cheapTierScore": 0.0,
+      "samImages": 1144,
+      "samImagesTiered": 1136,
+      "samImagesFullRun": 1136
+    },
+    "comment-only": {
+      "cases": 8,
+      "caught-cheap": 0,
+      "caught-sam": 0,
+      "survived": 8,
+      "undecided": 0,
+      "crash": 0,
+      "error": 0,
+      "awaiting-sam": 0,
+      "badCaught": 0,
+      "badSurvived": 0,
+      "score": null,
+      "cheapTierScore": null,
+      "samImages": 8,
+      "samImagesTiered": 0,
+      "samImagesFullRun": 0
+    },
+    "freeze": {
+      "cases": 7,
+      "caught-cheap": 7,
+      "caught-sam": 0,
+      "survived": 0,
+      "undecided": 0,
+      "crash": 0,
+      "error": 0,
+      "awaiting-sam": 0,
+      "badCaught": 7,
+      "badSurvived": 0,
+      "score": 1.0,
+      "cheapTierScore": 1.0,
+      "samImages": 1617,
+      "samImagesTiered": 0,
+      "samImagesFullRun": 1610
+    },
+    "hide": {
+      "cases": 8,
+      "caught-cheap": 0,
+      "caught-sam": 8,
+      "survived": 0,
+      "undecided": 0,
+      "crash": 0,
+      "error": 0,
+      "awaiting-sam": 0,
+      "badCaught": 8,
+      "badSurvived": 0,
+      "score": 1.0,
+      "cheapTierScore": 0.0,
+      "samImages": 1216,
+      "samImagesTiered": 1208,
+      "samImagesFullRun": 1208
+    },
+    "scale-to-zero": {
+      "cases": 8,
+      "caught-cheap": 0,
+      "caught-sam": 0,
+      "survived": 8,
+      "undecided": 0,
+      "crash": 0,
+      "error": 0,
+      "awaiting-sam": 0,
+      "badCaught": 0,
+      "badSurvived": 8,
+      "score": 0.0,
+      "cheapTierScore": 0.0,
+      "samImages": 8,
+      "samImagesTiered": 0,
+      "samImagesFullRun": 0
+    },
+    "sink": {
+      "cases": 8,
+      "caught-cheap": 0,
+      "caught-sam": 8,
+      "survived": 0,
+      "undecided": 0,
+      "crash": 0,
+      "error": 0,
+      "awaiting-sam": 0,
+      "badCaught": 8,
+      "badSurvived": 0,
+      "score": 1.0,
+      "cheapTierScore": 0.0,
+      "samImages": 1240,
+      "samImagesTiered": 1232,
+      "samImagesFullRun": 1232
+    }
+  },
+  "byCase": {
+    "dev/layering/v1": {
+      "cases": 6,
+      "caught-cheap": 1,
+      "caught-sam": 3,
+      "survived": 2,
+      "undecided": 0,
+      "crash": 0,
+      "error": 0,
+      "awaiting-sam": 0,
+      "badCaught": 4,
+      "badSurvived": 1,
+      "score": 0.8,
+      "cheapTierScore": 0.2,
+      "samImages": 683,
+      "samImagesTiered": 447,
+      "samImagesFullRun": 677
+    },
+    "dev/layering/v2": {
+      "cases": 6,
+      "caught-cheap": 1,
+      "caught-sam": 3,
+      "survived": 2,
+      "undecided": 0,
+      "crash": 0,
+      "error": 0,
+      "awaiting-sam": 0,
+      "badCaught": 4,
+      "badSurvived": 1,
+      "score": 0.8,
+      "cheapTierScore": 0.2,
+      "samImages": 683,
+      "samImagesTiered": 447,
+      "samImagesFullRun": 677
+    },
+    "dev/missing-texture/v1": {
+      "cases": 6,
+      "caught-cheap": 1,
+      "caught-sam": 3,
+      "survived": 2,
+      "undecided": 0,
+      "crash": 0,
+      "error": 0,
+      "awaiting-sam": 0,
+      "badCaught": 4,
+      "badSurvived": 1,
+      "score": 0.8,
+      "cheapTierScore": 0.2,
+      "samImages": 683,
+      "samImagesTiered": 447,
+      "samImagesFullRun": 677
+    },
+    "dev/missing-texture/v2": {
+      "cases": 6,
+      "caught-cheap": 1,
+      "caught-sam": 3,
+      "survived": 2,
+      "undecided": 0,
+      "crash": 0,
+      "error": 0,
+      "awaiting-sam": 0,
+      "badCaught": 4,
+      "badSurvived": 1,
+      "score": 0.8,
+      "cheapTierScore": 0.2,
+      "samImages": 683,
+      "samImagesTiered": 447,
+      "samImagesFullRun": 677
+    },
+    "dev/physics-fall-through/v1": {
+      "cases": 5,
+      "caught-cheap": 0,
+      "caught-sam": 3,
+      "survived": 2,
+      "undecided": 0,
+      "crash": 0,
+      "error": 0,
+      "awaiting-sam": 0,
+      "badCaught": 3,
+      "badSurvived": 1,
+      "score": 0.75,
+      "cheapTierScore": 0.0,
+      "samImages": 452,
+      "samImagesTiered": 447,
+      "samImagesFullRun": 447
+    },
+    "dev/physics-fall-through/v2": {
+      "cases": 6,
+      "caught-cheap": 1,
+      "caught-sam": 3,
+      "survived": 2,
+      "undecided": 0,
+      "crash": 0,
+      "error": 0,
+      "awaiting-sam": 0,
+      "badCaught": 4,
+      "badSurvived": 1,
+      "score": 0.8,
+      "cheapTierScore": 0.2,
+      "samImages": 683,
+      "samImagesTiered": 447,
+      "samImagesFullRun": 677
+    },
+    "dev/sinking/v1": {
+      "cases": 6,
+      "caught-cheap": 1,
+      "caught-sam": 3,
+      "survived": 2,
+      "undecided": 0,
+      "crash": 0,
+      "error": 0,
+      "awaiting-sam": 0,
+      "badCaught": 4,
+      "badSurvived": 1,
+      "score": 0.8,
+      "cheapTierScore": 0.2,
+      "samImages": 683,
+      "samImagesTiered": 447,
+      "samImagesFullRun": 677
+    },
+    "dev/sinking/v2": {
+      "cases": 6,
+      "caught-cheap": 1,
+      "caught-sam": 3,
+      "survived": 2,
+      "undecided": 0,
+      "crash": 0,
+      "error": 0,
+      "awaiting-sam": 0,
+      "badCaught": 4,
+      "badSurvived": 1,
+      "score": 0.8,
+      "cheapTierScore": 0.2,
+      "samImages": 683,
+      "samImagesTiered": 447,
+      "samImagesFullRun": 677
+    }
+  },
+  "byClass": {},
+  "byCheck": {
+    "cheap gameplay/player-motion-on-smoke": 7,
+    "sam gameplay/player-motion-on-smoke": 7,
+    "sam regression/player-always-visible": 24,
+    "sam regression/player-stays-above-ground": 8
+  },
+  "visionOnlyWins": [
+    "dev/layering/v1 hide",
+    "dev/layering/v1 sink",
+    "dev/layering/v2 behind-scenery",
+    "dev/missing-texture/v1 hide",
+    "dev/missing-texture/v1 sink",
+    "dev/missing-texture/v1 behind-scenery",
+    "dev/missing-texture/v2 hide",
+    "dev/missing-texture/v2 sink",
+    "dev/missing-texture/v2 behind-scenery",
+    "dev/physics-fall-through/v1 hide",
+    "dev/physics-fall-through/v1 sink",
+    "dev/physics-fall-through/v1 behind-scenery",
+    "dev/physics-fall-through/v2 hide",
+    "dev/physics-fall-through/v2 sink",
+    "dev/physics-fall-through/v2 behind-scenery",
+    "dev/sinking/v1 hide",
+    "dev/sinking/v1 sink",
+    "dev/sinking/v1 behind-scenery",
+    "dev/layering/v1 behind-scenery",
+    "dev/sinking/v2 hide",
+    "dev/sinking/v2 sink",
+    "dev/sinking/v2 behind-scenery",
+    "dev/layering/v2 hide",
+    "dev/layering/v2 sink"
+  ],
+  "blindSpots": [
+    "dev/missing-texture/v1 scale-to-zero",
+    "dev/missing-texture/v2 scale-to-zero",
+    "dev/physics-fall-through/v1 scale-to-zero",
+    "dev/layering/v1 scale-to-zero",
+    "dev/physics-fall-through/v2 scale-to-zero",
+    "dev/sinking/v1 scale-to-zero",
+    "dev/sinking/v2 scale-to-zero",
+    "dev/layering/v2 scale-to-zero"
+  ],
+  "goodAccepted": 8,
+  "falseRejects": [],
+  "agreement": {
+    "checked": 7,
+    "agree": 0,
+    "disagree": 7,
+    "undecided": 0,
+    "disagreements": [
+      "dev/missing-texture/v1 freeze",
+      "dev/layering/v1 freeze",
+      "dev/missing-texture/v2 freeze",
+      "dev/physics-fall-through/v2 freeze",
+      "dev/sinking/v1 freeze",
+      "dev/sinking/v2 freeze",
+      "dev/layering/v2 freeze"
+    ]
+  },
+  "rows": [
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/layering/v1",
+      "operator": "hide",
+      "bug": "dev/layering/v1",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "regression check player-always-visible failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "fail",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "regression/player-always-visible"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "needs-review",
+            "regression/player-always-visible": "fail",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 151
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "caught-sam",
+      "finding": false,
+      "caught": "sam-on",
+      "samImages": 152,
+      "wallClockSeconds": 103.3
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/layering/v1",
+      "operator": "sink",
+      "bug": "dev/layering/v1",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "regression check player-stays-above-ground failed",
+            "regression check player-always-visible failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "fail",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "regression/player-always-visible",
+            "regression/player-stays-above-ground"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "fail",
+            "regression/player-always-visible": "fail",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 154
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "caught-sam",
+      "finding": false,
+      "caught": "sam-on",
+      "samImages": 155,
+      "wallClockSeconds": 91.7
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/layering/v2",
+      "operator": "behind-scenery",
+      "bug": "dev/layering/v2",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": true,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "regression check player-always-visible failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "fail",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "regression/player-always-visible"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "needs-review",
+            "regression/player-always-visible": "fail",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 142
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "caught-sam",
+      "finding": false,
+      "caught": "sam-on",
+      "samImages": 143,
+      "wallClockSeconds": 86.2
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/layering/v2",
+      "operator": "comment-only",
+      "bug": "dev/layering/v2",
+      "label": "good",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "needs-review",
+          "reasons": [],
+          "ownResults": {
+            "player-always-visible": "pass",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "regression/player-always-visible": "pass",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "survived",
+      "finding": false,
+      "caught": null,
+      "samImages": 1,
+      "wallClockSeconds": 74.6
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/missing-texture/v1",
+      "operator": "hide",
+      "bug": "dev/missing-texture/v1",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "regression check player-always-visible failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "fail",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "regression/player-always-visible"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "needs-review",
+            "regression/player-always-visible": "fail",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 151
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "caught-sam",
+      "finding": false,
+      "caught": "sam-on",
+      "samImages": 152,
+      "wallClockSeconds": 99.9
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/missing-texture/v1",
+      "operator": "sink",
+      "bug": "dev/missing-texture/v1",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "regression check player-stays-above-ground failed",
+            "regression check player-always-visible failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "fail",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "regression/player-always-visible",
+            "regression/player-stays-above-ground"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "fail",
+            "regression/player-always-visible": "fail",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 154
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "caught-sam",
+      "finding": false,
+      "caught": "sam-on",
+      "samImages": 155,
+      "wallClockSeconds": 86.4
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/missing-texture/v1",
+      "operator": "freeze",
+      "bug": "dev/missing-texture/v1",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "gameplay check player-motion-on-smoke failed"
+          ],
+          "ownResults": {},
+          "failedChecks": [
+            "gameplay/player-motion-on-smoke"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "fail"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "gameplay check player-motion-on-smoke failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "pass",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "gameplay/player-motion-on-smoke"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "regression/player-always-visible": "pass",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "fail"
+          },
+          "cleanSource": "harness",
+          "samImages": 230
+        }
+      },
+      "cheapDecision": "reject",
+      "outcome": "caught-cheap",
+      "agreement": "disagree",
+      "finding": false,
+      "caught": "sam-off",
+      "samImages": 231,
+      "wallClockSeconds": 144.8
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/missing-texture/v1",
+      "operator": "scale-to-zero",
+      "bug": "dev/missing-texture/v1",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "needs-review",
+          "reasons": [],
+          "ownResults": {
+            "player-always-visible": "pass",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "regression/player-always-visible": "pass",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "survived",
+      "finding": true,
+      "caught": null,
+      "samImages": 1,
+      "wallClockSeconds": 52.7
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/missing-texture/v1",
+      "operator": "behind-scenery",
+      "bug": "dev/missing-texture/v1",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "regression check player-always-visible failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "fail",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "regression/player-always-visible"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "needs-review",
+            "regression/player-always-visible": "fail",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 142
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "caught-sam",
+      "finding": false,
+      "caught": "sam-on",
+      "samImages": 143,
+      "wallClockSeconds": 118.1
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/missing-texture/v1",
+      "operator": "comment-only",
+      "bug": "dev/missing-texture/v1",
+      "label": "good",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "needs-review",
+          "reasons": [],
+          "ownResults": {
+            "player-always-visible": "pass",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "regression/player-always-visible": "pass",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "survived",
+      "finding": false,
+      "caught": null,
+      "samImages": 1,
+      "wallClockSeconds": 82.5
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/missing-texture/v2",
+      "operator": "hide",
+      "bug": "dev/missing-texture/v2",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "regression check player-always-visible failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "fail",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "regression/player-always-visible"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "needs-review",
+            "regression/player-always-visible": "fail",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 151
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "caught-sam",
+      "finding": false,
+      "caught": "sam-on",
+      "samImages": 152,
+      "wallClockSeconds": 123.4
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/missing-texture/v2",
+      "operator": "sink",
+      "bug": "dev/missing-texture/v2",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "regression check player-stays-above-ground failed",
+            "regression check player-always-visible failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "fail",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "regression/player-always-visible",
+            "regression/player-stays-above-ground"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "fail",
+            "regression/player-always-visible": "fail",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 154
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "caught-sam",
+      "finding": false,
+      "caught": "sam-on",
+      "samImages": 155,
+      "wallClockSeconds": 112.2
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/layering/v1",
+      "operator": "freeze",
+      "bug": "dev/layering/v1",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "gameplay check player-motion-on-smoke failed"
+          ],
+          "ownResults": {},
+          "failedChecks": [
+            "gameplay/player-motion-on-smoke"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "fail"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "gameplay check player-motion-on-smoke failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "pass",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "gameplay/player-motion-on-smoke"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "regression/player-always-visible": "pass",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "fail"
+          },
+          "cleanSource": "harness",
+          "samImages": 230
+        }
+      },
+      "cheapDecision": "reject",
+      "outcome": "caught-cheap",
+      "agreement": "disagree",
+      "finding": false,
+      "caught": "sam-off",
+      "samImages": 231,
+      "wallClockSeconds": 156.8
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/missing-texture/v2",
+      "operator": "freeze",
+      "bug": "dev/missing-texture/v2",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "gameplay check player-motion-on-smoke failed"
+          ],
+          "ownResults": {},
+          "failedChecks": [
+            "gameplay/player-motion-on-smoke"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "fail"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "gameplay check player-motion-on-smoke failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "pass",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "gameplay/player-motion-on-smoke"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "regression/player-always-visible": "pass",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "fail"
+          },
+          "cleanSource": "harness",
+          "samImages": 230
+        }
+      },
+      "cheapDecision": "reject",
+      "outcome": "caught-cheap",
+      "agreement": "disagree",
+      "finding": false,
+      "caught": "sam-off",
+      "samImages": 231,
+      "wallClockSeconds": 133.8
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/missing-texture/v2",
+      "operator": "scale-to-zero",
+      "bug": "dev/missing-texture/v2",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "needs-review",
+          "reasons": [],
+          "ownResults": {
+            "player-always-visible": "pass",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "regression/player-always-visible": "pass",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "survived",
+      "finding": true,
+      "caught": null,
+      "samImages": 1,
+      "wallClockSeconds": 69.6
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/missing-texture/v2",
+      "operator": "behind-scenery",
+      "bug": "dev/missing-texture/v2",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "regression check player-always-visible failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "fail",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "regression/player-always-visible"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "needs-review",
+            "regression/player-always-visible": "fail",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 142
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "caught-sam",
+      "finding": false,
+      "caught": "sam-on",
+      "samImages": 143,
+      "wallClockSeconds": 110.4
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/missing-texture/v2",
+      "operator": "comment-only",
+      "bug": "dev/missing-texture/v2",
+      "label": "good",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "needs-review",
+          "reasons": [],
+          "ownResults": {
+            "player-always-visible": "pass",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "regression/player-always-visible": "pass",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "survived",
+      "finding": false,
+      "caught": null,
+      "samImages": 1,
+      "wallClockSeconds": 81.1
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/physics-fall-through/v1",
+      "operator": "hide",
+      "bug": "dev/physics-fall-through/v1",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "regression check player-always-visible failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "fail",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "regression/player-always-visible"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "needs-review",
+            "regression/player-always-visible": "fail",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 151
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "caught-sam",
+      "finding": false,
+      "caught": "sam-on",
+      "samImages": 152,
+      "wallClockSeconds": 123.1
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/physics-fall-through/v1",
+      "operator": "sink",
+      "bug": "dev/physics-fall-through/v1",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "regression check player-stays-above-ground failed",
+            "regression check player-always-visible failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "fail",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "regression/player-always-visible",
+            "regression/player-stays-above-ground"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "fail",
+            "regression/player-always-visible": "fail",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 154
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "caught-sam",
+      "finding": false,
+      "caught": "sam-on",
+      "samImages": 155,
+      "wallClockSeconds": 87.0
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/physics-fall-through/v1",
+      "operator": "scale-to-zero",
+      "bug": "dev/physics-fall-through/v1",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "needs-review",
+          "reasons": [],
+          "ownResults": {
+            "player-always-visible": "pass",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "regression/player-always-visible": "pass",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "survived",
+      "finding": true,
+      "caught": null,
+      "samImages": 1,
+      "wallClockSeconds": 52.1
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/physics-fall-through/v1",
+      "operator": "behind-scenery",
+      "bug": "dev/physics-fall-through/v1",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "regression check player-always-visible failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "fail",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "regression/player-always-visible"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "needs-review",
+            "regression/player-always-visible": "fail",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 142
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "caught-sam",
+      "finding": false,
+      "caught": "sam-on",
+      "samImages": 143,
+      "wallClockSeconds": 106.9
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/physics-fall-through/v1",
+      "operator": "comment-only",
+      "bug": "dev/physics-fall-through/v1",
+      "label": "good",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "needs-review",
+          "reasons": [],
+          "ownResults": {
+            "player-always-visible": "pass",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "regression/player-always-visible": "pass",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "survived",
+      "finding": false,
+      "caught": null,
+      "samImages": 1,
+      "wallClockSeconds": 86.4
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/physics-fall-through/v2",
+      "operator": "hide",
+      "bug": "dev/physics-fall-through/v2",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "regression check player-always-visible failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "fail",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "regression/player-always-visible"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "needs-review",
+            "regression/player-always-visible": "fail",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 151
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "caught-sam",
+      "finding": false,
+      "caught": "sam-on",
+      "samImages": 152,
+      "wallClockSeconds": 117.4
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/layering/v1",
+      "operator": "scale-to-zero",
+      "bug": "dev/layering/v1",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "needs-review",
+          "reasons": [],
+          "ownResults": {
+            "player-always-visible": "pass",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "regression/player-always-visible": "pass",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "survived",
+      "finding": true,
+      "caught": null,
+      "samImages": 1,
+      "wallClockSeconds": 81.5
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/physics-fall-through/v2",
+      "operator": "sink",
+      "bug": "dev/physics-fall-through/v2",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "regression check player-stays-above-ground failed",
+            "regression check player-always-visible failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "fail",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "regression/player-always-visible",
+            "regression/player-stays-above-ground"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "fail",
+            "regression/player-always-visible": "fail",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 154
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "caught-sam",
+      "finding": false,
+      "caught": "sam-on",
+      "samImages": 155,
+      "wallClockSeconds": 117.7
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/physics-fall-through/v2",
+      "operator": "freeze",
+      "bug": "dev/physics-fall-through/v2",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "gameplay check player-motion-on-smoke failed"
+          ],
+          "ownResults": {},
+          "failedChecks": [
+            "gameplay/player-motion-on-smoke"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "fail"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "gameplay check player-motion-on-smoke failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "pass",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "gameplay/player-motion-on-smoke"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "regression/player-always-visible": "pass",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "fail"
+          },
+          "cleanSource": "harness",
+          "samImages": 230
+        }
+      },
+      "cheapDecision": "reject",
+      "outcome": "caught-cheap",
+      "agreement": "disagree",
+      "finding": false,
+      "caught": "sam-off",
+      "samImages": 231,
+      "wallClockSeconds": 192.7
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/physics-fall-through/v2",
+      "operator": "scale-to-zero",
+      "bug": "dev/physics-fall-through/v2",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "needs-review",
+          "reasons": [],
+          "ownResults": {
+            "player-always-visible": "pass",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "regression/player-always-visible": "pass",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "survived",
+      "finding": true,
+      "caught": null,
+      "samImages": 1,
+      "wallClockSeconds": 54.0
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/physics-fall-through/v2",
+      "operator": "behind-scenery",
+      "bug": "dev/physics-fall-through/v2",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "regression check player-always-visible failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "fail",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "regression/player-always-visible"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "needs-review",
+            "regression/player-always-visible": "fail",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 142
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "caught-sam",
+      "finding": false,
+      "caught": "sam-on",
+      "samImages": 143,
+      "wallClockSeconds": 82.0
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/physics-fall-through/v2",
+      "operator": "comment-only",
+      "bug": "dev/physics-fall-through/v2",
+      "label": "good",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "needs-review",
+          "reasons": [],
+          "ownResults": {
+            "player-always-visible": "pass",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "regression/player-always-visible": "pass",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "survived",
+      "finding": false,
+      "caught": null,
+      "samImages": 1,
+      "wallClockSeconds": 55.7
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/sinking/v1",
+      "operator": "hide",
+      "bug": "dev/sinking/v1",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "regression check player-always-visible failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "fail",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "regression/player-always-visible"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "needs-review",
+            "regression/player-always-visible": "fail",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 151
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "caught-sam",
+      "finding": false,
+      "caught": "sam-on",
+      "samImages": 152,
+      "wallClockSeconds": 117.2
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/sinking/v1",
+      "operator": "sink",
+      "bug": "dev/sinking/v1",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "regression check player-stays-above-ground failed",
+            "regression check player-always-visible failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "fail",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "regression/player-always-visible",
+            "regression/player-stays-above-ground"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "fail",
+            "regression/player-always-visible": "fail",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 154
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "caught-sam",
+      "finding": false,
+      "caught": "sam-on",
+      "samImages": 155,
+      "wallClockSeconds": 119.7
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/sinking/v1",
+      "operator": "freeze",
+      "bug": "dev/sinking/v1",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "gameplay check player-motion-on-smoke failed"
+          ],
+          "ownResults": {},
+          "failedChecks": [
+            "gameplay/player-motion-on-smoke"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "fail"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "gameplay check player-motion-on-smoke failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "pass",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "gameplay/player-motion-on-smoke"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "regression/player-always-visible": "pass",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "fail"
+          },
+          "cleanSource": "harness",
+          "samImages": 230
+        }
+      },
+      "cheapDecision": "reject",
+      "outcome": "caught-cheap",
+      "agreement": "disagree",
+      "finding": false,
+      "caught": "sam-off",
+      "samImages": 231,
+      "wallClockSeconds": 135.2
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/sinking/v1",
+      "operator": "scale-to-zero",
+      "bug": "dev/sinking/v1",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "needs-review",
+          "reasons": [],
+          "ownResults": {
+            "player-always-visible": "pass",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "regression/player-always-visible": "pass",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "survived",
+      "finding": true,
+      "caught": null,
+      "samImages": 1,
+      "wallClockSeconds": 81.5
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/sinking/v1",
+      "operator": "behind-scenery",
+      "bug": "dev/sinking/v1",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "regression check player-always-visible failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "fail",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "regression/player-always-visible"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "needs-review",
+            "regression/player-always-visible": "fail",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 142
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "caught-sam",
+      "finding": false,
+      "caught": "sam-on",
+      "samImages": 143,
+      "wallClockSeconds": 119.1
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/layering/v1",
+      "operator": "behind-scenery",
+      "bug": "dev/layering/v1",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "regression check player-always-visible failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "fail",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "regression/player-always-visible"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "needs-review",
+            "regression/player-always-visible": "fail",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 142
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "caught-sam",
+      "finding": false,
+      "caught": "sam-on",
+      "samImages": 143,
+      "wallClockSeconds": 87.0
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/sinking/v1",
+      "operator": "comment-only",
+      "bug": "dev/sinking/v1",
+      "label": "good",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "needs-review",
+          "reasons": [],
+          "ownResults": {
+            "player-always-visible": "pass",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "regression/player-always-visible": "pass",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "survived",
+      "finding": false,
+      "caught": null,
+      "samImages": 1,
+      "wallClockSeconds": 85.4
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/sinking/v2",
+      "operator": "hide",
+      "bug": "dev/sinking/v2",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "regression check player-always-visible failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "fail",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "regression/player-always-visible"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "needs-review",
+            "regression/player-always-visible": "fail",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 151
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "caught-sam",
+      "finding": false,
+      "caught": "sam-on",
+      "samImages": 152,
+      "wallClockSeconds": 125.4
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/sinking/v2",
+      "operator": "sink",
+      "bug": "dev/sinking/v2",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": true,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "regression check player-stays-above-ground failed",
+            "regression check player-always-visible failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "fail",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "regression/player-always-visible",
+            "regression/player-stays-above-ground"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "fail",
+            "regression/player-always-visible": "fail",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 154
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "caught-sam",
+      "finding": false,
+      "caught": "sam-on",
+      "samImages": 155,
+      "wallClockSeconds": 120.2
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/sinking/v2",
+      "operator": "freeze",
+      "bug": "dev/sinking/v2",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "gameplay check player-motion-on-smoke failed"
+          ],
+          "ownResults": {},
+          "failedChecks": [
+            "gameplay/player-motion-on-smoke"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "fail"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "gameplay check player-motion-on-smoke failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "pass",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "gameplay/player-motion-on-smoke"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "regression/player-always-visible": "pass",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "fail"
+          },
+          "cleanSource": "harness",
+          "samImages": 230
+        }
+      },
+      "cheapDecision": "reject",
+      "outcome": "caught-cheap",
+      "agreement": "disagree",
+      "finding": false,
+      "caught": "sam-off",
+      "samImages": 231,
+      "wallClockSeconds": 130.7
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/sinking/v2",
+      "operator": "scale-to-zero",
+      "bug": "dev/sinking/v2",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "needs-review",
+          "reasons": [],
+          "ownResults": {
+            "player-always-visible": "pass",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "regression/player-always-visible": "pass",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "survived",
+      "finding": true,
+      "caught": null,
+      "samImages": 1,
+      "wallClockSeconds": 66.1
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/sinking/v2",
+      "operator": "behind-scenery",
+      "bug": "dev/sinking/v2",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "regression check player-always-visible failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "fail",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "regression/player-always-visible"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "needs-review",
+            "regression/player-always-visible": "fail",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 142
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "caught-sam",
+      "finding": false,
+      "caught": "sam-on",
+      "samImages": 143,
+      "wallClockSeconds": 84.4
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/sinking/v2",
+      "operator": "comment-only",
+      "bug": "dev/sinking/v2",
+      "label": "good",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "needs-review",
+          "reasons": [],
+          "ownResults": {
+            "player-always-visible": "pass",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "regression/player-always-visible": "pass",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "survived",
+      "finding": false,
+      "caught": null,
+      "samImages": 1,
+      "wallClockSeconds": 54.1
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/layering/v1",
+      "operator": "comment-only",
+      "bug": "dev/layering/v1",
+      "label": "good",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "needs-review",
+          "reasons": [],
+          "ownResults": {
+            "player-always-visible": "pass",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "regression/player-always-visible": "pass",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "survived",
+      "finding": false,
+      "caught": null,
+      "samImages": 1,
+      "wallClockSeconds": 81.3
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/layering/v2",
+      "operator": "hide",
+      "bug": "dev/layering/v2",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "regression check player-always-visible failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "fail",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "regression/player-always-visible"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "needs-review",
+            "regression/player-always-visible": "fail",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 151
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "caught-sam",
+      "finding": false,
+      "caught": "sam-on",
+      "samImages": 152,
+      "wallClockSeconds": 127.1
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/layering/v2",
+      "operator": "sink",
+      "bug": "dev/layering/v2",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "regression check player-stays-above-ground failed",
+            "regression check player-always-visible failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "fail",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "regression/player-always-visible",
+            "regression/player-stays-above-ground"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "fail",
+            "regression/player-always-visible": "fail",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 154
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "caught-sam",
+      "finding": false,
+      "caught": "sam-on",
+      "samImages": 155,
+      "wallClockSeconds": 119.5
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/layering/v2",
+      "operator": "freeze",
+      "bug": "dev/layering/v2",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "gameplay check player-motion-on-smoke failed"
+          ],
+          "ownResults": {},
+          "failedChecks": [
+            "gameplay/player-motion-on-smoke"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "fail"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "reject",
+          "verifierDecision": "reject",
+          "reasons": [
+            "gameplay check player-motion-on-smoke failed"
+          ],
+          "ownResults": {
+            "player-always-visible": "pass",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [
+            "gameplay/player-motion-on-smoke"
+          ],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "regression/player-always-visible": "pass",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "fail"
+          },
+          "cleanSource": "harness",
+          "samImages": 230
+        }
+      },
+      "cheapDecision": "reject",
+      "outcome": "caught-cheap",
+      "agreement": "disagree",
+      "finding": false,
+      "caught": "sam-off",
+      "samImages": 231,
+      "wallClockSeconds": 118.5
+    },
+    {
+      "format": "expectrail.mutation-bench/v0",
+      "kind": "wrong-fix",
+      "case": "dev/layering/v2",
+      "operator": "scale-to-zero",
+      "bug": "dev/layering/v2",
+      "label": "bad",
+      "preregistrationSha256": "719eb1e2c049b374aa0b9161e0a3c96f159a964b5be2c28a0731c9cc753061ab",
+      "commit": "a439e9b558f4cd5ebc742d97a5f4c349121d622b",
+      "noop": false,
+      "arms": {
+        "cheap": {
+          "provider": "trace",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "accept",
+          "reasons": [
+            "all 4 checks passed"
+          ],
+          "ownResults": {},
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        },
+        "sam": {
+          "provider": "sam",
+          "retried": false,
+          "decision": "accept",
+          "verifierDecision": "needs-review",
+          "reasons": [],
+          "ownResults": {
+            "player-always-visible": "pass",
+            "coins-visible": "pass"
+          },
+          "failedChecks": [],
+          "checkResults": {
+            "regression/player-stays-above-ground": "pass",
+            "regression/player-always-visible": "pass",
+            "regression/coins-visible": "pass",
+            "gameplay/player-motion-on-smoke": "pass"
+          },
+          "cleanSource": "harness",
+          "samImages": 0
+        }
+      },
+      "cheapDecision": "accept",
+      "agreement": null,
+      "outcome": "survived",
+      "finding": true,
+      "caught": null,
+      "samImages": 1,
+      "wallClockSeconds": 63.8
+    }
+  ],
+  "samplingUnknown": false,
+  "runs": [
+    41268021760
+  ],
+  "spend": {
+    "samImages": 5473,
+    "samUsd": 13.68
+  },
+  "missingCases": [],
+  "unexpectedCases": []
+}

@@ -1,0 +1,544 @@
+{
+  "format": "expectrail.reported-trial-results/v0",
+  "runs": [
+    {
+      "run": 41129722699,
+      "runUrl": "https://github.com/seanudeke/Expectrail/actions/runs/41129722699",
+      "commit": "ec3b339eb6e8c40be39e9f89b2ddac0da1cb9b6a",
+      "date": "2026-10-30T21:15:59Z"
+    }
+  ],
+  "bugs": {
+    "air-jump": {
+      "cases": 5,
+      "fixed": 5,
+      "errors": 0,
+      "candidates": 5,
+      "expectrailAccepts": 5,
+      "publicCheckPasses": 5,
+      "museAccepts": 5,
+      "naturalCatches": 0
+    },
+    "body-flip": {
+      "cases": 5,
+      "fixed": 5,
+      "errors": 0,
+      "candidates": 5,
+      "expectrailAccepts": 5,
+      "publicCheckPasses": 5,
+      "museAccepts": 4,
+      "naturalCatches": 0
+    },
+    "enemy-ledge": {
+      "cases": 5,
+      "fixed": 5,
+      "errors": 0,
+      "candidates": 5,
+      "expectrailAccepts": 5,
+      "publicCheckPasses": 5,
+      "museAccepts": 5,
+      "naturalCatches": 0
+    },
+    "gun-cooldown": {
+      "cases": 5,
+      "fixed": 5,
+      "errors": 0,
+      "candidates": 5,
+      "expectrailAccepts": 5,
+      "publicCheckPasses": 5,
+      "museAccepts": 5,
+      "naturalCatches": 0
+    }
+  },
+  "rows": [
+    {
+      "case": "reported/air-jump/r1",
+      "candidates": [
+        {
+          "attempt": 1,
+          "expectrail": "accept",
+          "publicCheck": "pass",
+          "museScreenshots": "accept",
+          "naturalCatch": false,
+          "failing": []
+        }
+      ],
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "seconds": 737.9,
+      "live": true,
+      "samImages": 0,
+      "attemptDecisions": [
+        "accept"
+      ],
+      "run": 41129722699,
+      "bug": "air-jump"
+    },
+    {
+      "case": "reported/air-jump/r2",
+      "candidates": [
+        {
+          "attempt": 1,
+          "expectrail": "accept",
+          "publicCheck": "pass",
+          "museScreenshots": "accept",
+          "naturalCatch": false,
+          "failing": []
+        }
+      ],
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "seconds": 665.3,
+      "live": true,
+      "samImages": 0,
+      "attemptDecisions": [
+        "accept"
+      ],
+      "run": 41129722699,
+      "bug": "air-jump"
+    },
+    {
+      "case": "reported/air-jump/r3",
+      "candidates": [
+        {
+          "attempt": 1,
+          "expectrail": "accept",
+          "publicCheck": "pass",
+          "museScreenshots": "accept",
+          "naturalCatch": false,
+          "failing": []
+        }
+      ],
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "seconds": 503.2,
+      "live": true,
+      "samImages": 0,
+      "attemptDecisions": [
+        "accept"
+      ],
+      "run": 41129722699,
+      "bug": "air-jump"
+    },
+    {
+      "case": "reported/air-jump/r4",
+      "candidates": [
+        {
+          "attempt": 1,
+          "expectrail": "accept",
+          "publicCheck": "pass",
+          "museScreenshots": "accept",
+          "naturalCatch": false,
+          "failing": []
+        }
+      ],
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "seconds": 655.7,
+      "live": true,
+      "samImages": 0,
+      "attemptDecisions": [
+        "accept"
+      ],
+      "run": 41129722699,
+      "bug": "air-jump"
+    },
+    {
+      "case": "reported/air-jump/r5",
+      "candidates": [
+        {
+          "attempt": 1,
+          "expectrail": "accept",
+          "publicCheck": "pass",
+          "museScreenshots": "accept",
+          "naturalCatch": false,
+          "failing": []
+        }
+      ],
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "seconds": 649.6,
+      "live": true,
+      "samImages": 0,
+      "attemptDecisions": [
+        "accept"
+      ],
+      "run": 41129722699,
+      "bug": "air-jump"
+    },
+    {
+      "case": "reported/body-flip/r1",
+      "candidates": [
+        {
+          "attempt": 1,
+          "expectrail": "accept",
+          "publicCheck": "pass",
+          "museScreenshots": "accept",
+          "naturalCatch": false,
+          "failing": []
+        }
+      ],
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "seconds": 1037.7,
+      "live": true,
+      "samImages": 0,
+      "attemptDecisions": [
+        "accept"
+      ],
+      "run": 41129722699,
+      "bug": "body-flip"
+    },
+    {
+      "case": "reported/body-flip/r2",
+      "candidates": [
+        {
+          "attempt": 1,
+          "expectrail": "accept",
+          "publicCheck": "pass",
+          "museScreenshots": "reject",
+          "naturalCatch": false,
+          "failing": []
+        }
+      ],
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "seconds": 1151.7,
+      "live": true,
+      "samImages": 0,
+      "attemptDecisions": [
+        "accept"
+      ],
+      "run": 41129722699,
+      "bug": "body-flip"
+    },
+    {
+      "case": "reported/body-flip/r3",
+      "candidates": [
+        {
+          "attempt": 1,
+          "expectrail": "accept",
+          "publicCheck": "pass",
+          "museScreenshots": "accept",
+          "naturalCatch": false,
+          "failing": []
+        }
+      ],
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "seconds": 1084.5,
+      "live": true,
+      "samImages": 0,
+      "attemptDecisions": [
+        "accept"
+      ],
+      "run": 41129722699,
+      "bug": "body-flip"
+    },
+    {
+      "case": "reported/body-flip/r4",
+      "candidates": [
+        {
+          "attempt": 1,
+          "expectrail": "accept",
+          "publicCheck": "pass",
+          "museScreenshots": "accept",
+          "naturalCatch": false,
+          "failing": []
+        }
+      ],
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "seconds": 1160.1,
+      "live": true,
+      "samImages": 0,
+      "attemptDecisions": [
+        "accept"
+      ],
+      "run": 41129722699,
+      "bug": "body-flip"
+    },
+    {
+      "case": "reported/body-flip/r5",
+      "candidates": [
+        {
+          "attempt": 1,
+          "expectrail": "accept",
+          "publicCheck": "pass",
+          "museScreenshots": "accept",
+          "naturalCatch": false,
+          "failing": []
+        }
+      ],
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "seconds": 1150.9,
+      "live": true,
+      "samImages": 0,
+      "attemptDecisions": [
+        "accept"
+      ],
+      "run": 41129722699,
+      "bug": "body-flip"
+    },
+    {
+      "case": "reported/enemy-ledge/r1",
+      "candidates": [
+        {
+          "attempt": 1,
+          "expectrail": "accept",
+          "publicCheck": "pass",
+          "museScreenshots": "accept",
+          "naturalCatch": false,
+          "failing": []
+        }
+      ],
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "seconds": 649.0,
+      "live": true,
+      "samImages": 0,
+      "attemptDecisions": [
+        "accept"
+      ],
+      "run": 41129722699,
+      "bug": "enemy-ledge"
+    },
+    {
+      "case": "reported/enemy-ledge/r2",
+      "candidates": [
+        {
+          "attempt": 1,
+          "expectrail": "accept",
+          "publicCheck": "pass",
+          "museScreenshots": "accept",
+          "naturalCatch": false,
+          "failing": []
+        }
+      ],
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "seconds": 763.3,
+      "live": true,
+      "samImages": 0,
+      "attemptDecisions": [
+        "accept"
+      ],
+      "run": 41129722699,
+      "bug": "enemy-ledge"
+    },
+    {
+      "case": "reported/enemy-ledge/r3",
+      "candidates": [
+        {
+          "attempt": 1,
+          "expectrail": "accept",
+          "publicCheck": "pass",
+          "museScreenshots": "accept",
+          "naturalCatch": false,
+          "failing": []
+        }
+      ],
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "seconds": 842.4,
+      "live": true,
+      "samImages": 0,
+      "attemptDecisions": [
+        "accept"
+      ],
+      "run": 41129722699,
+      "bug": "enemy-ledge"
+    },
+    {
+      "case": "reported/enemy-ledge/r4",
+      "candidates": [
+        {
+          "attempt": 1,
+          "expectrail": "accept",
+          "publicCheck": "pass",
+          "museScreenshots": "accept",
+          "naturalCatch": false,
+          "failing": []
+        }
+      ],
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "seconds": 1196.5,
+      "live": true,
+      "samImages": 0,
+      "attemptDecisions": [
+        "accept"
+      ],
+      "run": 41129722699,
+      "bug": "enemy-ledge"
+    },
+    {
+      "case": "reported/enemy-ledge/r5",
+      "candidates": [
+        {
+          "attempt": 1,
+          "expectrail": "accept",
+          "publicCheck": "pass",
+          "museScreenshots": "accept",
+          "naturalCatch": false,
+          "failing": []
+        }
+      ],
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "seconds": 730.5,
+      "live": true,
+      "samImages": 0,
+      "attemptDecisions": [
+        "accept"
+      ],
+      "run": 41129722699,
+      "bug": "enemy-ledge"
+    },
+    {
+      "case": "reported/gun-cooldown/r1",
+      "candidates": [
+        {
+          "attempt": 1,
+          "expectrail": "accept",
+          "publicCheck": "pass",
+          "museScreenshots": "accept",
+          "naturalCatch": false,
+          "failing": []
+        }
+      ],
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "seconds": 535.5,
+      "live": true,
+      "samImages": 0,
+      "attemptDecisions": [
+        "accept"
+      ],
+      "run": 41129722699,
+      "bug": "gun-cooldown"
+    },
+    {
+      "case": "reported/gun-cooldown/r2",
+      "candidates": [
+        {
+          "attempt": 1,
+          "expectrail": "accept",
+          "publicCheck": "pass",
+          "museScreenshots": "accept",
+          "naturalCatch": false,
+          "failing": []
+        }
+      ],
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "seconds": 293.6,
+      "live": true,
+      "samImages": 0,
+      "attemptDecisions": [
+        "accept"
+      ],
+      "run": 41129722699,
+      "bug": "gun-cooldown"
+    },
+    {
+      "case": "reported/gun-cooldown/r3",
+      "candidates": [
+        {
+          "attempt": 1,
+          "expectrail": "accept",
+          "publicCheck": "pass",
+          "museScreenshots": "accept",
+          "naturalCatch": false,
+          "failing": []
+        }
+      ],
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "seconds": 1012.5,
+      "live": true,
+      "samImages": 0,
+      "attemptDecisions": [
+        "accept"
+      ],
+      "run": 41129722699,
+      "bug": "gun-cooldown"
+    },
+    {
+      "case": "reported/gun-cooldown/r4",
+      "candidates": [
+        {
+          "attempt": 1,
+          "expectrail": "accept",
+          "publicCheck": "pass",
+          "museScreenshots": "accept",
+          "naturalCatch": false,
+          "failing": []
+        }
+      ],
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "seconds": 1118.0,
+      "live": true,
+      "samImages": 0,
+      "attemptDecisions": [
+        "accept"
+      ],
+      "run": 41129722699,
+      "bug": "gun-cooldown"
+    },
+    {
+      "case": "reported/gun-cooldown/r5",
+      "candidates": [
+        {
+          "attempt": 1,
+          "expectrail": "accept",
+          "publicCheck": "pass",
+          "museScreenshots": "accept",
+          "naturalCatch": false,
+          "failing": []
+        }
+      ],
+      "detected": "fail",
+      "outcome": "fixed",
+      "attemptsUsed": 1,
+      "seconds": 594.5,
+      "live": true,
+      "samImages": 0,
+      "attemptDecisions": [
+        "accept"
+      ],
+      "run": 41129722699,
+      "bug": "gun-cooldown"
+    }
+  ],
+  "naturalCatches": 0,
+  "candidates": 20,
+  "rule": "first non-error result per case, in run order",
+  "spend": {
+    "samImages": 0,
+    "samUsd": 0.0,
+    "museCalls": 20,
+    "jobMinutes": 275.5
+  }
+}

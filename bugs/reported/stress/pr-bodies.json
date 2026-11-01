@@ -1,0 +1,550 @@
+{
+ "MrCranito/maskit#65": {
+  "fetched": "2026-10-31",
+  "prBody": "## Demande « Ajoute trois points d'extraction, qui expirent au fur et à mesure du temps, en fonction de leur distance du point de départ. » ## Avant Mesure sur 6 seeds par carte (générateurs actuels) : **1 à 2 zones** par étage, souvent à la même distance du départ (Station et Galeries : deux sas symétriques) ; certains étages (sous-sol Far West, étages supérieurs) en ont 0. Les zones restent ouvertes tout le raid. ## Ce qui change ### 3 zones par étage, qui ferment l'une après l'autre - **`scripts/dungeon/extraction_plan.gd` (nouveau, `ExtractionPlan`)**, appelé par `Raid._generate_floors` **"
+ },
+ "MrCranito/maskit#61": {
+  "fetched": "2026-10-31",
+  "prBody": "## Résumé Suite de #57 (HUD compact, déjà fusionnée). Cette PR couvre le point 5 des retours de Victor (« un vrai menu d'inventaire en jeu ») et ses deux demandes en plus : 1. **Inventaire de raid refait** (direction D) : plein écran dans la zone sûre, en trois colonnes lisibles sur téléphone. - **Équipement** : les 3 armes tenues (arme en main en violet, munitions), l'équipement (charges), les 2 emplacements rapides. - **Sac** : grille avec les couleurs de rareté et une pastille par affixe, cases occupées, poids / capacité. - **Objet sélectionné** : nom, rareté, type, affixes (`AffixBadges.de"
+ },
+ "dpsommer/aos#34": {
+  "fetched": "2026-10-31",
+  "prBody": "## Summary - New `AbilityChoiceCard` (`scripts/ui/cards/ability_choice_card.gd`): the ability card itself is the selectable card, with no outer box, filling its column's width. - Folded to its header and name until the eye at the right of the header shows its rules. - While chosen: a gold outline (3px, as for keyboard focus) and a check left of the eye. The check's space is kept when hidden so the header doesn't reflow. - Used by the Forge's unit enhancement options (`UnitRow`) and Quick Play's Spearhead regiment ability and enhancement choices (`ArmySelect`). Eye state survives redraws. - `Ab"
+ },
+ "servisys/cosmic-horror#28": {
+  "fetched": "2026-10-31",
+  "prBody": "## ATTENZIONE: il merge di questa PR REGISTRA la decisione Secondo la regola 4 (V0.1 nella PR #14; V0.2 nella PR #29), il merge su `main` di un documento che contiene `Stato: REGISTRATA` registra la decisione. **Fondere questa PR = registrare CT-DES-014: «Cosmic Horror usa il percorso web; Godot è abbandonato».** Non fondere finché Matteo non è sicuro e finché le dipendenze sotto non sono risolte. ## Cosa contiene Copia **identica** (3443 byte, verificata con `cmp`) di `CT_DECISION_LOG_CT_DES_014_REGISTRATA_V0.12.md`, preparato da Copilot e consegnato da Matteo come allegato. **Sostituisce la "
+ },
+ "federicohermo/nosefia#722": {
+  "fetched": "2026-10-31",
+  "prBody": "Closes #219 Caminar contra una unidad de producto tirada en el piso la corre hacia el costado del camino. No frena al jugador y no la mete en ningún mueble. ## Qué cambia - `dominio/jugador/patada.gd`: `Patada.impulso(velocidad, posicion_relativa, objeto) -> Vector3`. Cero si el jugador está quieto o si el objeto no es una `UnidadDeProducto`. La constante `FRACCION_DE_LA_VELOCIDAD` es provisional (OQ-PLY-006). - `jugador.tscn`: un `Area3D` en los pies (`Pies`). - `jugador.gd`: lee el área en cada paso de física, le pide el impulso al dominio y se lo aplica a cada cuerpo nuevo. No decide nada. ",
+  "linkedIssue": "219",
+  "issueAuthor": "federicohermo",
+  "issueTitle": "El jugador patea las unidades de producto que están en el piso",
+  "issueBody": "<!-- Un issue es un plan chico y descartable: resuelve un problema puntual, con límites y criterios propios. Un spec es otra cosa: el contrato durable de una funcionalidad. Un issue cambia un spec sólo si cambia lo que el juego tiene que hacer. --> # El jugador patea las unidades de producto que están en el piso ## Contexto - **Objetivo:** después de este issue, caminar contra una unidad de produc"
+ },
+ "MrCranito/maskit#64": {
+  "fetched": "2026-10-31",
+  "prBody": "## Retours - Victor : « la dispersion des balles n'est pas foufou ». - Retour testeur antérieur « fusils d'assaut / mitraillettes imprécis » : il avait été traité en **augmentant** l'imprécision (±7-10° dès le premier tir sur fusils d'assaut / mitraillettes / mitrailleuses, tirage uniforme). Résultat : à 6 cases, un AK ne touchait un ennemi qu'une fois sur deux **au premier tir**, une balle sur cinq en rafale. ## Ce qui change ### Règle de tir (`scripts/player/player.gd`) - **Premier tir net** : imprécision de base divisée par 3 à 5 sur fusils d'assaut, mitraillettes et mitrailleuses (≈ ±1-2°)"
+ },
+ "MrCranito/maskit#60": {
+  "fetched": "2026-10-31",
+  "prBody": "## Objectif Demande de Victor : « ajuster la difficulté et le nombre de monstres en fonction du nombre de personnes dans la partie ». Jusqu'ici la coop multipliait seulement les PV des ennemis par `[net] coop_enemy_hp_mult=1.6`. ## Ce qui change - **Barème par nombre de joueurs** dans `data/balance.cfg`, nouvelle section `[coop]`, clés `<valeur>_<n>` pour n = 2, 3, 4 (le jeu permet 2 joueurs aujourd'hui ; 3-4 sont prêts pour plus tard). **Solo (n = 1) : toujours 1, quelles que soient les valeurs** (aucun changement en solo). - `scripts/net/coop_rules.gd` : `party_mult(key, players)` (lecture d"
+ },
+ "MrCranito/maskit#59": {
+  "fetched": "2026-10-31",
+  "prBody": "## Résumé La PR #37 a ajouté 12 armes sans visuel : dans l'arsenal, le HUD et en jeu, elles s'affichaient avec des silhouettes provisoires dessinées en code (rectangles gris). Elles ont maintenant de vrais rendus Blender, faits avec le même pipeline que les 18 armes d'origine : matériaux toon, contour Freestyle, vue 3/4 plongeante à 34° pour l'arme tenue, icône de profil 256×128, même échelle de 44 px par unité et `scale` 0,45. La finition suit la rareté, comme sur les armes existantes : | Arme | Rareté | Référence et pièces distinctives | Finition | |---|---|---|---| | Peacemaker | Commun | C"
+ },
+ "powerbassist/World-simulator#210": {
+  "fetched": "2026-10-31",
+  "prBody": "V5.2 \"People who talk\" closes: closing gate 2/5 \"déroutant\" (gate b was 2/5); the author chose \"Petite passe, puis V5.3\"; the pass is #208 + #209 (`522a9adc`, the last PR). Docs only, no Godot run. ## What changed - `docs/tiers/v5.md`: state map (`V5.2: closed | play gate 2/5` plus sub-block lines 0, a, a-art, b, gate-b, bplus, c, d), the regenerated mermaid, and a new \"V5.2 — the close-out\" section (merge record of all 118 PRs #92 to #209, each placed once; both gates verbatim; promised against shipped; the author's calls with dates; measured; lessons). First block-level close-out section in "
+ },
+ "kfred123/unicorn-quest#1": {
+  "fetched": "2026-10-31",
+  "prBody": "## Zusammenfassung Implementiert die Change `core-platformer-mechanics` (siehe `openspec/changes/archive/2026-09-26-core-platformer-mechanics/`) und aktualisiert die Haupt-Specs unter `openspec/specs/`. ## Was wurde implementiert - **Godot 4.x Projekt-Setup**: `project.godot`, Ordnerstruktur `scenes/`, `scripts/` - **Character-Bewegung** (`character-movement`): Laufen, Springen, Schwerkraft/Bodenkollision - **Einhorn-Reiten** (`unicorn-mount`): Aufsitzen/Absteigen per Button, unterschiedliche Kollisionsformen (klein=Höhlen, groß=Sprunghöhe), nur im Stand am Boden möglich - **Regenbogen-Brücke*"
+ },
+ "MrLogic85/Node-Runner#298": {
+  "fetched": "2026-10-31",
+  "prBody": "## Summary Closes #296. Restores the \"Text input\" specimen section in the Component Gallery (`ComponentGalleryScreen`), which was accidentally dropped when the gallery migrated from code-generated sections to scene-authored content (#294). ## Changes - Re-add the \"Text input\" section (Creation name — rest/error, Part name — compact/editing) to `ComponentGalleryScreen.tscn` as scene-authored nodes (not code-generated). - Convert `UiTextField` to a `[Tool]`/`[GlobalClass]` component (matching the existing `UiButton`/`UiSlider`/`UiNumber` pattern) so it renders correctly in the Godot editor and c",
+  "linkedIssue": "296",
+  "issueAuthor": "MrLogic85",
+  "issueTitle": "Component Gallery: 'Text input' specimen section missing after scene-authoring migration",
+  "issueBody": "## Summary The \"Text input\" specimen section (Creation name — rest & error states, Part name — compact/editing state) was removed from `ComponentGalleryScreen` during the scene-authoring migration in PR #294/#295 and never re-added. Only one incidental text field (\"Front knee\" name field under Panel rows) remains visible in the gallery, so `UiTextField`'s rest/error/compact-editing states are no l"
+ },
+ "PhantomMatthew/godot-mcp-pro-csharp#1": {
+  "fetched": "2026-10-31",
+  "prBody": "## Root cause Godot's `Json.ParseString` parses **every** JSON number as `double`, so an integer JSON-RPC `id` sent by the client (e.g. `\"id\":0`) was echoed back by the server as `\"id\":0.0`. Strict MCP clients — notably **rmcp**, the Rust SDK used by **GitHub Copilot CLI** — deserialize `id` as an untagged enum of integer-or-string. A fractional `0.0` matches neither variant, so the initialize handshake fails: ``` [rust:mcp::client] could not parse JSON response as ServerJsonRpcMessage, treating as accepted: data did not match any variant of untagged enum JsonRpcMessage [rust:rmcp::transport::"
+ },
+ "nickmartin1ee7/LeafSweeper#40": {
+  "fetched": "2026-10-31",
+  "prBody": "## Problem On a real device, the menu showed **\"Update Available (v0.0.43)\"** with 0.0.43 installed. ## Root cause The release pipeline stamped the build version only into `export_presets.cfg` (`version/name` + `version/code` — the Android `versionName` the OS reports). The in-game update check (`scripts/UpdateChecker.cs`) reads a different field: `application/config/version` from `project.godot`, which no step ever updated — every exported APK therefore carried `0.0.1`. The `System.Version` comparison (`latest <= current` → up to date) was already correct; it was simply fed the wrong installe"
+ },
+ "nickmartin1ee7/LeafSweeper#39": {
+  "fetched": "2026-10-31",
+  "prBody": "## What **Root cause of the missing version line on Android:** the exported APK had `permissions/internet=false` (`export_presets.cfg`), so Android blocked every outgoing request — our failure path was silent by design, hence nothing appeared on device while desktop debug worked fine. Godot 4.7 docs (HTTPRequest class, HTTP requests tutorial): *\"When exporting to Android, the INTERNET permission must be enabled in the Android export preset; otherwise, network communication will be blocked by the operating system.\"* - **`export_presets.cfg`**: `permissions/internet=true`. With gradle build enab"
+ },
+ "nickmartin1ee7/LeafSweeper#36": {
+  "fetched": "2026-10-31",
+  "prBody": "Follow-up slice to #24, driven by playtest findings. One commit, three coupled changes plus their autoplay coverage and docs. ## Changes - **Banner seat (pixel-calculated)**: `StormGapFraction` −0.003 → −0.026 seats the \"Prismatic\" lettering center at ~0.214 viewport height — solved from the playtest screenshot's fiducials (title offset 15px, viewport 1026px; red guide band rows 198–271). Measured 0.2187 in a windowed capture: inside the band, clear of both the storm cloud and the win modal. - **Flare rides the bug**: `SunFlare` is now a **child of the celebrated bug** (relative `ZIndex` −1 + "
+ },
+ "nickmartin1ee7/LeafSweeper#35": {
+  "fetched": "2026-10-31",
+  "prBody": "## What - **`scripts/UpdateChecker.cs`** (new): once at boot, GETs `api.github.com/repos/nickmartin1ee7/LeafSweeper/releases/latest` (User-Agent header, 10s timeout), parses `tag_name`, and compares against the installed `config/version` (`System.Version` semantics; `v` prefix / prerelease suffix tolerated). Raises `UpdateAvailable(\"vX.Y.Z\")` only when newer. Every failure path (offline, HTTP ≠ 200, rate limit, unreadable tag) is **silent**; diagnostics print with an `UPDATE` prefix for headless/logcat greps. `LEAF_FAKE_UPDATE=<tag>` skips the network (documented testing hook). - **`scripts/Ma"
+ },
+ "nickmartin1ee7/LeafSweeper#3": {
+  "fetched": "2026-10-31",
+  "prBody": "## What Two linked animations around the round lifecycle: - **Win wind** — when the win card opens, every unswept debris piece lifts into a smooth clockwise gyre around the floor's center: per-piece speed jitter shears the ring, the lane radius breathes, the whole gyre bobs, pieces tumble and never fade while riding. It circles behind the win card until the round is torn down. - **Settle-in reshuffle** — every new round (including the dock **restart** button, which funnels through the same `StartLevel`) drops the debris in as a diagonal staggered curtain of tumbling pieces. Touches and the gus"
+ },
+ "nickmartin1ee7/LeafSweeper#19": {
+  "fetched": "2026-10-31",
+  "prBody": "Two stacked slices, one branch (the second builds directly on the first's machinery): ## 1. Storm levels every 10 rounds - Every 10th level from level 10 (`RoundConfig.IsStormLevel`; `LEAF_STORM=1` forces it): full-screen storm veil (individual wind-carried rain drops, mist, fog wisps, lightning double-flash), and every swept/gust-cleared patch is remembered (pool capped at 400) and re-littered by one fresh piece 4-6s after it was vacated. Gust-cleared ground is treated the same so coin hoarding can't stockpile clean space. - The round before a storm round ends with the electrical \"Storm Round"
+ },
+ "nickmartin1ee7/LeafSweeper#16": {
+  "fetched": "2026-10-31",
+  "prBody": "## Why Follow-up to #14. Owner decision: the storm-coin surplus was the original design intent — storm rounds re-bury swept ground constantly, so the player gets a richer gust supply to fight the flood, while normal rounds keep the coin scarce. The gust-coin count is a pure function of the level: `GustCoinsForLevel(level)` → `IsStormLevel(level) ? StormGustCoins (3) : NormalGustCoins (1)`. ## What changed - `scripts/RoundConfig.cs` — `NormalGustCoins = 1`, `StormGustCoins = 3` consts with feel comments; `IsStormLevel` (`StormEveryLevels = 10`, `StormFirstLevel = 10` — same definitions as the i"
+ },
+ "nickmartin1ee7/LeafSweeper#14": {
+  "fetched": "2026-10-31",
+  "prBody": "## Why The gust-coin economy must be identical on every round type: storm difficulty is meant to come from debris mechanics (swept-spot re-littering), not from a richer coin supply. Main hid a flat 3 coins per round via `Main.GustCoinsPerLevel`; that count now lives where all tuning values live, as a named const `RoundConfig.GustCoinsPerRound = 1` — one shared value that `SpawnGustCoins` uses for every round type, so storm rounds (landing via the storm-levels slice) inherit the same economy by construction. ## What changed - `scripts/RoundConfig.cs` — new `GustCoinsPerRound = 1` const with a c"
+ },
+ "nickmartin1ee7/LeafSweeper#11": {
+  "fetched": "2026-10-31",
+  "prBody": "## Problem The end-round (win) card was cut off on device 1C281FDF6002H0 (1080×2400): an adb screenshot shows the card spanning x = −6…1086 on the 1080px design viewport — both side edges and rounded corners clipped (vertically it was fine, y 696–1706). Root cause: `_winComment` / `_winStats` in `Hud.BuildWinOverlay` had no `AutowrapMode`, and a Label's minimum width equals its longest line. A long flavor line (\"Round, fuzzy, and full of honeycomb gratitude.\" ≈ 47 chars @ 38px ≈ 990px) plus the panel's 108px margins/borders inflated the card past the viewport; `CenterContainer` then clipped bo"
+ },
+ "nickmartin1ee7/LeafSweeper#2": {
+  "fetched": "2026-10-31",
+  "prBody": "## Summary The game's core gesture was already called *sweeping* in most of the code (`Sweeper`, `SweepRadius`, \"swept debris\"), but the counter, stats, save keys and player-facing text said *swipes* — two nouns for one action. This slice unifies everything on **\"sweeps\"**, matching the game's name and existing vocabulary. ## Changes (11 files, 122 lines) - **`Sweeper.cs`** — `MaxDebrisPerSwipe` → `MaxDebrisPerSweep`, `_onSwipeCompleted` → `_onSweepCompleted`, `_clearedThisSwipe` → `_clearedThisSweep` - **`LevelStats.cs`** — `Swipes`/`CountSwipe` → `Sweeps`/`CountSweep`; win-overlay text \"Your"
+ },
+ "KoshkiKode/cordite#1": {
+  "fetched": "2026-10-31",
+  "prBody": "`dotnet build -c Release` was failing because the Godot-generated `UnnamedRTS.sln` has no `Release` configuration — only `Debug`, `ExportDebug`, and `ExportRelease`. ## Changes - **`.github/workflows/export.yml`** — Changed all three `dotnet build` steps (Windows, Linux, Android) from `-c Release` to `-c ExportRelease` to match the configurations defined in the solution file."
+ },
+ "KoshkiKode/cordite#2": {
+  "fetched": "2026-10-31",
+  "prBody": "The export workflow was pinned to Godot 4.4-stable while `project.godot` requires 4.6, causing export failures. `firebelley/godot-export` was also two major versions behind. ## Changes - **Godot**: `4.4-stable` → `4.6.2-stable` across all three export jobs (Windows, Linux, Android) - **`firebelley/godot-export`**: `v5.2.1` → `v7.0.0` (fixes deprecated `@actions/cache` package, adds `--headless --import` on first run)"
+ },
+ "KoshkiKode/cordite#3": {
+  "fetched": "2026-10-31",
+  "prBody": "All three export jobs were failing because `firebelley/godot-export` exports every preset when `export_name` is unset — so each job attempted the Android export and hit a `net8.0`/`net9.0` mismatch (Godot 4.6.2 Android templates require net9.0). ## Changes - **`UnnamedRTS.csproj`** — bump `TargetFramework` from `net8.0` → `net9.0` - **`export.yml`** — update all three jobs to `dotnet-version: 9.0.x` - **`export.yml`** — add `export_name` to each export step so jobs only run their own preset: ```yaml # Windows job export_name: Windows Desktop # Linux job export_name: Linux/X11 # Android job exp"
+ },
+ "KoshkiKode/cordite#5": {
+  "fetched": "2026-10-31",
+  "prBody": "The existing `export.yml` had multiple compounding bugs that caused every packaging job to silently fail: wrong artifact paths, zipped exports handed to jobs expecting raw files, and the Android build template being downloaded on runners that don't need it. ## Root causes fixed - **`archive_output: true`** on Windows/Linux exports → MSI and Snap jobs received a `.zip`, not raw files → both fail at first file check - **Wrong artifact upload paths** — workflow uploaded from `/home/runner/.local/share/godot/exports/…` but `export_presets.cfg` writes to `builds/…` → empty artifacts; fixed by align"
+ },
+ "KoshkiKode/cordite#6": {
+  "fetched": "2026-10-31",
+  "prBody": "The snap package had three issues that would produce a broken or unpublishable artifact: the Godot game-data archive (`.pck`) was never staged, a `game-data` part tried to dump `data/` and `assets/` directories that don't exist in a PCK export, and `grade: devel` blocked Snap Store stable/candidate publishing. ## Changes - **`versions/linux/snapcraft.yaml`** - Stage and organize `CorditeWars.pck` → `bin/CorditeWars.pck` in the `game` part; Godot resolves the PCK by looking next to the binary at runtime - Remove the `game-data` part entirely — it referenced `data/` and `assets/` subdirectories "
+ },
+ "KoshkiKode/cordite#10": {
+  "fetched": "2026-10-31",
+  "prBody": "Project targets Godot 4.6 / .NET 9 (per `UnnamedRTS.csproj` and `project.godot`), but README, build guide, and all platform build scripts still referenced Godot 4.4 / .NET 8. This would send anyone setting up a dev environment or CI pipeline down the wrong path. C# compiles cleanly — 0 warnings, 0 errors. All scene refs, autoloads, and `res://` paths validated. ### Version references updated - **README.md** — engine version, SDK version, download links - **docs/build-guide.md** — prerequisites, CI workflow descriptions, troubleshooting section (12 occurrences) - **versions/{macos,linux,windows"
+ },
+ "KoshkiKode/cordite#9": {
+  "fetched": "2026-10-31",
+  "prBody": "The platform build pipeline had several inconsistencies preventing a clean multi-platform release: iOS had no packaging configuration at all, Android used a different bundle ID than the rest of the project, the Windows installer checked for the wrong .NET runtime, and the Linux snap was missing the Godot .NET runtime files. ## New: iOS platform files - `versions/ios/ios-info.plist` — bundle ID `com.koshkikode.corditewars`, landscape-only, Metal + arm64 required, iOS 16+, `NSAllowsLocalNetworking` for LAN multiplayer - `versions/ios/ios-export-options.plist` — `xcodebuild -exportArchive` option"
+ },
+ "KoshkiKode/cordite#8": {
+  "fetched": "2026-10-31",
+  "prBody": "Godot validates **all** export presets before running any single export, so misconfigured Android preset errors were failing every job (Windows, Linux, macOS, iOS, Android). Two errors in `export_presets.cfg`: - `gradle_build/use_gradle_build=true` required `android/build/` template files that weren't present - `package/signed=true` required a release keystore that only exists when `ANDROID_RELEASE_KEYSTORE_B64` secret is set ## Changes **`export_presets.cfg`** - `gradle_build/use_gradle_build=false` — use pre-built APK templates from the export TPZ instead of custom Gradle build - `package/si"
+ },
+ "KoshkiKode/cordite#18": {
+  "fetched": "2026-10-31",
+  "prBody": "All 5 export jobs (Windows, Linux, Android, iOS, macOS) fail because `export_name` is not a valid input for `firebelley/godot-export@v7.0.0`. The parameter is silently ignored, causing every job to export **all** presets — and the Android preset fails on every runner due to partially-configured release keystore env vars. ### Root causes - **Wrong action input**: `export_name` doesn't exist in v7. The correct input is `presets_to_export`. - **Android keystore partial config**: `GODOT_ANDROID_KEYSTORE_RELEASE_PATH` was always set (to `./release.keystore`), but `_USER` and `_PASSWORD` were empty "
+ },
+ "KoshkiKode/cordite#29": {
+  "fetched": "2026-10-31",
+  "prBody": "All three desktop platform exports were broken: Windows and Linux binaries landed in preset-named subdirectories the verify steps couldn't find; macOS ARM64/universal export failed at export time due to missing ETC2/ASTC texture support. ## Windows & Linux: nested output directory `firebelley/godot-export@v7.0.0` with `use_preset_export_path: true` copies the internal Godot build directory (named after the preset) *into* the configured path rather than placing files directly there: ``` build/windows/Windows Desktop/CorditeWars.exe ← actual build/windows/CorditeWars.exe ← expected build/linux/L"
+ },
+ "KoshkiKode/cordite#31": {
+  "fetched": "2026-10-31",
+  "prBody": "First official alpha release prep: bumps version from `0.1.0` → `0.0.1` across all platform packaging files and wires the release workflow to correctly mark pre-release tags. ## Version files updated (`0.1.0` → `0.0.1`) - `project.godot` — `config/version`, `version_major/minor/patch` - `export_presets.cfg` — macOS `application/short_version` / `application/version` (`100` → `1`) - `.github/workflows/export.yml` — `APP_VERSION` env var - `versions/linux/snapcraft.yaml` - `versions/macos/Info.plist` — `CFBundleShortVersionString` / `CFBundleVersion` - `versions/ios/ios-info.plist` — same as mac"
+ },
+ "KoshkiKode/cordite#34": {
+  "fetched": "2026-10-31",
+  "prBody": "Colons in IPv6 addresses (e.g. `::1`, `fe80::1`) produce illegal Godot node names — Godot reserves `:` as the NodePath property separator. This caused silent failures when creating or looking up LAN game rows for IPv6 hosts. ## Changes - **`MultiplayerLobby.cs`** — added `AddressToNodeKey(string)` helper that strips any non-`[a-zA-Z0-9_]` character to `_` before using the address as a node name key; backed by a static compiled `Regex` to avoid per-call recompilation - Applied to both `OnGameFound` (node creation) and `OnGameLost` (node lookup) - Raw `hostAddress` is passed unchanged to the net"
+ },
+ "KoshkiKode/cordite#37": {
+  "fetched": "2026-10-31",
+  "prBody": "The Android APK preset was silently broken for .NET (no Gradle build = no .NET runtime in APK = instant crash on launch), and there was no CI gate to catch export-level startup failures. ## Android APK preset (`export_presets.cfg`) - `gradle_build/use_gradle_build=false` → `true` on `preset.2` (APK). Required for .NET runtime bundling; the AAB/Google Play preset already had this correct. - Dropped `armeabi-v7a` from APK preset to match the AAB preset (arm64-v8a only). ## Headless smoke test (`export.yml`) - Added `smoke-test-linux` job that runs after `export-linux`, installs `xvfb`, and execu"
+ },
+ "KoshkiKode/cordite#35": {
+  "fetched": "2026-10-31",
+  "prBody": "The sound manifest was using placeholder audio throughout — voice lines pointed to UI clicks, ambient entries pointed to engine/impact SFX — despite the actual CC0 assets already being on disk. This wires everything up and registers the previously unimported ambient WAVs. ## Voice (Kenney Voiceover Pack #1 — CC0) All 5 existing voice entries now use real war dialogue instead of UI click/error placeholders. 16 new entries added: | New ID | Clips | |---|---| | `voice_mission_complete` | `mission_completed`, `objective_achieved` | | `voice_mission_failed` | `mission_failed`, `game_over` | | `voic"
+ },
+ "KoshkiKode/cordite#41": {
+  "fetched": "2026-10-31",
+  "prBody": "`bump-version.py` was silently broken — it failed to read the current version from `project.godot` due to a wrong key pattern, meaning version changes could never propagate to any platform. The `[Unreleased]` changelog also had no record of the stealth mechanics or campaign overhaul shipped in the last two PRs. ## `bump-version.py` fixes - **Wrong key pattern** — searched for `application/version` in `project.godot`; actual key is `config/version` under `[application]` - **Incomplete update targets** — now also writes `config/version_major/minor/patch` in `project.godot`, and covers three prev"
+ },
+ "KoshkiKode/cordite#48": {
+  "fetched": "2026-10-31",
+  "prBody": "Pre-Steam release polish: remove alpha labeling, unify scene transitions, and add entry/exit animations across UI screens. ## Version - `project.godot` `version_build` cleared from `\"alpha\"` to `\"\"` — version now displays as `v0.1.0` - `SplashScreen` and `MainMenu` read version dynamically from `ProjectSettings` instead of hardcoded constant - `BootLoader` startup banner prints live version + corrected `.NET 9` label ## Scene Transitions All bare `GetTree().ChangeSceneToFile()` calls in menu screens replaced with `SceneTransition.TransitionTo()`, giving every navigation a consistent black fade"
+ },
+ "giovanny-garcia/giovannygarcia.com#4": {
+  "fetched": "2026-10-31",
+  "prBody": "## Summary Turns this repo into a monorepo for all portfolio work. Each source repo's full commit history is imported into its subfolder (via `git filter-repo` + `--allow-unrelated-histories` merges), so `git log -- <path>` still shows the original commits. ``` apps/site/ <- this repo's site (moved with git mv) apps/game/ <- portfoliogame @ animation (Godot 4.3) prototypes/portfoliosite/ <- portfoliosite prototypes/threejs-app/ <- my-threejs-app prototypes/vite-portfolio/ <- Portfolio/vite-project ``` - **npm workspaces**: root `package.json` with `workspaces: [\"apps/site\", \"prototypes/*\"]`. `"
+ },
+ "AnMaLeNo/AimLabs#10": {
+  "fetched": "2026-10-31",
+  "prBody": "## Summary Deux défauts du benchmark qui faussaient les données, trouvés en comparant la vérité du jeu à ce que l'algo voit (mesures sur RTX 3080, jeu à ~320 fps) : 1. **La vérité était la hitbox, pas l'image.** Les capsules du squelette ne collent pas à la silhouette (trou entre les jambes au bassin, capsule de tête qui dépasse du crâne, bras/vêtements plus larges) → des marques visuellement justes comptaient « fausses ». `TriggerBench` a maintenant une **vérité visuelle** : un `SubViewport` 16×16 (`transparent_bg`, caméra copiant celle du joueur avec un FOV réduit aux pixels du réticule, `cu"
+ },
+ "AnMaLeNo/AimLabs#8": {
+  "fetched": "2026-10-31",
+  "prBody": "## Summary Mesurer les algos qui **ne font que tirer / marquer** (jamais de souris), indépendamment de l'arme. **Pont : `CMD_MARK`** (`protocol.h`, `aim_bridge.cpp`, SDK `AimClient.mark(frame_id, x, y)`) — « je pense que la cible est sous le réticule sur la frame N ». Le pont retrouve `capture_usec` de la frame N dans son historique et émet `assist_mark(frame_id, capture_usec, point_px)` ; aucun effet sur le jeu. Version de protocole inchangée (un ancien jeu compte la commande en `cmds_dropped`). `.so` Linux et `.dll` Windows reconstruits et committés. **`algos/yolo_trigger.py`** — même détect"
+ },
+ "jpujols0511/fair-play-fps#1": {
+  "fetched": "2026-10-31",
+  "prBody": "## Summary Stages the separately reviewed transport, prediction, and combat work without changing `main`'s authority or deterministic profile contracts. - Adds ENet with DTLS and Netfox clock synchronization while retaining raw DTLS, bounded jitter, and 64/128 Hz profiles. - Keeps prediction presentation-only: snapshots replace confirmed state and only unconfirmed intent is replayed. - Adds protocol v3 `view_tick` and server-owned integer-ray combat with an approximately 200 ms rewind bound at both profiles. - Keeps `stale_input`, `reordered_input`, and `rewind_limited` diagnostic-only. Verifi"
+ },
+ "AnMaLeNo/AimLabs#5": {
+  "fetched": "2026-10-31",
+  "prBody": "## Summary Remplace les graphismes de test (Kenney blocky + Vandal Sketchfab + blocs aléatoires) par les modèles de https://kingdomarchives.com/models, committés dans `game/assets/ka/` (≈413 Mo, aucun fichier > 40 Mo ; GLB intacts, textures PNG → WebP q92). ![vue d'ensemble](https://app.devin.ai/api/presigned_proxy?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjpudWxsLCJidWNrZXRfbmFtZSI6ImRldmluYXR0YWNobWVudHMiLCJidWNrZXRfa2V5IjoiYXR0YWNobWVudHNfcHJpdmF0ZS9vcmctNDA5MTUzOWFiZDI3NDZkN2FhMmM2YmViNGIwYTZiN2UvZTc5YzQxY2YtMWNkMy00NWFmLTljZGUtMjM2MjRlNzc0ZTM1IiwiaWF0IjoxNzkyNDM1MjM5LCJvcmdf"
+ },
+ "AnMaLeNo/AimLabs#4": {
+  "fetched": "2026-10-31",
+  "prBody": "## Summary Empilée sur #2. Trois choses : **1. Menu Échap « Algos »** (`game/scripts/algo_menu.gd` + `algo_runner.gd`). `Échap` libère la souris et ouvre le menu : liste des `algos/*.py` (première ligne de docstring en description), boutons **Lancer / Basculer / Relancer / Arrêter**, log live (stdout + stderr, donc les tracebacks Python), statut (`● en cours (12 s)` / `✖ terminé, code 1` / `○ arrêté`), stats du pont et changement de mode à chaud (`Game.set_mode`). `AlgoRunner` lance le script via `OS.execute_with_pipe(python, [path])` avec `PYTHONPATH=sdk/python`, `AIMLABS_SHM=<segment>`, `PYT"
+ },
+ "AnMaLeNo/AimLabs#1": {
+  "fetched": "2026-10-31",
+  "prBody": "## Summary Première brique du projet : un FPS minimal sous Godot 4.7 (GDScript), pensé pour accueillir ensuite l'« AimBridge » (image → programme externe → souris/tir). ![sandbox](https://app.devin.ai/api/presigned_proxy?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjpudWxsLCJidWNrZXRfbmFtZSI6ImRldmluYXR0YWNobWVudHMiLCJidWNrZXRfa2V5IjoiYXR0YWNobWVudHNfcHJpdmF0ZS9vcmctNDA5MTUzOWFiZDI3NDZkN2FhMmM2YmViNGIwYTZiN2UvY2Q3ZmUwNGEtZGRjYy00MzdiLWJjYjUtNzE4MzM3MjVmODUxIiwiaWF0IjoxNzkyMzMwNDE5LCJvcmdfaWQiOiJvcmctNDA5MTUzOWFiZDI3NDZkN2FhMmM2YmViNGIwYTZiN2UiLCJmaWxlbmFtZSI6InNtb2tlMi5wbmcifQ.YBL8H"
+ },
+ "VeigaPunk/shokunin-godot-2d#2": {
+  "fetched": "2026-10-31",
+  "prBody": "Adds a `**Wiki:**` link in the README header to the auto-generated Devin wiki: https://app.devin.ai/org/veigapunk/wiki/VeigaPunk/shokunin-godot-2d?branch=main Link to Devin session: https://app.devin.ai/sessions/3322ee4bf58944229cf8ff1735733f99 Open in Devin Desktop: https://app.devin.ai/desktop/session/3322ee4bf58944229cf8ff1735733f99?variant=devin Requested by: @VeigaPunk"
+ },
+ "AlexAlexBabarika/roguelike#2": {
+  "fetched": "2026-10-31",
+  "prBody": "## Summary Add a real Godot evidence board alongside the existing AI concept boards, so the matte fresco (A), global print (B) and localized print (C) treatments can be compared using the same coarse models, pose and combat camera. - Archive nine untouched 1920×1080 Godot captures and two explicitly derived accessibility images. The board combines matching A/B/C views, enlarged combat crops, held poses, month swaps, a title study and accessibility comparisons. - Record capture conditions, per-image provenance and fingerprints, conservative readability observations, and a reproducible Pillow bo"
+ },
+ "AlexAlexBabarika/roguelike#1": {
+  "fetched": "2026-10-31",
+  "prBody": "## Summary - Establish this repo as the home for six complete offline graphics/game-loop reports and four comparison boards, with a reading index, source attribution and SHA-256 archive checks. Earlier Last Window research is clearly marked historical. - Migrate the standalone graphics demo from `noimnotahuman/demos/ascii-storm` into `prototype/`, preserving all runtime, shader, asset-generation and test files byte-for-byte. The source repository is unchanged; caches and exported binaries are excluded. - Add root run/rebuild/check instructions, pre-commit checks and CI for offline reports, GDS"
+ },
+ "molotroka123-cell/AiMaxBossman#84": {
+  "fetched": "2026-10-31",
+  "prBody": "## Summary Continuing the Bossman 1.5–1.7 freeze closure (`docs/owner/CONTINUE_FREEZE_20260927.md`, `docs/owner/AUDIT_CHECKPOINT_20260926.md`). Two changes on top of the freeze candidate: - **Fix** the known Windows full-regression failure `command-center/tests/test_video_descriptor_boundary.py::test_repeated_requests_do_not_leak_descriptors`. Root cause: on Windows the test measured `psutil.Process().num_handles()` — every kernel object the whole process holds (threads/events/IOCP handles `asyncio.to_thread` creates for `blocking()`), not the media file descriptor under test. Inspection of `D"
+ },
+ "golshandvr-del/Sjalwmbdjdlxl#6": {
+  "fetched": "2026-10-31",
+  "prBody": "## T005 REPORT - **Status:** DONE - **Base SHA:** `53a02feca746888cab5fe579e739fed5736c45e6` (main at run start; main unchanged) - **Head SHA:** `fd8a9ce66e8f33bb77042b0c91251adb33f81c1b` - **Branch:** `oh/T005-hud-dedup-scenarios` - **PR URL:** this pull request - **CI conclusion:** SUCCESS — GitHub Actions run 37789629176, job \"G1-G4 headless gates (Godot 4.7.2)\": completed / success (`https://github.com/golshandvr-del/Sjalwmbdjdlxl/actions/runs/37789629176`). Each pushed commit also ran green (3cfdb66, 11a8b00, fd8a9ce). ## Files changed (`git diff --stat main..HEAD`) ``` README.md | 8 ++++"
+ },
+ "golshandvr-del/Sjalwmbdjdlxl#1": {
+  "fetched": "2026-10-31",
+  "prBody": "## T001 REPORT - Status: DONE - Base SHA: `98a8866a5ae9eece3750b012bddf515aeab136aa` (main, unchanged) - Head SHA: `80446f93119254e88a67758f3a2abb671b8afe7e` - Branch: `oh/T001-ai-workflow-bootstrap` - PR URL: this pull request ## Files changed ``` .openhands/microagents/repo.md | 3 +++ AGENTS.md | 67 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ AGENT_RULES.md | 6 ++++++ docs/ai/ARCHITECTURE.md | 73 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ docs/ai/DECISIONS.md | 26 ++++++++++++++++++++++++++ docs/ai/PROJECT_STATE.md | 32 +++++++++++++++++"
+ },
+ "joknok72-ctrl/Ai-game-godot#1": {
+  "fetched": "2026-10-31",
+  "prBody": "## ملخص بالعربي هذا الـ PR يضيف **godotai**: وكيل ذكاء اصطناعي مجاله واحد فقط — صناعة ألعاب على **Godot Engine 4.7.2-stable** (GDScript). - **يفكّر ثم يخطّط ثم ينفّذ**: لا يمكنه إنشاء أو تعديل أي ملف قبل تقديم خطة تُفحص آليًا وتُعرض عليك للموافقة — البوابة مفروضة بالكود وليس بالـ prompt فقط. - **يتحقق بالمحرك الحقيقي**: يشغّل Godot 4.7.2 headless (`--import`، `--check-only` لكل سكربت، smoke test) ولا يعلن النجاح إلا عندما يقول المحرك PASS. - **بيئة Linux/حاوية**: Dockerfile يثبّت المحرك + قوالب التصدير (مع التحقق من SHA-512) + OpenJDK 17 + Android SDK حسب التوثيق الرسمي. - **GitHub + APK**: إن"
+ },
+ "arran4/arran4#287": {
+  "fetched": "2026-10-31",
+  "prBody": "## Summary This PR updates the README repository table. ## Summary **2 repos had updated descriptions including:** [zelon88/HRConvert2](https://github.com/zelon88/HRConvert2), [allaboutduncan/clu-comics](https://github.com/allaboutduncan/clu-comics) **3 repos had updated tags:** - Added: 3 repos added 9 unique tags: [bluenviron/mediamtx](https://github.com/bluenviron/mediamtx), [zelon88/HRConvert2](https://github.com/zelon88/HRConvert2), [allaboutduncan/clu-comics](https://github.com/allaboutduncan/clu-comics) **The tags were:** - `bootable-iso`: Added to 1, replaced 0, removed from 0 - `cbr-t"
+ },
+ "melsofany/Theater-of-War-#1": {
+  "fetched": "2026-10-31",
+  "prBody": "Phase 0 — Project Foundation. See commit ffccef7. Establishes a stable, tested, bootable foundation for Theater of War on Godot 4.3 (GDScript). Engine decision, modular architecture, minimal bootable game (map, RTS camera, selection, group move, building, enemy dummy, HUD, main menu), GUT tests (13 passing) + headless scene validation, GitHub Actions CI, .gitignore, no secrets. This PR was created by an AI agent (OpenHands) on behalf of melsofany."
+ },
+ "OuroborosCollective/A#40": {
+  "fetched": "2026-10-31",
+  "prBody": "This PR optimizes the game fusion engine by enforcing a strict separation between logical and graphical layers and implementing a 'Learning Matrix' for knowledge persistence. Key improvements include enhanced AI prompts for structural analysis, better repository tree detection (Unity, Godot), and generalized architectural pattern extraction to speed up future analysis. All changes have been verified via typechecking and build processes. --- *PR created automatically by Jules for task [6380012441388143857](https://jules.google.com/task/6380012441388143857) started by @OuroborosCollective*"
+ },
+ "OuroborosCollective/A#45": {
+  "fetched": "2026-10-31",
+  "prBody": "### 💡 What: Optimized the `analyzeGameRepo` function in `artifacts/api-server/src/routes/fusion/analyzer.ts` by consolidating multiple repository file list iterations into a single `for...of` loop. ### 🎯 Why: Previously, the code performed approximately 8 full passes over the file list using `.filter()`, `.map()`, and `.some()` to build content maps, generate AI summaries, and detect repository structure. For large repositories, this led to unnecessary CPU overhead and increased memory pressure due to multiple intermediate array allocations. ### 📊 Impact: - **Complexity:** Reduced from O(8N) t"
+ },
+ "OuroborosCollective/A#51": {
+  "fetched": "2026-10-31",
+  "prBody": "This PR enhances the Game Fusion engine by implementing a learning matrix that captures and reuses architectural knowledge across repository analyses. Key improvements include: 1. **Deeper Structural Analysis:** The AI analyzer now explicitly identifies \"Logical Routes\" (data flow paths) and \"Interface Patterns\" (logic-to-graphics bridges), providing clearer separation between game layers. 2. **Learning Matrix & Knowledge Base:** Analysis results are persisted with detected project structures (e.g., Unity, Godot). High-quality architectural patterns are extracted into a shared knowledge base a"
+ },
+ "OuroborosCollective/A#53": {
+  "fetched": "2026-10-31",
+  "prBody": "This PR optimizes the Game Fusion engine by improving how it distinguishes between logical data structures and graphical overlays. Key improvements include: - **Architectural Transparency:** The AI analyzer now identifies 'Logical Routes' (data flow) and 'Interface Patterns' (logic-to-graphics bridges), which are visualized in the UI to give users better insight into how the games will be merged. - **Enhanced Structure Detection:** The Learning Matrix now supports Unity and Godot project structures, facilitating faster and more accurate analysis of cross-platform game repositories. - **Reliabl"
+ },
+ "wookat/agentgate#370": {
+  "fetched": "2026-10-31",
+  "prBody": "<!-- Thanks for contributing! Keep PRs small and focused. --> ## What & why Docs-only routine advisory sweep (GHSA 2026-08-04..08-09, 1,392 advisories triaged). Zero new entries: all six relevant new GHSAs are already aliased in existing MCPA records (Flowise ≤3.1.4 trio → 0056/0057/0058, DocumentDB → 0011, nanobot → 0020, OpenHands → 0059), and every uncovered candidate fails the package-mapping bar after direct verification (npm godot-mcp is a different project; @missionsquad/mcp-api unpublished; ssh-mcp-server disputed/rolling; la-forge-mcp/poco-agent/NanoClaw absent from registries; Langfl"
+ },
+ "JosuaKrause/nappy#847": {
+  "fetched": "2026-10-31",
+  "prBody": "minty-quail (one engine: the codebase refactored by layer), `shared-components.md`, the part **\"Walker and car are one class\"**, first of two PRs. `CrowdAgent` switched on its `Kind` 66 times, and `_cannot_go_on`/`_may_stand_on` mixed the car's seal logic with the walker's footway logic. This PR takes every **movement** branch out of it; the second PR splits the node into a `LaneMover` base and the crowd member, and moves the drawing into per-kind looks. ## What is built - **`LaneStrategy`** (`src/crowd/lane_strategy.gd`): the questions the mover asks its kind, with the neutral answers. **`Wal"
+ },
+ "AwiXan/Lattice#3": {
+  "fetched": "2026-10-31",
+  "prBody": "## What problem(s) does this PR solve? The top bar (main menus + run bar) looked old-fashioned: a row of loose flat icons for the run controls with no visible grouping or clear running/paused state, and text-only menus with some odd grouping. This makes it cleaner and more modern without changing what anything does. ## Additional information ### What changed **Run bar** (`editor/run/editor_run_bar.*`, `editor/run/editor_run_native.cpp`) - Play, play current scene and play custom scene sit in one rounded group; pause and stop in a second group. Remote deploy (when available) and the movie maker"
+ },
+ "nurockplayer/gteki#15": {
+  "fetched": "2026-10-31",
+  "prBody": "## Lane C shared core: `gteki.station/0.1` contract, router, search, Web 3D explorer, Godot proof This is the shared-core candidate for #2 (Lane C) and #4 (M0-04). **All independent read-only reviews are closed; the latest returned PASS.** The Owner approves the merge. Station PRs stack on top: Ikebukuro #14 rebases after this lands; Shinjuku #16 is based on this branch. ### What both stations get - **Contract `gteki.station/0.1`** (`packages/schema`, reference [docs/core/contract.md](docs/core/contract.md)): - Split files: `stations/<id>/gteki/{station,graph,pois}.json`, plus an optional `sce"
+ },
+ "yuema137/MineWorld#189": {
+  "fetched": "2026-10-31",
+  "prBody": "**WE-a, complete (C0–C6). READY FOR OPERATOR REVIEW — do not merge.** **Built on 12d (#171), which has not merged yet.** On the operator's instruction (maximum parallelism), 12d's branch (`4ff4856`) and current main (`5cbb469`) are merged into this branch. The base stays `main`, so until #171 merges this PR also shows 12d's commits. Once 12d merges, the diff shrinks to WE-a's own changes. Design: `.structured-coding/plans/mvp0/pr-we-a-happenings.md` (DESIGN FROZEN 2026-10-12). The live ledger with evidence per commit is in its §11 and §15. ## What this adds - **`systems/happenings`**, a new Sy"
+ },
+ "yuema137/MineWorld#162": {
+  "fetched": "2026-10-31",
+  "prBody": "S13 PR 13c adds the nightly workflow, layer 4 of `ENGINEERING_STANDARDS.md` §16. The design is `.structured-coding/plans/mvp0/pr-13c-nightly.md` (DESIGN FROZEN 2026-10-10), with decisions `ARC-83`, `DEP-45` and an `ARC-48` note. **READY FOR OPERATOR REVIEW. Do not merge without the operator's explicit approval.** ## What it adds - `.github/workflows/nightly.yml` runs at 10:17 UTC, and only when `main` has moved since the last night. It can also be started by `workflow_dispatch` (with `force` and `groups`) or by pushing a `scratch/**-nightly` branch. It has four groups: - **parity-long**: AC-8 "
+ },
+ "yuema137/MineWorld#161": {
+  "fetched": "2026-10-31",
+  "prBody": "## PR 13c (part 1): R-PK-1, a doorway says where it leads **READY FOR OPERATOR REVIEW.** Not merged. Design: `.structured-coding/plans/mvp0/pr-13c-doorway-names.md` (DESIGN FROZEN 2026-10-10, with the amendments listed below). Decision record: ARC-82. Head: `9744a63` (C1 `07074de`, C2 `d8d6158`, C3 `9744a63`, plus the merge of `origin/main` 3c8bbf3). ### What changed - **C1, `systems/movement`.** Each `passages` entry gains `to_tags`: the destination's tags in Tag order, always present. It is built at `discloses` time from a disclosure-only type. The stored `Passage` and `Passages` are unchang"
+ },
+ "klausi3D/godotGS#1149": {
+  "fetched": "2026-10-31",
+  "prBody": "Refs #1131, #1056 ## Scope and Review Anchor HLOD S1a: format v2 and bake core, implementing accepted ADR `docs/architecture/adr-hlod-streaming.md` sections 6.1-6.3, 7 and tests 3-4. Risk R3 (persistence, format and importer). Immutable base `64cb1fee056c195ab9ba5c8347245e766deec8c4`; original branch base `f98243887a7`; current head `8a452150d47` (round 8 `8a452150d47`: fallible HLOD interior-merge allocations, see below; round 7 `23b22da93e2`: fallible HLOD bake allocations, see below; round 6 `98a2c85fed9`: editor reimport now reloads the complete world state via a `GaussianSplatWorld::copy_"
+ },
+ "yuema137/MineWorld#29": {
+  "fetched": "2026-10-31",
+  "prBody": "First of three PRs for S8 (`step-09-social.md`, `DESIGN FROZEN` at `700f0e0`; answers in §10.1). **Do not merge without operator authorization.** ## Headline **A person who walks to the café counter can `talk` to Alice, and is refused from the door.** This is the check the 3D client was failing. The pre-S8 pack put Alice and Bob outside the slice's west wall, so `talk` was refused `too_far_away` from inside the café. The new test `worldpack/tests/social_cafe.rs::a_person_at_the_counter_can_talk_to_alice`: - was run against the **old** geometry first: refused at the counter, and accepted at the"
+ },
+ "Forge-Game-Engine/Forge#696": {
+  "fetched": "2026-10-31",
+  "prBody": "## Summary Report 011: adding the UI (which needs `createTransformEcsSystem`) made every entity snap back to its local position, because the game moved entities by writing `position.world`. The first version of this PR added filter options to the transform system. That's reverted: it patched the symptom. The real problem was that `position.world` had several writers. The engine's own Euler integration wrote it, the UI world-space follow system overwrote it after the transform pass, and about 20 demos wrote it directly. This PR makes `local` the only writable transform value and `createTransfor"
+ },
+ "MudkipWorld/PNGTuber-Remix#132": {
+  "fetched": "2026-10-31",
+  "prBody": "# Merge `Branch_ec121415` into `1.4.x` — community features, 4.7 migration, correctness & performance fixes > Updated 2026-09-25 · Godot 4.7.2 · app version `1.4.7` · base upstream `1.4.x` tip `12c662b` · head `54277a1a` > Previous head was `4d8350c9` (2026-09-19). This update adds **6 commits** (2026-09-22 → 09-24): **gamepad binding support** and **cycle naming / switching correctness**. See §3.4 and §3.3. --- ## 1. Summary This PR brings the long-standing community feature branch (Godot 4.4 era — that is, the **PNGTuber-Remix 1.4.1** line, now abandoned) into the **`1.4.x`** release line, t"
+ },
+ "JosuaKrause/nappy#413": {
+  "fetched": "2026-10-31",
+  "prBody": "## Summary Fixes the remaining flicker leaving a district door's hut, from playtest crisp-ferret (`docs/todo/2026-09-27-crisp-ferret/`): \"the flicker when exiting a hut is still there btw. it's shorter now but it still happens\"; \"the position of the player is at its original position a frame before the player teleports.\" **Cause.** `Stroller.teleport_to()` calls `reset_physics_interpolation()` while she is still hidden — `_release_finished_door_detentions()` (`src/events/event_manager.gd`) calls it one line before `show_after_inspection()`. Godot skips a `reset_physics_interpolation()` call ma"
+ },
+ "diegoami/imperial_conquest_2#310": {
+  "fetched": "2026-10-31",
+  "prBody": "Closes #250 ## Task - **Task**: T59 The auto-resolve tournament — [task entry](https://github.com/diegoami/imperial_conquest_2/blob/main/docs/tasks/T59.md) - **Branch**: `task/T59-autoresolve-tournament` Specification implemented: [`docs/investigations/auto-resolve-approaches.md`](https://github.com/diegoami/imperial_conquest_2/blob/main/docs/investigations/auto-resolve-approaches.md) as corrected (#291, #294, and 7e18d83, which was on the branch before any candidate code was written). Where it and T58's entry differ, the corrected document was followed (T59 hazard). ## Scope: files touched vs",
+  "linkedIssue": "250",
+  "issueAuthor": "diegoami",
+  "issueTitle": "T59 The auto-resolve tournament",
+  "issueBody": "**Spec:** [`docs/task-catalogue.md` → T59](https://github.com/diegoami/imperial_conquest_2/blob/main/docs/task-catalogue.md#t59-the-auto-resolve-tournament). The catalogue entry is the contract: scope, Owns, Done when, hazards, model, reviewer and dependencies. This issue doesn't copy it, so nothing here goes stale. **Branch:** `task/T59-autoresolve-tournament` This issue's `status:*` label is its"
+ },
+ "Norn-cloud/norn#49": {
+  "fetched": "2026-10-31",
+  "prBody": "Third unit of the CI speed lane (Norn-cloud/norn-platform#3541). ## Changes Every compiling job gets three caches: - **sccache** on the GitHub Actions cache backend, pinned to v0.19.0. - **The Cargo home** (registry plus installed tools) through rust-cache, saved only by `main`. `guards` and `integration` get their own keys, so their saved `bin/` holds cargo-deny, cargo-public-api and wasm-bindgen-cli; `cargo install` skips a pinned version that's already installed. - **Bun's package store**, keyed by both lockfiles. No gate command changes. The repo has no npm lockfile, so there is no npm cac"
+ },
+ "steveash/rustsheet#2478": {
+  "fetched": "2026-10-31",
+  "prBody": "## Summary - New oracle-filled probe `probes/t3302-text-funcs-arrays` (21 cells): CHAR, UNICHAR, CODE, UNICODE, CONCAT, TEXTJOIN over ranges and computed arrays, incl. error elements. - Only CHAR disagreed with Excel (it did not lift; `CONCAT(CHAR(A1:A3))` gave \"H\"). CHAR now lifts like UNICHAR. - Documented in `docs/excel-semantics/text.md`. ## Eval delta probes: +21 cells, 21/21 pass, 0 new known failures; baseline updated. ## Agent review (head 2fa5026) | Reviewer | Verdict | Findings | |---|---|---| | security | APPROVE | none | | architecture | APPROVE | MINOR: vague docs phrase | | quali"
+ },
+ "AltharIDE/althar#149": {
+  "fetched": "2026-10-31",
+  "prBody": "This replaces the hero on `/` with a new first screen, where you're inside a capsule coming in from orbit. It also replaces the sections after it, and rewords the page along the positioning (27 Oct): \"fast\" is shown first, then the page leans on open source, then independence from the labs, then flow. ## What it does The cabin comes up out of the dark, with two astronauts strapped in and a faint glow at the window. The headline comes in. The glow catches and builds into fire streaming past the glass, faster and faster, with sparks shooting by. The capsule shakes harder and is pressed down, and"
+ },
+ "elaraisav/Pomarchydoro#11": {
+  "fetched": "2026-10-31",
+  "prBody": "- CONTRIBUTING.md: say in the workflow that the maintainer merges with a merge commit, which keeps all of a contributor's commits Documentation only, nothing to test beyond reading the diff. 🤖 Generated with [Claude Code](https://claude.com/claude-code)"
+ },
+ "ThinkersJournal/httpant#29": {
+  "fetched": "2026-10-31",
+  "prBody": "ROADMAP row 4: the framework TLS probes. See CHANGELOG 0.5.9 and `docs/TLS-ADAPTER-PROBES.md`. - **poem and salvo now terminate TLS** (`tls: Yes`). Both take a custom acceptor, so HTTPAnt hands them streams that went through its own handshake (`poem_tls.rs`, `salvo_tls.rs`). Proof: conformance case 17 ran the full HTTPS scenario on them the moment they declared `Yes`, and `tests/tls.rs` now runs on hyper, axum, poem and salvo (refusal on unknown name / source failure, renewal, handshake timeout, read-back, audit events). `TlsAcceptor::accept` is now generic over the IO type (salvo's stream is "
+ },
+ "product-on-purpose/pm-skills#336": {
+  "fetched": "2026-10-31",
+  "prBody": "## Summary Release prep for **v2.35.0**, re-scoped by the maintainer on 2026-10-30 to the work already on `main`. **G1 attested by the maintainer on 2026-10-30.** - **What ships:** items A1 and A5 (`measure-instrumentation-spec` 3.0.1 and `utility-pm-release-conductor` 1.0.2, from #331), the Standard 0.17 adoption at Bronze (#326, with #333 making `library.json` a checked version surface), and the Brainshelf Model Trace Capture sample (#286). - **What moves to v2.36.0:** carries A2, A3, A4, B2, B4 and B6. A2 to A4 are authored rewrites of the trace table, the class of fix that took v2.33.0's G"
+ },
+ "tngo0508/PersonalFinance#583": {
+  "fetched": "2026-10-31",
+  "prBody": "## Summary Lesson 6, **Know the sharp tools**, with its two Term Entries, drafted with `/atelier-draft` from gated excerpts (draft + cite only): Investor.gov bulletins on margin interest, margin accounts and short sales, and the long/short page. ## Evidence - `dotnet test --filter LearningContentChecksTests`: the real content folder passes every check. - Local run with the real content: the road shows all six Lessons; Term pages render in light and dark mode. ## Owner checklist - [ ] Every fact in each entry matches its cited source. - [ ] Worked-example arithmetic is right ($50,000 at 7%: $3,",
+  "linkedIssue": "532",
+  "issueAuthor": "tngo0508",
+  "issueTitle": "Atelier 18/18: content, Lesson 6 Know the sharp tools",
+  "issueBody": "Part of #513 (slice 18). **Atelier content: owner-reviewed only (ADR 0019). Never `ready-for-agent`.** ## What to publish Lesson 6, **Know the sharp tools**, with its two Term Entries, in one content PR (#513: \"A new Lesson ships in one PR with its Term Entries\"). | Day | Lesson | Term Entries | Try it | |---|---|---|---| | 6 | Know the sharp tools | margin interest, short selling | Research | - T"
+ },
+ "gpambrozio/bb-plugins#86": {
+  "fetched": "2026-10-31",
+  "prBody": "On bb 0.48.1 and newer, every Herald sentence now stays in the thread's conversation. Each one is a card, styled like the old composer banner, sitting just above the message that led to it. The composer banner is gone on bb 0.48.1; older bb keeps it, unchanged. ## Surface and placement **Slot:** `app.slots.experimental_messageMetadata` (bb 0.48.1, SDK 0.6.104) with placement `\"above\"`. I checked SDK 0.6.104 and 0.6.105, and the app code of bb desktop-v0.48.1 and a 0.48.2 nightly. A plugin cannot draw below a message: - The slot's only other placement, `\"actionRow\"`, does draw after the message"
+ },
+ "timtopia/Waitlist2#6": {
+  "fetched": "2026-10-31",
+  "prBody": "Second batch from the owner, customer and restaurant review: privacy and settings safety. **Privacy** - `GET /api/lines/[id]` and `/activity` now return different detail depending on who's asking: - the owner sees full names - people in the line see each other as \"First L.\" - everyone else (including signed-out visitors) sees positions and counts, with no names, photos or user ids - Activity refunds show what the buyer got back (price plus fees). - Call banners and \"now serving\" use first names only. - The privacy page now describes this, and says the owner's CSV export includes email addresse"
+ },
+ "godotengine/godot-demo-projects#1362": {
+  "fetched": "2026-10-31",
+  "prBody": "Fixes #1160. When consecutive explosions arrive near the end of the stun animation, peers can disagree about whether `stunned` is still true. The existing local guard then makes one peer ignore the explosion while another restarts it, leaving the sprite rotations out of sync. The RPC also used the default unreliable transfer mode. This change makes the explosion event reliable and restarts the stun animation on every peer regardless of its local animation phase. It also updates `current_anim` before the next physics tick so the animation is not started a second time locally. Validation: - Repr",
+  "linkedIssue": "1160",
+  "issueAuthor": "waynemwashuma",
+  "issueTitle": "Player rotation not syncing after consecutive bomb explosion in multiplayer bomber.",
+  "issueBody": "<!-- Please search existing issues for potential duplicates before filing yours: https://github.com/godotengine/godot-demo-projects/issues?q=is%3Aissue Only submit an issue if it is reproducible with the latest stable Godot version. --> **Which demo project is affected:** networking/multiplayer_bomber **OS/device including version:** Godot version 4.3 **Issue description:** Player rotation of the "
+ },
+ "godotengine/godot-demo-projects#1355": {
+  "fetched": "2026-10-31",
+  "prBody": "Fixes #1216. Same root cause as #1230. `AudioEffectRecord.get_recording()` hands back a stream that already describes itself correctly: the engine sets the mix rate from `AudioServer.get_mix_rate()`, the format from the effect, and stereo to true. The demo then overwrote all three with its own defaults as soon as recording stopped, which is where the reported pitch shift comes from. None of those three setters convert anything. Each one assigns a member and returns, so the bytes stay exactly as recorded and only the description of them changes: ```gdscript var w := AudioStreamWAV.new() w.data ",
+  "linkedIssue": "1216",
+  "issueAuthor": "heruf",
+  "issueTitle": "Microphone Record Demo is using wrong default mix rate",
+  "issueBody": "**Which demo project is affected:** https://godotengine.org/asset-library/asset/2760 **OS/device including version:** Windows 11 **Issue description:** AudioEffectRecord.get_recording() is returning an AudioStreamWAV with a mix_rate of 48000 even though the project setting for the audio driver is 44100. In func _on_RecordButton_pressed() it is then set to 44100 which results in the output signal h"
+ },
+ "godotengine/godot-demo-projects#1289": {
+  "fetched": "2026-10-31",
+  "prBody": "fix: adds missing connection between hud signal and main scene to start the game introduced in 14fcc0e133d7eca12596bc6cc92b381d1fa622b1"
+ },
+ "godotengine/godot-demo-projects#1304": {
+  "fetched": "2026-10-31",
+  "prBody": "[Godot 4.7 implements a VirtualJoystick node](https://github.com/godotengine/godot/pull/110933), whose class name conflicted with the existing add-on used in the Platformer 3D demo. This renames the class to avoid a conflict, while keeping the functionality intact on Godot 4.6. Tested on an Android device."
+ },
+ "godotengine/godot-demo-projects#1319": {
+  "fetched": "2026-10-31",
+  "prBody": "Fixes #846. ## Problem The GDPaint demo adds one brush sample per `_process` call (one per frame). When the mouse moves faster than one brush per frame the stroke shows visible gaps between brushes — most obvious with the default 32-pixel brush and a quick swipe of the mouse. ## Fix When a stroke continues from one frame to the next, interpolate brush samples along the line from the previous mouse position to the current one, stepping roughly one pixel at a time. This is the same idea as Bresenham's line algorithm (as suggested by @Calinou in the issue), expressed parametrically because brush ",
+  "linkedIssue": "846",
+  "issueAuthor": "michaldev",
+  "issueTitle": "Spaces between circles in GDPaint",
+  "issueBody": "Hi. Why in your demo I have spaces between circles? How can i fix it? https://user-images.githubusercontent.com/5132385/219781368-d0483896-7db2-402f-8e05-86b4aca16c8d.mov"
+ },
+ "godotengine/godot-demo-projects#1321": {
+  "fetched": "2026-10-31",
+  "prBody": "Fixes #1152. ## What's wrong Switching the scene tab away from the water plane and back (or reloading the scene at runtime) left the plane blank and printed errors. Three things were going wrong: 1. **Init only ran once.** The compute resources and the `Texture2DRD` binding were set up in `_ready`, which only fires the first time a node enters the tree. `_exit_tree` was already clearing `texture_rd_rid` and freeing the compute resources, but on re-entry nothing rebuilt them. 2. **The scene's `Texture2DRD` SubResource doesn't survive an unload reliably.** Picking it back up via `material.get_sh",
+  "linkedIssue": "1152",
+  "issueAuthor": "EnlightenedOne",
+  "issueTitle": "Compute Texture Demo is Brittle + Proposed Fix",
+  "issueBody": "**Which demo project is affected:** water_plane **OS/device including version:** Godot v4.4.dev.mono (e9504b662) - Windows 10.0.19045 - Multi-window, 1 monitor - Vulkan (Forward+) - dedicated NVIDIA GeForce RTX 3070 Laptop GPU (NVIDIA; 31.0.15.3742) - 11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz (16 threads) **Issue description:** The demo code is too brittle to use as reference material. A scen"
+ },
+ "godotengine/godot-demo-projects#1324": {
+  "fetched": "2026-10-31",
+  "prBody": "Closes #1108. ## What's wrong When `input_devices/pointing/emulate_touch_from_mouse` is enabled, a single drag produces both an `InputEventMouseMotion` and an `InputEventScreenDrag` in the same physics frame at the same position. The current `_mouse_input_event` refreshes `last_event_pos2D` / `last_event_time` at the bottom of every call, so by the time the second event is processed, `last_event_pos2D` already equals this event's position. The relative motion comes out as `Vector2.ZERO`, which is what stops a `ScrollContainer` inside the SubViewport from receiving scroll deltas. Reproduction i",
+  "linkedIssue": "1108",
+  "issueAuthor": "hippogyz",
+  "issueTitle": "Fix motion & drag event in 'GUI in 3D'",
+  "issueBody": "**Which demo project is affected:** GUI in 3D **Issue description:** The variables `last_event_pos2D` and `last_event_time` will be assigned repeatedly in same frame, if there are multiple events triggered in one frame. It leads to wrong event data for `InputEventMouseMotion` and `InputEventScreenDrag` which need last frame's info. These variables should be assigned at most once per frame. **Step "
+ },
+ "godotengine/godot-demo-projects#1065": {
+  "fetched": "2026-10-31",
+  "prBody": "Those were swapped during conversion to strict typing and caused the 2.5d demo to crash on startup. - *Production edit: Follow-up to https://github.com/godotengine/godot-demo-projects/pull/1064.*"
+ },
+ "godotengine/godot-demo-projects#1064": {
+  "fetched": "2026-10-31",
+  "prBody": "Pretty straightforward - those were swapped during conversion to strict typing and caused the 3d navigation demo to crash on startup."
+ },
+ "godotengine/godot-demo-projects#1088": {
+  "fetched": "2026-10-31",
+  "prBody": "Changed the reference from [`KinematicBody2D`](https://docs.godotengine.org/en/latest/classes/class_kinematicbody2d.html) to [`CharacterBody2D`](https://docs.godotengine.org/en/stable/classes/class_characterbody2d.html) in README.md. <!-- Please target the `master` branch in priority. PRs can target `3.x` if the same change was done in `master`, or is not relevant there. Relevant fixes are cherry-picked for stable branches as needed by maintainers. You can mention in the description if the change is compatible with `3.x`. -->"
+ },
+ "godotengine/godot-demo-projects#788": {
+  "fetched": "2026-10-31",
+  "prBody": "This closes https://github.com/godotengine/godot-demo-projects/issues/786. **Don't merge yet**, this doesn't deploy to GitHub Pages cleanly on [my fork](https://github.com/Calinou/godot-demo-projects) (possibly due to the GitHub Pages action being outdated).",
+  "linkedIssue": "786",
+  "issueAuthor": "rpaladin",
+  "issueTitle": "Web demos are broken",
+  "issueBody": "**Bug description:** Game does not start. Tested in both latest Edge and Firefox versions, no luck. **Reference link:** <https://godotengine.github.io/godot-demo-projects/3d/platformer/> ## Console Errors - Edge ![image](https://user-images.githubusercontent.com/69180012/198813711-f300f8e6-509f-44a3-9555-69bbb6269162.png) ## Console Errors - Firefox ![image](https://user-images.githubusercontent.c"
+ },
+ "godotengine/godot-demo-projects#777": {
+  "fetched": "2026-10-31",
+  "prBody": "**Version** Godot 3.x **Issue** File names in multiple demos are in pascal or camel case instead of snake case. **Fix** Renamed files (and fixed the dependencies renaming broke) in the 2D demos: _Dodge the Creeps_, _Finite State Machine_, and _Navigation\\_Astar_. **Limits** For now I only looked at demos in the 2d folder. The 2D demos _Physics Platformer_, _Platformer_, and _Role Playing Game_ still have filenames that don't follow the style guide. Those will be handled in their own PRs at a later date. The docs for each demo will also have to be updated."
+ },
+ "jdemmithCTP/CopilotExercise#3": {
+  "fetched": "2026-10-31",
+  "prBody": "Participant emails could inject HTML, activity options duplicated on refresh, and signup labels lost their styling due to a missing CSS selector. - **Safe participant rendering:** Build participant rows with DOM APIs, assigning emails via `textContent` and button data via `dataset`. ```js participantItem.textContent = email; deleteButton.dataset.email = email; ``` - **Idempotent dropdown refresh:** Rebuild activity options while preserving the placeholder and any still-valid selection. - **Restore label styling:** Reinstate the `.form-group label` selector."
+ },
+ "az-digital/arizona-bootstrap#2402": {
+  "fetched": "2026-10-31",
+  "prBody": "Consumers couldn’t set most Arizona Bootstrap variables before importing its Sass because those declarations overwrote consumer values. Both `scss/custom/_variables.scss` and `scss/override/_variables.scss` now mark every top-level variable `!default`. - **Usage:** Set variables before importing Arizona Bootstrap: ```scss $red: #123456; $primary: #654321; @import \"arizona-bootstrap\"; ``` <!-- START COPILOT CODING AGENT SUFFIX --> - Fixes #2398 ### Updates after review In response to [Kevin's review](https://github.com/az-digital/arizona-bootstrap/pull/2402#issuecomment-6476675093), this PR now",
+  "linkedIssue": "2398",
+  "issueAuthor": "trackleft",
+  "issueTitle": "Add !default to every Sass variable",
+  "issueBody": "## Problem A project that imports Arizona Bootstrap's Sass can't set most of its variables. Without `!default`, Arizona Bootstrap's own value overwrites anything the project set first. On 5.3.x: - `scss/override/_variables.scss`: 5 of 93 variables have `!default`. - `scss/custom/_variables.scss`: 126 of 178 have it. The base colors, such as `$red`, `$bloom` and `$cool-gray`, don't. So to change a "
+ },
+ "alvinjchua888/Interior-Design#1": {
+  "fetched": "2026-10-31",
+  "prBody": "Migrated the Interior Design AI application from a React/TypeScript/Node.js stack to Python/Streamlit while preserving all functionality. ## Architecture Changes - **Frontend**: React 19 + Vite → Streamlit 1.40 - **Backend**: TypeScript services → Python modules - **Dependencies**: 9 npm packages → 5 pip packages - **Build**: Eliminated build step entirely ## Implementation ### Core Modules - `app.py` - Main Streamlit application integrating all UI components - `gemini_service.py` - Gemini AI integration for design generation/editing - `image_utils.py` - Server-side image compression using Pil"
+ },
+ "A8R4XAS/comicSite#1": {
+  "fetched": "2026-10-31",
+  "prBody": "The repo was empty. This adds a responsive, dark-themed site for short (1–4 page) webcomics: a gallery grid and a per-comic reader, backed by mock data so it runs out of the box. - **Stack** - Vite + React 19 + TypeScript, with Tailwind v4 wired in through `@tailwindcss/vite`. - There is no `tailwind.config`; `src/index.css` only has `@import \"tailwindcss\"`. - `react-router-dom` uses `HashRouter`, so the built site works on any static host without rewrite rules. - **Gallery (`pages/Home.tsx`, `components/ComicCard.tsx`)** - Grid is 1, 2 or 3 columns at the default, `sm` and `lg` breakpoints. -"
+ },
+ "rimkahan888/rimkahan888#1": {
+  "fetched": "2026-10-31",
+  "prBody": "This PR implements a fully functional Go (Weiqi/Baduk) board game with a modern web interface as requested in the issue. The implementation includes complete game logic, an interactive web UI, and a RESTful API. ## 🎯 What's Been Added ### Core Game Engine - **Complete Go game logic** with proper rule implementation - **19x19 board** with traditional grid layout and wood-style appearance - **Stone placement system** with click-to-place interaction - **Capture detection** - automatically removes surrounded stone groups - **Liberty checking** - prevents illegal suicidal moves - **Turn management*"
+ },
+ "umershahid84/U-TradeX#2": {
+  "fetched": "2026-10-31",
+  "prBody": "This PR addresses critical issues in the U-TradeX trading platform to provide a realistic trading experience with real Wall Street data. ## Changes Made ### 1. Real Market Data Integration - Integrated Yahoo Finance API to fetch real-time and historical stock data for all NASDAQ and S&P500 stocks - Replaced simulated/dummy price data with actual market prices - Implemented live price updates (polling every 5 seconds) - Added error handling with fallback to simulated data if API fails ### 2. Chart Indicators - Disabled indicators by default on chart load - Added toggle button to allow users to "
+ },
+ "umershahid84/U-TradeX#6": {
+  "fetched": "2026-10-31",
+  "prBody": "Three issues: price not updating every second, drawing tools unresponsive to chart clicks, and indicators button misaligned with fibonacci button. ## Changes **Price polling interval** (`realMarketData.ts`) - Reduced from 3s to 1s for real-time updates **Drawing tools click handler** (`TradingChart.tsx`) - Added `selectedToolRef` to bypass stale closure in chart click handler - Chart click subscription uses ref instead of state to access current tool selection ```tsx // Before: click handler captured initial 'none' value const handleChartClick = (time, price) => { if (selectedTool === 'none') "
+ },
+ "d-hinders/Haven-AI#4588": {
+  "fetched": "2026-10-31",
+  "prBody": "Closes #4563 Part of epic #4560 (whole-app UX consistency), slice 3/13. This is the docs-and-design-system slice: it writes down the rules the audit found the app following two ways at once, and adds the two primitives the later slices consume. ## What changed **1. `docs/product/design-system.md` § StatusBadge.** A vocabulary table naming one label and one tone per state, covering every status family the issue lists: `AGENT_STATUS` / `PAYMENT_STATUS`, the machine-payment lifecycle, accounting sync, `agentBadge` (Budget ended / Paused / N% used), `AgentCard`'s Archived, the agent passport (issu",
+  "linkedIssue": "4563",
+  "issueAuthor": "d-hinders",
+  "issueTitle": "ux consistency 3/13: design system and copy — StatusBadge and EmptyState entries, currency and copy rules",
+  "issueBody": "Part of epic #4560 (whole-app UX consistency). Measured on `origin/dev` @ `31c07cd49`. **Docs and design-system slice.** It writes the rules that slices 7–10 apply. Code changes here are limited to the `/design-system` demos and EmptyState's in-card form. ## Scope Write down the rules the audit found the app following two ways at once. Each rule is an owner decision dated 2026-10-30 (see the epic)"
+ },
+ "openshift/console#17444": {
+  "fetched": "2026-10-31",
+  "prBody": "**Solution description**: <!-- Describe your code changes in detail and explain the solution or functionality --> Replace the custom console-shared getting started layout components with the GettingStarted-style MultiContentCard from @patternfly/react-component-groups, following the documented \"[expandable multi-content card with actions and labels](https://www.patternfly.org/extensions/component-groups/multi-content-card#expandable-multi-content-card-with-actions-and-labels)\" pattern. **Screenshots / screen recording**: <!-- Add screenshots or screen recordings for visual changes. Be sure to "
+ },
+ "tofutools/tclaude#3421": {
+  "fetched": "2026-10-31",
+  "prBody": "## Background / Purpose This brings the long-lived `collab` branch to `main`: surfaces for working alongside agents from the dashboard, and for running a fleet through a chief-of-staff agent, the Steward. Epic: tcl-5hnxii. The operator will test from `main`, so everything ships dark: it is opt-in behind `features.collab` under Config > Experimental, off by default. With the flag off, the dashboard looks as it does today and the new routes answer 404 `collab_disabled`. Each piece was merged into `collab` through its own PR with a cold review, recorded on that PR (#3407–#3415, #3419, #3420, plus"
+ },
+ "manaflow-ai/cmux#27592": {
+  "fetched": "2026-10-31",
+  "prBody": "Leo (2026-10-29), on Claude Desktop's Background tasks panel and its right side: > \"i like these tasks i like the order that things split on the right i want that in cmux next\" > \"i also like the way it just loads in the subagent stuff instantly :(\" Builds on #27591 (the model, landed). 2 of 2. ## What it does - **Background tasks** in the chat's ⋯ menu opens the panel. Nothing opens it on its own; no default changed. - **Split order on the right:** alone, the panel is the chat's right column. With the side panel (a document a reply opened) already on the right, the panel docks **under** it in"
+ },
+ "ashwinmahesh/ImageGen-Service#1": {
+  "fetched": "2026-10-31",
+  "prBody": "## Why Selected-area editing only allowed a single dragged rectangle. It couldn't be adjusted afterwards, and you couldn't add a second area to cover more of the photo. ## What changed - **Paint, Rectangle and Erase tools.** Paint over the parts of the source photo to edit, drag rectangles, or mix both. Paint as many separate areas as you like; Erase trims any of them. - **Brush size** slider (or `[` / `]`), **Undo** (⌘Z / Ctrl+Z) and **Clear selection**. - A circle under the cursor shows the brush size (red in erase mode). - The tools sit under **Area to edit** and appear only when **Selected"
+ },
+ "licensedsaucer9-web/ls9-flashcards#147": {
+  "fetched": "2026-10-31",
+  "prBody": "Fixes #146 ## NeoPunk - Palette: hot magenta `#ff2bd6`, electric cyan `#00f0ff`, acid green `#b6ff00`/`#39ff14` on near-black `#07060d`. - Neon glow on headings, pills/badges, buttons, card faces and focus rings (acid-green glow ring). - Headings are heavy, uppercase and letter-spaced, with an offset magenta/cyan glitch (text-shadow layers plus a short skew/jitter keyframe). - CRT scanlines plus a faint magenta/cyan vignette on a fixed `body::before` with `z-index: -1` and `pointer-events: none`. It sits behind the app, so card faces and text are never covered. - `prefers-reduced-motion: reduc",
+  "linkedIssue": "146",
+  "issueAuthor": "licensedsaucer9-web",
+  "issueTitle": "NeoPunk theme: go all-out; add Coffee theme",
+  "issueBody": "Follow-up to #144 / PR #145. ## (a) NeoPunk: go all-out Make NeoPunk *very neo, very punk*: - Neon palette: hot magenta, electric cyan, acid green on near-black. - Glow: `text-shadow` / `box-shadow` neon glow on headings, pills, buttons, focus rings. - Glitch effect (e.g. offset magenta/cyan pseudo-element layers on headings) and a subtle CRT scanline overlay. - Bold typography (heavy weight, uppe"
+ },
+ "richardfergusoniv/fantasy-rankings#378": {
+  "fetched": "2026-10-31",
+  "prBody": "Fixes from a design audit of the live app (phone and desktop, light and dark). The owner approved everything here; hiding the Draft tab outside draft season was left out. ## Layout and consistency (UI only) - **Desktop page was ~6,500px wide on every tab.** `.league-sticky` is a grid with a `max-content` first column, and the ticker spans all columns, so the full scrolling track set that column's width. The ticker now has `contain: inline-size` (`theme/feed.css`). - **Tools sub-tabs slid over the league name on scroll (phone).** `.control-deck` and `.league-sticky` were both `z-index: 12`. `.c"
+ },
+ "ayyjayy2/the-itinerists#563": {
+  "fetched": "2026-10-31",
+  "prBody": "**What changed:** Finance's round + (add expense) button, shown once the \"+ Add\" button scrolls out of view, now sits above the tab bar instead of on top of it. **Why:** the owner found it on staging: on Finance, tapping **More** opened a new expense instead of the More menu. The + button was `position: fixed` 1.5rem from the screen's bottom-right corner with `z-index: 90`, and since the tab bar is in the page flow at the bottom of the screen, the button covered the More tab and caught the tap. **How:** the button lives in a zero-height dock that is `position: sticky; bottom: 1.5rem` inside th",
+  "linkedIssue": "562",
+  "issueAuthor": "ayyjayy2",
+  "issueTitle": "Finance: the round + button covers the tab bar's More, so tapping More opens a new expense",
+  "issueBody": "Found by the owner on staging (2026-10-30). Scrolled down Finance shows its round + (add expense) button, fixed 1.5rem from the screen's bottom-right corner and layered above the tab bar. On a phone that is on top of the More tab, so tapping More opens the add-expense pop-up instead of the More menu."
+ },
+ "spark-456/interlock#115": {
+  "fetched": "2026-10-31",
+  "prBody": "**Task:** Q41. The owner asked for profile, log-in and log-out options. **What changed** - **Account menu:** the avatar and name at the foot of the sidebar is now a menu button (`AccountMenu.svelte`). It opens upward with **Profile**, **Settings**, and **Sign out**, or **Sign in** for a guest. It is keyboard friendly (arrows, Escape) and shows the Google or GitHub picture, falling back to initials. On canvas screens the sidebar is raised above the canvas (`z-index: 20`), so the menu next to the 64 px rail isn't covered. - **`/profile` page:** - picture, name and email; \"Signed in with Google/G"
+ },
+ "JB-barrel-droid/fantasy-tools#1208": {
+  "fetched": "2026-10-31",
+  "prBody": "Slice 2b of the Fieldnotes rollout (JEG-1137). Visible only with `?design=fieldnotes`; the default site is unchanged. ## What it does - **Primary navigation** (`shell.html` `#v2FnPrimary`): Home, Values, Buy & sell, Check a trade, More. It sits in the top bar on a wide screen and is a bar fixed at the foot of a phone. The one on show is marked `aria-current=\"page\"`. Under the flag the menu button and page name are hidden. - **More** opens the existing full page list (`#v2Tabs`, the same `setNav`): a panel on desktop, a sheet above the bar on a phone. Escape and a tap outside close it, and focu"
+ },
+ "damianvtran/local-operator-ui#1523": {
+  "fetched": "2026-10-31",
+  "prBody": "Polishes the Team Bridge **Conversation members** dialog. The operator's screenshot showed: a remove icon wrapping onto its own line, current members repeated in the invite list as disabled ticked boxes, two-line reasons on every unavailable row, \"Member · Active\" printed on every row, and no avatars. ## What changed (designer spec, binding) - **Remove:** a ghost `icon-sm` `UserRoundX` at the row's trailing edge, kept on the row's own line. It appears on hover and focus-within, and always on `hover:none` devices, through the shared `actionRowVisibility` / `ACTION_ROW_REVEAL_CLASSES`. The house"
+ },
+ "openclaw/openclaw#188734": {
+  "fetched": "2026-10-31",
+  "prBody": "## Problem Scheduled main UI E2E run 41115244650 timed out on the grouped-tool **Copy as markdown** menu item. Under 6× CPU throttling, the original flow reproduced the failure: `pointerdown` and `mousedown` targeted the tool bubble with valid copy/reply data, but `contextmenu` targeted the floating **Scroll to latest** button. The menu never opened. This is an input-target race, not missing application readiness or a detached menu item. ## Change Capture a right-button pointer on its original transcript element. Native pointer capture keeps the subsequent context-menu event on the pressed con"
+ },
+ "fiaisis/frontend#828": {
+  "fetched": "2026-10-31",
+  "prBody": "Bumps the js-packages group with 28 updates in the / directory: | Package | From | To | | --- | --- | --- | | [@mui/icons-material](https://github.com/mui/material-ui/tree/HEAD/packages/mui-icons-material) | `6.5.0` | `9.5.0` | | [@mui/system](https://github.com/mui/material-ui/tree/HEAD/packages/mui-system) | `6.5.0` | `9.5.0` | | [@mui/x-date-pickers](https://github.com/mui/mui-x/tree/HEAD/packages/x-date-pickers) | `7.29.4` | `9.16.0` | | [@types/node](https://github.com/DefinitelyTyped/DefinitelyTyped/tree/HEAD/types/node) | `26.1.1` | `26.6.5` | | [dayjs](https://github.com/iamkun/dayjs) "
+ },
+ "mantrakp04/ardia#289": {
+  "fetched": "2026-10-31",
+  "prBody": "Closes #288 Docs only, no code changes. Re-reading Dia 1.54.2's `WindowTreatment` code and asset catalogue gives the same stack as 1.50.1: material 29 / 13, BaseTint black 0.4 / white 0.8, gradient alpha 0.36 (neutral 0.12), lightness delta 0.25, overlay 0.5 / 0.75 and the content card at #121212 0.5 / white 0.7. Ardia's constants already match. The likely cause of the difference is the tint alpha. A neutral Dia profile (the system accent, often blue) is drawn at 0.12, while a coloured preset is drawn at 0.36, three times the colour cast and about 15 % less wallpaper. An inactive window is opa",
+  "linkedIssue": "288",
+  "issueAuthor": "andrewbenson",
+  "issueTitle": "Dia's sidebar looks more transparent than Ardia's: re-check the window treatment against Dia 1.54",
+  "issueBody": "Side by side, Dia's sidebar shows more of the wallpaper than Ardia's. The window translucency values in `docs/dia-spec.md` were recovered from Dia 1.50.1. Dia is on 1.54 now, so either Dia changed its stack or something in how the two are compared (profile colour, active vs inactive window) explains the difference. The spec should say which."
+ },
+ "POLISH-QUALITY-BOARD/PQB#242": {
+  "fetched": "2026-10-31",
+  "prBody": "Bumps the all-dependencies group with 20 updates in the / directory: | Package | From | To | | --- | --- | --- | | [bits-ui](https://github.com/huntabyte/bits-ui) | `2.19.3` | `2.20.0` | | [@axe-core/playwright](https://github.com/dequelabs/axe-core-npm) | `4.13.0` | `4.14.0` | | [@iconify-json/simple-icons](https://github.com/iconify/icon-sets) | `1.2.97` | `1.2.100` | | [@playwright/test](https://github.com/microsoft/playwright) | `1.63.0` | `1.64.1` | | [@sveltejs/adapter-static](https://github.com/sveltejs/kit/tree/HEAD/packages/adapter-static) | `3.0.10` | `4.0.0` | | [@sveltejs/enhanced-"
+ },
+ "fixpoint-labs/flow-state-dev#4275": {
+  "fetched": "2026-10-31",
+  "prBody": "<!-- claude-projects-attribution: {\"github_login\":\"jhoffner\"} --> _Requested by **Jake** · [project thread](https://claude.ai/code/project/chan_019C67sXGEPSSNrzxnwH56dv?thread=cmsg_019C67sXGEPSSNrzxnwH56dvYVyeDzxxmm1gZC4hao2G5W)_ Fixes FIX-2360 (bug route, no spec). It reverses the stick-to-bottom part of FIX-2346 and FIX-2338. ## The problem When a reply streamed in, every app scrolled to follow it if you were at the bottom. That pulls the text away from someone who is still reading. ## What changes There is one shared rule in `@flow-state-dev/react`. `useFollowLatest` is replaced by **`useJu"
+ },
+ "tanaypatel917-lab/MARS#16": {
+  "fetched": "2026-10-31",
+  "prBody": "## Summary Follow-up to #15 from the hands-on test run — three things made v4 look half-dead: - **Click/drag did nothing.** `#scene` inherits `pointer-events:none` from the shared fixed-layer rule, and v4's `pointerdown` listener was on the canvas. Now `body[data-route=how] #scene{pointer-events:auto}` and the listener is on `window` (ignoring `a, button, .copy, .ui` targets), so shard crack, field drag, glass scoring and the candidate gate fire wherever the raycast hits. - **Header, hud and rail were invisible.** `.ui` is gated on `body[data-ui=on]`, which only home's intro set. `/how` now se"
+ },
+ "playboardgamesonline/pbgo#65": {
+  "fetched": "2026-10-31",
+  "prBody": "Bumps the minor-and-patch group with 21 updates in the / directory: | Package | From | To | | --- | --- | --- | | [@react-three/fiber](https://github.com/pmndrs/react-three-fiber) | `9.8.1` | `9.8.2` | | [@sanity/client](https://github.com/sanity-io/client) | `8.9.0` | `8.12.0` | | [@sanity/ui](https://github.com/sanity-io/ui/tree/HEAD/packages/ui) | `4.4.0` | `4.4.10` | | [@sanity/vision](https://github.com/sanity-io/sanity/tree/HEAD/packages/@sanity/vision) | `6.18.0` | `6.20.0` | | [@supabase/supabase-js](https://github.com/supabase/supabase-js/tree/HEAD/packages/core/supabase-js) | `2.117."
+ },
+ "mermaid-js/mermaid#8372": {
+  "fetched": "2026-10-31",
+  "prBody": "This PR contains the following updates: | Package | Change | [Age](https://docs.renovatebot.com/merge-confidence/) | [Confidence](https://docs.renovatebot.com/merge-confidence/) | |---|---|---|---| | [dompurify](https://redirect.github.com/cure53/DOMPurify) | [`3.4.12` → `3.4.17`](https://renovatebot.com/diffs/npm/dompurify/3.4.12/3.4.17) | ![age](https://developer.mend.io/api/mc/badges/age/npm/dompurify/3.4.17?slim=true) | ![confidence](https://developer.mend.io/api/mc/badges/confidence/npm/dompurify/3.4.12/3.4.17?slim=true) | --- ### DOMPurify: IN_PLACE hook removal leaves a detached subtree"
+ },
+ "keybrdist/section8recs#20": {
+  "fetched": "2026-10-31",
+  "prBody": "Release pages (`/cat/<CAT>`, optionally `?t=<n>`) now open straight into the scene and play. The home page, `/releases`, artist pages and 404 keep the gate as before. ## Behaviour - **Entering.** Once the forest has loaded (`S8L.done()`), a release page enters by itself on the page's track (`?t=`, default 1) and calls `play()`. - **Autoplay refused.** If the browser refuses (always Safari on iPhone), a small **Tap to play** cue shows (\"Click to play\" with a mouse): mono type, red `#fe0101` play mark. The first tap or click that isn't on a control starts the track. The tap runs `eng.ensure(); e"
+ },
+ "KnowScroll/knowscroll#526": {
+  "fetched": "2026-10-31",
+  "prBody": "Part of #472 and #462. Found by a hands-on run on dev (`C:/Users/XZNON/knowscroll-dev/tmp/dev-s1/RESULT.md`). ## What a person can do now - On `/scroll/<id>`, move to the next or previous Part, and take the related move, by dock button, end-of-Scroll row, the left and right arrow keys and a finger swipe. Before, the route drew no moves at all. - Read a plain Scroll (no stage) whose end card no longer says \"The picture you built\". - See the title, kicker and \"Part 1 of 3\" in the top bar at 320 to 390 px, with the Reel/Scroll switch and Next whole. ## What changed - Client: `readerContinuations`"
+ },
+ "vanyastaff/flui#2032": {
+  "fetched": "2026-10-31",
+  "prBody": "## Summary The Web host had `Absent<Accessibility>`: AccessKit has no browser adapter. This adds the first phase of ADR-0255 decision 18, a parallel ARIA DOM written in Rust. - **`accessibility::web::aria`** (pure, Linux-tested): `describe` maps an AccessKit node to its element. That covers the role, the name (`aria-label`, or the element's text for a role named by its content), states, ranges, live regions, `data-flui-id` from `author_id`, `tabindex=-1` for focusable nodes, and its box in the parent's element. The root's DPR transform is dropped. `event_action` maps `click`/`focusin`/`context"
+ },
+ "Termix-SSH/Mobile#110": {
+  "fetched": "2026-10-31",
+  "prBody": "> **Scope:** This covers RDP opened through the server (the Guacamole page in the WebView). Hosts the device reaches directly open in the native viewer (`modules/termix-display` + `NativeRemoteDesktop`), which has no pointer handling either. RDP-only hosts have no \"Connect from\" option, so a reachable host always opens there. That fix is a separate follow-up. ### Problem The server remote desktop page only listened for touch events. An iPad trackpad or a Bluetooth mouse sends mouse, pointer and wheel events, so the pointer had no hover, right click or scroll. ### Changes (`RemoteDesktop.tsx`) "
+ }
+}

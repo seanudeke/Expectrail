@@ -254,7 +254,9 @@ Both are inputs on the SAM probe workflow, together with `runs` to probe only so
 sam-3.1 also takes a whole run as one video, at $0.20 per 1,000 frames instead of $2.50 per
 1,000 images. That is about $0.05 for both prompts over a 120-frame run, against up to $0.60.
 `agents/sam_video.py` sent every frame of the clean game and the 8 public bugs (smoke route
-only) both ways. Results are in `bench/sam-video/`.
+only) both ways. Results are in `bench/sam-video/`. The module does not time itself; the wall
+clock is the Actions job record — the sam-video job took 4 min 37 s for the clean run
+(40972278900) and 11 min 27 s for the eight bugs (40972947066), rendering plus both send paths.
 
 - **Coins:** the same verdict and the same per-frame verdicts on all 9 runs.
 - **The robot:** video tracks it from frame to frame and carries it through what hides it.

@@ -1,0 +1,124 @@
+name: Discovery
+
+# Advisory discovery (docs/discovery.md): generic probes and contracts inferred from the game's code,
+# run on builds nobody wrote a check for. One job per build. With the planner off there is no
+# reference build, so a contract that fails is a finding unless the clean game fails it too (the
+# clean job is the false-alarm control); with the planner on, each job also replays the clean game
+# as its reference, so the model's contracts are falsified before anything counts. Muse Spark
+# proposes up to four more probes and eight more contracts in the closed languages from the profile
+# and the build's measurements only: never a bug report, a patch, a route that shows a bug, or the
+# build's name. Nothing here accepts or rejects a
+# fix. Public material only. Record a run with: python -m expectrail.discovery.cli collect --run <id>
+on:
+  pull_request:
+    paths:
+      - 'expectrail/discovery/**'
+      - 'expectrail/trace/**'
+      - 'discovery/**'
+      - 'contracts/*.v1.schema.json'
+      - 'harness/godot/**'
+      - 'harness/run.py'
+      - '.github/workflows/discovery.yml'
+  workflow_dispatch:
+    inputs:
+      planner:
+        description: Muse Spark planner (spark needs the MODEL_API_KEY or META_API_KEY secret)
+        type: choice
+        options: ['off', 'spark']
+        default: 'off'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: discovery-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  discovery:
+    name: discovery (${{ matrix.build }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        # The clean game (the false-alarm control), the four reproduced public bug reports the profile
+        # was written alongside, and the eight development bugs it was not written for.
+        include:
+          - {build: clean, patch: ''}
+          - {build: air-jump, patch: bugs/reported/air-jump.patch}
+          - {build: gun-cooldown, patch: bugs/reported/gun-cooldown.patch}
+          - {build: body-flip, patch: bugs/reported/body-flip.patch}
+          - {build: enemy-ledge, patch: bugs/reported/enemy-ledge.patch}
+          - {build: physics-fall-through-v1, patch: bugs/physics-fall-through/v1.patch}
+          - {build: physics-fall-through-v2, patch: bugs/physics-fall-through/v2.patch}
+          - {build: sinking-v1, patch: bugs/sinking/v1.patch}
+          - {build: sinking-v2, patch: bugs/sinking/v2.patch}
+          - {build: missing-texture-v1, patch: bugs/missing-texture/v1.patch}
+          - {build: missing-texture-v2, patch: bugs/missing-texture/v2.patch}
+          - {build: layering-v1, patch: bugs/layering/v1.patch}
+          - {build: layering-v2, patch: bugs/layering/v2.patch}
+          # Shortcut fixes that make a symptom go away by disabling the feature, and healthy retunes
+          # (bugs/challenges/): the guards should flag the first kind and nothing on the second.
+          - {build: shortcut-no-double-jump, patch: bugs/challenges/shortcut-no-double-jump.patch}
+          - {build: shortcut-gun-never-fires, patch: bugs/challenges/shortcut-gun-never-fires.patch}
+          - {build: shortcut-no-turning, patch: bugs/challenges/shortcut-no-turning.patch}
+          - {build: shortcut-enemies-stand-still, patch: bugs/challenges/shortcut-enemies-stand-still.patch}
+          - {build: healthy-faster-walk, patch: bugs/challenges/healthy-faster-walk.patch}
+          - {build: healthy-faster-enemies, patch: bugs/challenges/healthy-faster-enemies.patch}
+    env:
+      PLANNER: ${{ inputs.planner || 'off' }}
+      KEY_SET: ${{ secrets.MODEL_API_KEY != '' || secrets.META_API_KEY != '' }}
+    steps:
+      - name: Require the model key when the planner is on
+        if: env.PLANNER == 'spark' && env.KEY_SET != 'true'
+        run: |
+          echo "::error::Set the MODEL_API_KEY (or META_API_KEY) repository secret first."
+          exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Install patch
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends patch
+      - name: Download Godot 4.7.2 and check its SHA-512
+        run: ./harness/get_godot.sh
+      - name: Discover
+        env:
+          MODEL_API_KEY: ${{ inputs.planner == 'spark' && (secrets.MODEL_API_KEY || secrets.META_API_KEY) || '' }}
+          BUILD: ${{ matrix.build }}
+          PATCH: ${{ matrix.patch }}
+        run: |
+          [[ "$BUILD" =~ ^[a-z0-9-]+$ ]] || { echo "::error::unexpected build id"; exit 1; }
+          snapshot="$BUILD:base"
+          if [[ -n "$PATCH" ]]; then
+            [[ "$PATCH" =~ ^bugs/[a-z0-9/-]+\.patch$ && -f "$PATCH" ]] || { echo "::error::no patch at $PATCH"; exit 1; }
+            snapshot="$BUILD:base:$PATCH"
+          fi
+          # With the planner on, the clean game runs in the same job as the healthy reference: a model's
+          # contract that fails on it is rejected, never a finding. Without a reference nothing can
+          # falsify a model's contract, and live runs showed them failing on the clean game itself.
+          reference=()
+          if [[ "$PLANNER" == spark ]]; then reference=(--snapshot reference:reference); fi
+          start=$(date +%s)
+          python -m expectrail.discovery.cli discover --profile discovery/platformer.profile.json \
+            --snapshot "$snapshot" "${reference[@]}" --out "runs/discovery/$BUILD" --planner "$PLANNER" \
+            --label "FRESH LIVE" --run-id "ci-${GITHUB_RUN_ID}-${BUILD}" --max-seconds 1800
+          python -m expectrail.discovery.cli annotate "runs/discovery/$BUILD/discovery-run.json"
+          echo "::notice title=Discovery time ${BUILD}::$(( $(date +%s) - start )) s"
+          cat "runs/discovery/$BUILD/report.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: Keep the record and the routes
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: discovery-${{ matrix.build }}
+          path: |
+            runs/discovery/${{ matrix.build }}/discovery-run.json
+            runs/discovery/${{ matrix.build }}/report.md
+            runs/discovery/${{ matrix.build }}/routes/
+            runs/discovery/${{ matrix.build }}/*/*/episode.json
+          if-no-files-found: ignore
+          retention-days: 14

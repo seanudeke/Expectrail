@@ -1,14 +1,17 @@
 """Judge benchmark: who accepts a fix that only looks right?
 
-The fix matrix showed Muse Code fixes the development bugs about as well from screenshots as with
-Expectrail's specs. What Expectrail is for is the other half: telling a real fix from one that
-only looks right. This puts candidate fixes with a known answer in front of three judges and
+The fix matrix showed Muse Code fixes most bugs about as well from screenshots as with Expectrail's
+evidence (the sinking bugs are the exception: docs/report-first.md). What Expectrail is for first
+is the other half: telling a real fix from one that only looks right. This puts candidate fixes with a known answer in front of three judges and
 counts their mistakes:
 
   - Expectrail's verifier with SAM on (the submission's setting);
   - the same verifier with SAM off (position log and gameplay only);
   - Muse Code judging from screenshots alone (agents.muse_judge): five frames of the bugged run
-    and five of the candidate's, on the same route, and a one-line bug report in plain English.
+    and five of the candidate's, on the same route, and a one-line bug report in plain English;
+  - with ``--glimmer``, the verifier judged by Muse Glimmer checked against the engine, exactly as the
+    judge ladder's fallback judges a candidate when SAM does not answer (agents.judge_ladder). A
+    Glimmer outage leaves that judge undecided; it is never counted as a rejection.
 
 Good candidates undo a seeded bug exactly (the bugged tree diffed back to the clean game), so the
 game they produce is the clean game. Bad candidates are fixtures that stop the reported symptom
@@ -18,6 +21,7 @@ Expectrail's blind spots too, not only its strengths.
 
     python3 -m agents.judge_bench --list
     python3 -m agents.judge_bench --case bad/fall-through-hide-player --out runs/judge --live
+    python3 -m agents.judge_bench --case bad/fall-through-sink-player --out runs/judge --live --glimmer
     python3 -m agents.judge_bench --summarize runs/judge
 
 Offline (no ``--live``) the screenshot judge is skipped and only the verifiers run.
@@ -55,7 +59,7 @@ from expectrail.evaluator import EVALUATOR
 FORMAT = "expectrail.judge-bench/v0"
 FIXTURES = REPO / "agents" / "fixtures"
 GAME = REPO / "game" / "platformer"
-JUDGES = ("expectrailSam", "expectrailNoSam", "museScreenshots")
+JUDGES = ("expectrailSam", "expectrailNoSam", "expectrailGlimmer", "museScreenshots")
 # What a player would report, per family: the only description the screenshot judge gets.
 REPORTS = {
     "physics-fall-through": "The player falls through the ground.",
@@ -147,7 +151,24 @@ def muse_reason(judge: dict, limit: int = 400) -> str:
     return ("..." + said[-limit:]) if len(said) > limit else said
 
 
-def run_case(key: str, out: Path, *, live: bool, sam: bool = True) -> dict:
+def _glimmer_verify(request: dict, candidate: Path, out: Path) -> tuple[str | None, list[str]]:
+    """The judge ladder's fallback on its own: the verifier with Glimmer checked against the engine.
+
+    Returns (decision, reasons); the decision is None when Glimmer did not answer, so an outage is
+    undecided rather than a rejection."""
+    from agents.judge_ladder import FALLBACK, backend, glimmer_problem, judge_unavailable
+
+    problem = glimmer_problem()
+    if problem is not None:
+        return None, [f"Glimmer unavailable: {problem}"]
+    with provider("sam"), backend(FALLBACK):
+        v = verify(request, candidate, out)
+    if judge_unavailable(v, out):
+        return None, ["Glimmer did not answer"]
+    return v["decision"], list(dict.fromkeys(r.split(" on ")[0] for r in (v.get("reasons") or [])))[:6]
+
+
+def run_case(key: str, out: Path, *, live: bool, sam: bool = True, glimmer: bool = False) -> dict:
     """One candidate in front of every judge; a crash is recorded, never counted as a verdict."""
     spec = cases().get(key)
     if spec is None:
@@ -177,6 +198,12 @@ def run_case(key: str, out: Path, *, live: bool, sam: bool = True) -> dict:
             row["decisions"][name] = v["decision"]
             # Which checks failed, without the route they failed on (private routes have names).
             row["reasons"][name] = list(dict.fromkeys(r.split(" on ")[0] for r in (v.get("reasons") or [])))[:6]
+        if glimmer:
+            t_glimmer = time.perf_counter()
+            decision, reasons = _glimmer_verify(request, candidate, work / "expectrailGlimmer")
+            row["decisions"]["expectrailGlimmer"] = decision
+            row["reasons"]["expectrailGlimmer"] = reasons
+            row["glimmerSeconds"] = round(time.perf_counter() - t_glimmer, 1)
         if live:
             harness_run(SMOKE_ROUTE, work / "bugged", patches=[bug_patch])
             before = _frames(work / "bugged" / "frames")
@@ -204,7 +231,7 @@ def summarize(out: Path) -> dict:
     rows = [json.loads(p.read_text(encoding="utf-8")) for p in sorted(out.rglob("result.json"))]
     rows = [r for r in rows if r.get("format") == FORMAT]
     per_judge = {}
-    for j in JUDGES:
+    for j in [j for j in JUDGES if any(j in (r.get("decisions") or {}) for r in rows)]:
         decided = [r for r in rows if r["decisions"].get(j) in ("accept", "reject", "needs-review")]
         good = [r for r in decided if r["label"] == "good"]
         bad = [r for r in decided if r["label"] == "bad"]
@@ -222,14 +249,16 @@ def summarize(out: Path) -> dict:
 
 def markdown(doc: dict) -> str:
     names = {"expectrailSam": "Expectrail, SAM on", "expectrailNoSam": "Expectrail, SAM off",
-             "museScreenshots": "Muse from screenshots"}
+             "expectrailGlimmer": "Expectrail, Glimmer+engine", "museScreenshots": "Muse from screenshots"}
+    shown = [j for j in JUDGES if j in doc["judges"]]
     lines = ["| Judge | Good fixes accepted | Bad fixes accepted | Undecided |", "| --- | --- | --- | --- |"]
-    for j, s in doc["judges"].items():
+    for j in shown:
+        s = doc["judges"][j]
         lines.append(f"| {names[j]} | {s['goodAccepted']} of {s['good']} | {s['badAccepted']} of {s['bad']} | {s['undecided']} |")
-    lines += ["", "| Case | Label | " + " | ".join(names[j] for j in JUDGES) + " |",
-              "| --- | --- | " + " | ".join("---" for _ in JUDGES) + " |"]
+    lines += ["", "| Case | Label | " + " | ".join(names[j] for j in shown) + " |",
+              "| --- | --- | " + " | ".join("---" for _ in shown) + " |"]
     for r in doc["rows"]:
-        lines.append(f"| {r['case']} | {r['label']} | " + " | ".join(str((r['decisions'] or {}).get(j, r.get('error') and 'error' or '-')) for j in JUDGES) + " |")
+        lines.append(f"| {r['case']} | {r['label']} | " + " | ".join(str((r['decisions'] or {}).get(j, r.get('error') and 'error' or '-')) for j in shown) + " |")
     return "\n".join(lines) + "\n"
 
 
@@ -244,6 +273,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--out", type=Path, default=REPO / "runs" / "judge")
     p.add_argument("--live", action="store_true", help="also run Muse Code as the screenshot judge (spends credit)")
     p.add_argument("--no-sam", action="store_true", help="skip the SAM-on verifier (offline smoke runs)")
+    p.add_argument("--glimmer", action="store_true",
+                   help="also judge with Glimmer checked against the engine, as the judge ladder's fallback does")
     args = p.parse_args(argv)
     if args.list:
         print(json.dumps(sorted(cases())))
@@ -251,7 +282,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.summarize:
         print(markdown(summarize(args.summarize)))
         return 0
-    row = run_case(args.case, args.out, live=args.live, sam=not args.no_sam)
+    row = run_case(args.case, args.out, live=args.live, sam=not args.no_sam, glimmer=args.glimmer)
     print(json.dumps({k: row.get(k) for k in ("case", "label", "decisions", "error", "wallClockSeconds")}))
     return 1 if row.get("error") else 0
 

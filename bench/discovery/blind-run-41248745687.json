@@ -1,0 +1,214 @@
+{
+ "run": 41248745687,
+ "url": "https://github.com/seanudeke/Expectrail/actions/runs/41248745687",
+ "headSha": "81f692c80897a916ee04f5f9f0183f0ce94cd7a2",
+ "createdAt": "2026-10-31T22:33:50Z",
+ "condition": "blind",
+ "rows": [
+  {
+   "id": "clean",
+   "kind": "clean",
+   "flagged": false,
+   "reproduced": 0,
+   "otherFindings": 0,
+   "completion": "complete",
+   "episodes": 22,
+   "wallSeconds": 12.8,
+   "results": {
+    "pass": 91,
+    "fail": 0,
+    "not_exercised": 64,
+    "insufficient_observation": 0,
+    "execution_error": 0
+   },
+   "planner": "skipped"
+  },
+  {
+   "id": "f01",
+   "kind": "defect",
+   "flagged": true,
+   "reproduced": 1,
+   "otherFindings": 0,
+   "completion": "complete",
+   "episodes": 24,
+   "wallSeconds": 62.5,
+   "results": {
+    "pass": 90,
+    "fail": 1,
+    "not_exercised": 64,
+    "insufficient_observation": 0,
+    "execution_error": 0
+   },
+   "planner": "skipped"
+  },
+  {
+   "id": "f02",
+   "kind": "defect",
+   "flagged": true,
+   "reproduced": 4,
+   "otherFindings": 0,
+   "completion": "complete",
+   "episodes": 38,
+   "wallSeconds": 122.9,
+   "results": {
+    "pass": 87,
+    "fail": 4,
+    "not_exercised": 64,
+    "insufficient_observation": 0,
+    "execution_error": 0
+   },
+   "planner": "skipped"
+  },
+  {
+   "id": "f03",
+   "kind": "intentional",
+   "flagged": false,
+   "reproduced": 0,
+   "otherFindings": 0,
+   "completion": "complete",
+   "episodes": 22,
+   "wallSeconds": 64.2,
+   "results": {
+    "pass": 91,
+    "fail": 0,
+    "not_exercised": 64,
+    "insufficient_observation": 0,
+    "execution_error": 0
+   },
+   "planner": "skipped"
+  },
+  {
+   "id": "f04",
+   "kind": "defect",
+   "flagged": false,
+   "reproduced": 0,
+   "otherFindings": 0,
+   "completion": "complete",
+   "episodes": 22,
+   "wallSeconds": 64.5,
+   "results": {
+    "pass": 91,
+    "fail": 0,
+    "not_exercised": 64,
+    "insufficient_observation": 0,
+    "execution_error": 0
+   },
+   "planner": "skipped"
+  },
+  {
+   "id": "f05",
+   "kind": "defect",
+   "flagged": false,
+   "reproduced": 0,
+   "otherFindings": 0,
+   "completion": "complete",
+   "episodes": 22,
+   "wallSeconds": 74.5,
+   "results": {
+    "pass": 91,
+    "fail": 0,
+    "not_exercised": 64,
+    "insufficient_observation": 0,
+    "execution_error": 0
+   },
+   "planner": "skipped"
+  },
+  {
+   "id": "f06",
+   "kind": "defect",
+   "flagged": true,
+   "reproduced": 1,
+   "otherFindings": 0,
+   "completion": "complete",
+   "episodes": 24,
+   "wallSeconds": 70.9,
+   "results": {
+    "pass": 90,
+    "fail": 1,
+    "not_exercised": 64,
+    "insufficient_observation": 0,
+    "execution_error": 0
+   },
+   "planner": "skipped"
+  },
+  {
+   "id": "f07",
+   "kind": "defect",
+   "flagged": false,
+   "reproduced": 0,
+   "otherFindings": 0,
+   "completion": "complete",
+   "episodes": 22,
+   "wallSeconds": 73.8,
+   "results": {
+    "pass": 91,
+    "fail": 0,
+    "not_exercised": 64,
+    "insufficient_observation": 0,
+    "execution_error": 0
+   },
+   "planner": "skipped"
+  },
+  {
+   "id": "f08",
+   "kind": "defect",
+   "flagged": false,
+   "reproduced": 0,
+   "otherFindings": 0,
+   "completion": "complete",
+   "episodes": 22,
+   "wallSeconds": 73.8,
+   "results": {
+    "pass": 91,
+    "fail": 0,
+    "not_exercised": 64,
+    "insufficient_observation": 0,
+    "execution_error": 0
+   },
+   "planner": "skipped"
+  },
+  {
+   "id": "f09",
+   "kind": "defect",
+   "flagged": true,
+   "reproduced": 4,
+   "otherFindings": 0,
+   "completion": "complete",
+   "episodes": 38,
+   "wallSeconds": 113.1,
+   "results": {
+    "pass": 87,
+    "fail": 4,
+    "not_exercised": 64,
+    "insufficient_observation": 0,
+    "execution_error": 0
+   },
+   "planner": "skipped"
+  },
+  {
+   "id": "f10",
+   "kind": "intentional",
+   "flagged": false,
+   "reproduced": 0,
+   "otherFindings": 0,
+   "completion": "complete",
+   "episodes": 22,
+   "wallSeconds": 54.2,
+   "results": {
+    "pass": 91,
+    "fail": 0,
+    "not_exercised": 64,
+    "insufficient_observation": 0,
+    "execution_error": 0
+   },
+   "planner": "skipped"
+  }
+ ],
+ "score": {
+  "defectsFlagged": 4,
+  "defects": 8,
+  "healthyFlagged": 0,
+  "healthy": 3,
+  "incomplete": 0
+ }
+}

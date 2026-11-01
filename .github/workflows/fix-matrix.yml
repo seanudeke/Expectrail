@@ -51,8 +51,8 @@ on:
         description: Comma-separated case ids (default all in the set), e.g. dev/sinking/v2,dev/layering/v1
         default: ''
       conditions:
-        description: Comma-separated conditions (default both), screenshots and/or expectrail
-        default: 'screenshots,expectrail'
+        description: "Comma-separated conditions: escalate (what the loop does: the report first, Expectrail's evidence only after a rejection; docs/report-first.md), screenshots (the report on every attempt) and expectrail (the evidence from the first attempt)"
+        default: 'escalate,screenshots,expectrail'
       runs:
         description: demo only, how many independent live runs of the overnight loop (1 to 20); always live
         default: '10'
@@ -61,10 +61,25 @@ on:
         type: choice
         options: ['on', 'off']
         default: 'on'
+      judge_drill:
+        description: "demo only, a drill (docs/fallbacks.md). sam-unavailable: every SAM request fails as an outage would, so the pre-run check stops the run before Muse Code. sam-outage-mid-run: the pre-run check passes, then SAM fails, so the judge ladder runs end to end; Glimmer answers, or does not, for real. A drill skips the shared SAM cache by itself."
+        type: choice
+        options: ['off', sam-unavailable, sam-outage-mid-run]
+        default: 'off'
+      judge_glimmer:
+        description: "judge only: on adds a fourth judge, the verifier with Muse Glimmer checked against the engine, exactly as the judge ladder's fallback (agents/judge_ladder.py). Needs FIREWORKS_API_KEY and the GLIMMER_MODEL variable; one replica, so each job waits its turn (bench/judge/glimmer)."
+        type: choice
+        options: ['off', 'on']
+        default: 'off'
+      judge_outside:
+        description: "judge only: on adds two outside screenshot judges, Claude and GPT (agents/outside_judge.py), shown the same frames and prompt as Muse, 3 passes each, and skips the SAM-on verifier, whose decisions bench/judge already records. Needs live, ANTHROPIC_API_KEY and OPENAI_API_KEY."
+        type: choice
+        options: ['off', 'on']
+        default: 'off'
       sam_cache:
         description: "shared: judge the clean game once (smoke and private routes) and share SAM's answers, encrypted, with this run's jobs; public: the smoke route only; off: every job judges every frame itself"
         type: choice
-        options: [shared, public, off]
+        options: [shared, public, 'off']
         default: shared
 
 permissions:
@@ -74,7 +89,7 @@ jobs:
   # Judge the clean game once for the whole run (see sam_cache above). Runs beside the plan job; the
   # jobs that verify wait for it, and run without it if it fails or is skipped.
   sam-warm:
-    if: ${{ inputs.sam_cache != 'off' && inputs.set != 'reported' && (inputs.live || inputs.bench == 'demo') }}
+    if: ${{ inputs.sam_cache != 'off' && inputs.set != 'reported' && inputs.judge_drill == 'off' && inputs.judge_outside != 'on' && (inputs.live || inputs.bench == 'demo') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     env:
@@ -491,22 +506,38 @@ jobs:
     needs: [judge-plan, sam-warm]
     if: ${{ !cancelled() && needs.judge-plan.result == 'success' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    # Glimmer on one shared replica answers about one frame a second across the parallel jobs.
+    timeout-minutes: ${{ inputs.judge_glimmer == 'on' && 330 || 90 }}
     strategy:
       fail-fast: false
-      max-parallel: 4
+      # Outside judges: no SAM or Glimmer to share, so more cases at once (Muse runs through the gateway).
+      max-parallel: ${{ inputs.judge_outside == 'on' && 8 || 4 }}
       matrix:
         case: ${{ fromJSON(needs.judge-plan.outputs.cases) }}
     env:
       LIVE: ${{ inputs.live }}
       KEYS_OK: ${{ secrets.META_API_KEY != '' && secrets.MODEL_API_KEY != '' }}
       HELDOUT_TOKEN_SET: ${{ secrets.HELDOUT_TOKEN != '' }}
+      GLIMMER: ${{ inputs.judge_glimmer }}
+      FIREWORKS_KEY_SET: ${{ secrets.FIREWORKS_API_KEY != '' }}
+      GLIMMER_MODEL: ${{ vars.GLIMMER_MODEL }}
+      OUTSIDE: ${{ inputs.judge_outside }}
     steps:
+      - name: The outside judges need a live run (judge_outside on)
+        if: env.OUTSIDE == 'on' && env.LIVE != 'true'
+        run: |
+          echo "::error::judge_outside needs live on: the outside judges see the screenshots Muse sees."
+          exit 1
       - name: Require both keys
         if: env.KEYS_OK != 'true'
         run: |
           echo "::error::Set META_API_KEY (Muse) and MODEL_API_KEY (SAM, a different key) first."
           exit 1
+      - name: Require the Glimmer key and deployment (judge_glimmer on)
+        if: env.GLIMMER == 'on'
+        run: |
+          [ "$FIREWORKS_KEY_SET" = "true" ] || { echo "::error::Set the FIREWORKS_API_KEY repository secret first."; exit 1; }
+          [[ "$GLIMMER_MODEL" =~ ^accounts/[A-Za-z0-9_-]+/deployments/[A-Za-z0-9_-]+$ ]] || { echo "::error::Set the GLIMMER_MODEL repo variable to accounts/<account>/deployments/<id>."; exit 1; }
       - name: Require the held-out token
         if: env.HELDOUT_TOKEN_SET != 'true'
         run: |
@@ -519,6 +550,14 @@ jobs:
         with:
           python-version: '3.13'
       - run: python -m pip install -r requirements-dev.txt
+      - name: Outside judges - each key set, each model there and answering (one short text request each)
+        if: env.OUTSIDE == 'on'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          EXPECTRAIL_OUTSIDE_CLAUDE_MODEL: ${{ vars.OUTSIDE_CLAUDE_MODEL }}
+          EXPECTRAIL_OUTSIDE_GPT_MODEL: ${{ vars.OUTSIDE_GPT_MODEL }}
+        run: python -m agents.outside_judge --smoke
       - name: Install bubblewrap, xvfb, software OpenGL
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends bubblewrap xvfb libgl1-mesa-dri libglx-mesa0 patch
       - name: Allow unprivileged user namespaces for bubblewrap
@@ -577,21 +616,42 @@ jobs:
         run: |
           python -m venv "$RUNNER_TEMP/mitm"
           "$RUNNER_TEMP/mitm/bin/python" -m pip install --quiet --disable-pip-version-check "mitmproxy==12.2.3"
+      - name: Glimmer - restore the deployment's scaling if needed, and wake it
+        if: env.GLIMMER == 'on'
+        env:
+          EXPECTRAIL_GLIMMER_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
+          EXPECTRAIL_GLIMMER_MODEL: ${{ vars.GLIMMER_MODEL }}
+        run: |
+          python -m agents.fireworks_deployment --restore --model "$EXPECTRAIL_GLIMMER_MODEL"
+          python -m agents.glimmer_client --warm --timeout 900
       - name: Judge the candidate
         env:
           # Muse Code gets a placeholder key; the gateway holds the real one (agents/gateway.py).
+          # The Glimmer key reaches the verifier only: Muse Code's environment is an allowlist (agents/keys.py).
+          EXPECTRAIL_GLIMMER_API_KEY: ${{ inputs.judge_glimmer == 'on' && secrets.FIREWORKS_API_KEY || '' }}
+          EXPECTRAIL_GLIMMER_MODEL: ${{ vars.GLIMMER_MODEL }}
           EXPECTRAIL_MUSE_GATEWAY: 'on'
           EXPECTRAIL_MITMDUMP: ${{ runner.temp }}/mitm/bin/mitmdump
           META_API_KEY: ${{ inputs.live && secrets.META_API_KEY || '' }}
           MODEL_API_KEY: ${{ secrets.MODEL_API_KEY }}
           EXPECTRAIL_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
+          # The outside judges' keys reach the benchmark only; Muse Code's environment is an allowlist.
+          ANTHROPIC_API_KEY: ${{ inputs.judge_outside == 'on' && secrets.ANTHROPIC_API_KEY || '' }}
+          OPENAI_API_KEY: ${{ inputs.judge_outside == 'on' && secrets.OPENAI_API_KEY || '' }}
+          EXPECTRAIL_OUTSIDE_CLAUDE_MODEL: ${{ vars.OUTSIDE_CLAUDE_MODEL }}
+          EXPECTRAIL_OUTSIDE_GPT_MODEL: ${{ vars.OUTSIDE_GPT_MODEL }}
           CASE: ${{ matrix.case }}
         run: |
           args=(--case "$CASE" --out runs/judge)
           # Live: all three judges. Offline: the SAM-off verifier only, a free plumbing check.
           if [[ "$LIVE" == "true" ]]; then args+=(--live); else args+=(--no-sam); fi
+          if [[ "$GLIMMER" == "on" ]]; then args+=(--glimmer); fi
+          # Outside judges: SAM's decisions are already recorded (bench/judge), so it is skipped.
+          # They run through agents.outside_judge: judge_bench.py is pinned by the mutation bench's registration.
+          module=agents.judge_bench
+          if [[ "$OUTSIDE" == "on" ]]; then module=agents.outside_judge; args+=(--no-sam --outside claude,gpt --passes 3); fi
           set +e
-          python -m agents.judge_bench "${args[@]}" > judge.log 2>&1
+          python -m "$module" "${args[@]}" > judge.log 2>&1
           code=$?
           set -e
           tail -n 1 judge.log
@@ -603,8 +663,19 @@ jobs:
                 f"SAM off {d.get('expectrailNoSam')}; Muse screenshots {d.get('museScreenshots')}; "
                 f"{r['wallClockSeconds']} s; live={r['live']}"
                 + (f"; SAM images {r['samImages']}" if r.get("samImages") is not None else ""))
+          if "expectrailGlimmer" in d:
+              print(f"::notice title=Judge Glimmer {r['case']}::label {r['label']}; "
+                    f"Glimmer+engine {d.get('expectrailGlimmer')}; {r.get('glimmerSeconds')} s")
+          if r.get("outside"):
+              from agents.outside_judge import annotation
+              print("\n".join(annotation(r["case"], r["label"], r["outside"])))
+              for n, o in r["outside"].items():
+                  for i, detail in enumerate(o["details"], 1):
+                      if o["decisions"][i - 1] is None:
+                          print(f"::warning title=Judge outside {n} {r['case']} pass {i}::{' '.join(detail.split())[:300]}")
           # Every judge case is built from public development variants, so its reasons can be shown.
-          names = {"expectrailSam": "SAM on", "expectrailNoSam": "SAM off", "museScreenshots": "Muse screenshots"}
+          names = {"expectrailSam": "SAM on", "expectrailNoSam": "SAM off", "expectrailGlimmer": "Glimmer+engine",
+                   "museScreenshots": "Muse screenshots"}
           why = [f"{names[k]}: " + " | ".join(" ".join(str(x).split())[:200] for x in (v or [])[:3])
                  for k, v in (r.get("reasons") or {}).items() if k in names and v]
           if why:
@@ -621,7 +692,8 @@ jobs:
         run: |
           mkdir -p keep
           find runs/judge -path '*held-out*' -prune -o -type f \( -name result.json -o -name candidate.patch \
-            -o -name muse-prompt.txt -o -name muse.log -o -name judge.json \) -print \
+            -o -name muse-prompt.txt -o -name muse.log -o -name judge.json -o -name outside.json \
+            -o -name prompt.txt -o -name 'claude-pass-*.json' -o -name 'gpt-pass-*.json' \) -print \
             | while read -r f; do mkdir -p "keep/$(dirname "$f")"; cp "$f" "keep/$f"; done
       - name: Export scan before upload (nothing private, no keys, no signing key)
         id: export-scan
@@ -728,14 +800,14 @@ jobs:
           path: heldout-set
           persist-credentials: false
       - name: Fetch this run's shared SAM answers
-        if: inputs.sam_cache != 'off' && (inputs.live || inputs.bench == 'demo')
+        if: inputs.sam_cache != 'off' && inputs.judge_drill == 'off' && (inputs.live || inputs.bench == 'demo')
         continue-on-error: true
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: sam-cache
           path: sam-cache
       - name: Restore them into the verifier's SAM cache (outside the fixer's sandbox)
-        if: inputs.sam_cache != 'off' && (inputs.live || inputs.bench == 'demo')
+        if: inputs.sam_cache != 'off' && inputs.judge_drill == 'off' && (inputs.live || inputs.bench == 'demo')
         continue-on-error: true
         env:
           SAM_CACHE_KEY: ${{ secrets.HELDOUT_TOKEN }}
@@ -774,8 +846,18 @@ jobs:
           EXPECTRAIL_OBS_PROVIDER: sam
           EXPECTRAIL_HELDOUT_DIR: ${{ github.workspace }}/heldout-set
           EXPECTRAIL_REVIEW: ${{ inputs.review }}
+          # The judge ladder's fallback (agents/judge_ladder.py, docs/fallbacks.md): only when SAM does not
+          # answer, the same candidate is judged by Glimmer checked against the engine. Never reaches Muse
+          # Code (agents.keys.muse_subprocess_env is an allowlist). Without them that step is skipped.
+          EXPECTRAIL_GLIMMER_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
+          EXPECTRAIL_GLIMMER_MODEL: ${{ vars.GLIMMER_MODEL }}
+          EXPECTRAIL_JUDGE_DRILL: ${{ inputs.judge_drill != 'off' && inputs.judge_drill || '' }}
           RUN: ${{ matrix.run }}
-        run: python -m agents.demo_loop --run "$RUN" --out runs/demo
+        run: |
+          if [ -n "$EXPECTRAIL_JUDGE_DRILL" ]; then
+            echo "::warning title=Judge drill::SAM is made unavailable on purpose in this run ($EXPECTRAIL_JUDGE_DRILL); its result is a drill, not a demo result"
+          fi
+          python -m agents.demo_loop --run "$RUN" --out runs/demo
       - name: Muse key gateway evidence
         if: always()
         run: python -m agents.gateway --evidence runs/demo

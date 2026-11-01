@@ -1,0 +1,45 @@
+{
+  "format": "expectrail.mutation-bench/v0-finding",
+  "id": "code:enemy/enemy.gd:9:sign.WALK_SPEED",
+  "operator": null,
+  "arms": {
+    "cheap": {
+      "provider": "trace",
+      "retried": false,
+      "decision": "accept",
+      "verifierDecision": "accept",
+      "reasons": [
+        "all 4 checks passed"
+      ],
+      "ownResults": {},
+      "failedChecks": [],
+      "checkResults": {
+        "regression/player-stays-above-ground": "pass",
+        "gameplay/player-motion-on-smoke": "pass"
+      },
+      "cleanSource": "harness",
+      "samImages": 0
+    },
+    "sam": {
+      "provider": "sam",
+      "retried": false,
+      "decision": "accept",
+      "verifierDecision": "needs-review",
+      "reasons": [],
+      "ownResults": {
+        "player-always-visible": "pass",
+        "coins-visible": "pass"
+      },
+      "failedChecks": [],
+      "checkResults": {
+        "regression/player-stays-above-ground": "pass",
+        "regression/player-always-visible": "pass",
+        "regression/coins-visible": "pass",
+        "gameplay/player-motion-on-smoke": "pass"
+      },
+      "cleanSource": "harness",
+      "samImages": 240
+    }
+  },
+  "label": "bad"
+}

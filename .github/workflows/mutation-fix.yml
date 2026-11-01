@@ -1,0 +1,207 @@
+# Mutation bench, Part 3 (agents/mutation_fix.py, #156): Muse Code on generated bugs, every candidate
+# judged by the tiered checker and labelled by the registered oracle. Its own workflow, because the
+# bench is public checks only: nothing here ever checks out or holds the private held-out set.
+name: Mutation fix
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/mutation-fix.yml
+      - agents/mutation_fix.py
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "rehearsal: the plumbing on a stand-in, no Muse, no SAM, no key, never a result (it also runs on a pull request that touches this). live: the committed case list, from main (spends Meta credit: post the estimate in #156 first)"
+        type: choice
+        options: [rehearsal, live]
+        default: rehearsal
+      cases:
+        description: live only, comma-separated mutant ids (default every case in bench/mutation/ai-fixes/cases.json)
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  # No key and no model: the whole path on a stand-in the study cannot draw, so a pull request proves it.
+  rehearse:
+    if: ${{ github.event_name == 'pull_request' || inputs.mode == 'rehearsal' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Install xvfb, software OpenGL
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri libglx-mesa0 patch
+      - name: Download Godot
+        run: ./harness/get_godot.sh
+      - name: Rehearse, never a result
+        run: python -m agents.mutation_fix --rehearse --out runs/ai-fixes
+
+  plan:
+    if: ${{ inputs.mode == 'live' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      cases: ${{ steps.plan.outputs.cases }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Pick the cases (a live run starts from main, on the committed case list)
+        id: plan
+        env:
+          CASES: ${{ inputs.cases }}
+        run: |
+          python - <<'PY'
+          import json, os
+          if os.environ["GITHUB_REF"] != "refs/heads/main":
+              raise SystemExit("a live run starts from main")
+          from agents.mutate_game import load_preregistration
+          from agents.mutation_fix import load_cases
+          every = [c["id"] for c in load_cases(load_preregistration())["cases"]]
+          rows = [x.strip() for x in os.environ["CASES"].split(",") if x.strip()] or every
+          bad = sorted(set(rows) - set(every))
+          if bad:
+              raise SystemExit(f"not in the case list: {bad}")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"cases={json.dumps(rows)}\n")
+          print(len(rows), "cases")
+          PY
+
+  # Judge the clean game's smoke route once, so a job asks SAM only about frames that differ from it.
+  sam-warm:
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Install xvfb, software OpenGL
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri libglx-mesa0 patch
+      - name: Download Godot 4.7.2 and check its SHA-512
+        run: ./harness/get_godot.sh
+      - name: Judge the clean game once
+        env:
+          MODEL_API_KEY: ${{ secrets.MODEL_API_KEY }}
+          EXPECTRAIL_OBS_PROVIDER: sam
+        run: python -m agents.sam_warm --scope public --cache runs/sam-warm/cache --out runs/sam-warm
+      - name: Export scan before upload (no keys, no signing key; the private set is never mounted here)
+        run: python -m agents.export_scan runs/sam-warm/cache runs/sam-warm/sam-warm.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sam-cache
+          path: runs/sam-warm/cache/
+          retention-days: 1
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: mutation-fix-warm
+          path: runs/sam-warm/sam-warm.json
+          retention-days: 14
+
+  run:
+    needs: [plan, sam-warm]
+    if: ${{ !cancelled() && needs.plan.result == 'success' }}  # plan runs for a live dispatch only
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        case: ${{ fromJSON(needs.plan.outputs.cases) }}
+    env:
+      CASE: ${{ matrix.case }}
+      # Public only: do not set EXPECTRAIL_HELDOUT_DIR.
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Install bubblewrap, xvfb, software OpenGL
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends bubblewrap xvfb libgl1-mesa-dri libglx-mesa0 patch
+      - name: Allow unprivileged user namespaces for bubblewrap
+        run: |
+          if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
+          fi
+          if [ -f /proc/sys/kernel/unprivileged_userns_clone ]; then
+            echo 1 | sudo tee /proc/sys/kernel/unprivileged_userns_clone
+          fi
+      - name: Download Godot
+        run: ./harness/get_godot.sh
+      - name: Fetch this run's shared SAM answers
+        continue-on-error: true
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: sam-cache
+          path: sam-cache
+      - name: Restore them into the SAM cache, outside the fixer's sandbox
+        continue-on-error: true
+        run: |
+          [ -d sam-cache ] || { echo "::notice title=SAM shared cache::none for this run, so this job judges every frame itself"; exit 0; }
+          dest="$(python -c 'from agents.sam_observations import default_cache_dir; print(default_cache_dir() or "")')"
+          mkdir -p "$dest" && cp -R sam-cache/. "$dest/"
+          rm -rf sam-cache
+      - name: Install Muse Code CLI
+        run: |
+          curl -fsSL https://dev.meta.ai/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Install mitmproxy 12.2.3 for the Muse key gateway (its own environment)
+        run: |
+          python -m venv "$RUNNER_TEMP/mitm"
+          "$RUNNER_TEMP/mitm/bin/python" -m pip install --quiet --disable-pip-version-check "mitmproxy==12.2.3"
+      - name: Run the case (public checks only)
+        env:
+          # Muse Code gets a placeholder key; the gateway holds the real one (agents/gateway.py).
+          EXPECTRAIL_MUSE_GATEWAY: 'on'
+          EXPECTRAIL_MITMDUMP: ${{ runner.temp }}/mitm/bin/mitmdump
+          META_API_KEY: ${{ secrets.META_API_KEY }}
+          MODEL_API_KEY: ${{ secrets.MODEL_API_KEY }}
+        run: |
+          test -z "${EXPECTRAIL_HELDOUT_DIR:-}" || { echo "held-out must stay unset"; exit 1; }
+          set +e
+          python -m agents.mutation_fix --case "$CASE" --out runs/ai-fixes --live --require-sandbox > fix.log 2>&1
+          code=$?
+          set -e
+          tail -n 40 fix.log
+          exit "$code"
+      - name: Muse key gateway evidence
+        if: always()
+        run: python -m agents.gateway --evidence runs/ai-fixes
+      - name: Keep the result, the candidates, the prompts and Muse's logs
+        if: always()
+        run: |
+          mkdir -p keep
+          if [ -d runs/ai-fixes ]; then
+            find runs/ai-fixes -type f \( -name result.json -o -name candidate.patch -o -name mutant.patch \
+              -o -name muse-prompt.txt -o -name muse.log -o -name candidate.json -o -name judge.json \
+              -o -name 'mutation-fix-error.txt' \) -print \
+              | while read -r f; do mkdir -p "keep/$(dirname "$f")"; cp "$f" "keep/$f"; done
+          fi
+      - name: Export scan before upload (no keys, no signing key; the private set is never mounted here)
+        id: export-scan
+        if: always()
+        run: python -m agents.export_scan keep
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always() && steps.export-scan.outcome == 'success'
+        with:
+          name: mutation-fix-${{ strategy.job-index }}
+          path: keep/
+          retention-days: 14

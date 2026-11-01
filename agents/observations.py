@@ -191,6 +191,37 @@ def resolve_provider(name: str | None = None) -> str:
     return raw
 
 
+DRILL_ENV = "EXPECTRAIL_JUDGE_DRILL"
+DRILL_ALL = "sam-unavailable"  # SAM is down from the start: the pre-run check stops the run
+DRILL_MID_RUN = "sam-outage-mid-run"  # the pre-run check passes for real, then SAM goes down: the judge ladder runs
+DRILLS = (DRILL_ALL, DRILL_MID_RUN)
+
+
+def judge_drill(stage: str = "judge") -> str | None:
+    """A judge-outage drill (docs/fallbacks.md), so a fallback can be run end to end on purpose. Every
+    SAM request made at ``stage`` fails as an outage would, before any cache. ``sam-unavailable`` takes
+    SAM down at every stage, so the pre-run check stops the run; ``sam-outage-mid-run`` leaves the
+    pre-run check (``stage="preflight"``) alone, so the run reaches the judge ladder. It touches SAM
+    only (backends ``sam`` and ``both``); Glimmer checked against the engine answers, or fails to, for
+    real. Returns the outage message, or None when no drill applies."""
+    raw = os.environ.get(DRILL_ENV, "").strip().lower()
+    if not raw:
+        return None
+    if raw not in DRILLS:
+        raise SystemExit(f"{DRILL_ENV}={raw!r}: the drills are {', '.join(DRILLS)}")
+    if raw == DRILL_MID_RUN and stage == "preflight":
+        return None
+    from agents.sam_observations import SamError, vision_backend
+
+    try:
+        backend = vision_backend()
+    except SamError:
+        backend = "sam"
+    if backend not in ("sam", "both"):
+        return None
+    return f"drill ({DRILL_ENV}={raw}): SAM made unavailable on purpose"
+
+
 def from_trace(
     trace: dict,
     replay_sha256: str = "0" * 64,
@@ -214,6 +245,9 @@ def from_trace(
         return from_trace_synthetic(
             trace, replay_sha256=replay_sha256, fps=fps, physics_tps=physics_tps,
         )
+    drill = judge_drill()
+    if drill:
+        raise SystemExit(f"sam observations unavailable: {drill}")
     sam = _load_sam_provider()
     sam_error = getattr(importlib.import_module("agents.sam_observations"), "SamError", None)
     catch = sam_error if isinstance(sam_error, type) and issubclass(sam_error, Exception) else ()
@@ -231,7 +265,7 @@ def from_trace(
         try:
             return sam(trace, **kwargs)
         except catch as exc:
-            raise SystemExit(f"sam observations unavailable: {exc}") from exc
+            raise SystemExit(f"sam observations unavailable (kind={getattr(exc, 'kind', 'unknown')}): {exc}") from exc
         except TypeError as exc:
             # An older adapter may not take every kwarg; drop only the one it rejects.
             dropped = next((k for k in ("engine_objects", "spec", "frames_dir")

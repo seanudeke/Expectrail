@@ -1,0 +1,31 @@
+{
+ "format": "expectrail.discovery-freeze/v1",
+ "files": {
+  "discovery/platformer.profile.json": "3a75e19895cfbee79d93f7135427fb47e38d3e8d64c5025092860554ed29c505",
+  "expectrail/contracts.py": "61f037ed1a26f85be3dbba52e1587668161f3a258b25f4024592fe729e83de87",
+  "expectrail/trace/__init__.py": "190409c30b7201917089ba604ea096382dde3f4adb164c542799c2a981ee77c7",
+  "expectrail/trace/evaluator.py": "1a359b1de8b84cab7e278f49d82247aa5bf5991d1d0c72a7666b9ffead3e44f0",
+  "expectrail/trace/normalize.py": "7e4aec8f3ec4af9c503a3c7ff2efaf2252022c03cf237c445e8e78596774a8eb",
+  "expectrail/trace/signals.py": "81e522b01d580ee9718679fe738cc6434024d5214790dc9fea921ae7bcd0be92",
+  "expectrail/discovery/__init__.py": "184d38203c6cda9eed5d96189b9cce737a4541bad62b84e8dfd16bc223d9e4d3",
+  "expectrail/discovery/planner.py": "c8e422d7d4c76509f8fa5c8a21e474fb82db6a0abc06551a599db9a66feeb8ab",
+  "expectrail/discovery/probes.py": "60a146a945bbaa0c43b19b57e1d6b08c3f393ef2284d1b051c98a56d3d73b054",
+  "expectrail/discovery/route_compiler.py": "82f83af3fdf00876d5e579405879921cc42726e2c6e0bc39fa0554b7daeae0b7",
+  "expectrail/discovery/run.py": "54b4ba41aba4c04c0403b9d740a1094118e3389b99050379c0f96be0dd65066a",
+  "expectrail/discovery/templates.py": "c99ff7a77659c6dd9d7467256b7f9617b1ed26ca19faacad93650a882f50f7f5",
+  "contracts/episode.v1.schema.json": "14fe48389e789562eb2b4019e5f33c9a0ecc7bba1c840014d0343e9bdd30d783",
+  "contracts/trace-spec.v1.schema.json": "8c20be0ec6844fb1c6523d6affab855b764e4e07cdfb6e8fa0a94c27d6d45bc6",
+  "contracts/trace-verdict.v1.schema.json": "6518a96ac95d90b455cbe6c838aa4f60c8a1e2d0efc6b2ca7e7aa6ef08fe5cea",
+  "contracts/mechanics-profile.v1.schema.json": "07eeb7f27dca5ff1c7f3a2940ef88c4d020a2471b257d2dc07bf44022fac9191",
+  "contracts/discovery-run.v1.schema.json": "11ba3396fbe5dcf875825977e4cc7b6f1ba61d33e5cce2147a24207e5ce06cd4",
+  "contracts/route.schema.json": "04714780f376c0b84afac32a524806d1acb8f52e62bc302a181ce80dd5e1570f",
+  "harness/run.py": "39149973a905a81e8e06a4886ee34171d80903c73e07d202316cc595ddc3e155",
+  "harness/godot/expectrail_harness.gd": "55bfce6fa9bc296c744c8b4f3bfe292ef1bcfec8b31e9d97c2e8804686a9217d",
+  "harness/godot/expectrail_recorder.gd": "26591439834d2089840542a4b60fa7ec2f8988277717dd3c2ecb24bc90ea20e8"
+ },
+ "gameTree": {
+  "game/platformer": "6a273587d64e10a74c0160256cfdc4964f16ed3e93fe7ab178e1bedc5071b280"
+ },
+ "command": "python -m expectrail.discovery.cli discover --profile discovery/platformer.profile.json --snapshot <id>:base:<patch> [--snapshot reference:reference with the planner on] --out <dir> --planner <off|spark> --label 'FRESH LIVE' --max-seconds 1800",
+ "sha256": "9af1f621c33ce4668eb8ad356a3220ea352d106595b0bc1b4cf877eead5e3053"
+}

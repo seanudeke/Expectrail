@@ -76,6 +76,56 @@ class JudgeBenchTest(unittest.TestCase):
             self.assertEqual(doc["judges"]["museScreenshots"]["badAccepted"], 1)
             self.assertIn("| Muse from screenshots | 0 of 0 | 1 of 1 | 0 |", jb.markdown(doc))
 
+    def _glimmer_case(self, case, *, glimmer_decision="reject", down=False, problem=None):
+        """run_case with the fourth judge; verify answers by provider and, under Glimmer, by backend."""
+        import os
+
+        from agents.sam_observations import BACKEND_ENV
+
+        def fake_verify(request, candidate, out, **_kw):
+            if os.environ.get(BACKEND_ENV) == "glimmer-engine":
+                self.assertEqual(os.environ["EXPECTRAIL_OBS_PROVIDER"], "sam")  # as the ladder's fallback runs it
+                return {"decision": glimmer_decision, "reasons": ["candidate check player-always-visible failed on smoke"]}
+            return {"decision": {"trace": "accept", "sam": "reject"}[os.environ["EXPECTRAIL_OBS_PROVIDER"]],
+                    "reasons": ["r"]}
+
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        out = Path(tmp.name)
+        with mock.patch.object(jb, "verify", side_effect=fake_verify), \
+                mock.patch("agents.judge_ladder.glimmer_problem", return_value=problem), \
+                mock.patch("agents.judge_ladder.judge_unavailable", return_value=down):
+            row = jb.run_case(case, out, live=False, glimmer=True)
+        return row, out
+
+    def test_glimmer_is_a_fourth_judge_run_as_the_ladder_runs_it(self):
+        row, out = self._glimmer_case("bad/fall-through-sink-player", glimmer_decision="accept")
+        self.assertEqual(row["decisions"]["expectrailGlimmer"], "accept")
+        self.assertIs(row["correct"]["expectrailGlimmer"], False)  # a bad fix accepted
+        self.assertEqual(row["reasons"]["expectrailGlimmer"], ["candidate check player-always-visible failed"])
+        self.assertIn("glimmerSeconds", row)
+        doc = jb.summarize(out)
+        self.assertEqual(doc["judges"]["expectrailGlimmer"], {"goodAccepted": 0, "good": 0, "badAccepted": 1,
+                                                              "bad": 1, "undecided": 0})
+        self.assertIn("| Expectrail, Glimmer+engine | 0 of 0 | 1 of 1 | 0 |", jb.markdown(doc))
+        self.assertNotIn("museScreenshots", doc["judges"])  # not run here, so not shown as 0 of 0
+
+    def test_a_glimmer_outage_is_undecided_never_a_rejection(self):
+        for kwargs in ({"down": True}, {"problem": "the Fireworks account is suspended"}):
+            row, out = self._glimmer_case("bad/fall-through-sink-player", **kwargs)
+            self.assertIsNone(row["decisions"]["expectrailGlimmer"])
+            self.assertIsNone(row["correct"]["expectrailGlimmer"])
+            self.assertTrue(row["reasons"]["expectrailGlimmer"][0].startswith("Glimmer"))
+            s = jb.summarize(out)["judges"]["expectrailGlimmer"]
+            self.assertEqual((s["badAccepted"], s["bad"], s["undecided"]), (0, 0, 1))
+
+    def test_without_glimmer_the_three_judges_are_unchanged(self):
+        with tempfile.TemporaryDirectory() as tmp, \
+                mock.patch.object(jb, "verify", return_value={"decision": "accept", "reasons": []}):
+            row = jb.run_case("good/sinking/v1", Path(tmp), live=False)
+        self.assertNotIn("expectrailGlimmer", row["decisions"])
+        self.assertNotIn("glimmerSeconds", row)
+
     def test_a_crash_is_recorded_not_judged(self):
         with tempfile.TemporaryDirectory() as tmp, \
                 mock.patch.object(jb, "verify", side_effect=RuntimeError("godot died")):

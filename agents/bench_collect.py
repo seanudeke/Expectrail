@@ -47,15 +47,19 @@ REPORTED_DIR = REPO / "bench" / "reported"
 REPORTED_FORMAT = "expectrail.reported-bench-results/v0"
 TRIAL_FORMAT = "expectrail.reported-trial-results/v0"
 DEMO_TITLE = re.compile(r"^Demo run (?P<run>\d+)$")
+DEMO_DRILL_TITLE = re.compile(r"^Demo run \d+ drill$")
 DEMO_MSG = re.compile(r"^decision (?P<decision>[a-z-]+); attempts (?P<tries>.*?); triage (?P<triage>\S+); "
                       r"fixer (?P<fixer>\S+); trust (?P<trust>\S+); verified on (?P<prov>\S+); signed (?P<signed>\S+); "
                       r"(?P<seconds>[\d.]+) s; SAM images (?P<sam>\d+)$")
 JUDGE_TITLE = re.compile(r"^Judge (?P<case>(?:good|bad)/\S+)$")
+# The fourth judge, Glimmer checked against the engine, has its own line so the three-judge line keeps its shape.
+JUDGE_GLIMMER_TITLE = re.compile(r"^Judge Glimmer (?P<case>(?:good|bad)/\S+)$")
+JUDGE_GLIMMER_MSG = re.compile(r"^label (?P<label>good|bad); Glimmer\+engine (?P<glimmer>\S+); (?P<seconds>[\d.]+) s$")
 JUDGE_MSG = re.compile(r"^label (?P<label>good|bad); SAM on (?P<sam>\S+); SAM off (?P<nosam>\S+); "
                        r"Muse screenshots (?P<muse>\S+); (?P<seconds>[\d.]+) s; live=(?P<live>True|False)"
                        r"(?:; SAM images (?P<samImages>\d+))?$")
 # Runs before the October 30 rename called the second condition "nightshift" (expectrail/legacy.py).
-MATRIX_TITLE = re.compile(r"^Fix matrix (?P<case>\S+/\S+) (?P<condition>screenshots|expectrail|nightshift)$")
+MATRIX_TITLE = re.compile(r"^Fix matrix (?P<case>\S+/\S+) (?P<condition>screenshots|expectrail|escalate|nightshift)$")
 MATRIX_MSG = re.compile(r"^detected (?P<detected>[a-z-]+); outcome (?P<outcome>[a-z-]+); attempts (?P<n>\d+) "
                         r"\((?P<tries>[^)]*)\); (?P<seconds>[\d.]+) s; live=(?P<live>True|False)"
                         r"(?:; SAM images (?P<sam>\d+))?$")
@@ -234,7 +238,8 @@ def collect_matrix(run_ids: list[int], which: str, fetch=gh_json) -> dict:
         raise SystemExit("an offline (live=False) result is not a fix rate; collect live runs only")
     final = sorted(rows.values(), key=lambda r: (r["case"], r["condition"]))
     conditions = {}
-    for c in ("screenshots", "expectrail"):
+    # escalate (report first, evidence after a rejection: docs/report-first.md) only when the run had it.
+    for c in ("screenshots", "expectrail") + (("escalate",) if any(r["condition"] == "escalate" for r in final) else ()):
         mine = [r for r in final if r["condition"] == c]
         conditions[c] = {o: sum(r["outcome"] == o for r in mine)
                          for o in ("fixed", "not-fixed", "not-detected", "needs-review", "error")}
@@ -246,8 +251,14 @@ def collect_matrix(run_ids: list[int], which: str, fetch=gh_json) -> dict:
 
 
 JUDGES = {"expectrailSam": "Expectrail, SAM on", "expectrailNoSam": "Expectrail, SAM off",
-          "museScreenshots": "Muse from screenshots"}
-REASON_LABELS = {"SAM on": "expectrailSam", "SAM off": "expectrailNoSam", "Muse screenshots": "museScreenshots"}
+          "expectrailGlimmer": "Expectrail, Glimmer+engine", "museScreenshots": "Muse from screenshots"}
+REASON_LABELS = {"SAM on": "expectrailSam", "SAM off": "expectrailNoSam", "Glimmer+engine": "expectrailGlimmer",
+                 "Muse screenshots": "museScreenshots"}
+
+
+def _judges_in(rows) -> list[str]:
+    """The judges these rows were judged by, in table order (Glimmer only when the run had it)."""
+    return [j for j in JUDGES if any(j in r["decisions"] for r in rows)]
 
 
 def parse_judge_reasons(message: str) -> dict:
@@ -263,13 +274,20 @@ def parse_judge_reasons(message: str) -> dict:
 def collect_judge_run(run_id: int, fetch=gh_json) -> dict:
     """One judge-benchmark run -> per-case decisions (and reasons, when the run published them)."""
     run, notes = run_annotations(run_id, fetch, prefix="judge-run")
-    rows, reasons = [], {}
+    rows, reasons, glimmer = [], {}, {}
     decided = lambda v: v if v in ("accept", "reject", "needs-review") else None
     for note in notes:
         title = note.get("title") or ""
         message = " ".join((note.get("message") or "").split())
         if title.startswith("Judge reasons "):
             reasons[title[len("Judge reasons "):]] = parse_judge_reasons(message)
+            continue
+        g = JUDGE_GLIMMER_TITLE.match(title)
+        if g:
+            msg = JUDGE_GLIMMER_MSG.match(message)
+            if not msg:
+                raise ValueError(f"unrecognised Glimmer judge annotation: {note.get('message')!r}")
+            glimmer[g["case"]] = (decided(msg["glimmer"]), float(msg["seconds"]))
             continue
         m = JUDGE_TITLE.match(title)
         if not m:
@@ -290,12 +308,16 @@ def collect_judge_run(run_id: int, fetch=gh_json) -> dict:
     for r in rows:
         if r["case"] in reasons:
             r["reasons"] = reasons[r["case"]]
+        if glimmer:  # a run with the fourth judge: a case without its line is undecided for it
+            decision, seconds = glimmer.get(r["case"], (None, None))
+            r["decisions"]["expectrailGlimmer"] = decision
+            r["glimmerSeconds"] = seconds
     rows.sort(key=lambda r: (r["label"] != "bad", r["case"]))
     good = [r for r in rows if r["label"] == "good"]
     bad = [r for r in rows if r["label"] == "bad"]
     judges = {j: {"goodAccepted": sum(r["decisions"][j] == "accept" for r in good), "good": len(good),
                   "badAccepted": sum(r["decisions"][j] == "accept" for r in bad), "bad": len(bad),
-                  "undecided": sum(r["decisions"][j] is None for r in rows)} for j in JUDGES}
+                  "undecided": sum(r["decisions"][j] is None for r in rows)} for j in _judges_in(rows)}
     return {"run": run_id, "runUrl": run.get("html_url"), "commit": run.get("head_sha"),
             "date": run.get("created_at"), "judges": judges, "rows": rows,
             "spend": spend(rows, muse_key="museCalls")}
@@ -306,21 +328,25 @@ def collect_judge(run_ids, fetch=gh_json) -> dict:
     runs = [collect_judge_run(r, fetch) for r in ([run_ids] if isinstance(run_ids, int) else run_ids)]
     cases = sorted({r["case"] for run in runs for r in run["rows"]},
                    key=lambda c: (not c.startswith("bad/"), c))
+    shared = [j for j in JUDGES if all(j in run["judges"] for run in runs)]
     changed = {j: [c for c in cases
                    if len({r["decisions"][j] for run in runs for r in run["rows"] if r["case"] == c}) > 1]
-               for j in JUDGES}
+               for j in shared}
     return {"format": "expectrail.judge-bench/v1", "runs": runs, "changedBetweenRuns": changed}
 
 
 def judge_markdown(doc: dict) -> str:
     runs = doc["runs"]
+    shown = {j: name for j, name in JUDGES.items() if any(j in run["judges"] for run in runs)}
     lines = ["# Judge benchmark", "",
              "Written by `python3 -m agents.bench_collect --judge` from the runs' own annotations; do not edit by hand.",
              "Runs: " + ", ".join(f"[{r['run']}]({r['runUrl']}) ({r['date'][:10]}, commit {r['commit'][:7]})"
                                   for r in runs) + ".", "",
              "| Judge | Run | Good fixes accepted | Bad fixes accepted | Undecided |", "| --- | --- | --- | --- | --- |"]
-    for j, name in JUDGES.items():
+    for j, name in shown.items():
         for r in runs:
+            if j not in r["judges"]:
+                continue
             s = r["judges"][j]
             lines.append(f"| {name} | {r['run']} | {s['goodAccepted']} of {s['good']} | "
                          f"{s['badAccepted']} of {s['bad']} | {s['undecided']} |")
@@ -330,15 +356,16 @@ def judge_markdown(doc: dict) -> str:
     if len(runs) > 1:
         lines += ["", "Cases whose decision changed between runs: "
                   + "; ".join(f"{name}: {', '.join(doc['changedBetweenRuns'][j]) or 'none'}"
-                              for j, name in JUDGES.items()) + "."]
+                              for j, name in shown.items() if j in doc["changedBetweenRuns"]) + "."]
     lines += ["", "Each cell lists the decision in each run, in the order above.", "",
-              "| Case | Right answer | " + " | ".join(JUDGES.values()) + " |", "| --- | --- | --- | --- | --- |"]
+              "| Case | Right answer | " + " | ".join(shown.values()) + " |",
+              "| --- | --- | " + " | ".join("---" for _ in shown) + " |"]
     cases = sorted({r["case"] for run in runs for r in run["rows"]}, key=lambda c: (not c.startswith("bad/"), c))
     by = {(run["run"], r["case"]): r for run in runs for r in run["rows"]}
     for c in cases:
         label = next(by[(run["run"], c)]["label"] for run in runs if (run["run"], c) in by)
         cells = [", ".join(str((by.get((run["run"], c)) or {}).get("decisions", {}).get(j) or "none") for run in runs)
-                 for j in JUDGES]
+                 for j in shown]
         lines.append(f"| {c} | {'accept' if label == 'good' else 'reject'} | " + " | ".join(cells) + " |")
     reasons = [(run["run"], r) for run in runs for r in run["rows"] if r.get("reasons")]
     if reasons:
@@ -354,6 +381,9 @@ def collect_demo(run_id: int, fetch=gh_json) -> dict:
     """A live demo-loop run -> each overnight run's outcome, and how many were accepted."""
     run, notes = run_annotations(run_id, fetch, prefix="demo-run")
     rows = []
+    drills = [n["title"] for n in notes if DEMO_DRILL_TITLE.match(n.get("title") or "")]
+    if drills:
+        raise SystemExit(f"run {run_id} is a judge drill, never a demo result ({len(drills)} drilled runs)")
     for note in notes:
         m = DEMO_TITLE.match(note.get("title") or "")
         if not m:
@@ -633,7 +663,10 @@ def collect_trial(run_ids: list[int], fetch=gh_json) -> dict:
                 if not t:
                     raise ValueError(f"unrecognised trial annotation: {message!r}")
                 failing = [] if t["failing"] == "none" else [f.strip() for f in t["failing"].split(",")]
-                found.setdefault(m["case"], {"case": m["case"], "candidates": []})["candidates"].append(
+                row = found.setdefault(m["case"], {"case": m["case"], "candidates": []})
+                if any(c["attempt"] == int(m["n"]) for c in row["candidates"]):
+                    continue  # the API can list one annotation twice; an attempt is one candidate
+                row["candidates"].append(
                     {"attempt": int(m["n"]), "expectrail": t["decision"], "publicCheck": t["public"],
                      "museScreenshots": None if t["muse"] == "None" else t["muse"],
                      "naturalCatch": t["catch"] == "True", "failing": failing})

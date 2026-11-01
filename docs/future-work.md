@@ -17,6 +17,11 @@ the edges are. The last section says which parts would carry over beyond games.
 - Four reproductions of publicly reported Godot bugs (`bugs/reported/`), caught by five
   engine-record checks that were written after the bugs were reproduced and that only the
   reported-bug bench runs so far ([`bench/reported/`](../bench/reported/README.md)).
+- Two kinds of checks. Checks people wrote (three approved specs, the gameplay check, the held-out
+  cases) are the gate. Checks Expectrail discovers (22 generic probes judged by rules read from the
+  game's code) only advise: they found the four reported bugs with no false alarm, as a development
+  result, and blind, on ten fresh entries written after they were frozen, they flagged 4 of 8 defects
+  and no healthy build ([discovery.md](discovery.md)).
 - One kind of agent change: repairs of a reported bug.
 - Four visual assertion types: visible, inside-region, never-crosses and reaches.
 - A fixer that writes small patches in its own worktree, inside bubblewrap in the live runs (only
@@ -26,9 +31,9 @@ the edges are. The last section says which parts would carry over beyond games.
 
 ## Finding bugs
 
-**It replays; it does not explore.** A route is a fixed list of inputs. A bug that only shows up
-where the route never goes stays invisible, so today Expectrail is closer to visual regression
-testing than to playtesting.
+**It replays; it does not explore.** A route is a fixed list of inputs, and the 22 discovery probes
+are a fixed library. A bug that only shows up where no route or probe goes stays invisible, so
+today Expectrail is closer to visual regression testing than to playtesting.
 
 Next:
 - Record routes from human playtest sessions. The harness already replays inputs on exact ticks;
@@ -36,14 +41,41 @@ Next:
 - Take routes from exploring agents and from bug reports filed by testers or playtesting tools, and
   keep each one as a regression route.
 - Report coverage: which levels, states and objects a night actually exercised.
+- Let the discovery planner choose probes between episodes, in rounds, instead of one call per job
+  (part of the autonomous-discovery specification below).
 
-**Coverage depends on the specs someone writes.** Every check starts as one sentence a person writes
-and approves. Nothing checks what nobody thought to describe.
+**Checks come from people, and only those can reject a change.** Every check in the verifier starts
+as one sentence a person writes and approves. Advisory discovery ([discovery.md](discovery.md)) adds
+checks nobody wrote: generic probes judged by contracts read from the game's code, reported when
+they fail 3 times out of 3. It does not gate, its profile is not approved, and it reaches only the
+four mechanics the profile claims; it found the four reported bugs, which its profile was written
+after, 2 of the 8 development bugs, which it was not, and blind, 4 of 8 fresh defects written after
+it was frozen.
 
-Next:
+Next, for the checks people write:
 - Have Muse Spark draft specs from design documents and past bug tickets, still approved by a person.
 - Grow a spec library for common bug families: the three we have, then text overflow, softlocks and
   motion jitter, which the evaluation plan already defers.
+
+Next, for discovery (detail in [discovery.md](discovery.md#whats-next)):
+- Measure the Muse Spark planner on more than one blind run. On fresh set 2 it took the templates
+  from 3 of 8 to 4 of 8 with no false alarm, once; on public builds it added second reasons but no
+  new detection.
+- Make a finding name its cause, not only the rule that tripped: several catches came through a rule
+  written for something else.
+- A larger blind set, written by people outside the team, before any rate is claimed.
+- The rest of the team's autonomous-discovery specification: visual discovery on matched base and
+  candidate runs; integrity signals (crashes, script errors, no progress) kept apart from gameplay
+  findings; then promotion (a person approves the profile, each contract is validated on clean runs
+  across healthy configurations, faulty variants from distinct causes and feature-removal
+  challenges, then runs in shadow); then enforcement (paired verdicts against the failing base, a
+  pinned contract set, repair requests for faults found in the trace, signing). Only after
+  enforcement can a discovered check reject a change.
+- From AI code review that runs code (Greptile's TREX), seven packages in our strategy-adoption
+  specification: map a change to the behaviours it can affect, one question per investigation,
+  automatic confirmation, evidence in the pull request, one budget across models and replays,
+  scoped memory of team feedback, and an optional read-only import of Greptile's findings. Their
+  status is in [discovery.md](discovery.md#whats-next); none is claimed to help until it is measured.
 
 **Four assertion types.** Enough for falls, missing textures and layering, not for timing or UI.
 
@@ -81,6 +113,16 @@ budget for small patches.
 Next: multi-file fixes, a root-cause note in the morning report, and a link to the commit that
 introduced the bug.
 
+**The fixer starts from a plain report, and the evidence helps it on the subtle bugs.** Since
+October 30, Muse Code gets Expectrail's evidence after a failed attempt
+([report-first.md](report-first.md)). Report-only first attempts fixed 43 of 47 live cases, and
+evidence-first attempts fixed 25 of 26. All four report-only misses were the sinking bugs, which
+the evidence fixed on the first attempt. Since October 31, a timeout escalates to the evidence
+too; that rule has not run live yet.
+
+Next: run the Fix matrix's `escalate` condition on harder bugs, ones that span several files or
+whose obvious fix is wrong, where a first attempt fails often enough to measure the second.
+
 **"Accepted" means it passed our suite, not that the game is correct.** The held-out variants are
 bugs we seeded ourselves.
 
@@ -107,8 +149,9 @@ one, and skip routes a change cannot affect.
 
 **It runs from GitHub Actions workflows and the command line, on our repository.**
 
-Next: a CI gate any repository can add, the verdict and evidence as a pull request comment, export to
-issue trackers, and release pipelines that check a release candidate's signature before shipping it.
+Next: a CI gate any repository can add, the verdict and evidence as a pull request comment with
+finding ids that stay stable across pushes (the Greptile adoption's G04), export to issue trackers,
+and release pipelines that check a release candidate's signature before shipping it.
 
 **The trust test is one planted instruction plus a canary probe.**
 
@@ -127,6 +170,8 @@ not control. We have built and measured game repairs, and one web page as a seco
 | The agent cannot reach the checks, the held-out cases or the signing key | Yes: it is a property of where things are mounted, not of games |
 | Evidence comes from running the changed software, not from the diff or the agent's account of it | Yes, given a way to run the software the same way every time |
 | A person approves each check, written as one plain sentence and drafted by a model | Yes |
+| Discovered checks advise until a person approves them and they pass validation | Yes: a policy, not a property of games |
+| Generic probes and a profile of claims read from the code | Partly: the probes, the profile and the trace signals are this game's; claims read from code, templates with no model, 3-of-3 reproduction and the clean control are not |
 | Held-out cases the fixer never sees, and a clean control that must not raise a false alarm | Yes |
 | Acceptance signed outside the agent's reach, checked before release | Yes |
 | A missing or uncertain observation is "needs review", never a pass | Yes |

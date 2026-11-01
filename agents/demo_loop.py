@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -47,6 +48,16 @@ def one(run: int, out: Path, loop_main=None) -> dict:
         )
         if result.get("review"):
             row["review"] = {k: result["review"].get(k) for k in ("status", "evidenceLabel", "reasons")}
+        # What the fixer was told on each attempt (agents/escalation.py) and who judged (agents/judge_ladder.py).
+        row["briefings"] = [a.get("briefing") for a in result.get("attempts") or []]
+        if result.get("judge"):
+            row["judge"] = result["judge"]
+        if result.get("preflight"):
+            row["preflight"] = result["preflight"]
+        from agents.observations import DRILL_ENV
+
+        if os.environ.get(DRILL_ENV):
+            row["drill"] = os.environ[DRILL_ENV]
     except (Exception, SystemExit) as exc:  # noqa: BLE001 - a crash is a result, never an accept
         row.update(decision="error", error=f"{type(exc).__name__}: {exc}"[:300])
     row["wallClockSeconds"] = round(time.perf_counter() - t0, 1)
@@ -68,6 +79,20 @@ def annotation(row: dict) -> str:
         why = "; ".join(rv.get("reasons") or [])[:200] or "none"
         line += (f"\n::notice title=Demo run {row['run']} review::{rv.get('status')}; "
                  f"{rv.get('evidenceLabel')}; {' '.join(why.split())}")
+    if row.get("briefings"):
+        line += f"\n::notice title=Demo run {row['run']} briefing::{', '.join(str(b) for b in row['briefings'])}"
+    judge = row.get("judge")
+    if judge:  # its own line, like the review: who judged, and every step the judge ladder took
+        steps = "; ".join(
+            f"{s['judge']}{' (retry)' if s.get('retry') else ''}: "
+            + (f"skipped, {s['skipped']}" if "skipped" in s else
+               f"no answer ({s.get('error')})" if s.get("unavailable") else str(s.get("decision")))
+            for s in judge.get("steps") or [])
+        drill = f"drill {row['drill']}; " if row.get("drill") else ""
+        line += (f"\n::notice title=Demo run {row['run']} judge::{drill}judged by {judge.get('judgedBy')}; "
+                 f"stopped {judge.get('stopped')}; {' '.join(steps.split())[:700]}")
+    if row.get("drill"):  # its own line: agents.bench_collect refuses a run that carries one
+        line += f"\n::notice title=Demo run {row['run']} drill::{row['drill']}"
     if row.get("error"):
         line += f"\n::warning title=Demo run {row['run']} error::{' '.join(str(row['error']).split())[:300]}"
     return line
