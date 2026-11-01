@@ -3,7 +3,7 @@
 How much does Expectrail's tiered checker catch, which checks catch what, what does it miss, and what
 did the judging cost? Issue #127 sets the rules. Nobody on the team writes a bug or picks a case.
 
-**Status: registered. No case in the study has been judged.** `agents/mutation_bench.py` and the
+**Status: registered, and Parts 1 and 2 are recorded.** See [Results](#results). `agents/mutation_bench.py` and the
 **Mutation bench** workflow refuse to run until [`preregistration.json`](preregistration.json) has no
 empty field left, the code it pins has not moved, and the committed manifest is exactly what the
 generator writes. A judged run starts only from `main`, so nothing is judged before the file is merged.
@@ -21,6 +21,69 @@ is 47 pairs, not 48. The registration names them, and the manifest lists them.
 The pins cover the game, the development bugs, the operators, the specs, the verifier, the observers,
 the generator, the bench and its workflow. Changing any of them after registration refuses every run
 until the pins are set again, which is a change to the registration and has to be reported as one.
+
+## Results
+
+Registered in #164, commit [`a439e9b`](https://github.com/seanudeke/Expectrail/commit/a439e9b558f4cd5ebc742d97a5f4c349121d622b),
+before any case in the study was judged. Each record is written by `agents.mutation_collect` from its
+runs' own artifacts and is not edited by hand. Public checks only.
+
+| Part | Cases | Result | Spend | Runs | Record |
+| --- | --- | --- | --- | --- | --- |
+| 1, wrong fixes | 47 pairs: 39 labelled bad, 8 good | Score **79.5%**: 31 of 39 caught, 7 by the cheap tier, 24 only with SAM. All 8 good cases accepted | 5,473 SAM images, $13.68 | [41268021760](https://github.com/seanudeke/Expectrail/actions/runs/41268021760) | [`wrong-fix/`](wrong-fix/README.md), [notes](wrong-fix/NOTES.md) |
+| 2, generated bugs | 150 sampled: 73 equivalent, 77 judged | Weighted score **0.9%**, covering 100% of the estimated visible mutants of the sampled classes. Over the sample as drawn, a figure about the sample: 13.0%, 10 of 77 caught, 5 by the cheap tier, 5 only with SAM | 15,862 SAM images, $39.66 | [41268023631](https://github.com/seanudeke/Expectrail/actions/runs/41268023631), [41323827584](https://github.com/seanudeke/Expectrail/actions/runs/41323827584), [41323829361](https://github.com/seanudeke/Expectrail/actions/runs/41323829361) | [`generated/`](generated/README.md) |
+
+Part 3 has no row. It gets one only from a merged record in `ai-fixes/`; until then there is no
+result for it, and none of these numbers depends on it.
+
+Part 2 by class:
+
+| Class | Mutants in the game | Sampled | Equivalent | Judged | Caught | Score |
+| --- | --- | --- | --- | --- | --- | --- |
+| numeric | 2,642 | 70 | 25 | 45 | 0 | 0.0% |
+| resource-path | 65 | 30 | 15 | 15 | 3 | 20.0% |
+| code | 19 | 19 | 5 | 14 | 5 | 35.7% |
+| collision-bit | 65 | 30 | 27 | 3 | 2 | 66.7% |
+| boolean | 1 | 1 | 1 | 0 | 0 | none |
+
+What these numbers say:
+
+- **On wrong fixes, the checks catch what the operators really break.** Every `freeze`, `hide`, `sink`
+  and `behind-scenery` candidate was caught. The other 8 bad-labelled cases are `scale-to-zero`, which
+  changes nothing in the running game: the Player instance in `game_singleplayer.tscn` overrides the
+  scale. They stay in the score as registered, and [the notes](wrong-fix/NOTES.md) explain them.
+- **On generated bugs, most of what differs from the clean game goes unseen.** 67 of 77 judged mutants
+  survived. The numeric class sets the weighted score, because it holds nearly all the estimated
+  visible mutants, and it caught 0 of 45: 44 are in level scenes and 1 in the player scene. Under an oracle of
+  0 pixels and 0 frames, any change to what is drawn counts as a bad case, and no check forbids moving
+  scenery. Many of these may not be bugs a player would report, but the bench cannot say which.
+- **The other survivors are the more useful list.** 9 code, 12 resource-path and 1 collision-bit
+  mutants survived. Each has a finding that records what every check said, but no catch-spec: the
+  bench writes those per wrong-fix operator, so only Part 1 has them. Which check would catch each
+  generated survivor is still to be worked out. No check was added after seeing a result.
+- **Cheap checks and SAM catch different things.** Part 1 has 24 vision-only wins and Part 2 has 5.
+  Agreement is 0 of 12: SAM's own checks passed all 12 cheap rejections they were asked about (7 in
+  Part 1, 5 in Part 2). SAM did not contradict those catches, since it looks for different failures, but it cannot
+  stand in for the cheap tier, and this sample does not show the two tiers giving the same answer.
+- **The tier saved little on generated bugs.** Part 2 spent 14,273 images on the tiered judge against
+  15,305 for a full run, because 72 of 77 cases reached SAM.
+
+## Limits of these results
+
+- Part 1's operators were written by the team, and one of them, `scale-to-zero`, turned out to do nothing.
+- The generator's operator list defines what "a bug" means here. It reaches scenery far more often
+  than game logic, and stratifying the sample does not change that for the weighted score.
+- The oracle only knows "differs from the clean game", so this measures regressions, not new features.
+- Public checks only. The held-out arm is excluded from every decision here.
+- The verifier's author ran the bench. The registration is the safeguard.
+- Three cases were judged in rehearsals and excluded before the draw, so Part 1 is 47 pairs, not 48.
+- The registration's values, including the sample, the steps and the 0/0 oracle, were drafted by an AI
+  agent, adopted by Taofeek, and not reviewed by anyone else before the first run. #127 had reserved
+  those choices for a person. `decisionProvenance` in the registration records where each came from.
+- The agreement sample is 5 in Part 2, below the registered minimum of 20, because only 5 cheap
+  catches exist. All 5 were used.
+- The specs judge the first two seconds of one route, so anything a mutant breaks later or elsewhere
+  reads as a survivor or as equivalent.
 
 ## What a person decides before anything is judged
 
