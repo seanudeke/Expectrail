@@ -1,0 +1,1391 @@
+{
+  "format": "expectrail.mutation-manifest/v0",
+  "gameTree": "6a273587d64e10a74c0160256cfdc4964f16ed3e93fe7ab178e1bedc5071b280",
+  "generatorSha256": "9d3877a88bbed73702a6c1a93a6b93749a1a9651277a66ec3dceabcbc84b604c",
+  "seed": 20261031,
+  "sampleSize": 150,
+  "sampling": {
+    "method": "stratified",
+    "perClass": {
+      "numeric": 70,
+      "boolean": 1,
+      "collision-bit": 30,
+      "code": 19,
+      "resource-path": 30
+    }
+  },
+  "excludedBeforeDraw": [
+    "code:player/player.gd:7:sign.WALK_SPEED",
+    "resource-path:player/player.tscn:3:missing"
+  ],
+  "enumerated": 2792,
+  "enumeratedByClass": {
+    "numeric": 2642,
+    "boolean": 1,
+    "collision-bit": 65,
+    "code": 19,
+    "resource-path": 65
+  },
+  "sampled": 150,
+  "sampledByClass": {
+    "numeric": 70,
+    "boolean": 1,
+    "collision-bit": 30,
+    "code": 19,
+    "resource-path": 30
+  },
+  "shortByClass": {},
+  "shortOfSample": 0,
+  "mutants": [
+    {
+      "id": "resource-path:enemy/enemy.tscn:3:missing",
+      "class": "resource-path",
+      "file": "enemy/enemy.tscn",
+      "line": 3,
+      "before": "[ext_resource type=\"Texture2D\" uid=\"uid://dh5f4544n38df\" path=\"res://player/bullet.webp\" id=\"1\"]",
+      "after": "[ext_resource type=\"Texture2D\" path=\"res://player/bullet.webp.missing\" id=\"1\"]",
+      "patchSha256": "b939962211a7fa8ff8cbc1ac284bf61327353194f1cc73782388a81314cc039f"
+    },
+    {
+      "id": "resource-path:enemy/enemy.tscn:7:missing",
+      "class": "resource-path",
+      "file": "enemy/enemy.tscn",
+      "line": 7,
+      "before": "[ext_resource type=\"Script\" uid=\"uid://uc4vp46ttpdt\" path=\"res://enemy/enemy.gd\" id=\"5\"]",
+      "after": "[ext_resource type=\"Script\" path=\"res://enemy/enemy.gd.missing\" id=\"5\"]",
+      "patchSha256": "034722fe14e4ffec495c8e9e9d79c018f9fc914fab8c27798953c76435251743"
+    },
+    {
+      "id": "collision-bit:enemy/enemy.tscn:252:collision_layer.1",
+      "class": "collision-bit",
+      "file": "enemy/enemy.tscn",
+      "line": 252,
+      "before": "collision_layer = 2",
+      "after": "collision_layer = 0",
+      "patchSha256": "1d65004194267b69109c5f0ceccbcc420d024efd3b8f596c83282db68f5603d5"
+    },
+    {
+      "id": "collision-bit:enemy/enemy.tscn:252:collision_layer.2",
+      "class": "collision-bit",
+      "file": "enemy/enemy.tscn",
+      "line": 252,
+      "before": "collision_layer = 2",
+      "after": "collision_layer = 6",
+      "patchSha256": "82ad9978c5b6fef29cb3781d9c76686b6426838bb326c05f4b178e9b8713ff95"
+    },
+    {
+      "id": "collision-bit:enemy/enemy.tscn:252:collision_layer.3",
+      "class": "collision-bit",
+      "file": "enemy/enemy.tscn",
+      "line": 252,
+      "before": "collision_layer = 2",
+      "after": "collision_layer = 10",
+      "patchSha256": "17d2b7f51a3c3f4b96fdae43a3d7e4b3ae7bf7d43983e6bc28c454a50e111a9e"
+    },
+    {
+      "id": "collision-bit:enemy/enemy.tscn:252:collision_layer.4",
+      "class": "collision-bit",
+      "file": "enemy/enemy.tscn",
+      "line": 252,
+      "before": "collision_layer = 2",
+      "after": "collision_layer = 18",
+      "patchSha256": "0501785ee8f398ac0789eb07dcc50d2f4c598a1b3b284e9e2a6ae264076a2613"
+    },
+    {
+      "id": "collision-bit:enemy/enemy.tscn:253:collision_mask.0",
+      "class": "collision-bit",
+      "file": "enemy/enemy.tscn",
+      "line": 253,
+      "before": "collision_mask = 24",
+      "after": "collision_mask = 25",
+      "patchSha256": "4d77e8122c759564af912906f8a9b7d9cdb51f23617b9299c53fac9264d9ce09"
+    },
+    {
+      "id": "collision-bit:enemy/enemy.tscn:253:collision_mask.1",
+      "class": "collision-bit",
+      "file": "enemy/enemy.tscn",
+      "line": 253,
+      "before": "collision_mask = 24",
+      "after": "collision_mask = 26",
+      "patchSha256": "589d88cc2e9c8be27903dd1f30d633c9c7636c5234f7827f3f0d17410da2f65e"
+    },
+    {
+      "id": "collision-bit:enemy/enemy.tscn:253:collision_mask.4",
+      "class": "collision-bit",
+      "file": "enemy/enemy.tscn",
+      "line": 253,
+      "before": "collision_mask = 24",
+      "after": "collision_mask = 8",
+      "patchSha256": "54b66e914f6386576340809c2cea0fc91fec5478466433f3d0d4632135ea0442"
+    },
+    {
+      "id": "collision-bit:enemy/enemy.tscn:259:collision_mask.1",
+      "class": "collision-bit",
+      "file": "enemy/enemy.tscn",
+      "line": 259,
+      "before": "collision_mask = 8",
+      "after": "collision_mask = 10",
+      "patchSha256": "f2b4040442fa2f6521f65457320c087e882abd8b22e5d913b0bdeb784b0e5768"
+    },
+    {
+      "id": "collision-bit:enemy/enemy.tscn:259:collision_mask.2",
+      "class": "collision-bit",
+      "file": "enemy/enemy.tscn",
+      "line": 259,
+      "before": "collision_mask = 8",
+      "after": "collision_mask = 12",
+      "patchSha256": "71b550ba23dda7fa8423d6c0310555df4c3653b3a2ff32bc16d2612b44cf429f"
+    },
+    {
+      "id": "collision-bit:enemy/enemy.tscn:264:collision_mask.2",
+      "class": "collision-bit",
+      "file": "enemy/enemy.tscn",
+      "line": 264,
+      "before": "collision_mask = 24",
+      "after": "collision_mask = 28",
+      "patchSha256": "b15207f67a098b3298c643e703aacc2e3cbbbfbe3c1022977979add627b920dd"
+    },
+    {
+      "id": "collision-bit:enemy/enemy.tscn:264:collision_mask.3",
+      "class": "collision-bit",
+      "file": "enemy/enemy.tscn",
+      "line": 264,
+      "before": "collision_mask = 24",
+      "after": "collision_mask = 16",
+      "patchSha256": "75e14b99454203320751df2d4afa197f0002c5cc1015bd0c980ea0c6f727fb33"
+    },
+    {
+      "id": "collision-bit:enemy/enemy.tscn:269:collision_mask.0",
+      "class": "collision-bit",
+      "file": "enemy/enemy.tscn",
+      "line": 269,
+      "before": "collision_mask = 24",
+      "after": "collision_mask = 25",
+      "patchSha256": "7e7cac9088de2e471fe80cb4d3f64ea998267aff42161a08c6742dd02cfb0614"
+    },
+    {
+      "id": "collision-bit:enemy/enemy.tscn:269:collision_mask.2",
+      "class": "collision-bit",
+      "file": "enemy/enemy.tscn",
+      "line": 269,
+      "before": "collision_mask = 24",
+      "after": "collision_mask = 28",
+      "patchSha256": "a081fdfc7b4eabb67315b1e5d686a27654c2f0db0901504e257ba4ea6d1c1a8e"
+    },
+    {
+      "id": "resource-path:game_singleplayer.tscn:3:missing",
+      "class": "resource-path",
+      "file": "game_singleplayer.tscn",
+      "line": 3,
+      "before": "[ext_resource type=\"Script\" uid=\"uid://dwvlcsxdrm03l\" path=\"res://game.gd\" id=\"2\"]",
+      "after": "[ext_resource type=\"Script\" path=\"res://game.gd.missing\" id=\"2\"]",
+      "patchSha256": "bd6b837215353cdf30c6caa3bdca31e72582b21a307fcde787920fc59a0bca71"
+    },
+    {
+      "id": "resource-path:game_singleplayer.tscn:6:missing",
+      "class": "resource-path",
+      "file": "game_singleplayer.tscn",
+      "line": 6,
+      "before": "[ext_resource type=\"PackedScene\" uid=\"uid://nhpj5cy87771\" path=\"res://gui/pause_menu_singleplayer.tscn\" id=\"4_x6l06\"]",
+      "after": "[ext_resource type=\"PackedScene\" path=\"res://gui/pause_menu_singleplayer.tscn.missing\" id=\"4_x6l06\"]",
+      "patchSha256": "f3eaa0ad5cf0d0a7d18b5c79ef3457911148751a662ccc07384ebc3e39a49d0f"
+    },
+    {
+      "id": "resource-path:game_splitscreen.tscn:4:missing",
+      "class": "resource-path",
+      "file": "game_splitscreen.tscn",
+      "line": 4,
+      "before": "[ext_resource type=\"PackedScene\" uid=\"uid://bw4o5bonstovl\" path=\"res://gui/pause_menu_splitscreen.tscn\" id=\"2_xkexm\"]",
+      "after": "[ext_resource type=\"PackedScene\" path=\"res://gui/pause_menu_splitscreen.tscn.missing\" id=\"2_xkexm\"]",
+      "patchSha256": "ee4a38ca1eaa6400a69b520ad8fed12cb2a11ecbe20ae003b3f046811ef1e9b9"
+    },
+    {
+      "id": "resource-path:game_splitscreen.tscn:7:missing",
+      "class": "resource-path",
+      "file": "game_splitscreen.tscn",
+      "line": 7,
+      "before": "[ext_resource type=\"PackedScene\" uid=\"uid://bbl6yrj1g5jgi\" path=\"res://level/background/parallax_background.tscn\" id=\"5_47vt4\"]",
+      "after": "[ext_resource type=\"PackedScene\" path=\"res://level/background/parallax_background.tscn.missing\" id=\"5_47vt4\"]",
+      "patchSha256": "f597135b3591195a11baca460ae43e2cca48faea5cd7f1c9c78496ddd17a38bb"
+    },
+    {
+      "id": "resource-path:gui/coins_counter.tscn:4:missing",
+      "class": "resource-path",
+      "file": "gui/coins_counter.tscn",
+      "line": 4,
+      "before": "[ext_resource type=\"Texture2D\" uid=\"uid://gwsn8ufh1n7i\" path=\"res://level/coin.webp\" id=\"2\"]",
+      "after": "[ext_resource type=\"Texture2D\" path=\"res://level/coin.webp.missing\" id=\"2\"]",
+      "patchSha256": "1f3f5f01ea1693a41a0b980c75778cae8c4f268953139d8f16ef110b4f1a5897"
+    },
+    {
+      "id": "resource-path:gui/coins_counter.tscn:5:missing",
+      "class": "resource-path",
+      "file": "gui/coins_counter.tscn",
+      "line": 5,
+      "before": "[ext_resource type=\"Script\" uid=\"uid://d3y5krwthkfry\" path=\"res://gui/coins_counter.gd\" id=\"3\"]",
+      "after": "[ext_resource type=\"Script\" path=\"res://gui/coins_counter.gd.missing\" id=\"3\"]",
+      "patchSha256": "697a96c9c2a82d598268e516a2c2aff25b69ac4d0c23e18d6d3d6b33cf517dd7"
+    },
+    {
+      "id": "resource-path:gui/pause_menu.tscn:3:missing",
+      "class": "resource-path",
+      "file": "gui/pause_menu.tscn",
+      "line": 3,
+      "before": "[ext_resource type=\"Theme\" uid=\"uid://bc4kpaija14nv\" path=\"res://gui/theme.tres\" id=\"1\"]",
+      "after": "[ext_resource type=\"Theme\" path=\"res://gui/theme.tres.missing\" id=\"1\"]",
+      "patchSha256": "a9594d9b23a11ce98238981c2fd9b611311c389aede1ad075fe2e251214f4463"
+    },
+    {
+      "id": "resource-path:gui/pause_menu.tscn:4:missing",
+      "class": "resource-path",
+      "file": "gui/pause_menu.tscn",
+      "line": 4,
+      "before": "[ext_resource type=\"Script\" uid=\"uid://hiv0htsf7jd7\" path=\"res://gui/pause_menu.gd\" id=\"2\"]",
+      "after": "[ext_resource type=\"Script\" path=\"res://gui/pause_menu.gd.missing\" id=\"2\"]",
+      "patchSha256": "744f42791f432938e6bff885ebc4e290a4304792a90a0e32032e0570186c594b"
+    },
+    {
+      "id": "resource-path:gui/pause_menu.tscn:5:missing",
+      "class": "resource-path",
+      "file": "gui/pause_menu.tscn",
+      "line": 5,
+      "before": "[ext_resource type=\"PackedScene\" uid=\"uid://cbxfkqpq2rynb\" path=\"res://gui/coins_counter.tscn\" id=\"4\"]",
+      "after": "[ext_resource type=\"PackedScene\" path=\"res://gui/coins_counter.tscn.missing\" id=\"4\"]",
+      "patchSha256": "923418ebb680651d528bb0e751f621def224532d28bbcfbfacaf68cde07b5004"
+    },
+    {
+      "id": "resource-path:gui/pause_menu_singleplayer.tscn:3:missing",
+      "class": "resource-path",
+      "file": "gui/pause_menu_singleplayer.tscn",
+      "line": 3,
+      "before": "[ext_resource type=\"PackedScene\" uid=\"uid://mqs27wy1rtxk\" path=\"res://gui/pause_menu.tscn\" id=\"1_pwe1t\"]",
+      "after": "[ext_resource type=\"PackedScene\" path=\"res://gui/pause_menu.tscn.missing\" id=\"1_pwe1t\"]",
+      "patchSha256": "53df4da613668bdfd016d73f250e1a630d545c010643c97eb3af23f639c376f1"
+    },
+    {
+      "id": "resource-path:gui/pause_menu_splitscreen.tscn:3:missing",
+      "class": "resource-path",
+      "file": "gui/pause_menu_splitscreen.tscn",
+      "line": 3,
+      "before": "[ext_resource type=\"PackedScene\" uid=\"uid://mqs27wy1rtxk\" path=\"res://gui/pause_menu.tscn\" id=\"1_x3hgi\"]",
+      "after": "[ext_resource type=\"PackedScene\" path=\"res://gui/pause_menu.tscn.missing\" id=\"1_x3hgi\"]",
+      "patchSha256": "3f76ea519ad4646278605f274f346df81fb14cd3619ce401b1cd371fafa80175"
+    },
+    {
+      "id": "resource-path:level/background/parallax_background.tscn:4:missing",
+      "class": "resource-path",
+      "file": "level/background/parallax_background.tscn",
+      "line": 4,
+      "before": "[ext_resource type=\"Texture2D\" uid=\"uid://cul6jwp6esu4q\" path=\"res://level/background/sky.webp\" id=\"2\"]",
+      "after": "[ext_resource type=\"Texture2D\" path=\"res://level/background/sky.webp.missing\" id=\"2\"]",
+      "patchSha256": "e9c4edd135b481a32ba076e7f5d6dba93c1c638ebf1273b1dc0666c6c7d9f103"
+    },
+    {
+      "id": "resource-path:level/background/parallax_background.tscn:7:missing",
+      "class": "resource-path",
+      "file": "level/background/parallax_background.tscn",
+      "line": 7,
+      "before": "[ext_resource type=\"Texture2D\" uid=\"uid://2ipr5jfxc1ly\" path=\"res://level/background/distant_platforms_1.webp\" id=\"6\"]",
+      "after": "[ext_resource type=\"Texture2D\" path=\"res://level/background/distant_platforms_1.webp.missing\" id=\"6\"]",
+      "patchSha256": "47ba3c3bf049f2b020033e532f6ed2d6095dbf2f94beb529ab1a8f3d9acadf54"
+    },
+    {
+      "id": "numeric:level/background/parallax_background.tscn:23:position.x+",
+      "class": "numeric",
+      "file": "level/background/parallax_background.tscn",
+      "line": 23,
+      "before": "position = Vector2(-809, 0)",
+      "after": "position = Vector2(-783, 0)",
+      "patchSha256": "b12fe222c1dde5d5d5d9ef381cea1ac141f0ce62eec60afb821fd66c449004c2"
+    },
+    {
+      "id": "numeric:level/background/parallax_background.tscn:122:position.x-",
+      "class": "numeric",
+      "file": "level/background/parallax_background.tscn",
+      "line": 122,
+      "before": "position = Vector2(83, 115)",
+      "after": "position = Vector2(57, 115)",
+      "patchSha256": "12c835df6291ae8f511717f5fcca3617e4a26199dd98fffdc23253b6b7d505ac"
+    },
+    {
+      "id": "resource-path:level/coin.tscn:3:missing",
+      "class": "resource-path",
+      "file": "level/coin.tscn",
+      "line": 3,
+      "before": "[ext_resource type=\"Texture2D\" uid=\"uid://gwsn8ufh1n7i\" path=\"res://level/coin.webp\" id=\"1\"]",
+      "after": "[ext_resource type=\"Texture2D\" path=\"res://level/coin.webp.missing\" id=\"1\"]",
+      "patchSha256": "f0531a5e20d239cb7b66a84e7cc90901199bf7b9458edae918c05fb95041b1a2"
+    },
+    {
+      "id": "resource-path:level/coin.tscn:5:missing",
+      "class": "resource-path",
+      "file": "level/coin.tscn",
+      "line": 5,
+      "before": "[ext_resource type=\"Script\" uid=\"uid://bvwo136kojllt\" path=\"res://level/coin.gd\" id=\"4\"]",
+      "after": "[ext_resource type=\"Script\" path=\"res://level/coin.gd.missing\" id=\"4\"]",
+      "patchSha256": "4843ccdfd075268422ecc199cc6737de5f2d94a504b740188aa6fc539b88c239"
+    },
+    {
+      "id": "collision-bit:level/coin.tscn:168:collision_layer.3",
+      "class": "collision-bit",
+      "file": "level/coin.tscn",
+      "line": 168,
+      "before": "collision_layer = 0",
+      "after": "collision_layer = 8",
+      "patchSha256": "8f9d303427ca401d656e19ca739824ec8e94aabbc870745e1d1a838e1ebfa60e"
+    },
+    {
+      "id": "resource-path:level/level.tscn:4:missing",
+      "class": "resource-path",
+      "file": "level/level.tscn",
+      "line": 4,
+      "before": "[ext_resource type=\"PackedScene\" uid=\"uid://bc4a8j7okb15h\" path=\"res://enemy/enemy.tscn\" id=\"2\"]",
+      "after": "[ext_resource type=\"PackedScene\" path=\"res://enemy/enemy.tscn.missing\" id=\"2\"]",
+      "patchSha256": "3163a28df427c0023deaa07e757d791ac187e0bf0252638a2b4800255c667bbe"
+    },
+    {
+      "id": "resource-path:level/level.tscn:12:missing",
+      "class": "resource-path",
+      "file": "level/level.tscn",
+      "line": 12,
+      "before": "[ext_resource type=\"Texture2D\" uid=\"uid://dy3uudfom62c2\" path=\"res://level/props/grass_3.webp\" id=\"13\"]",
+      "after": "[ext_resource type=\"Texture2D\" path=\"res://level/props/grass_3.webp.missing\" id=\"13\"]",
+      "patchSha256": "76325e5c7ec6f812ba6d1d18cdc15f195c908a052fe6ef4e883eea65f5c71997"
+    },
+    {
+      "id": "resource-path:level/level.tscn:13:missing",
+      "class": "resource-path",
+      "file": "level/level.tscn",
+      "line": 13,
+      "before": "[ext_resource type=\"Texture2D\" uid=\"uid://b42o8ira0fycj\" path=\"res://level/props/tree_1.webp\" id=\"14\"]",
+      "after": "[ext_resource type=\"Texture2D\" path=\"res://level/props/tree_1.webp.missing\" id=\"14\"]",
+      "patchSha256": "ccc00226324f048ece1991eb9c2dc39668de146cc22597d474c06cd0dc417a78"
+    },
+    {
+      "id": "resource-path:level/level.tscn:15:missing",
+      "class": "resource-path",
+      "file": "level/level.tscn",
+      "line": 15,
+      "before": "[ext_resource type=\"Texture2D\" uid=\"uid://dw42tvkw71q6c\" path=\"res://level/props/bush_1.webp\" id=\"16\"]",
+      "after": "[ext_resource type=\"Texture2D\" path=\"res://level/props/bush_1.webp.missing\" id=\"16\"]",
+      "patchSha256": "365a74d792a44f9b66feac33ac02b719b8a75ba226575c29fa4413aedac6c2bf"
+    },
+    {
+      "id": "resource-path:level/level.tscn:18:missing",
+      "class": "resource-path",
+      "file": "level/level.tscn",
+      "line": 18,
+      "before": "[ext_resource type=\"Texture2D\" uid=\"uid://b2xxrpuq37hvc\" path=\"res://level/props/fern_1.webp\" id=\"19\"]",
+      "after": "[ext_resource type=\"Texture2D\" path=\"res://level/props/fern_1.webp.missing\" id=\"19\"]",
+      "patchSha256": "716af914a9d9dd1d6d9f46d2f0ee4e61889433acf925dbbc45e7247b52c8cf83"
+    },
+    {
+      "id": "resource-path:level/level.tscn:20:missing",
+      "class": "resource-path",
+      "file": "level/level.tscn",
+      "line": 20,
+      "before": "[ext_resource type=\"Texture2D\" uid=\"uid://juv5i2dnrlbl\" path=\"res://level/props/vine_1.webp\" id=\"21\"]",
+      "after": "[ext_resource type=\"Texture2D\" path=\"res://level/props/vine_1.webp.missing\" id=\"21\"]",
+      "patchSha256": "789b4c4fafcc8605811623f86915e366a946884a5fbaace6dee2db66b4b9522d"
+    },
+    {
+      "id": "numeric:level/level.tscn:102:scale.x+",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 102,
+      "before": "scale = Vector2(0.8, 0.8)",
+      "after": "scale = Vector2(1.3, 0.8)",
+      "patchSha256": "960f862de4c4fb7eb17bbf6403843a64c9db91cad9f247fd7099a53af0a6c848"
+    },
+    {
+      "id": "numeric:level/level.tscn:225:z_index-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 225,
+      "before": "z_index = -1",
+      "after": "z_index = -2",
+      "patchSha256": "c681f1ab911a6b4488d1c22bbf5d1dfddc552a87be4ef2678ee5c154ff4c3dfb"
+    },
+    {
+      "id": "numeric:level/level.tscn:228:scale.y+",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 228,
+      "before": "scale = Vector2(0.8, 0.8)",
+      "after": "scale = Vector2(0.8, 1.3)",
+      "patchSha256": "c74bcbf646824942d4c0591157a129a0ac468034be367b76d88c548f4ff00e32"
+    },
+    {
+      "id": "numeric:level/level.tscn:248:position.x-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 248,
+      "before": "position = Vector2(-108, 640)",
+      "after": "position = Vector2(-134, 640)",
+      "patchSha256": "13c5c1a7ca5180a6bf7ea9eeb7939014291d2cf3bd44433bbccde265393e4bdc"
+    },
+    {
+      "id": "numeric:level/level.tscn:263:scale.y-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 263,
+      "before": "scale = Vector2(0.8, 0.8)",
+      "after": "scale = Vector2(0.8, 0.3)",
+      "patchSha256": "dd7d02a7540de824dc727d0d1a0b6cade8f7dc5508d83446fc185f0f25fb4b3a"
+    },
+    {
+      "id": "numeric:level/level.tscn:298:scale.x-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 298,
+      "before": "scale = Vector2(0.8, 0.8)",
+      "after": "scale = Vector2(0.3, 0.8)",
+      "patchSha256": "e353cb4591dfd733f607f2ec6d105b4eaa223387c6e227b9bf282e9bc3028df1"
+    },
+    {
+      "id": "numeric:level/level.tscn:304:position.x-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 304,
+      "before": "position = Vector2(386, 639)",
+      "after": "position = Vector2(360, 639)",
+      "patchSha256": "7bb2c862b5aa528a895f59e7da38a0dccaee4c07be933dacd53db55d5fd0e577"
+    },
+    {
+      "id": "numeric:level/level.tscn:339:position.y+",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 339,
+      "before": "position = Vector2(563, 82)",
+      "after": "position = Vector2(563, 108)",
+      "patchSha256": "b22b223465f0d1fc5d127d3751d95122e6192901649a2b970d73597eb866dc84"
+    },
+    {
+      "id": "numeric:level/level.tscn:354:scale.y+",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 354,
+      "before": "scale = Vector2(0.8, 0.8)",
+      "after": "scale = Vector2(0.8, 1.3)",
+      "patchSha256": "9e65ec862f659c03e4bda8568ce4763aaf027d565102c2623580142bfd9bc4da"
+    },
+    {
+      "id": "numeric:level/level.tscn:365:z_index+",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 365,
+      "before": "z_index = -1",
+      "after": "z_index = 0",
+      "patchSha256": "8d84621ab501a8098cbd393218dd6f9ecac9080bc02695ed6b4cc39023a7e4d4"
+    },
+    {
+      "id": "numeric:level/level.tscn:379:position.y+",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 379,
+      "before": "position = Vector2(-447, -10)",
+      "after": "position = Vector2(-447, 16)",
+      "patchSha256": "aab9ded4302270b1f9d5b541a39a9e3a86df179d9a001b79eb4cef54aad338bc"
+    },
+    {
+      "id": "numeric:level/level.tscn:379:position.y-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 379,
+      "before": "position = Vector2(-447, -10)",
+      "after": "position = Vector2(-447, -36)",
+      "patchSha256": "c6ab30715b5ab54557ad19d87e676f58fae4cbb053b07093beb5f4e32c117418"
+    },
+    {
+      "id": "numeric:level/level.tscn:433:position.x+",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 433,
+      "before": "position = Vector2(973, -10)",
+      "after": "position = Vector2(999, -10)",
+      "patchSha256": "e004299a00b6226b5f4217223ff19c0dd7ef26c0cd4bed813ffea98d451bb028"
+    },
+    {
+      "id": "numeric:level/level.tscn:486:position.y-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 486,
+      "before": "position = Vector2(563.8, 189.8)",
+      "after": "position = Vector2(563.8, 163.8)",
+      "patchSha256": "6f4af716fdeea9ff2f35c3fc562aa465ef4778a074a0f8a1c3eabe20fb1c37ac"
+    },
+    {
+      "id": "numeric:level/level.tscn:515:scale.x-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 515,
+      "before": "scale = Vector2(0.8, 0.8)",
+      "after": "scale = Vector2(0.3, 0.8)",
+      "patchSha256": "4e5d5f37be9905e1781b5bf3ffc138c68d09ca2cf6ac405577dd177d1e3b5dc8"
+    },
+    {
+      "id": "numeric:level/level.tscn:536:scale.y+",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 536,
+      "before": "scale = Vector2(0.8, 0.8)",
+      "after": "scale = Vector2(0.8, 1.3)",
+      "patchSha256": "71c2a7203d75a31a3a14e285b44c662d030969486d713127a0ea0b2eb4938d93"
+    },
+    {
+      "id": "numeric:level/level.tscn:550:scale.y-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 550,
+      "before": "scale = Vector2(0.8, 0.8)",
+      "after": "scale = Vector2(0.8, 0.3)",
+      "patchSha256": "b1d43c668f826a1f5d064b478679fd3c518078c67e10666a54f087c6123a666a"
+    },
+    {
+      "id": "numeric:level/level.tscn:613:scale.y+",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 613,
+      "before": "scale = Vector2(0.8, 0.8)",
+      "after": "scale = Vector2(0.8, 1.3)",
+      "patchSha256": "4af932b4646b3314c31c6f29458248a9f217376bb1b4cb434497371ad2407214"
+    },
+    {
+      "id": "numeric:level/level.tscn:640:position.x-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 640,
+      "before": "position = Vector2(262, 637)",
+      "after": "position = Vector2(236, 637)",
+      "patchSha256": "12c058751bad7ae6881a4776feb0c26374b9ac9c901e98d856bbdb132f874bfd"
+    },
+    {
+      "id": "numeric:level/level.tscn:641:scale.y+",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 641,
+      "before": "scale = Vector2(0.8, 0.8)",
+      "after": "scale = Vector2(0.8, 1.3)",
+      "patchSha256": "91197b33ef70d29e6ad59feb232d3c900102557ae317d550478b22472e13461d"
+    },
+    {
+      "id": "numeric:level/level.tscn:647:position.x-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 647,
+      "before": "position = Vector2(416, 382)",
+      "after": "position = Vector2(390, 382)",
+      "patchSha256": "a917fc8c31fd7c56ecbacf9d3182d0f7db57b30d6b16d2e56200989a03c93264"
+    },
+    {
+      "id": "numeric:level/level.tscn:648:scale.x-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 648,
+      "before": "scale = Vector2(0.8, 0.8)",
+      "after": "scale = Vector2(0.3, 0.8)",
+      "patchSha256": "b307b589775f1ba89e328aef791c6df48d434a6e3a848561842ab622f016a680"
+    },
+    {
+      "id": "numeric:level/level.tscn:654:position.x+",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 654,
+      "before": "position = Vector2(303, 505)",
+      "after": "position = Vector2(329, 505)",
+      "patchSha256": "8a070c8264e81ab10a2633babcf1e465999d45012245e79dbde53e04aa807392"
+    },
+    {
+      "id": "numeric:level/level.tscn:661:position.y+",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 661,
+      "before": "position = Vector2(212, 497)",
+      "after": "position = Vector2(212, 523)",
+      "patchSha256": "242e3890488dd1e2d5a99f4cddca23e0bde5ed41452cff2738e73b7e84117d8b"
+    },
+    {
+      "id": "numeric:level/level.tscn:662:scale.x-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 662,
+      "before": "scale = Vector2(1, -1)",
+      "after": "scale = Vector2(0.5, -1)",
+      "patchSha256": "4b7c3a0106532f59205c99769433d35e9019a8b9ad8126b5149f5ddf1d217e01"
+    },
+    {
+      "id": "numeric:level/level.tscn:669:scale.y-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 669,
+      "before": "scale = Vector2(1, -1)",
+      "after": "scale = Vector2(1, -1.5)",
+      "patchSha256": "266f2e1c2f1573dc8f493aca51d734410b841564fba84257bad92a5d47f60ec4"
+    },
+    {
+      "id": "numeric:level/level.tscn:683:scale.y-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 683,
+      "before": "scale = Vector2(1, -1)",
+      "after": "scale = Vector2(1, -1.5)",
+      "patchSha256": "6c403fe7d16c81c37986c488b8e8d00106d375d98f4ae54609046a26985dbc91"
+    },
+    {
+      "id": "numeric:level/level.tscn:696:position.y-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 696,
+      "before": "position = Vector2(445, 686)",
+      "after": "position = Vector2(445, 660)",
+      "patchSha256": "b49503536ea7b81d6725500d0acf1592764e495d8c67f849d0a84540bbf4772c"
+    },
+    {
+      "id": "numeric:level/level.tscn:774:scale.y-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 774,
+      "before": "scale = Vector2(1, -1)",
+      "after": "scale = Vector2(1, -1.5)",
+      "patchSha256": "788e260dc74ff2ac68d0b0ab1aa05646c12f23cecaa8e6b67abf8e8ad6c643bc"
+    },
+    {
+      "id": "numeric:level/level.tscn:823:scale.y+",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 823,
+      "before": "scale = Vector2(1, -1)",
+      "after": "scale = Vector2(1, -0.5)",
+      "patchSha256": "fb00f374d0b448cf4321de5e28e6601f1c608a2d4cfa35e0cad5ba4de1ea3445"
+    },
+    {
+      "id": "numeric:level/level.tscn:837:scale.y+",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 837,
+      "before": "scale = Vector2(1, -1)",
+      "after": "scale = Vector2(1, -0.5)",
+      "patchSha256": "00bd4373c9a21c8b391514975d0098b8743e2d635a9a3f5aaf1c2ffb4b9d5713"
+    },
+    {
+      "id": "numeric:level/level.tscn:865:scale.x+",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 865,
+      "before": "scale = Vector2(1, -1)",
+      "after": "scale = Vector2(1.5, -1)",
+      "patchSha256": "d76e3b8b32a2cf38c131255aa23aa232fadff64eaa1e8244d5e581a9888ead84"
+    },
+    {
+      "id": "numeric:level/level.tscn:865:scale.y+",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 865,
+      "before": "scale = Vector2(1, -1)",
+      "after": "scale = Vector2(1, -0.5)",
+      "patchSha256": "d370b2235121a442a639ae1324cd43d8cd6f83a736df101193ad27a1484685fb"
+    },
+    {
+      "id": "numeric:level/level.tscn:872:scale.y-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 872,
+      "before": "scale = Vector2(1, -1)",
+      "after": "scale = Vector2(1, -1.5)",
+      "patchSha256": "e03cae57177dd3530b7c447a97ca70e7e2d6bbd67e5d0d52a800e06a0719e69d"
+    },
+    {
+      "id": "numeric:level/level.tscn:893:scale.y+",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 893,
+      "before": "scale = Vector2(1, -1)",
+      "after": "scale = Vector2(1, -0.5)",
+      "patchSha256": "240e1dc77af32e461b5ed779906678f1226d7db19043c82e5764d8cb2e50a19a"
+    },
+    {
+      "id": "numeric:level/level.tscn:914:scale.x-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 914,
+      "before": "scale = Vector2(1, -1)",
+      "after": "scale = Vector2(0.5, -1)",
+      "patchSha256": "2c1dc8405e148df4e0e9e9882a441cd862992ebd7ee37ac35039685df74a15e2"
+    },
+    {
+      "id": "numeric:level/level.tscn:956:scale.y-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 956,
+      "before": "scale = Vector2(1, -1)",
+      "after": "scale = Vector2(1, -1.5)",
+      "patchSha256": "863310402176a075e78c028de8fe0a7df154fe2fb45ac93bfb893c06e4b501d6"
+    },
+    {
+      "id": "numeric:level/level.tscn:962:position.x-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 962,
+      "before": "position = Vector2(489, 537)",
+      "after": "position = Vector2(463, 537)",
+      "patchSha256": "a7f12f8021789ab9800155039f90f180323d2025c2c54dd36064afa40480aab3"
+    },
+    {
+      "id": "numeric:level/level.tscn:963:scale.y+",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 963,
+      "before": "scale = Vector2(1, -1)",
+      "after": "scale = Vector2(1, -0.5)",
+      "patchSha256": "418b803703d4b4af34a4dfd07e19e60d45fef9506e64aad24c1cc69e42709977"
+    },
+    {
+      "id": "numeric:level/level.tscn:991:scale.x-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 991,
+      "before": "scale = Vector2(1, -1)",
+      "after": "scale = Vector2(0.5, -1)",
+      "patchSha256": "b9dcc0fcb56edfd7c2ed568205c2d4af2d7c6cf1e79fb13e326eae0702e5b573"
+    },
+    {
+      "id": "numeric:level/level.tscn:997:position.x+",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 997,
+      "before": "position = Vector2(217, 319)",
+      "after": "position = Vector2(243, 319)",
+      "patchSha256": "5fa79d513d756b6d80589e0b18365f2669268bfa8d89ab5b1c9d2df9a047b2d1"
+    },
+    {
+      "id": "numeric:level/level.tscn:998:scale.y-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 998,
+      "before": "scale = Vector2(0.8, 0.8)",
+      "after": "scale = Vector2(0.8, 0.3)",
+      "patchSha256": "40544ca4fbe5f84c459ba5e338b8bb0eabc77deb77507f76c9ec20ba6f91b3ed"
+    },
+    {
+      "id": "numeric:level/level.tscn:1026:scale.y-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 1026,
+      "before": "scale = Vector2(0.8, 0.8)",
+      "after": "scale = Vector2(0.8, 0.3)",
+      "patchSha256": "8dbadc519885274db3ce393276e47f3a4901caeb708a2b2d9707a5df3ed50537"
+    },
+    {
+      "id": "numeric:level/level.tscn:1033:scale.x-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 1033,
+      "before": "scale = Vector2(0.8, 0.8)",
+      "after": "scale = Vector2(0.3, 0.8)",
+      "patchSha256": "4a05ee6733e6650051e4f5b0cd25f54afa3a464b664fa4ad9ef19d1dc6a75ee3"
+    },
+    {
+      "id": "numeric:level/level.tscn:1088:z_index-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 1088,
+      "before": "z_index = -1",
+      "after": "z_index = -2",
+      "patchSha256": "4fa6fda05625cba4a6c3387010135b88fb6f9cbec6c710f845350475936102fe"
+    },
+    {
+      "id": "numeric:level/level.tscn:1110:scale.x-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 1110,
+      "before": "scale = Vector2(0.8, 0.8)",
+      "after": "scale = Vector2(0.3, 0.8)",
+      "patchSha256": "6aa262027767f2c073869cdd480cfbdd608acfee9c085928ff0f31f0e3d202b0"
+    },
+    {
+      "id": "numeric:level/level.tscn:1157:position.x+",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 1157,
+      "before": "position = Vector2(727, 653)",
+      "after": "position = Vector2(753, 653)",
+      "patchSha256": "5a321ab79073361ed7e40de7900b82874184371ee392721d5408a26e0f5403c5"
+    },
+    {
+      "id": "numeric:level/level.tscn:1192:scale.x+",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 1192,
+      "before": "scale = Vector2(0.8, 0.8)",
+      "after": "scale = Vector2(1.3, 0.8)",
+      "patchSha256": "902862e43ecc0ba3fdb0601043056d87e3d18f109321bdf72759828f92e5d108"
+    },
+    {
+      "id": "numeric:level/level.tscn:1196:z_index-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 1196,
+      "before": "z_index = -1",
+      "after": "z_index = -2",
+      "patchSha256": "7375598616d0f31f94ca1254df3538ff3c8c877fd1ac5572f8d917297a345cd7"
+    },
+    {
+      "id": "numeric:level/level.tscn:1220:position.x-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 1220,
+      "before": "position = Vector2(60, 0)",
+      "after": "position = Vector2(34, 0)",
+      "patchSha256": "912bc224392244d88fb4e1e523789f674210080c6a07180a95ac530da02dabe0"
+    },
+    {
+      "id": "numeric:level/level.tscn:1228:position.x-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 1228,
+      "before": "position = Vector2(30, 0)",
+      "after": "position = Vector2(4, 0)",
+      "patchSha256": "52ec80b14be77e15c1416aa4f3ed9093e6e5579dfdae8301a71d1ffb06e5caed"
+    },
+    {
+      "id": "numeric:level/level.tscn:1242:position.x-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 1242,
+      "before": "position = Vector2(60, 0)",
+      "after": "position = Vector2(34, 0)",
+      "patchSha256": "2f6e844b8260bcaca001ffd25024859873c9bbbbde7bfec974f8ed5742cbe2da"
+    },
+    {
+      "id": "collision-bit:level/level.tscn:1311:collision_layer.0",
+      "class": "collision-bit",
+      "file": "level/level.tscn",
+      "line": 1311,
+      "before": "collision_layer = 16",
+      "after": "collision_layer = 17",
+      "patchSha256": "ad2f3eab8ef1238a2463466a61c950085e75964107daeb9ba4ec109bb1759116"
+    },
+    {
+      "id": "collision-bit:level/level.tscn:1311:collision_layer.1",
+      "class": "collision-bit",
+      "file": "level/level.tscn",
+      "line": 1311,
+      "before": "collision_layer = 16",
+      "after": "collision_layer = 18",
+      "patchSha256": "f082a546c7ab43e50c4714560f67656f8827f57946af0e10dc065a8f3a6c902e"
+    },
+    {
+      "id": "collision-bit:level/level.tscn:1311:collision_layer.2",
+      "class": "collision-bit",
+      "file": "level/level.tscn",
+      "line": 1311,
+      "before": "collision_layer = 16",
+      "after": "collision_layer = 20",
+      "patchSha256": "814231d824f508f8947f4725c78b0127be6558e587f7d9c01b67e190b9fe917d"
+    },
+    {
+      "id": "collision-bit:level/level.tscn:1312:collision_mask.0",
+      "class": "collision-bit",
+      "file": "level/level.tscn",
+      "line": 1312,
+      "before": "collision_mask = 0",
+      "after": "collision_mask = 1",
+      "patchSha256": "7d191d15b45d39d83254aa2248684b26cbc202562d2653aa2020e76e2fd0e95c"
+    },
+    {
+      "id": "collision-bit:level/level.tscn:1312:collision_mask.1",
+      "class": "collision-bit",
+      "file": "level/level.tscn",
+      "line": 1312,
+      "before": "collision_mask = 0",
+      "after": "collision_mask = 2",
+      "patchSha256": "9d4facae87ef4b83f5b0e4cc64ea1989d7c42052ab72e5adb77fd24a3aa8bc21"
+    },
+    {
+      "id": "collision-bit:level/level.tscn:1312:collision_mask.3",
+      "class": "collision-bit",
+      "file": "level/level.tscn",
+      "line": 1312,
+      "before": "collision_mask = 0",
+      "after": "collision_mask = 8",
+      "patchSha256": "310379f0f26e2af0bc1fb9d79036acd8868adc4d69d4f3aec8dee22c53f1d440"
+    },
+    {
+      "id": "collision-bit:level/level.tscn:1312:collision_mask.4",
+      "class": "collision-bit",
+      "file": "level/level.tscn",
+      "line": 1312,
+      "before": "collision_mask = 0",
+      "after": "collision_mask = 16",
+      "patchSha256": "1d3d0dc941fd5748ef784c14ffdd2ab0c523052e594bf1d9acb2fc21a9496252"
+    },
+    {
+      "id": "numeric:level/level.tscn:1330:position.y+",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 1330,
+      "before": "position = Vector2(544, 355)",
+      "after": "position = Vector2(544, 381)",
+      "patchSha256": "6ffbc272352bb020c692d211bf16566a6a7b78dd80c4753b3e782a465a7ced3d"
+    },
+    {
+      "id": "numeric:level/level.tscn:1381:z_index-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 1381,
+      "before": "z_index = 1",
+      "after": "z_index = 0",
+      "patchSha256": "fe26c90e99cba9fc517e837abdac5622e6c5566f8b37298171128ac18ef6fdf1"
+    },
+    {
+      "id": "numeric:level/level.tscn:1389:position.y+",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 1389,
+      "before": "position = Vector2(1011, -50)",
+      "after": "position = Vector2(1011, -24)",
+      "patchSha256": "b878c29c55e3f6908046bbc3028fb583970f88914ee624f412395199846b390e"
+    },
+    {
+      "id": "numeric:level/level.tscn:1529:offset.y+",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 1529,
+      "before": "offset = Vector2(35.3364, -1.40192)",
+      "after": "offset = Vector2(35.3364, 24.59808)",
+      "patchSha256": "de0e293044ff6d861478a739916d0114dc935e4ac56532c7ce920a7bd7ae15a6"
+    },
+    {
+      "id": "numeric:level/level.tscn:1532:z_index-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 1532,
+      "before": "z_index = -2",
+      "after": "z_index = -3",
+      "patchSha256": "4f2780e2076c33b04712653d78431fe177d2fbcdfb8bd8ef556cc8e3f4bb86e6"
+    },
+    {
+      "id": "numeric:level/level.tscn:1536:scale.x-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 1536,
+      "before": "scale = Vector2(1, -1)",
+      "after": "scale = Vector2(0.5, -1)",
+      "patchSha256": "8fa64eb309943b5b7b197b00c0aa28f5466546d624ff5e759021b34a92c734e6"
+    },
+    {
+      "id": "numeric:level/level.tscn:1579:position.x+",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 1579,
+      "before": "position = Vector2(526, 637)",
+      "after": "position = Vector2(552, 637)",
+      "patchSha256": "59019aeda3de82de7f7eda79ca75c72c30d22412622a0ee8db93b2edcfcb63a8"
+    },
+    {
+      "id": "numeric:level/level.tscn:1633:z_index-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 1633,
+      "before": "z_index = -2",
+      "after": "z_index = -3",
+      "patchSha256": "d2a9bd5ee2d91e4a28c07fc0762b302db4e4ecf41197449e9b01d9245721b05b"
+    },
+    {
+      "id": "numeric:level/level.tscn:1699:z_index-",
+      "class": "numeric",
+      "file": "level/level.tscn",
+      "line": 1699,
+      "before": "z_index = -2",
+      "after": "z_index = -3",
+      "patchSha256": "77d5e08a08bc994d2bcc4097204a7995f06427b8f539428b07952a6b7e639956"
+    },
+    {
+      "id": "resource-path:level/platforms/platform.tscn:4:missing",
+      "class": "resource-path",
+      "file": "level/platforms/platform.tscn",
+      "line": 4,
+      "before": "[ext_resource type=\"Texture2D\" uid=\"uid://c684ydh6l18bp\" path=\"res://level/platforms/moving_platform.webp\" id=\"2\"]",
+      "after": "[ext_resource type=\"Texture2D\" path=\"res://level/platforms/moving_platform.webp.missing\" id=\"2\"]",
+      "patchSha256": "dc4eac692f6ac0b37373aba6fc1b981fb409352da1b757d94dac78111c30cc79"
+    },
+    {
+      "id": "resource-path:level/platforms/platform.tscn:5:missing",
+      "class": "resource-path",
+      "file": "level/platforms/platform.tscn",
+      "line": 5,
+      "before": "[ext_resource type=\"Texture2D\" uid=\"uid://cot0528c0dfd8\" path=\"res://level/props/grass_1.webp\" id=\"3\"]",
+      "after": "[ext_resource type=\"Texture2D\" path=\"res://level/props/grass_1.webp.missing\" id=\"3\"]",
+      "patchSha256": "638b08c48ac2c66c8e23ad6df0df1057d266b0b16a52357df239af410b7caf24"
+    },
+    {
+      "id": "resource-path:level/platforms/platform.tscn:7:missing",
+      "class": "resource-path",
+      "file": "level/platforms/platform.tscn",
+      "line": 7,
+      "before": "[ext_resource type=\"Texture2D\" uid=\"uid://dy3uudfom62c2\" path=\"res://level/props/grass_3.webp\" id=\"5\"]",
+      "after": "[ext_resource type=\"Texture2D\" path=\"res://level/props/grass_3.webp.missing\" id=\"5\"]",
+      "patchSha256": "3e661c7e5e41850a010a214bbef39c1ea97d659fc2346ef8491ddf357d7f9c73"
+    },
+    {
+      "id": "resource-path:level/platforms/platform.tscn:10:missing",
+      "class": "resource-path",
+      "file": "level/platforms/platform.tscn",
+      "line": 10,
+      "before": "[ext_resource type=\"Texture2D\" uid=\"uid://juv5i2dnrlbl\" path=\"res://level/props/vine_1.webp\" id=\"8\"]",
+      "after": "[ext_resource type=\"Texture2D\" path=\"res://level/props/vine_1.webp.missing\" id=\"8\"]",
+      "patchSha256": "eda97239321d007bad8d7c181708c77f0569751a727fa3aa69236a0281ac32cd"
+    },
+    {
+      "id": "collision-bit:level/platforms/platform.tscn:18:collision_layer.0",
+      "class": "collision-bit",
+      "file": "level/platforms/platform.tscn",
+      "line": 18,
+      "before": "collision_layer = 8",
+      "after": "collision_layer = 9",
+      "patchSha256": "cb58f3eab4a0e714d3e42950d335de55568e927c4e9ba60f52a8f3ff7b01a273"
+    },
+    {
+      "id": "collision-bit:level/platforms/platform.tscn:18:collision_layer.2",
+      "class": "collision-bit",
+      "file": "level/platforms/platform.tscn",
+      "line": 18,
+      "before": "collision_layer = 8",
+      "after": "collision_layer = 12",
+      "patchSha256": "b72056913053f7a7eceab14a24821127b334a63307332399e37b3049d572d1cb"
+    },
+    {
+      "id": "collision-bit:level/platforms/platform.tscn:18:collision_layer.3",
+      "class": "collision-bit",
+      "file": "level/platforms/platform.tscn",
+      "line": 18,
+      "before": "collision_layer = 8",
+      "after": "collision_layer = 0",
+      "patchSha256": "111212b7ddc2a5dfe7944db565a22fdacb097c627f1c400b48ff8df3fed030cf"
+    },
+    {
+      "id": "boolean:level/platforms/platform.tscn:26:one_way_collision",
+      "class": "boolean",
+      "file": "level/platforms/platform.tscn",
+      "line": 26,
+      "before": "one_way_collision = true",
+      "after": "one_way_collision = false",
+      "patchSha256": "297ba8b6505df486ce27bdcbbb0f47feb9bd470836b8d0c0a33bc283edf2fd61"
+    },
+    {
+      "id": "numeric:level/platforms/platform.tscn:46:scale.y-",
+      "class": "numeric",
+      "file": "level/platforms/platform.tscn",
+      "line": 46,
+      "before": "scale = Vector2(0.8, 0.8)",
+      "after": "scale = Vector2(0.8, 0.3)",
+      "patchSha256": "acf98bd713d6f75e3e7fd483f331a7c38d9b81360a5c55145c49ce21da85ed6a"
+    },
+    {
+      "id": "numeric:level/platforms/platform.tscn:66:position.y+",
+      "class": "numeric",
+      "file": "level/platforms/platform.tscn",
+      "line": 66,
+      "before": "position = Vector2(31, -36)",
+      "after": "position = Vector2(31, -10)",
+      "patchSha256": "565e1ed041e4919da28586f0f868d27e13a80b4b0c773aeda104958b6f5c0213"
+    },
+    {
+      "id": "numeric:level/platforms/platform.tscn:87:position.y+",
+      "class": "numeric",
+      "file": "level/platforms/platform.tscn",
+      "line": 87,
+      "before": "position = Vector2(65, -32)",
+      "after": "position = Vector2(65, -6)",
+      "patchSha256": "325b49ee594a19eb0d07bd947756b241ce1204b48f76905e5ab80a6853510617"
+    },
+    {
+      "id": "numeric:level/platforms/platform.tscn:95:scale.y+",
+      "class": "numeric",
+      "file": "level/platforms/platform.tscn",
+      "line": 95,
+      "before": "scale = Vector2(0.8, 0.8)",
+      "after": "scale = Vector2(0.8, 1.3)",
+      "patchSha256": "aac0ac78b4f2b877784e6f3f059ca71c3f1b614453be91240cbc88e4252386fe"
+    },
+    {
+      "id": "numeric:level/platforms/platform.tscn:118:scale.y-",
+      "class": "numeric",
+      "file": "level/platforms/platform.tscn",
+      "line": 118,
+      "before": "scale = Vector2(1, -1)",
+      "after": "scale = Vector2(1, -1.5)",
+      "patchSha256": "89c947daf5061052d281ddfb6588adedd887ac0afaf19f0bdec34ae0968b96a6"
+    },
+    {
+      "id": "resource-path:music.tscn:3:missing",
+      "class": "resource-path",
+      "file": "music.tscn",
+      "line": 3,
+      "before": "[ext_resource type=\"AudioStream\" uid=\"uid://byn2m20r6mxmi\" path=\"res://music.ogg\" id=\"1_8pjkj\"]",
+      "after": "[ext_resource type=\"AudioStream\" path=\"res://music.ogg.missing\" id=\"1_8pjkj\"]",
+      "patchSha256": "ab2f91c6aeb5dd85e8442e85a59018c9fdd2ce39fe9399b11356ae6b10445d5a"
+    },
+    {
+      "id": "resource-path:player/bullet.tscn:3:missing",
+      "class": "resource-path",
+      "file": "player/bullet.tscn",
+      "line": 3,
+      "before": "[ext_resource type=\"Texture2D\" uid=\"uid://dh5f4544n38df\" path=\"res://player/bullet.webp\" id=\"1\"]",
+      "after": "[ext_resource type=\"Texture2D\" path=\"res://player/bullet.webp.missing\" id=\"1\"]",
+      "patchSha256": "3a970c8ef88ac3ce2de8f24a00e3da9eaedaea8c18318c57e4673efc06cf5fca"
+    },
+    {
+      "id": "resource-path:player/bullet.tscn:4:missing",
+      "class": "resource-path",
+      "file": "player/bullet.tscn",
+      "line": 4,
+      "before": "[ext_resource type=\"Script\" uid=\"uid://jqrff54gx4kd\" path=\"res://player/bullet.gd\" id=\"2\"]",
+      "after": "[ext_resource type=\"Script\" path=\"res://player/bullet.gd.missing\" id=\"2\"]",
+      "patchSha256": "226e40109af3102b6e8a016b778c449ca6be26c1c6e7c0eaa26491a8dde86629"
+    },
+    {
+      "id": "collision-bit:player/bullet.tscn:95:collision_layer.2",
+      "class": "collision-bit",
+      "file": "player/bullet.tscn",
+      "line": 95,
+      "before": "collision_layer = 0",
+      "after": "collision_layer = 4",
+      "patchSha256": "e8a87d6412e97bedd73baaa882d58f1315b533bc57b98eba4d78c9497cf6a461"
+    },
+    {
+      "id": "collision-bit:player/bullet.tscn:95:collision_layer.4",
+      "class": "collision-bit",
+      "file": "player/bullet.tscn",
+      "line": 95,
+      "before": "collision_layer = 0",
+      "after": "collision_layer = 16",
+      "patchSha256": "f9d11e973c37286bc16bfa9ea6d3739f4bf31367a960f4f6075c4d8eb55b8ac9"
+    },
+    {
+      "id": "collision-bit:player/bullet.tscn:96:collision_mask.0",
+      "class": "collision-bit",
+      "file": "player/bullet.tscn",
+      "line": 96,
+      "before": "collision_mask = 26",
+      "after": "collision_mask = 27",
+      "patchSha256": "05ca69db09126ef6039d3586269a54f5af438c386946fc821f062a10f122e33d"
+    },
+    {
+      "id": "collision-bit:player/bullet.tscn:96:collision_mask.1",
+      "class": "collision-bit",
+      "file": "player/bullet.tscn",
+      "line": 96,
+      "before": "collision_mask = 26",
+      "after": "collision_mask = 24",
+      "patchSha256": "e599ba5887e7c9d4766f717a11faa6b5255e711f1df244a59870b21417ef50df"
+    },
+    {
+      "id": "collision-bit:player/player.tscn:190:collision_mask.0",
+      "class": "collision-bit",
+      "file": "player/player.tscn",
+      "line": 190,
+      "before": "collision_mask = 30",
+      "after": "collision_mask = 31",
+      "patchSha256": "ff2140c34710b5f5948d4651d672e2d0d9b4e3f28a4988955cacda76a0045b7b"
+    },
+    {
+      "id": "collision-bit:player/player.tscn:201:collision_mask.1",
+      "class": "collision-bit",
+      "file": "player/player.tscn",
+      "line": 201,
+      "before": "collision_mask = 8",
+      "after": "collision_mask = 10",
+      "patchSha256": "1f587d286a7a33ec6e5be42f752e25bf2cd8f58b782351fc077461951599321f"
+    },
+    {
+      "id": "numeric:player/player.tscn:204:position.x-",
+      "class": "numeric",
+      "file": "player/player.tscn",
+      "line": 204,
+      "before": "position = Vector2(0, -14)",
+      "after": "position = Vector2(-26, -14)",
+      "patchSha256": "3e06de9391e31dd4bbfb7d31b421cc6e4e3ac63eaa8321977a6e535cbebb1c0e"
+    },
+    {
+      "id": "numeric:player/player.tscn:215:position.y+",
+      "class": "numeric",
+      "file": "player/player.tscn",
+      "line": 215,
+      "before": "position = Vector2(-30.6589, -6.13176)",
+      "after": "position = Vector2(-30.6589, 19.86824)",
+      "patchSha256": "e94d159fabc448e74c8f092a165ea76c1727e7a7871af52d96cfa14498d87d4e"
+    },
+    {
+      "id": "code:player/player.gd:7:scale.WALK_SPEED",
+      "class": "code",
+      "file": "player/player.gd",
+      "line": 7,
+      "before": "const WALK_SPEED = 300.0",
+      "after": "const WALK_SPEED = 600",
+      "patchSha256": "c7b032e3793d7b6ff48695f2023b748d200839e232c795e33a9586a2fd0514b4"
+    },
+    {
+      "id": "code:player/player.gd:9:sign.JUMP_VELOCITY",
+      "class": "code",
+      "file": "player/player.gd",
+      "line": 9,
+      "before": "const JUMP_VELOCITY = -725.0",
+      "after": "const JUMP_VELOCITY = 725",
+      "patchSha256": "51474d4123ebd355389946b64b89cce52ace67155d03c6296727ceafd699d383"
+    },
+    {
+      "id": "code:player/player.gd:9:scale.JUMP_VELOCITY",
+      "class": "code",
+      "file": "player/player.gd",
+      "line": 9,
+      "before": "const JUMP_VELOCITY = -725.0",
+      "after": "const JUMP_VELOCITY = -1450",
+      "patchSha256": "ccd6fb95784314b872b2b2cde6aae5ec7a8ac23091a4ff620f706e2d0189d8d0"
+    },
+    {
+      "id": "code:player/player.gd:11:sign.TERMINAL_VELOCITY",
+      "class": "code",
+      "file": "player/player.gd",
+      "line": 11,
+      "before": "const TERMINAL_VELOCITY = 700",
+      "after": "const TERMINAL_VELOCITY = -700",
+      "patchSha256": "34b184020a901242ea38ca5ed7243ef7b10c96d71821198edafe17f297f3b0ee"
+    },
+    {
+      "id": "code:player/player.gd:11:scale.TERMINAL_VELOCITY",
+      "class": "code",
+      "file": "player/player.gd",
+      "line": 11,
+      "before": "const TERMINAL_VELOCITY = 700",
+      "after": "const TERMINAL_VELOCITY = 1400",
+      "patchSha256": "f85925fc5223ba04e34ff0619611f6e2b4647178fd8472e2eefc9ba7a24ae89a"
+    },
+    {
+      "id": "code:player/player.gd:33:compare.0",
+      "class": "code",
+      "file": "player/player.gd",
+      "line": 33,
+      "before": "\telif Input.is_action_just_released(\"jump\" + action_suffix) and velocity.y < 0.0:",
+      "after": "\telif Input.is_action_just_released(\"jump\" + action_suffix) and velocity.y > 0.0:",
+      "patchSha256": "77760511ae9eafbf7e7049d139dd9658419b0e9cc0a9c15ac3ae30c5cfcd5650"
+    },
+    {
+      "id": "code:player/player.gd:43:compare.0",
+      "class": "code",
+      "file": "player/player.gd",
+      "line": 43,
+      "before": "\t\tif velocity.x > 0.0:",
+      "after": "\t\tif velocity.x < 0.0:",
+      "patchSha256": "7d7398e4885324a1887ef8b65e0863db15fd665b694bc2925fea84968ae35381"
+    },
+    {
+      "id": "code:player/player.gd:56:compare.0",
+      "class": "code",
+      "file": "player/player.gd",
+      "line": 56,
+      "before": "\tif animation != animation_player.current_animation and shoot_timer.is_stopped():",
+      "after": "\tif animation == animation_player.current_animation and shoot_timer.is_stopped():",
+      "patchSha256": "7e7b8b52c773f89b41d7e3558b1634fcc0a3de3c7e2d364a6b3f463d8457f1b6"
+    },
+    {
+      "id": "code:player/player.gd:65:compare.0",
+      "class": "code",
+      "file": "player/player.gd",
+      "line": 65,
+      "before": "\t\tif absf(velocity.x) > 0.1:",
+      "after": "\t\tif absf(velocity.x) < 0.1:",
+      "patchSha256": "dd1debcd29ac3d4ce63fa06ec7e0a79bb84cc3e074d7a06cd3c40ac79c78182d"
+    },
+    {
+      "id": "code:player/player.gd:70:compare.0",
+      "class": "code",
+      "file": "player/player.gd",
+      "line": 70,
+      "before": "\t\tif velocity.y > 0.0:",
+      "after": "\t\tif velocity.y < 0.0:",
+      "patchSha256": "26a51d6235efbb1759819d6263272be9128ea3ef1bff81b507e03056ed9fd343"
+    },
+    {
+      "id": "code:enemy/enemy.gd:9:sign.WALK_SPEED",
+      "class": "code",
+      "file": "enemy/enemy.gd",
+      "line": 9,
+      "before": "const WALK_SPEED = 22.0",
+      "after": "const WALK_SPEED = -22",
+      "patchSha256": "62527d56b6ddced4e2035bba84cf145e55e6ec851d91e5c054e5439710c05821"
+    },
+    {
+      "id": "code:enemy/enemy.gd:9:scale.WALK_SPEED",
+      "class": "code",
+      "file": "enemy/enemy.gd",
+      "line": 9,
+      "before": "const WALK_SPEED = 22.0",
+      "after": "const WALK_SPEED = 44",
+      "patchSha256": "47bfb5a5648e0f5b3b9a45c91f934acff940f7a724b7603f442a543bc4db448d"
+    },
+    {
+      "id": "code:enemy/enemy.gd:22:compare.0",
+      "class": "code",
+      "file": "enemy/enemy.gd",
+      "line": 22,
+      "before": "\tif _state == State.WALKING and velocity.is_zero_approx():",
+      "after": "\tif _state != State.WALKING and velocity.is_zero_approx():",
+      "patchSha256": "09f8c0a52261de790aa61b523781c8d5da8fa4d03b7c60df3be5ea803dfc163d"
+    },
+    {
+      "id": "code:enemy/enemy.gd:28:sign.0",
+      "class": "code",
+      "file": "enemy/enemy.gd",
+      "line": 28,
+      "before": "\t\tvelocity.x = -WALK_SPEED",
+      "after": "\t\tvelocity.x = WALK_SPEED",
+      "patchSha256": "4ad81bd54bd724f68b1ebebb02fa4fdff7327926fc0c1a8db360621723ff51c2"
+    },
+    {
+      "id": "code:enemy/enemy.gd:35:compare.0",
+      "class": "code",
+      "file": "enemy/enemy.gd",
+      "line": 35,
+      "before": "\tif velocity.x > 0.0:",
+      "after": "\tif velocity.x < 0.0:",
+      "patchSha256": "e1aadf8e86d94eb60290a10470648e0fecfb3747185ae3da17ec41842495dfdf"
+    },
+    {
+      "id": "code:enemy/enemy.gd:37:compare.0",
+      "class": "code",
+      "file": "enemy/enemy.gd",
+      "line": 37,
+      "before": "\telif velocity.x < 0.0:",
+      "after": "\telif velocity.x > 0.0:",
+      "patchSha256": "e3001893478b0522dc3e9cc125c961b871eb62bb7178eea98a64296251b37e01"
+    },
+    {
+      "id": "code:enemy/enemy.gd:41:compare.0",
+      "class": "code",
+      "file": "enemy/enemy.gd",
+      "line": 41,
+      "before": "\tif animation != animation_player.current_animation:",
+      "after": "\tif animation == animation_player.current_animation:",
+      "patchSha256": "0d0227d63a05a03e8e76a6844a1e90d77c16c57c14d3f26a92b053b1141a8fa2"
+    },
+    {
+      "id": "code:enemy/enemy.gd:52:compare.0",
+      "class": "code",
+      "file": "enemy/enemy.gd",
+      "line": 52,
+      "before": "\tif _state == State.WALKING:",
+      "after": "\tif _state != State.WALKING:",
+      "patchSha256": "7018394a710a3693cf89083b465eba27d5ebd239a118b3902ac8aba47e2d013c"
+    },
+    {
+      "id": "code:enemy/enemy.gd:53:compare.0",
+      "class": "code",
+      "file": "enemy/enemy.gd",
+      "line": 53,
+      "before": "\t\tif velocity.x == 0:",
+      "after": "\t\tif velocity.x != 0:",
+      "patchSha256": "c77d2252b578ba4fbf4e1cfe11a4bbe633eb0e367565f3e80e62823c7fffb575"
+    }
+  ]
+}
