@@ -32,7 +32,7 @@ runs' own artifacts and is not edited by hand. Public checks only.
 | --- | --- | --- | --- | --- | --- |
 | 1, wrong fixes | 47 pairs: 39 labelled bad, 8 good | Score **79.5%**: 31 of 39 caught, 7 by the cheap tier, 24 only with SAM. All 8 good cases accepted | 5,473 SAM images, $13.68 | [41268021760](https://github.com/seanudeke/Expectrail/actions/runs/41268021760) | [`wrong-fix/`](wrong-fix/README.md), [notes](wrong-fix/NOTES.md) |
 | 2, generated bugs | 150 sampled: 73 equivalent, 77 judged | Weighted score **0.9%**, weighted over every class with a visible mutant (boolean's one mutant was equivalent). Over the sample as drawn, a figure about the sample: 13.0%, 10 of 77 caught, 5 by the cheap tier, 5 only with SAM | 15,862 SAM images, $39.66 | [41268023631](https://github.com/seanudeke/Expectrail/actions/runs/41268023631), [41323827584](https://github.com/seanudeke/Expectrail/actions/runs/41323827584), [41323829361](https://github.com/seanudeke/Expectrail/actions/runs/41323829361) | [`generated/`](generated/README.md) |
-| 3, AI-written fixes | The 10 generated bugs Part 2 caught, 1 candidate each | Muse Code fixed all 10 on the first attempt and Expectrail accepted all 10. The oracle labelled all 10 good, on 6 routes the judge does not use. **0 natural catches**, 0 false accepts, 0 false rejects. Muse from screenshots rejected 5 of the same 10 | 250 SAM images, $0.62 | [41330361829](https://github.com/seanudeke/Expectrail/actions/runs/41330361829) | [`ai-fixes/`](ai-fixes/README.md) |
+| 3, AI-written fixes | The 10 generated bugs Part 2 caught, 1 candidate each | Muse Code fixed all 10 on the first attempt and Expectrail accepted all 10. The oracle labelled all 10 good, on 6 routes, 5 of which the judge does not use. **0 natural catches**, 0 false accepts, 0 false rejects. Muse from screenshots rejected 5 of the same 10 | 250 SAM images, $0.62 | [41330361829](https://github.com/seanudeke/Expectrail/actions/runs/41330361829) | [`ai-fixes/`](ai-fixes/README.md) |
 
 SAM spend across the three parts: $53.96. Muse Code's own cost is not reported per run, so it is not
 in that figure.
@@ -112,6 +112,9 @@ What these numbers say:
   catching check's sentence.
 - In Part 3 the fixer got the registered report, the route, six screenshots and the game log, with no
   spec and no verdict. Ten cases is a small sample.
+- Part 3's label routes are the five reported-bug routes, which the judge does not use, and the smoke
+  route, which it does. The record's own sentence says "on routes the judge does not use"; that is
+  wrong for the smoke route, and the record is left as written.
 - The specs judge the first two seconds of one route, so anything a mutant breaks later or elsewhere
   reads as a survivor or as equivalent.
 

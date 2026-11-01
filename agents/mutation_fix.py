@@ -13,8 +13,8 @@ Expectrail catch it? Nobody picks a case or labels a fix:
   editable globs are the same for every case, so they say nothing about where the bug is.
 - **Judge:** every candidate goes through the tiered checker, with SAM on a cheap rejection too, so the
   public check always has an answer, and through Muse from screenshots when live.
-- **Label:** the registered oracle, positions and frames both, on routes the judge does not use
-  (bugs/reported/routes/ plus smoke). Good: on every route its engine record is within the trace
+- **Label:** the registered oracle, positions and frames both, on the label routes: the five in
+  bugs/reported/routes/, which the judge does not use, and smoke, which it does. Good: on every route its engine record is within the trace
   threshold of the clean game's and no more frames differ than the frame threshold allows. Bad: some
   route is over either one, or the game will not run there, twice. A fix that puts every position back
   but still draws the game wrong is bad, so a vision catch is never scored as a false reject. Unknown:
@@ -187,7 +187,7 @@ def route_controls(out: Path, routes: list[Path] | None = None) -> dict[str, dic
 
 def label_candidate(mutant: Path, candidate: Path, out: Path, thresholds: dict, controls: dict[str, dict | None],
                     routes: list[Path] | None = None) -> dict:
-    """The registered oracle (``preregistration.json``'s ``oracle``) on routes the judge does not use.
+    """The registered oracle (``preregistration.json``'s ``oracle``) on the label routes, most of which the judge does not use.
     A candidate whose game will not run on a route, twice, does not match the clean game there, so it
     is bad. A route that does not match itself leaves it unknown."""
     results: dict[str, dict | None] = {}
@@ -383,7 +383,7 @@ def markdown(doc: dict, runs: list[int]) -> str:
              f"{doc['fixed']} of {doc['cases']} generated bugs, {doc['acceptedAndGood']} of them labelled good by the oracle "
              f"({doc['notFixed']} with none accepted, {doc['needsReview']} needing review, {doc['errors']} errors).", "",
              f"Of {doc['candidates']} candidates, the oracle labelled {doc['good']} good, {doc['bad']} bad and {doc['unknown']} "
-             "unknown, on routes the judge does not use.", "",
+             "unknown, on the label routes (bugs/reported/routes/, which the judge does not use, and smoke, which it does).", "",
              "| Count | Candidates |", "| --- | --- |", f"| Natural catches | {doc['naturalCatches']} |",
              f"| False accepts | {doc['falseAccepts']} |", f"| False rejects | {doc['falseRejects']} |", "",
              f"SAM images: {doc['samImages']:,} (${doc['samImages'] * SAM_USD_PER_IMAGE:.2f}), including {doc.get('warmImages', 0)} "

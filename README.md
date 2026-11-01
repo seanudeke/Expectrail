@@ -41,6 +41,16 @@ the before-and-after screenshots, said the fall was fixed. Expectrail saw the ro
 floor and rejected it. In our judge benchmark, with SAM, it accepted none of the 7 fixes that only
 look right and turned down none of the 8 correct ones, in all three runs ([Results](#results)).
 
+We also tried to break it with a mutation bench, registered before any case in the study was
+judged ([`bench/mutation/`](bench/mutation/README.md#results)). Of 47 candidate fixes made by six operators,
+it caught 31 of the 39 that are wrong and accepted all 8 that are right; the 8 misses are one
+operator that changed nothing in the running game. On bugs nobody
+wrote it is weak: weighted by how common each kind of edit is, it caught 0.9% of random single
+edits that differ from the clean game, because it caught none of the 45 in the sample that move,
+resize or re-layer something, 44 of them scenery that no check covers (over the sample as drawn, 10
+of 77). Given the 10 it caught, Muse Code fixed every one correctly on its first attempt, so there
+was no wrong fix left to catch.
+
 Every fix is also reviewed against its failing base: the same checks run on the game with the bug
 and on the game with the fix, so the report shows the requested behavior failing before and passing
 after, not only passing. In six live overnight runs, three on October 30 and three on October 31 on
@@ -169,7 +179,8 @@ Every number here comes from a file in [`bench/`](bench), written from a CI run'
 the command that reruns it; the one exception, Meta API spend, comes from the team's usage export. Four bug families (physics fall-through, missing texture, layering,
 sinking), with two public development variants and two private held-out variants of each; the
 detection benches replay every variant, and the clean game, on five routes. We wrote those bugs;
-four more reproduce bugs other people reported ([Bugs we did not write](#bugs-we-did-not-write)).
+four more reproduce bugs other people reported ([Bugs we did not write](#bugs-we-did-not-write)),
+and the mutation bench generates its own ([`bench/mutation/`](bench/mutation/README.md)).
 
 | What we measured | Result | Run |
 | --- | --- | --- |
@@ -186,8 +197,8 @@ four more reproduce bugs other people reported ([Bugs we did not write](#bugs-we
 | Good fixes accepted by the judge (8 cases, 3 runs) | Expectrail 8 of 8 every run, with Glimmer too; Muse from screenshots 6, 7 and 6 of 8 | [judge](bench/judge/README.md), [with Glimmer](bench/judge/glimmer/README.md) |
 | The same 15 fixes judged from screenshots by the strongest outside models, Claude Fable 5.1 and GPT-6 Astra (1 run, 3 passes each, the same frames and prompt as Muse) | Bad fixes accepted: **0 of 7** in every pass, both. Good fixes accepted: Claude 6, 6 and 7 of 8; GPT 8, 7 and 8 of 8 | [outside models](bench/judge/outside-models/README.md) |
 | Mutation bench, wrong fixes: 47 candidates made by six operators the team wrote, registered before judging, public checks only | Tiered judge **31 of 39** bad fixes caught (79.5%), 24 of them only with SAM; 8 good cases accepted. The 8 misses are one operator that changed nothing in the running game | [41268021760](https://github.com/seanudeke/Expectrail/actions/runs/41268021760), [record](bench/mutation/README.md#results) |
-| Mutation bench, bugs nobody wrote: 150 sampled single edits to the game, 77 of them visibly different from the clean game, registered before judging, public checks only | Weighted score **0.9%**, set by the numeric class, 0 of 45 caught: 44 edits to scenery no check covers, and one that draws the player's sprite 26 px off its body. Over the sample as drawn, a figure about the sample: 10 of 77 caught (13.0%), 5 only with SAM | [41268023631](https://github.com/seanudeke/Expectrail/actions/runs/41268023631), [41323827584](https://github.com/seanudeke/Expectrail/actions/runs/41323827584), [41323829361](https://github.com/seanudeke/Expectrail/actions/runs/41323829361), [record](bench/mutation/README.md#results) |
-| Mutation bench, AI-written fixes: Muse Code on the 10 generated bugs the checks caught, from a report built mechanically from the failing check, with the route and screenshots | 10 of 10 fixed on the first attempt; Expectrail accepted 10, all 10 correct on 6 routes the judge does not use; Muse from screenshots rejected 5 of the same 10; **0 natural catches** | [41330361829](https://github.com/seanudeke/Expectrail/actions/runs/41330361829), [record](bench/mutation/README.md#results) |
+| Mutation bench, bugs nobody wrote: 150 sampled single edits to the game, 77 of them different from the clean game in positions or frames, registered before judging, public checks only | Weighted score **0.9%**, set by the numeric class, 0 of 45 caught: 44 edits to scenery no check covers, and one that draws the player's sprite 26 px off its body. Over the sample as drawn, a figure about the sample: 10 of 77 caught (13.0%), 5 only with SAM | [41268023631](https://github.com/seanudeke/Expectrail/actions/runs/41268023631), [41323827584](https://github.com/seanudeke/Expectrail/actions/runs/41323827584), [41323829361](https://github.com/seanudeke/Expectrail/actions/runs/41323829361), [record](bench/mutation/README.md#results) |
+| Mutation bench, AI-written fixes: Muse Code on the 10 generated bugs the checks caught, from a report built mechanically from the failing check, with the route and screenshots | 10 of 10 fixed on the first attempt; Expectrail accepted 10, all 10 correct on 6 routes, 5 of which the judge does not use; Muse from screenshots rejected 5 of the same 10; **0 natural catches** | [41330361829](https://github.com/seanudeke/Expectrail/actions/runs/41330361829), [record](bench/mutation/README.md#results) |
 | Development bugs fixed by Muse Code, October 29 | 8 of 8 with Expectrail's evidence; 8 of 8 from screenshots alone | [fix matrix](bench/fix-matrix/README.md) |
 | Development bugs fixed by Muse Code, October 31, all three briefings | Evidence first **8 of 8**; report first, evidence after a failed attempt 7 of 8; report only 6 of 8. Every miss was a sinking bug where the report-only attempts timed out | [41223754703](https://github.com/seanudeke/Expectrail/actions/runs/41223754703) |
 | Demo path, live, end to end, 10 independent runs | **10 of 10 accepted**, each on the first attempt; 12 to 22 minutes a run (median 14.5) and 1,164 SAM images ($2.91) a run; Muse Code's share is not reported per run | [40990485265](https://github.com/seanudeke/Expectrail/actions/runs/40990485265) |
@@ -305,6 +316,11 @@ Each was rendered on five routes, and so was the clean game ([`bench/reported/`]
   undid an earlier fix to the platforms' drawing order (PR #927), so in the current demo the lower
   moving platform draws behind the ground's grass edge. It is a candidate report to the demo's
   maintainers, not a benchmark case.
+- **A larger set is logged, not judged.** For a stress test on more bugs like these, ideally with
+  fixes an AI wrote, a machine search logged 200 candidate records of publicly reported bugs,
+  with the selection rules committed before any judging: 43 survive a first word-matching screen,
+  27 of them with strong evidence of AI involvement, and none has yet been shown to meet the rules. None was selected, ported or judged before the November 1 freeze,
+  so no number comes from it ([`bugs/reported/candidates.md`](bugs/reported/candidates.md)).
 
 ### Checks nobody wrote: advisory discovery
 
@@ -464,7 +480,7 @@ What this does and does not show:
   verifier does not run yet, and in a 20-case trial Muse Code wrote no fix for them that only
   looked right, nor in 10 cases on generated bugs, so there is no blind catch on a real bug yet. The checkout page's four private bugs
   came from a separate agent that never saw its checks, but of the same model family that tuned them.
-- **Most generated changes go unseen.** On machine-generated edits that visibly change the game, the
+- **Most generated changes go unseen.** On machine-generated edits that differ from the clean game, the
   checks caught 10 of 77, and none of the 45 numeric edits: 44 move, resize or re-layer scenery that
   no check covers, and one draws the player's sprite 26 px off its body. The survivors include 9 code
   edits. The generator's operators define what "a bug" means in that
@@ -565,7 +581,9 @@ See [agents/README.md](agents/README.md) for Muse API / Muse Code setup (`.env`,
 | [`bugs/`](bugs) | Seeded bugs, and reproductions of publicly reported Godot bugs ([`bugs/reported/`](bugs/reported/README.md)), as patches against the clean game ([evaluation plan](docs/evaluation.md)); the digest of the private fresh set for the blind discovery run ([`bugs/fresh/`](bugs/fresh/README.md)) | Sean, Timo |
 | [`docs/demo/`](docs/demo/) | Interactive demo showcase and audit vault web app; its clips come from [`harness/demo_clips.py`](harness/demo_clips.py) | Timo |
 | [`game/`](game) | Godot's 2D platformer demo, unmodified (MIT) | prior work |
-| [`agents/`](agents) | Repair requests, Muse Code fixer, verifier, Wonder triage, morning report | Taofeek |
+| [`agents/`](agents) | Repair requests, Muse Code fixer, verifier, Wonder triage, morning report, the mutation bench's generator and judge | Taofeek |
+| [`apps/checkout/`](apps/checkout/README.md) | The second domain: Bootstrap's checkout example (unmodified, MIT), its seeded bugs and checks, judged through a Chromium harness ([`harness/web/`](harness/web)) | Sean |
+| [`bench/`](bench/README.md) | Every recorded result, written from a CI run's own output with the command that reruns it; the mutation bench's registration and records ([`bench/mutation/`](bench/mutation/README.md)) | everyone; the mutation bench, Taofeek |
 
 ## Gates
 
