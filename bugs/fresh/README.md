@@ -25,3 +25,9 @@ repository, with ids `g01` to `g10`, and its digest goes in `fresh-2.sha256` her
 `python -m expectrail.discovery.fresh digest <set>/fresh-2`, before its first run. The blind
 workflow (input `set: fresh-2`) refuses set 1 under freeze 2, because set 1's manifest names
 freeze 1.
+
+Blind runs 3 and 4 (runs 41319184209 and 41319197682, November 1, dispatched on the head of pull
+request #166, which committed `fresh-2.sha256`) verified freeze 2 and that digest before replaying
+anything: 3 of the 8 defects flagged with the planner off, 4 of 8 with it on, and neither
+intentional change nor the clean game in either run
+([docs/discovery.md](../../docs/discovery.md#set-2-blind-runs-3-and-4-november-1)).

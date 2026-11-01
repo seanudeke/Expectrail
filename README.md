@@ -15,9 +15,9 @@ Those checks are written by people, and they are the gate. Since October 31 Expe
 for problems nobody wrote a check for: advisory discovery replays 22 generic probes and judges each
 replay against rules read from the game's own code, reporting only what fails three times out of
 three. It found all four reproduced public bug reports with no false alarm on the clean game, but its
-rules were written after we read those reports, so that is a development result. Blind, on ten fresh
-entries written after it was frozen, it flagged 4 of 8 defects and neither of the 2 intentional
-changes. Discovered checks advise; only the human-written ones can reject a change
+rules were written after we read those reports, so that is a development result. Blind, on two sets
+of fresh entries written after it was frozen, it flagged 7 of 16 defects and none of the 4
+intentional changes. Discovered checks advise; only the human-written ones can reject a change
 ([Two kinds of checks](#two-kinds-of-checks)).
 
 It catches fixes that only look right. Given a "fix" that stops the robot falling through
@@ -123,8 +123,8 @@ or blocked".
 | What | Three approved specs (the robot stays above the ground, the robot is visible, the coins are visible), the gameplay check, and the held-out bugs and routes. Five engine-record checks for the reported bugs, run by their bench, not by the verifier | 22 generic probes (stand still, walk each way, reverse, jump once, twice or eight times from four spots, shoot at two rates each way, walk while firing), judged by contracts built from a profile of four claims read from the game's code: the double jump, the gun's cooldown, the sprite's facing, the enemies' patrol |
 | Who writes them | Muse Spark drafts a spec from one sentence, a person approves it; teammates write the held-out cases | Twelve templates, with no model. Muse Spark can propose more probes and contracts in a closed language (built; its first live calls returned no content); a proposal never approves itself |
 | Effect | The gate: any failure rejects the change | Advisory: reported beside the decision, never changing it |
-| Shown so far | 8 of 8 held-out bugs caught with SAM; 0 of 7 fixes that only look right accepted | Blind: 4 of 8 fresh defects flagged, 0 of 3 healthy builds. Development: the four reported bugs found, no false alarm (its profile was written after them); 2 of the 8 development bugs |
-| Next | More approved checks; the engine-record checks in the verifier | The planner live; then validation, a person's approval and paired verdicts before a discovered check can reject anything ([docs/discovery.md](docs/discovery.md#whats-next)) |
+| Shown so far | 8 of 8 held-out bugs caught with SAM; 0 of 7 fixes that only look right accepted | Blind, two fresh sets: 7 of 16 defects flagged, no false alarm on 4 intentional changes or the clean game; with the Muse Spark planner on set 2, 4 of 8 instead of 3. Development: the four reported bugs found, no false alarm (its profile was written after them); 2 of the 8 development bugs |
+| Next | More approved checks; the engine-record checks in the verifier | A larger blind set written by people; then validation, a person's approval and paired verdicts before a discovered check can reject anything ([docs/discovery.md](docs/discovery.md#whats-next)) |
 
 Status, October 30: the whole loop runs live, end to end: Wonder triage, Muse Code in a sandbox,
 the Godot harness, the verifier with SAM 3.1 on the private held-out routes, the signed morning
@@ -148,7 +148,8 @@ four more reproduce bugs other people reported ([Bugs we did not write](#bugs-we
 | Development bugs caught: SAM on / Glimmer, no SAM / no vision | 8 of 8 / 8 of 8 / 3 of 8 | [40841977642](https://github.com/seanudeke/Expectrail/actions/runs/40841977642), [41001182605](https://github.com/seanudeke/Expectrail/actions/runs/41001182605) |
 | Publicly reported Godot bugs, reproduced (not written by us), caught: today's checks with SAM off / engine-record checks | 0 of 4 / **4 of 4**, no false alarm on the clean game; the engine-record checks were written after the bugs were reproduced | [41116202685](https://github.com/seanudeke/Expectrail/actions/runs/41116202685) |
 | Advisory discovery (checks nobody wrote), one job per build, no reference build: the clean game, the four reported bugs, and the eight development bugs it was not written for | Reported bugs **4 of 4** found, each 3 times out of 3, no false alarm on the clean game; development bugs 2 of 8. Development reproduction: its rules were written after reading the four reports | [41238187197](https://github.com/seanudeke/Expectrail/actions/runs/41238187197) |
-| Advisory discovery, blind: the frozen discoverer on ten fresh entries written after the freeze (8 defects, 2 intentional changes) and the clean game, planner off | **4 of 8** defects flagged, each 3 times out of 3; **0 of 3** healthy builds flagged; no job incomplete | [41248745687](https://github.com/seanudeke/Expectrail/actions/runs/41248745687) |
+| Advisory discovery, blind: the frozen discoverer on two fresh sets written after its freezes (8 defects and 2 intentional changes each) and the clean game, planner off | **7 of 16** defects flagged (4 of 8, then 3 of 8), each finding 3 times out of 3; **no** intentional change or clean game flagged; no job incomplete | [41248745687](https://github.com/seanudeke/Expectrail/actions/runs/41248745687), [41319184209](https://github.com/seanudeke/Expectrail/actions/runs/41319184209) |
+| The same, set 2, with the Muse Spark planner on (the clean game as each job's reference) | **4 of 8** defects flagged, one more than without it; **0 of 3** healthy builds flagged | [41319197682](https://github.com/seanudeke/Expectrail/actions/runs/41319197682) |
 | Natural-catch trial: Muse Code given each reported bug in the reporter's words, 5 times each (20 cases) | 20 of 20 fixed on the first attempt; Expectrail accepted 20, the bug's own check passed 20, Muse from screenshots accepted 19; **0 natural catches** | [41129722699](https://github.com/seanudeke/Expectrail/actions/runs/41129722699) |
 | Bad fixes that only look right, accepted by the judge (7 cases, 3 runs) | Expectrail with SAM **0 of 7**; Expectrail without SAM 3 of 7; Muse from screenshots 2 of 7; Expectrail with Muse Glimmer checked against the engine, no SAM (1 run) 0 of 7, one of them stopped only on a held-out route | [judge](bench/judge/README.md), [with Glimmer](bench/judge/glimmer/README.md) |
 | Good fixes accepted by the judge (8 cases, 3 runs) | Expectrail 8 of 8 every run, with Glimmer too; Muse from screenshots 6, 7 and 6 of 8 | [judge](bench/judge/README.md), [with Glimmer](bench/judge/glimmer/README.md) |
@@ -286,19 +287,20 @@ clean game as the false-alarm control ([`bench/discovery/`](bench/discovery/READ
   reports, and the rule that catches air-jump was written after the first jump rule missed it.
   No report, patch, route or hand-written rule went into a run.
 - **It does not gate.** Every claim is inferred from code and unapproved, so findings are advisory.
-- **Blind, it flagged 4 of 8 fresh defects and no healthy build.** With the discoverer's files
-  frozen (`discovery/freeze.json`), a separate session wrote ten fresh entries in the private
-  held-out repository, drawn at random from a list it committed first, and their digest was
-  committed here ([`bugs/fresh/`](bugs/fresh/README.md)) before the run (run
-  [41248745687](https://github.com/seanudeke/Expectrail/actions/runs/41248745687)). Eight defects is
-  a small set; the writer was an AI agent following a prompt written by the session that built the
-  discoverer, which suggested the areas to draw from; and what each entry is stays private until
-  the event is over ([docs/discovery.md](docs/discovery.md#blind-run-1-october-31)).
-- **The Muse Spark planner has no blind result yet.** In its first live calls, blind run 2, it
-  returned no content (its reasoning used up the token limit we set), so that run repeated run 1's
-  counts from the templates alone. Fixed and run on the public builds, with the clean game as each
-  job's reference, it added second reasons but no new detection. A second fresh set, written
-  against a new freeze that includes the fix, is its blind test.
+- **Blind, it flagged 7 of 16 fresh defects and no healthy build.** With the discoverer's files
+  frozen (`discovery/freeze.json`), separate sessions wrote two sets of ten fresh entries in the
+  private held-out repository, each drawn at random from a list committed first, and each set's
+  digest was committed here ([`bugs/fresh/`](bugs/fresh/README.md)) before its runs. The templates
+  flagged 4 of 8 defects on set 1 and 3 of 8 on set 2, and none of the 4 intentional changes or the
+  clean game. Sixteen defects is still a small sample; both writers were AI sessions following a
+  prompt written by the session that built the discoverer, which suggested the areas to draw from;
+  and what each entry is stays private until the event is over
+  ([docs/discovery.md](docs/discovery.md#all-blind-runs)).
+- **The Muse Spark planner, blind once: one more defect, no false alarm.** Its first live calls
+  (set 1) returned no content, because its reasoning used up the token limit we set. Fixed under a
+  new freeze, with the clean game replayed in each job as the reference its contracts must pass,
+  it took set 2 from 3 of 8 to 4 of 8 with no healthy build flagged. One extra catch in one run is a
+  hint, not a measured gain.
 - **Next:** the specification's promotion and enforcement stages, and what we would take from AI
   code review that runs code (Greptile), are in [docs/discovery.md](docs/discovery.md#whats-next).
 
@@ -405,8 +407,8 @@ What this does and does not show:
   profile was written after reading those four reports (development reproduction, not blind
   discovery), and it reaches only the four mechanics that profile describes: of the eight
   development bugs it was not written for, it flagged the two fall-through variants by a symptom and
-  missed the six that are visual or about ground contact. Blind, on eight fresh defects, it flagged
-  four.
+  missed the six that are visual or about ground contact. Blind, on sixteen fresh defects in two
+  sets, it flagged seven.
 - **One game and one web page, mostly with bugs we seeded.** The game's held-out bugs were kept from
   the fixer, but a teammate wrote them, and the same team wrote the checks. The four reproduced
   public bug reports are caught only by engine-record checks written after we saw them, which the
