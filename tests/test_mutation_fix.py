@@ -22,6 +22,16 @@ PREREG = {"sha256": SHA, "reportTemplate": "A player says this no longer holds: 
           "oracle": {"traceThresholdPx": 1.0, "frameThreshold": 0}}
 CLEAN = {"rows": [{"tick": 0, "player": [10.0, 20.0], "facing": 1}]}
 MOVED = {"rows": [{"tick": 0, "player": [15.0, 20.0], "facing": 1}]}
+FRAMES = ["f0", "f1", "f2"]
+REDRAWN = ["f0", "f1-drawn-wrong", "f2"]
+
+
+def run(trace=CLEAN, frames=FRAMES):
+    """One replay as the label code sees it: the engine record and the frame hashes."""
+    return {"trace": trace, "frames": list(frames)}
+
+
+CLEAN_RUN = run()
 
 
 def caught(i, **fields) -> dict:
@@ -159,32 +169,52 @@ class CountTest(unittest.TestCase):
 
 class LabelTest(unittest.TestCase):
     ROUTES = [Path("a.json"), Path("b.json")]
+    ORACLE = {"traceThresholdPx": 1.0, "frameThreshold": 0}
 
-    def label(self, traces, controls=None, threshold=1.0):
-        controls = controls if controls is not None else {"a": CLEAN, "b": CLEAN}
-        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(mf.rt, "_replay", side_effect=traces):
-            return mf.label_candidate(Path("m"), Path("c"), Path(tmp), threshold, controls, routes=self.ROUTES)
+    def label(self, runs, controls=None, thresholds=None):
+        controls = controls if controls is not None else {"a": CLEAN_RUN, "b": CLEAN_RUN}
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(mf, "_replay_with_frames", side_effect=runs):
+            return mf.label_candidate(Path("m"), Path("c"), Path(tmp), thresholds or self.ORACLE, controls,
+                                      routes=self.ROUTES)
 
     def test_good_only_when_every_route_matches(self):
-        self.assertEqual(self.label([CLEAN, CLEAN])["label"], "good")
-        self.assertEqual(self.label([CLEAN, MOVED])["label"], "bad")
+        self.assertEqual(self.label([CLEAN_RUN, CLEAN_RUN])["label"], "good")
+        self.assertEqual(self.label([CLEAN_RUN, run(MOVED)])["label"], "bad")
 
-    def test_the_threshold_is_inclusive_of_a_match(self):
-        self.assertEqual(self.label([MOVED, MOVED], threshold=5.0)["label"], "good")
+    def test_positions_that_match_with_frames_that_do_not_is_bad(self):
+        """The case this oracle is for: the engine record is put back but the game is drawn wrong, as
+        when the robot is drawn inside the floor. Vision catches it, so it must not score as a false
+        reject."""
+        out = self.label([CLEAN_RUN, run(CLEAN, REDRAWN)])
+        self.assertEqual(out["label"], "bad")
+        self.assertEqual(out["distances"], {"a": 0.0, "b": 0.0})
+        self.assertEqual(out["framesDiffering"], {"a": 0, "b": 1})
+
+    def test_a_missing_or_extra_frame_counts_as_differing(self):
+        self.assertEqual(self.label([CLEAN_RUN, run(CLEAN, FRAMES[:2])])["label"], "bad")
+
+    def test_both_registered_thresholds_are_used_and_inclusive_of_a_match(self):
+        self.assertEqual(self.label([run(MOVED), run(MOVED)], thresholds={"traceThresholdPx": 5.0,
+                                                                          "frameThreshold": 0})["label"], "good")
+        self.assertEqual(self.label([run(CLEAN, REDRAWN)] * 2, thresholds={"traceThresholdPx": 0,
+                                                                           "frameThreshold": 1})["label"], "good")
 
     def test_a_candidate_that_will_not_run_is_tried_again_then_bad(self):
-        self.assertEqual(self.label([None, None, CLEAN])["label"], "bad")
-        self.assertEqual(self.label([None, CLEAN, CLEAN])["label"], "good")  # a flake, on the second try
+        out = self.label([None, None, CLEAN_RUN])
+        self.assertEqual((out["label"], out["notRun"]), ("bad", ["a"]))
+        self.assertEqual(self.label([None, CLEAN_RUN, CLEAN_RUN])["label"], "good")  # a flake, on the second try
 
     def test_a_route_that_does_not_match_itself_leaves_it_unknown(self):
-        self.assertEqual(self.label([CLEAN], controls={"a": None, "b": CLEAN})["label"], "unknown")
+        self.assertEqual(self.label([CLEAN_RUN], controls={"a": None, "b": CLEAN_RUN})["label"], "unknown")
 
     def test_but_a_route_that_disagrees_still_decides_it(self):
-        self.assertEqual(self.label([MOVED], controls={"a": None, "b": CLEAN})["label"], "bad")
+        self.assertEqual(self.label([run(MOVED)], controls={"a": None, "b": CLEAN_RUN})["label"], "bad")
+        self.assertEqual(self.label([run(CLEAN, REDRAWN)], controls={"a": None, "b": CLEAN_RUN})["label"], "bad")
 
     def test_the_seed_and_the_candidate_are_both_replayed(self):
-        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(mf.rt, "_replay", return_value=CLEAN) as replay:
-            mf.label_candidate(Path("m"), Path("c"), Path(tmp), 1.0, {"a": CLEAN}, routes=[Path("a.json")])
+        with tempfile.TemporaryDirectory() as tmp, \
+                mock.patch.object(mf, "_replay_with_frames", return_value=CLEAN_RUN) as replay:
+            mf.label_candidate(Path("m"), Path("c"), Path(tmp), self.ORACLE, {"a": CLEAN_RUN}, routes=[Path("a.json")])
         self.assertEqual([c.args[2] for c in replay.call_args_list], [[Path("m"), Path("c")]])
 
     def test_the_label_routes_are_not_only_the_judges(self):
@@ -192,23 +222,53 @@ class LabelTest(unittest.TestCase):
         self.assertGreater(len(mf.LABEL_ROUTES), 1)
 
     def test_a_trace_that_differs_in_kind_stays_json_safe(self):
-        out = self.label([CLEAN, {"rows": []}])
+        out = self.label([CLEAN_RUN, run({"rows": []})])
         self.assertEqual(out["label"], "bad")
-        json.dumps(out)
+        json.dumps(out, allow_nan=False)
+
+
+class ReplayWithFramesTest(unittest.TestCase):
+    def replay(self, replay_json):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "r"
+
+            def fake(route, out_dir, patches):
+                out_dir.mkdir(parents=True, exist_ok=True)
+                if replay_json is not None:
+                    (out_dir / "replay.json").write_text(json.dumps(replay_json), encoding="utf-8")
+                return CLEAN
+
+            with mock.patch.object(mf.rt, "_replay", side_effect=fake):
+                return mf._replay_with_frames(Path("a.json"), out, [])
+
+    def test_it_reads_the_frame_hashes_the_harness_wrote(self):
+        self.assertEqual(self.replay({"frameSha256": FRAMES}), CLEAN_RUN)
+
+    def test_no_frame_hashes_is_no_replay(self):
+        for doc in (None, {}, {"frameSha256": "f0"}):
+            with self.subTest(doc=doc):
+                self.assertIsNone(self.replay(doc))
+
+    def test_a_replay_that_did_not_finish_is_no_replay(self):
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(mf.rt, "_replay", return_value=None):
+            self.assertIsNone(mf._replay_with_frames(Path("a.json"), Path(tmp) / "r", []))
 
 
 class ControlTest(unittest.TestCase):
-    def controls(self, traces):
-        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(mf.rt, "_replay", side_effect=traces):
+    def controls(self, runs):
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(mf, "_replay_with_frames", side_effect=runs):
             return mf.route_controls(Path(tmp), routes=[Path("a.json")])
 
     def test_a_route_that_matches_itself_is_usable(self):
-        self.assertEqual(self.controls([CLEAN, CLEAN]), {"a": CLEAN})
+        self.assertEqual(self.controls([CLEAN_RUN, CLEAN_RUN]), {"a": CLEAN_RUN})
 
-    def test_jitter_or_a_failed_replay_makes_a_route_unusable(self):
-        for traces in ([CLEAN, MOVED], [None, CLEAN], [CLEAN, None]):
-            with self.subTest(traces=traces):
-                self.assertEqual(self.controls(traces), {"a": None})
+    def test_jitter_in_positions_or_frames_or_a_failed_replay_makes_a_route_unusable(self):
+        for runs in ([CLEAN_RUN, run(MOVED)], [CLEAN_RUN, run(CLEAN, REDRAWN)], [None, CLEAN_RUN], [CLEAN_RUN, None]):
+            with self.subTest(runs=runs):
+                self.assertEqual(self.controls(runs), {"a": None})
+
+    def test_a_route_that_rendered_no_frames_is_unusable(self):
+        self.assertEqual(self.controls([run(CLEAN, []), run(CLEAN, [])]), {"a": None})
 
 
 class RunCaseTest(unittest.TestCase):
@@ -221,10 +281,11 @@ class RunCaseTest(unittest.TestCase):
         self.out = Path(self.tmp.name)
         patches = [mock.patch.object(mf.rt, "_replay", return_value=CLEAN),
                    mock.patch.object(mf.rt, "spaced_frames", return_value=[]),
-                   mock.patch.object(mf, "route_controls", return_value={"smoke": CLEAN}),
-                   mock.patch.object(mf, "label_candidate", return_value={"label": "bad", "distances": {}})]
+                   mock.patch.object(mf, "route_controls", return_value={"smoke": CLEAN_RUN}),
+                   mock.patch.object(mf, "label_candidate", return_value={"label": "bad", "distances": {},
+                                                                          "framesDiffering": {}, "notRun": []})]
+        self.mocks = [p.start() for p in patches]
         for p in patches:
-            p.start()
             self.addCleanup(p.stop)
 
     def run_fixer(self, *patches, seen=None):
@@ -250,6 +311,12 @@ class RunCaseTest(unittest.TestCase):
         self.assertEqual(row["outcome"], "fixed")
         self.assertEqual([a["decision"] for a in row["attempts"]], ["reject", "accept"])
         self.assertTrue(row["attempts"][1]["falseAccept"])
+
+    def test_labels_use_the_whole_registered_oracle(self):
+        row = self.go([{"outcome": "caught-cheap"}] * 3, ["a", "b", "c"])
+        label = self.mocks[3]
+        self.assertEqual(label.call_args.args[3], PREREG["oracle"])
+        self.assertLessEqual({"label", "distances", "framesDiffering", "notRun"}, set(row["attempts"][0]))
 
     def test_three_rejections_is_not_fixed(self):
         row = self.go([{"outcome": "caught-cheap"}] * 3, ["a", "b", "c"])
