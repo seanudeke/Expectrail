@@ -4,6 +4,20 @@
 
 [expectrail.com](https://expectrail.com)
 
+<!-- The demo video's link goes first in the box below once it is uploaded. -->
+> **For judges, in three minutes**
+>
+> - **A fake fix rejected, with its real frames:** the "fix" stops the fall by drawing the robot inside
+>   the floor. [docs/review/sinking-fix](docs/review/sinking-fix/) ([live page](https://expectrail.com/review/sinking-fix/))
+> - **A real fix, failing before and passing after:** Muse Code's fix from a live overnight run.
+>   [docs/review/report-first-run-1](docs/review/report-first-run-1/) ([live page](https://expectrail.com/review/report-first-run-1/))
+> - **Every result, each with the run behind it:** [Results](#results), and what it cannot do yet:
+>   [What Expectrail cannot do yet](#what-expectrail-cannot-do-yet)
+> - **Which Meta models do what:** [Meta models](#meta-models)
+> - **Run it with no keys, in seconds:** `python3 -m pip install -r requirements-dev.txt`, then
+>   `python3 -m agents.loop --out runs/loop --mode offline --runs 1` (fixtures, labelled as such;
+>   real replays need Linux and Godot: [Try it](#try-it))
+
 Expectrail verifies AI-agent changes by observation, not by trust. It replays the changed game, has
 Meta's vision models (SAM 3.1, or the open-weight Muse Glimmer) find what a plain-English check names
 in the frames, measures that against the engine's own record of where the robot, the coins and the
@@ -115,6 +129,21 @@ Muse Code hook blocks file-tool writes outside the editable files and logs every
 commands are logged, not checked). The morning report lists both under "Feedback in" and "Refused
 or blocked".
 [docs/feedback-recording.md](docs/feedback-recording.md)
+
+### Meta models
+
+Seven Meta models look, write and fix. None of them decides whether a change passes: plain code does,
+from what they observe.
+
+| Model | Its job | Shown by |
+| --- | --- | --- |
+| SAM 3.1 | Finds what a check names in every frame of a replay: the robot, the coins, a checkout button | With SAM, 0 of 7 fake fixes accepted, against 3 of 7 without it; 24 of the 31 machine-made wrong fixes caught were caught only with SAM ([Results](#results)) |
+| Muse Code | The fixer, in a sandbox where it can neither see nor change the checks | Fixed the bug from a plain report on the first attempt in 3 of 3 live runs ([41223748922](https://github.com/seanudeke/Expectrail/actions/runs/41223748922)) |
+| Muse Wonder | Triage: turns failure evidence into a bug report and a repair request | Every live run |
+| Muse Spark | Drafts a check from one sentence for a person to approve; sorts playtest remarks; proposes discovery probes | [docs/feedback-recording.md](docs/feedback-recording.md), [docs/discovery.md](docs/discovery.md) |
+| Muse Glimmer 30B, open weights | Judges the vision checks with no SAM key, checked against the engine; the fallback when SAM does not answer | 8 of 8 held-out bugs caught with no SAM ([docs/open-weights.md](docs/open-weights.md)) |
+| Muse Spark Open, open weights | Drafts checks and sorts playtest remarks, served on Baseten | [bench/spark-open](bench/spark-open) |
+| Muse Voice Transcribe | Turns a recorded playtest into who said what | [docs/feedback-recording.md](docs/feedback-recording.md) |
 
 ### Two kinds of checks
 
