@@ -267,10 +267,11 @@ cases the verifier was built to reject, so 0 of 7 shows it holds on known tricks
 Fifteen cases is small. The judges do not see the same evidence: that is the comparison we claim
 (what each would accept from what it is given), not an equal-information test.
 
-## Mutation bench: bugs and fixes nobody wrote (added Nov 1)
+## Mutation bench (added Nov 1)
 
-The judge benchmark's bad fixes were written by us. The mutation bench takes that choice away, and it
-was registered before any case in it was judged: the generator, its operators, the seed, a stratified
+The judge benchmark's bad fixes were written by us. In the mutation bench, Part 2's bugs come from a
+seeded generator, and Part 1's wrong fixes from six operators the team wrote but did not aim at any
+case. It was registered before any case in the study was judged: the generator, its operators, the seed, a stratified
 sample of 150, the steps, an oracle that calls a change visible if it differs from the clean game in
 the engine's record or in any frame (thresholds 0 and 0), and the stop rule
 ([`bench/mutation/preregistration.json`](../bench/mutation/preregistration.json)). Only public checks
@@ -279,9 +280,9 @@ changes a pinned file.
 
 | Part | Cases | Result | Run |
 | --- | --- | --- | --- |
-| 1, wrong fixes | 47 made by six operators: 39 wrong, 8 right | **31 of 39** wrong fixes caught, 24 only with SAM; all 8 right ones accepted. The 8 misses are one operator, `scale-to-zero`, that changes nothing in the running game | [41268021760](https://github.com/seanudeke/Expectrail/actions/runs/41268021760) |
-| 2, generated bugs | 150 single edits sampled, 77 visibly different | **10 of 77** caught (5 by the cheap tier, 5 only with SAM); weighted score **0.9%**, because none of the 45 numeric edits was caught: 44 move, resize or re-layer scenery no check covers, one draws the player's sprite 26 px off its body | [41268023631](https://github.com/seanudeke/Expectrail/actions/runs/41268023631), [41323827584](https://github.com/seanudeke/Expectrail/actions/runs/41323827584), [41323829361](https://github.com/seanudeke/Expectrail/actions/runs/41323829361) |
-| 3, AI-written fixes | Muse Code on the 10 bugs Part 2 caught | 10 fixed on the first attempt, all accepted, all correct on six routes the judge does not use: **0 natural catches**. Muse from screenshots rejected 5 of the same 10 | [41330361829](https://github.com/seanudeke/Expectrail/actions/runs/41330361829) |
+| 1, wrong fixes | 47 made by six operators: 39 wrong, and 8 right (a correct fix plus a comment) | **31 of 39** wrong fixes caught, 24 only with SAM; all 8 right ones accepted. The 8 misses are one operator, `scale-to-zero`, that changes nothing in the running game | [41268021760](https://github.com/seanudeke/Expectrail/actions/runs/41268021760) |
+| 2, generated bugs | 150 single edits sampled, 77 different from the clean game | Weighted score **0.9%**, because none of the 45 numeric edits was caught; over the sample as drawn, 10 of 77 (5 by the cheap tier, 5 only with SAM). Of the 45, 44 move, resize or re-layer scenery no check covers, one draws the player's sprite 26 px off its body | [41268023631](https://github.com/seanudeke/Expectrail/actions/runs/41268023631), [41323827584](https://github.com/seanudeke/Expectrail/actions/runs/41323827584), [41323829361](https://github.com/seanudeke/Expectrail/actions/runs/41323829361) |
+| 3, AI-written fixes | Muse Code on the 10 bugs Part 2 caught | 10 fixed on the first attempt, all accepted, all correct on six routes, five of which the judge does not use: **0 natural catches**. They were bugs the checks had already caught, reported in the catching check's words. Muse from screenshots rejected 5 of the same 10 | [41330361829](https://github.com/seanudeke/Expectrail/actions/runs/41330361829) |
 
 What it adds to the plan above: Expectrail catches what its checks name, and the bench measures how
 much of a game that is. Most of what a random edit changes is scenery no check names. The cheap tier
