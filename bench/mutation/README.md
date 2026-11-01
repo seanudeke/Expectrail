@@ -58,8 +58,9 @@ What these numbers say:
   0 pixels and 0 frames, any change to what is drawn counts as a bad case, and no check forbids moving
   scenery. Many of these may not be bugs a player would report, but the bench cannot say which.
 - **The other survivors are the more useful list.** 9 code, 12 resource-path and 1 collision-bit
-  mutants survived. Each has a finding with the check that would have caught it. No check was added
-  after seeing a result.
+  mutants survived. Each has a finding that records what every check said, but no catch-spec: the
+  bench writes those per wrong-fix operator, so only Part 1 has them. Which check would catch each
+  generated survivor is still to be worked out. No check was added after seeing a result.
 - **Cheap checks and SAM catch different things.** Part 1 has 24 vision-only wins and Part 2 has 5.
   Agreement is 0 of 12: SAM's own checks passed all 12 cheap rejections they were asked about (7 in
   Part 1, 5 in Part 2). SAM did not contradict those catches, since it looks for different failures, but it cannot
